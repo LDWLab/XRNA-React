@@ -1,296 +1,1209 @@
-import { useState, createRef, useEffect } from 'react'
+import React, { createRef, Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import './App.css';
+import { DEFAULT_TAB, Tab, tabs } from './app_data/Tab';
+import { add, scaleDown, subtract, Vector2D } from './data_structures/Vector2D';
 import { useResizeDetector } from 'react-resize-detector';
-import inputFileReaders, { type FileReader } from './inputUI';
-import outputFileWriters, { type FileWriter } from './outputUI';
-import selectionConstraints from './selectionConstraints';
-import { RNAComplex } from './RNAComplex'
-import { RNAMolecule } from './RNAMolecule';
-import { BasePairType, Nucleotide } from './Nucleotide';
-import { Vector2D } from './Vector2D';
+import { RnaComplex } from './components/app_specific/RnaComplex';
+import { OutputFileExtension, outputFileExtensions, outputFileWritersMap } from './io/OutputUI';
+import { SCALE_BASE, ONE_OVER_LOG_OF_SCALE_BASE, MouseButtonIndices } from './utils/Constants';
+import { inputFileExtensions, InputFileExtension, inputFileReadersRecord } from './io/InputUI';
+import { DEFAULT_SETTINGS, Setting, settings, settingsLongDescriptionsMap, settingsShortDescriptionsMap } from './ui/Setting';
+import InputWithValidator from './components/generic/InputWithValidator';
+import { BasePairKeysToRerender, Context, NucleotideKeysToRerender } from './context/Context';
+import { sign } from './utils/Utils';
+import { Nucleotide } from './components/app_specific/Nucleotide';
+import { LabelContent } from './components/app_specific/LabelContent';
+import { LabelLine } from './components/app_specific/LabelLine';
+import { InteractionConstraint } from './ui/InteractionConstraint/InteractionConstraints';
+import { LabelContentEditMenu } from './components/app_specific/edit_menus/LabelContentEditMenu';
+import { LabelLineEditMenu } from './components/app_specific/edit_menus/LabelLineEditMenu';
+import { jsonObjectHandler } from './io/JsonInputFileHandler';
 
-type ButtonData = {
-  highlightColor : string
+// Begin types.
+export type RnaComplexKey = number;
+export type RnaMoleculeKey = string;
+export type NucleotideKey = number;
+export type FullKeys = {
+  rnaComplexIndex : RnaComplexKey,
+  rnaMoleculeName : RnaMoleculeKey,
+  nucleotideIndex : NucleotideKey
 };
-
-enum Tab {
-  IMPORT_EXPORT = "Import/Export",
-  EDIT = "Edit",
-  ANNOTATE = "Annotate",
-  SETTINGS = "Settings"
+export type DragListener = {
+  initiateDrag : () => Vector2D,
+  continueDrag : (totalDrag : Vector2D) => void,
+  terminateDrag? : () => void
 }
-
+export type RnaComplexProps = Record<number, RnaComplex.ExternalProps>;
 function App() {
-  const buttonData : Record<Tab, ButtonData> = {
-    [Tab.IMPORT_EXPORT] : {
-      highlightColor : "rgb(24, 98, 24)"
+  // Begin app-specific constants.
+  const DIV_BUFFER_HEIGHT = 2;
+  const MOUSE_OVER_TEXT_FONT_SIZE = 20;
+  // Begin state data.
+  const [
+    complexDocumentName,
+    setComplexDocumentName
+  ] = useState("");
+  const [
+    rnaComplexProps,
+    setRnaComplexProps
+  ] = useState<RnaComplexProps>({});
+  const [
+    inputFileNameAndExtension,
+    setInputFileNameAndExtension
+  ] = useState("");
+  const [
+    outputFileName,
+    setOutputFileName
+  ] = useState("");
+  const [
+    outputFileExtension,
+    setOutputFileExtension
+  ] = useState<OutputFileExtension | undefined>(undefined);
+  const [
+    sceneBounds,
+    setSceneBounds
+  ] = useState({
+    x : 0,
+    y : 0,
+    width : 1,
+    height : 1
+  });
+  // Begin UI-relevant state data.
+  const [
+    tab,
+    setTab
+  ] = useState(DEFAULT_TAB);
+  const [
+    interactionConstraint,
+    setInteractionConstraint
+  ] = useState<InteractionConstraint.Enum | undefined>(InteractionConstraint.Enum.ENTIRE_SCENE);
+  const [
+    settingsRecord,
+    setSettingsRecord
+  ] = useState(DEFAULT_SETTINGS);
+  const [
+    rightClickMenuContent,
+    setRightClickMenuContent
+  ] = useState(<></>);
+  const [
+    nucleotideKeysToRerender,
+    setNucleotideKeysToRerender
+  ] = useState<NucleotideKeysToRerender>({});
+  const [
+    basePairKeysToRerender,
+    setBasePairKeysToRerender
+  ] = useState<BasePairKeysToRerender>({});
+  const [
+    sceneVisibility,
+    setSceneVisibility
+  ] = useState(false);
+  const [
+    mouseOverText,
+    setMouseOverText
+  ] = useState("");
+  const [
+    mouseOverTextDimensions,
+    setMouseOverTextDimensions
+  ] = useState<{
+    width : number,
+    height : number
+  }>({
+    width : 0,
+    height : 0
+  });
+  const [
+    originOfDrag,
+    setOriginOfDrag
+  ] = useState<Vector2D>({
+    x : 0,
+    y : 0
+  });
+  const [
+    dragCache,
+    setDragCache
+  ] = useState<Vector2D>({
+    x : 0,
+    y : 0
+  });
+  const [
+    dragListener,
+    _setDragListener
+  ] = useState<DragListener | null>(null);
+  // Begin viewport-relevant state data.
+  const [
+    viewportTranslateX,
+    setViewportTranslateX
+  ] = useState(0);
+  const [
+    viewportTranslateY,
+    setViewportTranslateY
+  ] = useState(0);
+  const [
+    viewportScale,
+    setViewportScale
+  ] = useState(1);
+  const [
+    viewportScaleExponent,
+    setViewportScaleExponent
+  ] = useState(0);
+  const [
+    debugVisualElements,
+    setDebugVisualElements
+  ] = useState<Array<JSX.Element>>([]);
+  // Begin state-relevant helper functions.
+  function resetViewport() {
+    setSceneBounds((sceneSvgGElementReference.current as SVGGElement).getBBox());
+    setViewportTranslateX(0);
+    setViewportTranslateY(0);
+    setViewportScaleExponent(0);
+    setViewportScale(1);
+  }
+  function onKeyDown (event : React.KeyboardEvent<Element>) {
+    switch (event.key) {
+      case "s" : {
+        if (event.ctrlKey) {
+          event.preventDefault();
+          if (outputFileName === "") {
+            alert("A name for the output file was not provided.");
+          } else if (outputFileExtension === undefined) {
+            alert("An extension for the output file was not selected.");
+          } else {
+            (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement).click();
+          }
+        }
+        break;
+      }
+      case "o" : {
+        if (event.ctrlKey) {
+          event.preventDefault();
+          (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
+        }
+        break;
+      }
+      case "0" : {
+        if (event.ctrlKey) {
+          event.preventDefault();
+          resetViewport();
+        }
+        break;
+      }
+    }
+  }
+  function setDragListener(dragListener : DragListener | null) {
+    if (dragListener !== null) {
+      setDragCache(dragListener.initiateDrag());
+    }
+    _setDragListener(dragListener);
+  }
+  const viewportDragListener : DragListener = {
+    initiateDrag() {
+      return {
+        x : viewportTranslateXReference.current,
+        y : viewportTranslateYReference.current
+      };
     },
-    [Tab.EDIT] : {
-      highlightColor : "rgb(204, 85, 0)"
-    },
-    [Tab.ANNOTATE] : {
-      highlightColor : "rgb(34, 34, 139)"
-    },
-    [Tab.SETTINGS] : {
-      highlightColor : "purple"
+    continueDrag(totalDrag : Vector2D) {
+      setViewportTranslateX(totalDrag.x);
+      setViewportTranslateY(totalDrag.y);
     }
   };
-  const [currentTab, setCurrentTab] = useState<Tab>(Tab.IMPORT_EXPORT);
-  const [showTabReminderFlag, setShowTabReminderFlag] = useState<boolean>(true);
-  const [outputFileName, setOutputFileName] = useState<string>("");
-  const [copyInputFileNameToOutputFileNameFlag, setCopyInputFileNameToOutputFileNameFlag] = useState<boolean>(true);
-  const [copyInputFileExtensionToOutputFileExtensionFlag, setCopyInputFileExtensionToOutputFileExtensionFlag] = useState<boolean>(true);
-  const [outputFileExtension, setOutputFileExtension] = useState<string>("");
-  const [downloadAnchorHref, setDownloadAnchorHref] = useState<string>();
-  const outputFileExtensionSelectRef = createRef<HTMLSelectElement>();
-  const downloadAnchorRef = createRef<HTMLAnchorElement>();
-  useEffect(() => {
-    // Upon load:
-    // * Initialize the output-file select.
-    (outputFileExtensionSelectRef.current as HTMLSelectElement).selectedIndex = -1;
-  }, []);
-  useEffect(() => {
-    (downloadAnchorRef.current as HTMLAnchorElement).click();
-  }, [downloadAnchorHref]);
-  const [zoomExponent, setZoomExponent] = useState<number>(0);
-  const [zoom, setZoom] = useState<number>(1);
-  const zoomBase = 1.1;
-  const [showToolsFlag, setShowToolsFlag] = useState<boolean>(true);
-  const parentDivDimensionsWatcher = useResizeDetector();
-  const bannerDivDimensionsWatcher = useResizeDetector();
-  const [invertColorsInViewFlag, setInvertColorsInViewFlag] = useState<boolean>(false);
-  const [invertColorsInOutputFileFlag, setInvertColorsInOutputFileFlag] = useState<boolean>(false);
-  // In pixels
-  const tabReminderBorderWidth = 6;
-  const [svgContent, setSvgContent] = useState<JSX.Element>(<g id="svgContent"></g>);
-  const [svgTranslate, setSvgTranslate] = useState({x : 0, y : 0});
-  useEffect(() => {
-    let svgContentHtml = document.getElementById("svgContent") as HTMLElement;
-    let svgContentBoundingClientRect = svgContentHtml.getBoundingClientRect();
-    let svgHtml = document.getElementById("svg") as HTMLElement;
-    let svgBoundingClientRect = svgHtml.getBoundingClientRect();
-    setSvgTranslate({
-      x : svgBoundingClientRect.x - svgContentBoundingClientRect.x,
-      y : svgBoundingClientRect.y - svgContentBoundingClientRect.y
-    });
-    setSvgContentDimensions({
-      width : svgContentBoundingClientRect.width,
-      height : svgContentBoundingClientRect.height
-    });
-    document.querySelectorAll("text").forEach((textElement : SVGTextElement) => {
-      let boundingRect = textElement.getBoundingClientRect();
-      textElement.setAttribute("x", `${Number.parseFloat(textElement.getAttribute("x") ?? "0") - (boundingRect.width / 2)}`);
-      textElement.setAttribute("y", `${Number.parseFloat(textElement.getAttribute("y") ?? "0") + (boundingRect.height / 4)}`);
-    });
-  }, [svgContent]);
-  const [svgHeight, setSvgHeight] = useState(0);
-  const [svgContentDimensions, setSvgContentDimensions] = useState({width : 1, height : 1});
-  useEffect(() => {
-    setSvgHeight((parentDivDimensionsWatcher.height as number) - (bannerDivDimensionsWatcher.height as number));
-  }, [parentDivDimensionsWatcher.height, bannerDivDimensionsWatcher.height]);
-  return (
-    <div style={{
-      border : showTabReminderFlag ? `solid ${(buttonData[currentTab] as ButtonData).highlightColor} 6px` : "none" ,
-      color : "white",
-      padding : 0,
-      margin : 0,
-      backgroundColor : "rgb(54, 64, 79)",
-      width : showTabReminderFlag ? `calc(100% - ${2 * tabReminderBorderWidth}px)` : "100%",
-      height : showTabReminderFlag ? `calc(100% - ${2 * tabReminderBorderWidth}px)` : "100%",
-      position : "absolute",
-      display : "block"
-    }} ref={parentDivDimensionsWatcher.ref}>
-      <div ref={bannerDivDimensionsWatcher.ref}>
-        <div style={{
-          display : showToolsFlag ? "block" : "none"
-        }}>
-          {Object.entries(buttonData).map(([tabName, buttonDatum]) => {
-            return <button style={{
-              border : "groove gray",
-              color : currentTab === tabName ? "white" : "black",
-              backgroundColor : currentTab === tabName ? buttonDatum.highlightColor : "white"
-            }} key={tabName} onClick={() => setCurrentTab(tabName as Tab)}>{tabName}</button>;
-          })}
-          <div style={{
-            display : currentTab === Tab.IMPORT_EXPORT ? "block" : "none"
-          }}>
-            <label>
-              Upload an input file&nbsp;
-              <input type="file" accept={Object.keys(inputFileReaders).map(inputFileExtension => "." + inputFileExtension).join(",")} onChange={event => {
-                let files = event.target.files;
-                if (files && files.length > 0) {
-                  let inputFileName = (files[0] as File).name;
-                  let lastIndexOfPeriod = inputFileName.lastIndexOf(".");
-                  if (copyInputFileNameToOutputFileNameFlag) {
-                    setOutputFileName(inputFileName.substring(0, lastIndexOfPeriod));
-                  }
-                  let outputFileExtension = inputFileName.substring(lastIndexOfPeriod + 1);
-                  if (copyInputFileExtensionToOutputFileExtensionFlag) {
-                    let newSelectedIndex = Array.from((outputFileExtensionSelectRef.current as HTMLSelectElement).children).findIndex(child => child.getAttribute("value") === outputFileExtension);
-                    (outputFileExtensionSelectRef.current as HTMLSelectElement).selectedIndex = newSelectedIndex;
-                    setOutputFileExtension(newSelectedIndex === -1 ? "" : outputFileExtension);
-                  }
-                  let reader = new FileReader();
-                  reader.addEventListener("load", event => {
-                    // Read the content of the input file.
-                    let parsedInput = (inputFileReaders[outputFileExtension] as FileReader)((event.target as globalThis.FileReader).result as string);
-                    let newSvg = <g id="svgContent">
-                    {
-                      parsedInput.rnaComplexes.map((rnaComplex : RNAComplex, index : number) => <g key={index} transform="scale(1 -1)">
-                      {
-                        rnaComplex.rnaMolecules.map((rnaMolecule : RNAMolecule, index : number) => <g key={index}>
-                          {
-                            Object.values(rnaMolecule.nucleotidesMap).map((nucleotide : Nucleotide, index : number) => {
-                              let elements = [
-                                <text id={[rnaComplex.name, rnaMolecule.name, index].join(":")} transform="scale(1 -1)" style={{
-                                  fill : nucleotide.color.toCSS(),
-                                  fontSize : nucleotide.font.size,
-                                  fontWeight : nucleotide.font.weight,
-                                  fontStyle : nucleotide.font.style,
-                                  fontFamily : nucleotide.font.family
-                                }} key="symbol">{nucleotide.symbol}</text>
-                              ];
-                              if (nucleotide.basePair !== null) {
-                                switch (nucleotide.basePair.type) {
-                                  case BasePairType.CANONICAL: {
-                                    let basePairNucleotide = (rnaComplex.rnaMolecules[nucleotide.basePair.rnaMoleculeIndex] as RNAMolecule).nucleotidesMap[nucleotide.basePair.nucleotideIndex] as Nucleotide;
-                                    let difference = Vector2D.subtract(basePairNucleotide.position, nucleotide.position);
-                                    let interpolatedNucleotidePosition = Vector2D.scaleUp(difference, 0.3);
-                                    let interpolatedBasePairNucleotidePosition = Vector2D.scaleUp(difference, 0.7)
-                                    elements.push(
-                                      <line x1={interpolatedNucleotidePosition.x} y1={interpolatedNucleotidePosition.y} x2={interpolatedBasePairNucleotidePosition.x} y2={interpolatedBasePairNucleotidePosition.y} stroke="black" key="bondLine" strokeWidth="0.2"/>
-                                    );
-                                    break;
-                                  }
-                                }
-                              }
-                              if (nucleotide.labelLine !== null) {
-                                elements.push(<line x1={nucleotide.labelLine.endpoint0.x} y1={nucleotide.labelLine.endpoint0.y} x2={nucleotide.labelLine.endpoint1.x} y2={nucleotide.labelLine.endpoint1.y} strokeWidth={nucleotide.labelLine.strokeWidth} stroke={nucleotide.labelLine.color.toCSS()} key="labelLine"/>);
-                              }
-                              if (nucleotide.labelContent !== null) {
-                                elements.push(<text x={nucleotide.labelContent.position.x} y={-nucleotide.labelContent.position.y} transform="scale(1 -1)" fill={nucleotide.labelContent.color.toCSS()} fontSize={nucleotide.labelContent.font.size} fontFamily={nucleotide.labelContent.font.family} fontStyle={nucleotide.labelContent.font.style} fontWeight={nucleotide.labelContent.font.weight  } key="labelContent">{nucleotide.labelContent.content}</text>);
-                              }
-                              return <g key={index} transform={`translate(${nucleotide.position.x} ${nucleotide.position.y})`}>
-                                {elements}
-                              </g>
-                            })
-                          }
-                        </g>)
-                      }
-                      </g>)
+  // Begin reference data.
+  const uploadInputFileHtmlInputReference = createRef<HTMLInputElement>();
+  const downloadOutputFileHtmlButtonReference = createRef<HTMLButtonElement>();
+  const downloadOutputFileHtmlAnchorReference = createRef<HTMLAnchorElement>();
+  const settingsFileDownloadHtmlAnchorReference = createRef<HTMLAnchorElement>();
+  const settingsFileUploadHtmlInputReference = createRef<HTMLInputElement>();
+  const mouseOverTextSvgTextElementReference = createRef<SVGTextElement>();
+  const parentDivResizeDetector = useResizeDetector();
+  const toolsDivResizeDetector = useResizeDetector();
+  const tabReference = useRef<Tab>();
+  tabReference.current = tab;
+  const interactionConstraintReference = useRef<InteractionConstraint.Enum | undefined>();
+  interactionConstraintReference.current = interactionConstraint;
+  const viewportTranslateXReference = useRef<number>(NaN);
+  viewportTranslateXReference.current = viewportTranslateX;
+  const viewportTranslateYReference = useRef<number>(NaN);
+  viewportTranslateYReference.current = viewportTranslateY;
+  const rnaComplexPropsReference = useRef<RnaComplexProps>();
+  rnaComplexPropsReference.current = rnaComplexProps;
+  const sceneSvgGElementReference = useRef<SVGGElement>();
+  // Begin memo data.
+  const flattenedRnaComplexProps = useMemo(
+    function() {
+      return Object.entries(rnaComplexProps);
+    },
+    [rnaComplexProps]
+  );
+  const svgHeight = useMemo(
+    function() {
+      return Math.max((parentDivResizeDetector.height ?? 0) - (toolsDivResizeDetector.height ?? 0), 0);
+    },
+    [
+      parentDivResizeDetector.height,
+      toolsDivResizeDetector.height
+    ]
+  );
+  const sceneDimensionsReciprocals = useMemo(
+    function() {
+      return ({
+        width : 1 / sceneBounds.width,
+        height : 1 / sceneBounds.height
+      });
+    },
+    [sceneBounds]
+  );
+  const sceneBoundsScaleMin = useMemo(
+    function() {
+      return Math.min(
+        (parentDivResizeDetector.width ?? 0) * sceneDimensionsReciprocals.width,
+        svgHeight * sceneDimensionsReciprocals.height
+      );
+    },
+    [
+      parentDivResizeDetector.width,
+      svgHeight,
+      sceneDimensionsReciprocals
+    ]
+  );
+  const transformTranslate = useMemo(
+    function() {
+      return `translate(${-sceneBounds.x + viewportTranslateX}, ${-(sceneBounds.y + sceneBounds.height) + viewportTranslateY})`;
+    },
+    [
+      sceneBounds,
+      viewportTranslateX,
+      viewportTranslateY
+    ]
+  );
+  const totalScale = useMemo(
+    function() {
+      const positiveScale = viewportScale * sceneBoundsScaleMin;
+      return {
+        positiveScale,
+        negativeScale : 1 / positiveScale,
+        asTransform : `scale(${positiveScale})`
+      };
+    },
+    [
+      viewportScale,
+      sceneBoundsScaleMin
+    ]
+  );
+  const labelContentOnMouseDownHelper = useMemo(
+    function() {
+      return function(
+        e : React.MouseEvent<LabelContent.SvgRepresentation>,
+        fullKeys : FullKeys
+      ) {
+        const {
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        } = fullKeys;
+        switch (e.button) {
+          case MouseButtonIndices.Left : {
+            let newDragListener : DragListener = viewportDragListener;
+            if (tabReference.current === Tab.EDIT) {
+              const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
+              const labelContentProps = singularNucleotideProps.labelContentProps as LabelContent.ExternalProps;
+              newDragListener = {
+                initiateDrag() {
+                  return {
+                    x : labelContentProps.x,
+                    y : labelContentProps.y
+                  };
+                },
+                continueDrag(totalDrag : Vector2D) {
+                  labelContentProps.x = totalDrag.x;
+                  labelContentProps.y = totalDrag.y;
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex] : {
+                      [rnaMoleculeName] : [nucleotideIndex]
                     }
-                  </g>
-                    setSvgContent(newSvg);
                   });
-                  reader.readAsText(files[0] as File);
                 }
-              }}/>
-            </label>
-            <br />
-            <label>
-              Create a downloadable output file&nbsp;
-              <input type="text" value={outputFileName} onChange={event => setOutputFileName(event.target.value)} />
-            </label>
-            <select onChange={event => setOutputFileExtension(event.target.value)} ref={outputFileExtensionSelectRef}>
-              {Object.entries(outputFileWriters).map(([fileExtension, ]) => {
-                return <option key={fileExtension} value={fileExtension}>{"." + fileExtension}</option>
-              })}
-            </select>
-            <a href={downloadAnchorHref} download={outputFileName + "." + outputFileExtension} style={{
+              };
+            }
+            setDragListener(newDragListener);
+            break;
+          }
+          case MouseButtonIndices.Right : {
+            switch (tabReference.current) {
+              case Tab.EDIT:
+                setRightClickMenuContent(<LabelContentEditMenu.Component
+                  rnaComplexProps = {rnaComplexPropsReference.current as RnaComplexProps}
+                  fullKeys = {fullKeys}
+                  triggerRerender = {function() {
+                    setNucleotideKeysToRerender({
+                      [rnaComplexIndex] : {
+                        [rnaMoleculeName] : [nucleotideIndex]
+                      }
+                    });
+                  }}
+                />);
+              break;
+            }
+          }
+        }
+      }
+    },
+    []
+  );
+  const labelLineBodyOnMouseDownHelper = useMemo(
+    function() {
+      return function(
+        e : React.MouseEvent<LabelLine.BodySvgRepresentation>,
+        fullKeys : FullKeys
+      ) {
+        const {
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        } = fullKeys;
+        switch (e.button) {
+          case MouseButtonIndices.Left : {
+            let newDragListener = viewportDragListener;
+            if (tabReference.current === Tab.EDIT) {
+              const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
+              const labelLineProps = singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
+              const deltaX = labelLineProps.x1 - labelLineProps.x0;
+              const deltaY = labelLineProps.y1 - labelLineProps.y0;
+              newDragListener = {
+                initiateDrag() {
+                  return {
+                    x : labelLineProps.x0,
+                    y : labelLineProps.y0
+                  };
+                },
+                continueDrag(totalDrag) {
+                  labelLineProps.x0 = totalDrag.x;
+                  labelLineProps.y0 = totalDrag.y;
+                  labelLineProps.x1 = totalDrag.x + deltaX;
+                  labelLineProps.y1 = totalDrag.y + deltaY;
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex] : {
+                      [rnaMoleculeName] : [nucleotideIndex]
+                    }
+                  });
+                }
+              };
+            }
+            setDragListener(newDragListener);
+            break;
+          }
+          case MouseButtonIndices.Right : {
+            if (tabReference.current === Tab.EDIT) {
+              setRightClickMenuContent(<LabelLineEditMenu.Component
+                rnaComplexProps = {rnaComplexPropsReference.current as RnaComplexProps}
+                fullKeys = {fullKeys}
+                triggerRerender = {function() {
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex] : {
+                      [rnaMoleculeName] : [nucleotideIndex]
+                    }
+                  });
+                }}
+              />);
+            }
+            break;
+          }
+        }
+      }
+    },
+    []
+  );
+  const labelLineEndpointOnMouseDownHelper = useMemo(
+    function() {
+      return function(
+        e : React.MouseEvent<LabelLine.EndpointSvgRepresentation>,
+        fullKeys : FullKeys,
+        endpointIndex : 0 | 1
+      ) {
+        const {
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        } = fullKeys;
+        switch (e.button) {
+          case MouseButtonIndices.Left : {
+            let newDragListener = viewportDragListener;
+            if (tabReference.current === Tab.EDIT) {
+              const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
+              const labelLineProps = (singularNucleotideProps.labelLineProps as LabelLine.ExternalProps);
+              newDragListener = {
+                initiateDrag() {
+                  return {
+                    x : labelLineProps[`x${endpointIndex}`],
+                    y : labelLineProps[`y${endpointIndex}`]
+                  };
+                },
+                continueDrag(totalDrag) {
+                  labelLineProps[`x${endpointIndex}`] = totalDrag.x;
+                  labelLineProps[`y${endpointIndex}`] = totalDrag.y;
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex] : {
+                      [rnaMoleculeName] : [nucleotideIndex]
+                    }
+                  });
+                }
+              };
+            }
+            setDragListener(newDragListener);
+            break;
+          }
+          case MouseButtonIndices.Right : {
+            setRightClickMenuContent(<LabelLineEditMenu.Component
+              rnaComplexProps = {rnaComplexPropsReference.current as RnaComplexProps}
+              fullKeys = {fullKeys}
+              triggerRerender = {function() {
+                setNucleotideKeysToRerender({
+                  [rnaComplexIndex] : {
+                    [rnaMoleculeName] : [nucleotideIndex]
+                  }
+                });
+              }}
+            />);
+            break;
+          }
+        }
+      }
+    },
+    []
+  );
+  const conditionallySetVisibility = useMemo(
+    function() {
+      return function(setVisibility : (visibility : boolean) => void) {
+        setVisibility(tabReference.current === Tab.EDIT);
+      };
+    },
+    []
+  );
+  const nucleotideOnMouseDownHelper = useMemo(
+    function() {
+      return function(
+        e : React.MouseEvent<Nucleotide.SvgRepresentation>,
+        fullKeys : FullKeys
+      ) {
+        const tab = tabReference.current as Tab;
+        switch (e.button) {
+          case MouseButtonIndices.Left : {
+            let newDragListener : DragListener = viewportDragListener;
+            if (tab === Tab.EDIT) {
+              const interactionConstraint = interactionConstraintReference.current;
+              if (interactionConstraint === undefined) {
+                alert("Select an interaction constraint first!");
+                return;
+              }
+              try {
+                const helper = InteractionConstraint.record[interactionConstraint](
+                  rnaComplexPropsReference.current as RnaComplexProps,
+                  fullKeys,
+                  setNucleotideKeysToRerender,
+                  setBasePairKeysToRerender,
+                  setDebugVisualElements
+                );
+                const newDragListenerAttempt = helper.drag();
+                if (newDragListenerAttempt != undefined) {
+                  newDragListener = newDragListenerAttempt
+                }
+              } catch (error : any) {
+                if ("errorMessage" in error) {
+                  alert(error.errorMessage);
+                } else {
+                  throw error;
+                }
+                return;
+              }
+            }
+            setDragListener(newDragListener);
+            break;
+          }
+          case MouseButtonIndices.Right : {
+            if (tab in InteractionConstraint.supportedTabs) {
+              const interactionConstraint = interactionConstraintReference.current;
+              if (interactionConstraint === undefined) {
+                alert("Select an interaction constraint first!");
+                return;
+              }
+              try {
+                const helper = InteractionConstraint.record[interactionConstraint](
+                  rnaComplexPropsReference.current as RnaComplexProps,
+                  fullKeys,
+                  setNucleotideKeysToRerender,
+                  setBasePairKeysToRerender,
+                  setDebugVisualElements
+                );
+                const rightClickMenu = helper.createRightClickMenu(tab as InteractionConstraint.SupportedTab);
+                setRightClickMenuContent(rightClickMenu);
+              } catch (error : any) {
+                if ("errorMessage" in error) {
+                  alert(error.errorMessage);
+                }
+                return;
+              }
+            }
+            break;
+          }
+        }
+      };
+    },
+    []
+  );
+  const renderedRnaComplexes = useMemo(
+    function() {
+      return <Context.App.SetMouseOverText.Provider
+        value = {setMouseOverText}
+      >
+        <Context.App.ConditionallySetVisibility.Provider
+          value = {conditionallySetVisibility}
+        >
+          <Context.Nucleotide.OnMouseDownHelper.Provider
+            value = {nucleotideOnMouseDownHelper}
+          >
+            <Context.Label.Content.OnMouseDownHelper.Provider
+              value = {labelContentOnMouseDownHelper}
+            >
+              <Context.Label.Line.Body.OnMouseDownHelper.Provider
+                value = {labelLineBodyOnMouseDownHelper}
+              >
+                <Context.Label.Line.Endpoint.OnMouseDownHelper.Provider
+                  value = {labelLineEndpointOnMouseDownHelper}
+                >
+                  <g
+                    ref = {function(svgGElement : SVGGElement | null) {
+                      if (svgGElement === null) {
+                        return;
+                      }
+                      sceneSvgGElementReference.current = svgGElement;
+                    }}
+                  >
+                    {flattenedRnaComplexProps.map(function(
+                      [
+                        rnaComplexIndexAsString,
+                        singularRnaComplexProps
+                      ]
+                    ) {
+                      const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+                      return <Context.RnaComplex.Index.Provider
+                        key = {rnaComplexIndex}
+                        value = {rnaComplexIndex}
+                      >
+                        <RnaComplex.Component
+                          {...singularRnaComplexProps}
+                          nucleotideKeysToRerender = {nucleotideKeysToRerender[rnaComplexIndex] ?? {}}
+                          basePairKeysToRerender = {basePairKeysToRerender[rnaComplexIndex] ?? []}
+                        />
+                      </Context.RnaComplex.Index.Provider>;
+                    })}
+                  </g>
+                </Context.Label.Line.Endpoint.OnMouseDownHelper.Provider>
+              </Context.Label.Line.Body.OnMouseDownHelper.Provider>
+            </Context.Label.Content.OnMouseDownHelper.Provider>
+          </Context.Nucleotide.OnMouseDownHelper.Provider>
+        </Context.App.ConditionallySetVisibility.Provider>
+      </Context.App.SetMouseOverText.Provider>;
+    },
+    [
+      rnaComplexProps,
+      nucleotideKeysToRerender
+    ]
+  );
+  function parseJson(url : string) {
+    let promise = fetch(url, {
+      method : "GET"
+    });
+    promise.then(data => {
+      data.json().then(json => {
+        let parsedInput = jsonObjectHandler(json);
+        setRnaComplexProps(parsedInput.rnaComplexProps);
+        setComplexDocumentName(parsedInput.complexDocumentName);
+      });
+    });
+  }
+  // Begin effects.
+  useEffect(() => {
+    let documentUrl = document.URL;
+    let index = documentUrl.indexOf('?');
+    if (index != -1) {
+      let params : Record<string, string> = {};
+      let pairs = documentUrl.substring(index + 1, documentUrl.length).split('&');
+      for (let i = 0; i < pairs.length; i++) {
+        let nameVal = pairs[i].split('=');
+        params[nameVal[0]] = nameVal[1];
+      }
+      let r2dt_key = "r2dt_job_id";
+      if (r2dt_key in params) {
+        parseJson(`https://www.ebi.ac.uk/Tools/services/rest/r2dt/result/r2dt-${params[r2dt_key]}/json`);
+      }
+      let url_key = "job_url";
+      if (url_key in params) {
+        console.log(`${url_key} : ${params[url_key]}`);
+        parseJson(params[url_key]);
+      }
+    }
+  }, []);
+  useEffect(
+    function() {
+      const current = mouseOverTextSvgTextElementReference.current;
+      const newMouseOverTextDimensions = current === null ? {
+        width : 0,
+        height : 0
+      } :  (current as SVGTextElement).getBBox();
+      setMouseOverTextDimensions(newMouseOverTextDimensions);
+    },
+    [mouseOverText]
+  );
+  useEffect(
+    function() {
+      let rightClickPrompt = "";
+      if (flattenedRnaComplexProps.length === 0) {
+        const promptStart = "You must load an input file before attempting to ";
+        switch (tab) {
+          case Tab.EDIT : {
+            rightClickPrompt = promptStart + "edit.";
+            break;
+          }
+          case Tab.FORMAT : {
+            rightClickPrompt = promptStart + "format.";
+            break;
+          }
+          case Tab.ANNOTATE : {
+            rightClickPrompt = promptStart + "annotate.";
+            break;
+          }
+        }
+      } else {
+        const promptStart = "Right-click on a nucleotide to begin ";
+        switch (tab) {
+          case Tab.EDIT : {
+            rightClickPrompt = promptStart + "editing.";
+            break;
+          }
+          case Tab.FORMAT : {
+            rightClickPrompt = promptStart + "formating.";
+            break;
+          }
+          case Tab.ANNOTATE : {
+            rightClickPrompt = promptStart + "annotating.";
+            break;
+          }
+        }
+      }
+      setRightClickMenuContent(<>{rightClickPrompt}</>);
+    },
+    [tab]
+  );
+  useEffect(
+    function() {
+      if (flattenedRnaComplexProps.length > 0) {
+        let numSeconds = 2;
+        setTimeout(
+          function() {
+            if (settingsRecord[Setting.RESET_VIEWPORT_ON_FILE_UPLOAD]) {
+              resetViewport();
+            }
+            setSceneVisibility(true);
+          },
+          numSeconds * 1000
+        );
+      }
+    },
+    [flattenedRnaComplexProps]
+  );
+  // Begin render data.
+  const interactionConstraintSelectHtmlElement = <select
+    value = {interactionConstraint}
+    onChange = {function(e) {
+      setInteractionConstraint(e.target.value as InteractionConstraint.Enum);
+    }}
+  >
+    <option
+      style = {{
+        display : "none"
+      }}
+      value = {undefined}
+    >
+      Select an interaction constraint.
+    </option>
+    {InteractionConstraint.all.map(function(interactionConstraint : InteractionConstraint.Enum) {
+      return (<option
+        key = {interactionConstraint}
+        value = {interactionConstraint}
+      >
+        {interactionConstraint}
+      </option>);
+    })}
+  </select>;
+  const tabRenderRecord : Record<Tab, JSX.Element> = {
+    [Tab.INPUT_OUTPUT] : <>
+      <label>
+        Input File:&nbsp;
+          <input
+            ref = {uploadInputFileHtmlInputReference}
+            style = {{
               display : "none"
-            }} ref={downloadAnchorRef}></a>
-            <button onClick={() => {
-              setDownloadAnchorHref(`data:text/plain;charset=utf-8,${encodeURIComponent((outputFileWriters[outputFileExtension] as FileWriter)())}`);
-            }} disabled={!outputFileName || !outputFileExtension}>Download</button>
-          </div>
-          <div style={{
-            display : currentTab === Tab.EDIT ? "block" : "none"
-          }}>
-
-          </div>
-          <div style={{
-            display : currentTab === Tab.ANNOTATE ? "block" : "none"
-          }}>
-
-          </div>
-          <div style={{
-            display : currentTab === Tab.SETTINGS ? "block" : "none"
-          }}>
-            <label>
-              Show tab reminder&nbsp;
-              <input type="checkbox" onChange={() => setShowTabReminderFlag(!showTabReminderFlag)} checked={showTabReminderFlag} />
-            </label>
-            <br />
-            <label>
-              Copy input-file name and extension to output-file name&nbsp;
-              <input type="checkbox" onChange={() => {
-                setCopyInputFileNameToOutputFileNameFlag(!copyInputFileNameToOutputFileNameFlag);
-                setCopyInputFileExtensionToOutputFileExtensionFlag(!copyInputFileNameToOutputFileNameFlag);
-              }} checked={copyInputFileNameToOutputFileNameFlag} />
-            </label>
-            <label>
-              &nbsp;and extension&nbsp;
-              <input type="checkbox" onChange={() => setCopyInputFileExtensionToOutputFileExtensionFlag(!copyInputFileExtensionToOutputFileExtensionFlag)} checked={copyInputFileExtensionToOutputFileExtensionFlag} />
-            </label>
-            <br />
-            <label>
-              Dark mode (invert colors) in viewer&nbsp;
-              <input type="checkbox" onChange={() => {
-                setInvertColorsInViewFlag(!invertColorsInViewFlag);
-                setInvertColorsInOutputFileFlag(!invertColorsInViewFlag);
-              }} checked={invertColorsInViewFlag} />
-            </label>
-            <label>
-            &nbsp;and in output file(s)&nbsp;
-              <input type="checkbox" onChange={() => setInvertColorsInOutputFileFlag(!invertColorsInOutputFileFlag)} checked={invertColorsInOutputFileFlag} />
-            </label>
-          </div>
-          <label>
-            Selection Constraint&nbsp;
-            <select>
-              {Object.entries(selectionConstraints).map(([key, ]) => {
-                return <option key={key}>{key}</option>
-              })}
-            </select>
+            }}
+            type = "file"
+            accept = {inputFileExtensions.map(function(inputFileExtension : InputFileExtension) {
+              return "." + inputFileExtension;
+            }).join(",")}
+            onChange = {function(e) {
+              let files = e.target.files;
+              if (files === null || files.length === 0) {
+                return;
+              }
+              let file = files[0];
+              let inputFileNameAndExtension = file.name;
+              setInputFileNameAndExtension(inputFileNameAndExtension);
+              let regexMatch = /^(.*)\.(.+)$/.exec(inputFileNameAndExtension) as RegExpExecArray;
+              let fileName = regexMatch[1];
+              let fileExtension = regexMatch[2];
+              if (settingsRecord[Setting.SYNC_FILE_NAME]) {
+                setOutputFileName(fileName);
+              }
+              if (settingsRecord[Setting.SYNC_FILE_EXTENSION] && (fileExtension in outputFileWritersMap)) {
+                setOutputFileExtension(fileExtension as OutputFileExtension);
+              }
+              let reader = new FileReader();
+              reader.addEventListener("load", function(event) {
+                // Read the content of the settings file.
+                let parsedInputFile = inputFileReadersRecord[fileExtension as InputFileExtension]((event.target as FileReader).result as string);
+                setComplexDocumentName(parsedInputFile.complexDocumentName);
+                setRnaComplexProps(parsedInputFile.rnaComplexProps);
+              });
+              reader.readAsText(files[0] as File);
+            }}
+          />
+          <button
+            onClick = {function() {
+              (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
+            }}
+          >
+            Upload
+          </button>
+          <em>
+            {inputFileNameAndExtension}
+          </em>
+      </label>
+      <br/>
+      <label>
+        Output File:&nbsp;
+        <input
+          type = "text"
+          placeholder = "output_file_name"
+          value = {outputFileName}
+          onChange = {function(e) {
+            setOutputFileName(e.target.value);
+          }}
+        />
+      </label>
+      <select
+        value = {outputFileExtension}
+        onChange = {function(e) {
+          setOutputFileExtension(e.target.value as OutputFileExtension);
+        }}
+      >
+        <option
+          style = {{
+            display : "none"
+          }}
+          value = {""}
+        >
+          .file_extension
+        </option>
+        {outputFileExtensions.map(function(outputFileExtension : OutputFileExtension, index : number) {
+          return <option
+            key = {index}
+            value = {outputFileExtension}
+          >
+            .{outputFileExtension}
+          </option>;
+        })}
+      </select>
+      <button
+        ref = {downloadOutputFileHtmlButtonReference}
+        onClick = {function() {
+          const downloadAnchor = downloadOutputFileHtmlAnchorReference.current as HTMLAnchorElement;
+          downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(outputFileWritersMap[outputFileExtension as OutputFileExtension](
+            rnaComplexProps,
+            complexDocumentName
+          ))}`;
+          downloadAnchor.click();
+        }}
+        disabled = {(outputFileName === "") || (outputFileExtension === undefined)}
+      >
+        Download
+      </button>
+      <a
+        ref = {downloadOutputFileHtmlAnchorReference}
+        style = {{
+          display : "none"
+        }}
+        download = {`${outputFileName}.${outputFileExtension}`}
+      />
+    </>,
+    [Tab.VIEWPORT] : <>
+      <b>
+        Translate:
+      </b>
+      <br/>
+      <label>
+        x:&nbsp;
+        <InputWithValidator.Number
+          value = {viewportTranslateX}
+          setValue = {setViewportTranslateX}
+        />
+      </label>
+      <br/>
+      <label>
+        y:&nbsp;
+        <InputWithValidator.Number
+          value = {viewportTranslateY}
+          setValue = {setViewportTranslateY}
+        />
+      </label>
+      <br/>
+      <b>
+        Scale:&nbsp;
+      </b>
+      <br/>
+      <input
+        type = "range"
+        value = {viewportScaleExponent}
+        onChange = {function(e) {
+          const newScaleExponent = Number.parseInt(e.target.value);
+          setViewportScaleExponent(newScaleExponent);
+          setViewportScale(Math.pow(SCALE_BASE, newScaleExponent));
+        }}
+        min = {-50}
+        max = {50}
+      />
+      <InputWithValidator.Number
+        value = {viewportScale}
+        setValue = {function(newViewportScale : number) {
+          setViewportScale(newViewportScale);
+          // scale = SCALE_BASE ^ scaleExponent
+          // log(scale) = log(SCALE_BASE ^ scaleExponent)
+          // log(scale) = scaleExponent * log(SCALE_BASE)
+          // log(scale) / log(SCALE_BASE) = scaleExponent
+          if (newViewportScale > 0) {
+            setViewportScaleExponent(Math.log(newViewportScale) * ONE_OVER_LOG_OF_SCALE_BASE);
+          }
+        }}
+      />
+      <br/>
+      <button
+        onClick = {resetViewport}
+      >
+        Reset
+      </button>
+    </>,
+    [Tab.EDIT] : <>
+      {interactionConstraintSelectHtmlElement}
+    </>,
+    [Tab.FORMAT] : <>
+      {interactionConstraintSelectHtmlElement}
+    </>,
+    [Tab.ANNOTATE] : <>
+      {interactionConstraintSelectHtmlElement}
+    </>,
+    [Tab.SETTINGS] : <>
+      <button
+        onClick = {function() {
+          (settingsFileUploadHtmlInputReference.current as HTMLInputElement).click();
+        }}
+      >
+        Upload
+      </button>
+      <input
+        style = {{
+          display : "none"
+        }}
+        ref = {settingsFileUploadHtmlInputReference}
+        type = "file"
+        accept = ".json"
+        onChange = {function(e) {
+          let files = e.target.files;
+          if (files === null || files.length === 0) {
+            return;
+          }
+          let reader = new FileReader();
+          reader.addEventListener("load", function(event) {
+            // Read the content of the settings file.
+            let settingsJson = JSON.parse((event.target as FileReader).result as string);
+            let keys = Object.keys(settingsJson);
+            let formatCheckPassedFlag = true;
+            for (let key of keys) {
+              if (!(settings as Array<string>).includes(key) || (typeof settingsJson[key] !== "boolean")) {
+                alert("The format of the uploaded settings file is unrecognized.");
+                formatCheckPassedFlag = false;
+                break;
+              }
+            }
+            if (formatCheckPassedFlag) {
+              let updatedSettings : Partial<Record<Setting, boolean>> = {};
+              for (let key of keys) {
+                updatedSettings[key as Setting] = settingsJson[key];
+              }
+              setSettingsRecord({
+                ...settingsRecord,
+                ...updatedSettings
+              });
+            }
+          });
+          reader.readAsText(files[0] as File);
+        }}
+      />
+      <button
+        onClick = {function() {
+          let settingsFileDownloadHtmlAnchor = settingsFileDownloadHtmlAnchorReference.current as HTMLAnchorElement;
+          let settingsObject : Partial<Record<Setting, boolean>> = {};
+          for (let key of settings) {
+            settingsObject[key] = settingsRecord[key];
+          }
+          settingsFileDownloadHtmlAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(JSON.stringify(settingsObject))}`;
+          settingsFileDownloadHtmlAnchor.click();
+        }}
+      >
+        Download
+      </button>
+      <a
+        ref = {settingsFileDownloadHtmlAnchorReference}
+        style = {{
+          display : "none"
+        }}
+        download = "xrna_settings.json"
+      />
+      <br/>
+      {settings.map(function(setting : Setting, index : number) {
+        return <Fragment
+          key = {index}
+        >
+          <label
+            title = {settingsLongDescriptionsMap[setting]}
+          >
+            {settingsShortDescriptionsMap[setting]}:&nbsp;
+            <input
+              type = "checkbox"
+              checked = {settingsRecord[setting]}
+              onChange = {function() {
+                setSettingsRecord({
+                  ...settingsRecord,
+                  [setting] : !settingsRecord[setting]
+                });
+              }}
+            />
           </label>
-          <br />
-          <label>
-            Zoom&nbsp;
-            <input type="range" value={zoomExponent} min={-50} max={50} onChange={event => {
-              let newZoomExponent = Number.parseInt((event.target as HTMLInputElement).value);
-              setZoomExponent(newZoomExponent);
-              setZoom(Math.pow(zoomBase, newZoomExponent));
-            }}/>
-            <input type="number" value={zoom} onChange={event => {
-              let newZoom = Number.parseFloat(event.target.value);
-              setZoom(newZoom);
-              setZoomExponent(Math.log(newZoom) / Math.log(zoomBase));
-            }} step={0.01}/>
-          </label>
-        </div>
-        <button style={{
-          color : "white",
-          backgroundColor : "inherit",
-          border : "groove gray",
-          width : "10%",
-          display : "block",
-          marginLeft : "auto",
-          marginRight : "auto"
-        }} onClick={() => setShowToolsFlag(!showToolsFlag)}>{showToolsFlag ? "↑" : "↓"}</button>
-        
-      </div>
-      <svg id="svg" viewBox={`0 0 ${parentDivDimensionsWatcher.width ?? 0} ${svgHeight}`} version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" style={{
-        backgroundColor : invertColorsInViewFlag ? "black" : "white",
+          <br/>
+        </Fragment>;
+      })}
+    </>,
+    [Tab.DEMOS] : <></>
+  };
+  // Parent div
+  return <Context.App.Settings.Provider
+    value = {settingsRecord}
+  >
+    <div
+      onKeyDown = {onKeyDown}
+      ref = {parentDivResizeDetector.ref}
+      style = {{
+        position : "absolute",
         display : "block",
         width : "100%",
-        height : svgHeight,
-        position : "absolute"
-      }}>
-        <g transform={`scale(${zoom * Math.min((parentDivDimensionsWatcher.width ?? 1) / svgContentDimensions.width, svgHeight / svgContentDimensions.height)}) translate(${svgTranslate.x} ${svgTranslate.y})`}>
-          {svgContent}
+        height : "100%",
+        overflow : "hidden"
+      }}
+    >
+      {/* Tools div */}
+      <div
+        ref = {toolsDivResizeDetector.ref}
+        style = {{
+          position : "absolute",
+          width : "100%",
+          height : "auto",
+          resize : "vertical",
+          overflow : "hidden",
+          display : "block",
+          borderBottom : "1px solid black"
+        }}
+      >
+        {/* Left tools div */}
+        <div
+          style = {{
+            width : "50%",
+            height : "100%",
+            display : "inline-block",
+            overflowY : "auto",
+            verticalAlign : "top"
+          }}
+        >
+          {tabs.map(function(tabI : Tab) {
+            return <button
+              key = {tabI}
+              onClick = {function() {
+                setTab(tabI);
+              }}
+            >
+              {tabI}
+            </button>
+          })}
+          <br/>
+          <b>
+            {tab}:
+          </b>
+          <br/>
+          {tabs.map(function(tabI : Tab) {
+            return <div
+              key = {tabI}
+              style = {{
+                display : tab === tabI ? "block" : "none"
+              }}
+            >
+              {tabRenderRecord[tabI]}
+            </div>;
+          })}
+        </div>
+        {/* Right tools div */}
+        <div
+          style = {{
+            width : "50%",
+            height : "100%",
+            display : "inline-block",
+            overflowY : "auto",
+            verticalAlign : "top"
+          }}
+        >
+          <Context.App.ComplexDocumentName.Provider
+            value = {complexDocumentName}
+          >
+            <Context.App.SetComplexDocumentName.Provider
+              value = {setComplexDocumentName}
+            >
+              {rightClickMenuContent}
+            </Context.App.SetComplexDocumentName.Provider>
+          </Context.App.ComplexDocumentName.Provider>
+        </div>
+      </div>
+      <svg
+        style = {{
+          top : (toolsDivResizeDetector.height ?? 0) + DIV_BUFFER_HEIGHT,
+          left : 0,
+          position : "absolute"
+        }}
+        xmlns = "http://www.w3.org/2000/svg"
+        viewBox = {`0 0 ${parentDivResizeDetector.width ?? 0} ${svgHeight}`}
+        tabIndex = {0}
+        onKeyDown = {onKeyDown}
+        onMouseDown = {function(e) {
+          switch (e.button) {
+            case MouseButtonIndices.Left : {
+              setOriginOfDrag({
+                x : e.clientX,
+                y : e.clientY
+              });
+              break;
+            }
+          }
+        }}
+        onMouseMove = {function(e) {
+          if (dragListener !== null) {
+            const translation = subtract(
+              {
+                x : e.clientX,
+                y : e.clientY
+              },
+              originOfDrag
+            );
+            translation.y = -translation.y;
+            dragListener.continueDrag(add(
+              dragCache,
+              scaleDown(
+                translation,
+                viewportScale * sceneBoundsScaleMin
+              )
+            ));
+          }
+          e.preventDefault();
+        }}
+        onMouseUp = {function(e) {
+          if (dragListener !== null) {
+            if (dragListener.terminateDrag !== undefined) {
+              dragListener.terminateDrag();
+            }
+            setDragListener(null);
+          }
+        }}
+        onMouseLeave = {function() {
+          setDragListener(null);
+        }}
+        onContextMenu = {function(event) {
+          event.preventDefault();
+        }}
+        onWheel = {function(e) {
+          // Apparently, the sign of <event.deltaY> needs to be negated in order to support intuitive scrolling...
+          let newScaleExponent = viewportScaleExponent - sign(e.deltaY);
+          let newScale = Math.pow(SCALE_BASE, newScaleExponent);
+          setViewportScale(newScale);
+          setViewportScaleExponent(newScaleExponent);
+          let uiVector = {
+            x : e.clientX,
+            y : e.clientY - (toolsDivResizeDetector.height ?? 0) - DIV_BUFFER_HEIGHT
+          };
+          let reciprocal = totalScale.negativeScale;
+          let inputVector = {
+            x : uiVector.x * reciprocal + sceneBounds.x - viewportTranslateX,
+            y : uiVector.y * reciprocal - sceneBounds.y + viewportTranslateY - sceneBounds.height
+          };
+          reciprocal = 1 / (newScale * sceneBoundsScaleMin);
+          let newOriginDeltaX = uiVector.x * reciprocal - inputVector.x + sceneBounds.x;
+          let newOriginDeltaY = -(uiVector.y * reciprocal - inputVector.y - sceneBounds.y - sceneBounds.height);
+          setViewportTranslateX(newOriginDeltaX);
+          setViewportTranslateY(newOriginDeltaY);
+        }}
+      >
+        <rect
+          width = "100%"
+          height = "100%"
+          fill = "white"
+          onMouseDown = {function(e) {
+            switch (e.button) {
+              case MouseButtonIndices.Left : {
+                setDragListener(viewportDragListener);
+                break;
+              }
+            }
+          }}
+        />
+        <g
+          style = {{
+            visibility : sceneVisibility ? "visible" : "hidden"
+          }}
+          transform = {totalScale.asTransform + " scale(1, -1) " + transformTranslate}
+        >
+          {debugVisualElements}
+          {renderedRnaComplexes}
         </g>
+        <rect
+          x = {0}
+          y = {svgHeight - mouseOverTextDimensions.height}
+          width = {mouseOverTextDimensions.width}
+          height = {mouseOverTextDimensions.height}
+          fill = "black"
+        />
+        <text
+          fill = "white"
+          x = {0}
+          y = {svgHeight - mouseOverTextDimensions.height * 0.25}
+          ref = {mouseOverTextSvgTextElementReference}
+          fontFamily = "dialog"
+          fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
+        >
+          {mouseOverText}
+        </text>
       </svg>
     </div>
-  );
+  </Context.App.Settings.Provider>;
 }
 
 export default App;
