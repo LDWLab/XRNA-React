@@ -9,25 +9,45 @@ namespace InputWithValidator {
     style? : CSSProperties,
     step? : string | number
     min? : string | number,
-    max? : string | number
+    max? : string | number,
+    disabledFlag? : boolean | undefined
   };
 
   export type AngleProps<T> = CoreProps<T> & {
-    useDegrees : boolean,
+    useDegreesFlag : boolean,
     step? : string | number
+  };
+
+  export type Error = {
+    errorMessage : string
   };
 
   export type Props<T> = CoreProps<T> & {
     valueToString : (value : T) => string,
-    stringToValue : (valueAsString : string) => T | undefined,
+    stringToValue : (valueAsString : string) => T | undefined | Error,
     htmlInputType? : HTMLInputTypeAttribute
   };
 
-  function isValueType<T>(arg : T | undefined) : arg is T {
-    return arg !== undefined;
+  export enum StringToValueReturnType {
+    VALUE = "value",
+    UNDEFINED = "undefined",
+    ERROR = "error"
+  };
+
+  function getType<T>(arg : T | undefined) : StringToValueReturnType {
+    if (arg === undefined) {
+      return StringToValueReturnType.UNDEFINED;
+    }
+    if (arg !== null && typeof arg === "object" && "errorMessage" in arg) {
+      return StringToValueReturnType.ERROR;
+    }
+    return StringToValueReturnType.VALUE;
   }
 
   export function Component<T>(props : Props<T>) {
+    const {
+      disabledFlag
+    } = props;
     // Begin state data.
     const [
       valueAsText, 
@@ -35,20 +55,24 @@ namespace InputWithValidator {
     ] = useState(props.valueToString(props.value));
     const [
       valueAsTextValidityFlag,
-      setValueAsTExtValidityFlag
+      setValueAsTextValidityFlag
     ] = useState(true);
     const [
       listenForValueChangeFlag,
       setListenForValueChangeFlag
     ] = useState(true);
+    const [
+      errorMessage,
+      setErrorMessage
+    ] = useState<string | undefined>(undefined);
     // Begin effects.
     useEffect(function() {
-      if (listenForValueChangeFlag) {
-        setValueAsText(props.valueToString(props.value));
-      } else {
+      if (!listenForValueChangeFlag) {
         // Ignore changes made to <props.value> originating from within this Component.
         setListenForValueChangeFlag(true);
+        setValueAsTextValidityFlag(true);
       }
+      setValueAsText(props.valueToString(props.value));
     }, [props.value]);
     // Begin render.
     return <input
@@ -63,15 +87,28 @@ namespace InputWithValidator {
         let newValueAsText = e.target.value;
         setValueAsText(newValueAsText);
         let toValueAttempt = props.stringToValue(newValueAsText);
-        let valueAsTextValidityFlag = isValueType(toValueAttempt);
-        setValueAsTExtValidityFlag(valueAsTextValidityFlag);
-        if (valueAsTextValidityFlag) {
-          props.setValue(toValueAttempt as T);
+        switch (getType(toValueAttempt)) {
+          case StringToValueReturnType.VALUE : {
+            props.setValue(toValueAttempt as T);
+            setValueAsTextValidityFlag(true);
+            break;
+          }
+          case StringToValueReturnType.UNDEFINED : {
+            setValueAsTextValidityFlag(false);
+            break;
+          }
+          case StringToValueReturnType.ERROR : {
+            setValueAsTextValidityFlag(false);
+            setErrorMessage((toValueAttempt as Error).errorMessage);
+            break;
+          }
         }
       }}
       step = {props.step}
       min = {props.min}
       max = {props.max}
+      title = {errorMessage}
+      disabled = {disabledFlag}
     />;
   }
 
@@ -98,7 +135,7 @@ namespace InputWithValidator {
   export function Angle(props : AngleProps<number>) {
     const step = useMemo(
       function() {
-        return props.step ?? props.useDegrees ? 1 : degreesToRadians(1);
+        return props.step ?? props.useDegreesFlag ? 1 : degreesToRadians(1);
       },
       [props.step]
     );
@@ -106,7 +143,7 @@ namespace InputWithValidator {
       <Component<number>
         {...props}
         valueToString = {function(value : number) {
-          let formattedValue = props.useDegrees ? radiansToDegrees(value) : value;
+          let formattedValue = props.useDegreesFlag ? radiansToDegrees(value) : value;
           return numberToFormattedStringHelper(formattedValue);
         }}
         stringToValue = {function(valueAsString : string) {
@@ -114,12 +151,12 @@ namespace InputWithValidator {
           if (parsedUnformattedValue === undefined) {
             return undefined;
           }
-          return props.useDegrees ? degreesToRadians(parsedUnformattedValue) : parsedUnformattedValue;
+          return props.useDegreesFlag ? degreesToRadians(parsedUnformattedValue) : parsedUnformattedValue;
         }}
         htmlInputType= "number"
         step = {step}
       />
-      {props.useDegrees ? "°" : "radians"}
+      {props.useDegreesFlag ? "°" : "radians"}
     </>
   }
 }

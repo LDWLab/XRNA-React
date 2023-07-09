@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { FullKeys, RnaComplexProps } from "../../../App";
-import { LabelContent } from "../LabelContent";
-import Font from "../../../data_structures/Font";
-import { DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT, DEFAULT_STROKE_WIDTH } from "../../../utils/Constants";
-import { ColorEditor } from "./ColorEditor";
-import Color from "../../../data_structures/Color";
-import InputWithValidator from "../../generic/InputWithValidator";
+import { FullKeys, RnaComplexProps } from "../../../../App";
+import { LabelContent } from "../../LabelContent";
+import Font from "../../../../data_structures/Font";
+import { DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT, DEFAULT_STROKE_WIDTH } from "../../../../utils/Constants";
+import { ColorEditor } from "../../../generic/editors/ColorEditor";
+import Color from "../../../../data_structures/Color";
+import InputWithValidator from "../../../generic/InputWithValidator";
 
 export namespace LabelContentEditMenu {
   export type Props = {

@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { RnaComplexProps, FullKeys } from "../../../App";
-import { Nucleotide } from "../Nucleotide";
-import { Vector2D, distance } from "../../../data_structures/Vector2D";
-import { DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT } from "../../../utils/Constants";
-import InputWithValidator from "../../generic/InputWithValidator";
+import { RnaComplexProps, FullKeys } from "../../../../App";
+import { Nucleotide } from "../../Nucleotide";
+import { Vector2D, distance } from "../../../../data_structures/Vector2D";
+import { DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT } from "../../../../utils/Constants";
+import InputWithValidator from "../../../generic/InputWithValidator";
 
 export namespace SingleNucleotideInteractionConstraintEditMenu {
   export type Props = {
@@ -55,7 +55,6 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
     const previousNucleotideDistanceJsx = useMemo(
       function() {
         return previousNucleotidePosition === undefined ? <></> : <>
-          <br/>
           Distance to previous nucleotide: {distance(
             {
               x,
@@ -91,9 +90,8 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       ]
     );
     return <>
-      <b>
-        Edit Menu for Nucleotide #{nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex}:
-      </b>
+      {previousNucleotideDistanceJsx}
+      {nextNucleotideDistanceJsx}
       <br/>
       <label>
         Symbol:&nbsp;
@@ -116,12 +114,6 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
           })}
         </select>
       </label>
-      <br/>
-      In RNA molecule "{rnaMoleculeName}"
-      <br/>
-      In RNA complex "{singularRnaComplexProps.name}"
-      {previousNucleotideDistanceJsx}
-      {nextNucleotideDistanceJsx}
       <br/>
       <label>
         x:&nbsp;

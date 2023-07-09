@@ -1,13 +1,13 @@
 import { useContext, useEffect, useState } from "react";
-import { FullKeys, RnaComplexProps } from "../../../App";
-import { LabelLine } from "../LabelLine";
-import { asAngle, distance, magnitude, subtract } from "../../../data_structures/Vector2D";
-import { Context } from "../../../context/Context";
-import { DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT } from "../../../utils/Constants";
-import InputWithValidator from "../../generic/InputWithValidator";
-import { Setting } from "../../../ui/Setting";
-import { ColorEditor } from "./ColorEditor";
-import { Color } from "../../../data_structures/Color";
+import { FullKeys, RnaComplexProps } from "../../../../App";
+import { LabelLine } from "../../LabelLine";
+import { asAngle, distance, magnitude, subtract } from "../../../../data_structures/Vector2D";
+import { Context } from "../../../../context/Context";
+import { DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT } from "../../../../utils/Constants";
+import InputWithValidator from "../../../generic/InputWithValidator";
+import { Setting } from "../../../../ui/Setting";
+import { ColorEditor } from "../../../generic/editors/ColorEditor";
+import { Color } from "../../../../data_structures/Color";
 
 export namespace LabelLineEditMenu {
   export type Props = {
@@ -269,7 +269,7 @@ export namespace LabelLineEditMenu {
               length
             );
           }}
-          useDegrees = {settingsRecord[Setting.USE_DEGREES]}
+          useDegreesFlag = {settingsRecord[Setting.USE_DEGREES]}
         />
       </label>
       <br/>

@@ -1,10 +1,13 @@
 import { RnaComplexProps, FullKeys } from "../../../App";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import { Vector2D } from "../../../data_structures/Vector2D";
-import { AbstractInteractionConstraint, basePairedNucleotideError } from "../AbstractInteractionConstraint";
-import { SingleNucleotideInteractionConstraintEditMenu } from "../../../components/app_specific/edit_menus/SingleNucleotideInteractionConstraintEditMenu";
+import { AbstractInteractionConstraint, InteractionConstraintError, basePairedNucleotideError } from "../AbstractInteractionConstraint";
+import { SingleNucleotideInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/SingleNucleotideInteractionConstraintEditMenu";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { InteractionConstraint } from "../InteractionConstraints";
+import { Tab } from "../../../app_data/Tab";
+import { SingleNucleotideInteractionConstraintFormatMenu } from "../../../components/app_specific/menus/format_menus/SingleNucleotideInteractionConstraintFormatMenu";
+import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 
 export class SingleNucleotideInteractionConstraint extends AbstractInteractionConstraint {
   private readonly singularNucleotideProps : Nucleotide.ExternalProps;
@@ -71,17 +74,62 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       rnaMoleculeName,
       nucleotideIndex
     } = this.fullKeys;
+    const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
+    const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const setNucleotideKeysToRerender = this.setNucleotideKeysToRerender;
-    return <SingleNucleotideInteractionConstraintEditMenu.Component
-      rnaComplexProps = {this.rnaComplexProps}
-      fullKeys = {this.fullKeys}
-      triggerRerender = {function() {
-        setNucleotideKeysToRerender({
-          [rnaComplexIndex] : {
-            [rnaMoleculeName] : [nucleotideIndex]
-          }
-        });
-      }}
-    />;
+    const setBasePairKeysToRerender = this.setBasePairKeysToRerender;
+
+    const header = <>
+      <b>
+        {tab} nucleotide #{singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndex}
+      </b>
+      <br/>
+      In RNA molecule "{rnaMoleculeName}"
+      <br/>
+      In RNA complex "{singularRnaComplexProps.name}"
+    </>;
+    switch (tab) {
+      case Tab.EDIT : {
+        return <>
+          {header}
+          <br/>
+          <SingleNucleotideInteractionConstraintEditMenu.Component
+            rnaComplexProps = {this.rnaComplexProps}
+            fullKeys = {this.fullKeys}
+            triggerRerender = {function() {
+              setNucleotideKeysToRerender({
+                [rnaComplexIndex] : {
+                  [rnaMoleculeName] : [nucleotideIndex]
+                }
+              });
+            }}
+          />
+        </>;
+      }
+      case Tab.FORMAT : {
+        return <>
+          {header}
+          <br/>
+          <SingleNucleotideInteractionConstraintFormatMenu.Component
+            rnaComplexProps = {this.rnaComplexProps}
+            initialBasePairsText = {`${nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex} # 1`}
+            approveParsedBasePairs = {function(parsedBasePairs : Array<BasePairsEditor.ParsedBasePair>) {
+              if (parsedBasePairs.length !== 1) {
+                return "This interaction constraint expects a length of exactly one.";
+              }
+            }}
+            defaultRnaMoleculeName0 = {rnaMoleculeName}
+            defaultRnaMoleculeName1 = {rnaMoleculeName}
+            defaultRnaComplexName = {singularRnaComplexProps.name}
+          />
+        </>;
+      }
+      default : {
+        const error : InteractionConstraintError = {
+          errorMessage : "Not yet implemented."
+        };
+        throw error;
+      }
+    }
   }
 };

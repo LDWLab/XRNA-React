@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, FunctionComponent, createElement } from "react";
 import { binarySearch } from "../../utils/Utils";
+import BasePair from "../app_specific/BasePair";
 
 namespace Scaffolding {
   export type SortedProps<Key, Props extends {}> = Array<{
@@ -49,7 +50,10 @@ namespace Scaffolding {
           rightPropsPartition : sortedProps.slice(lengthOverTwo)
         };
       },
-      [sortedProps]
+      [
+        sortedProps,
+        sortedProps.length
+      ]
     );
     const leftPartition = useMemo(
       function() {
@@ -80,7 +84,10 @@ namespace Scaffolding {
           }
         }
       },
-      [leftPartitionRerenderTrigger]
+      [
+        leftPropsPartition,
+        leftPartitionRerenderTrigger
+      ]
     );
     const rightPartition = useMemo(
       function() {
@@ -111,7 +118,10 @@ namespace Scaffolding {
           }
         }
       },
-      [rightPartitionRerenderTrigger]
+      [
+        rightPropsPartition,
+        rightPartitionRerenderTrigger
+      ]
     );
     // Begin effects.
     useEffect(

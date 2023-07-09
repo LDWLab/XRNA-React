@@ -138,7 +138,11 @@ export function angleBetween(v0 : Vector2D, v1 : Vector2D) : number {
   return Math.acos(dotProduct(v0, v1) / Math.sqrt(magnitudeSquared(v0) * magnitudeSquared(v1)));
 }
 
-export function scalarProjection(v : Vector2D, direction : Vector2D) {
+export function angleBetweenNormalVectors(v0 : Vector2D, v1 : Vector2D) : number {
+  return Math.acos(dotProduct(v0, v1));
+}
+
+export function scalarProject(v : Vector2D, direction : Vector2D) {
   return dotProduct(v, direction) / magnitude(direction);
 }
 
@@ -150,12 +154,30 @@ export function reject(v : Vector2D, direction : Vector2D) : Vector2D {
   return subtract(v, project(v, direction));
 }
 
+export function projectAndReject(v : Vector2D, direction : Vector2D) : { projection : Vector2D, rejection : Vector2D } {
+  const projection = project(v, direction);
+  const rejection = subtract(v, projection);
+  return {
+    projection,
+    rejection
+  }
+}
+
 export function projectUsingNormalDirection(v : Vector2D, normalDirection : Vector2D) {
   return scaleUp(normalDirection, dotProduct(v, normalDirection));
 }
 
 export function rejectUsingNormalDirection(v : Vector2D, normalDirection : Vector2D) {
   return subtract(v, projectUsingNormalDirection(v, normalDirection));
+}
+
+export function projectAndRejectUsingNormalDirection(v : Vector2D, normalDirection : Vector2D) {
+  const projection = projectUsingNormalDirection(v, normalDirection);
+  const rejection = subtract(v, projection);
+  return {
+    projection,
+    rejection
+  }
 }
 
 export function rotationDirection(dv0 : Vector2D, dv1 : Vector2D) {

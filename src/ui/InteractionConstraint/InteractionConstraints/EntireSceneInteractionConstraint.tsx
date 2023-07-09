@@ -1,10 +1,12 @@
 import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
-import { EntireSceneInteractionConstraintEditMenu } from "../../../components/app_specific/edit_menus/EntireSceneInteractionConstraintEditMenu";
+import { EntireSceneInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/EntireSceneInteractionConstraintEditMenu";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import { AbstractInteractionConstraint } from "../AbstractInteractionConstraint";
 import { InteractionConstraint } from "../InteractionConstraints";
 
 export class EntireSceneInteractionConstraint extends AbstractInteractionConstraint {
+  private readonly rightClickMenuProps : EntireSceneInteractionConstraintEditMenu.Props;
+
   public constructor(
     rnaComplexProps : RnaComplexProps,
     fullKeys : FullKeys,
@@ -19,6 +21,13 @@ export class EntireSceneInteractionConstraint extends AbstractInteractionConstra
       setBasePairKeysToRerender,
       setDebugVisualElements
     );
+    const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
+    const basePairKeysToRerender : BasePairKeysToRerender = {};
+    this.rightClickMenuProps = {
+      rnaComplexProps : this.rnaComplexProps,
+      setNucleotideKeysToRerender,
+      setBasePairKeysToRerender
+    };
   }
 
   public override drag() {
@@ -26,6 +35,14 @@ export class EntireSceneInteractionConstraint extends AbstractInteractionConstra
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
-    return <EntireSceneInteractionConstraintEditMenu.Component/>;
+    return <>
+      <b>
+        Edit entire scene: 
+      </b>
+      <br/>
+      <EntireSceneInteractionConstraintEditMenu.Component
+        {...this.rightClickMenuProps}
+      />
+    </>;
   }
 }

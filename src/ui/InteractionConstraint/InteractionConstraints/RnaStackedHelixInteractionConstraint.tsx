@@ -1,15 +1,18 @@
 import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
 import { RnaComplex, compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../../../components/app_specific/RnaMolecule";
+import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 import { NucleotideKeysToRerender, BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
-import { Vector2D } from "../../../data_structures/Vector2D";
+import { Vector2D, add, asAngle, orthogonalizeLeft, scaleUp, subtract } from "../../../data_structures/Vector2D";
 import { sign, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { InteractionConstraint, populateToBeDraggedWithHelix } from "../InteractionConstraints";
+import { Extrema, InteractionConstraint, populateToBeDraggedWithHelix } from "../InteractionConstraints";
 
 export class RnaStackedHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
+  private readonly editMenuHeader : JSX.Element;
+  private readonly editMenuProps : AppSpecificOrientationEditor.Props;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -36,14 +39,14 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
     const nucleotideIndex0 = nucleotideIndex;
     if (!(rnaMoleculeName0 in basePairsPerRnaComplex)) {
       const error : InteractionConstraintError = {
-        errorMessage : "Cannot drag a non-base-paired nucleotide using this interaction constraint."
+        errorMessage : "Cannot interact with a non-base-paired nucleotide using this interaction constraint."
       };
       throw error;
     }
     const basePairsPerRnaMolecule0 = basePairsPerRnaComplex[rnaMoleculeName0];
     if (!(nucleotideIndex0 in basePairsPerRnaMolecule0)) {
       const error : InteractionConstraintError = {
-        errorMessage : "Cannot drag a non-base-paired nucleotide using this interaction constraint."
+        errorMessage : "Cannot interact with a non-base-paired nucleotide using this interaction constraint."
       };
       throw error;
     }
@@ -98,8 +101,8 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       basePairKeysToRerenderPerRnaComplex,
       false,
     );
-    const extremaIncremented = extremaWithCauseOfTerminationIncremented.extrema;
-    const extremaDecremented = extremaWithCauseOfTerminationDecremented.extrema;
+    let extremaIncremented = extremaWithCauseOfTerminationIncremented.extrema;
+    let extremaDecremented = extremaWithCauseOfTerminationDecremented.extrema;
     let nucleotideIndex1Delta = sign(extremaIncremented[1] - extremaDecremented[1]);
     if (nucleotideIndex1Delta === 0) {
       outerLoop: for (let nucleotideIndex0Delta of [-1, 1]) {
@@ -115,7 +118,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
               continue outerLoop;
             }
             const nucleotideIndex1Start = nucleotideIndex1;
-            const nucleotideIndex1End = nucleotideIndex1;
+            const nucleotideIndex1End = mappedBasePairInformation.nucleotideIndex;
             let minimumNucleotideIndex1 : number;
             let maximumNucleotideIndex1 : number;
             if (nucleotideIndex1Start > nucleotideIndex1End) {
@@ -125,15 +128,20 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
               minimumNucleotideIndex1 = nucleotideIndex1Start;
               maximumNucleotideIndex1 = nucleotideIndex1End;
             }
+            let singleStrandFlag = true;
+            for (let nucleotideIndex1I = minimumNucleotideIndex1 + 1; nucleotideIndex1I < maximumNucleotideIndex1; nucleotideIndex1I++) {
+              if (!(nucleotideIndex1I in singularRnaMoleculeProps0.nucleotideProps) || nucleotideIndex1 in basePairsPerRnaMolecule0) {
+                singleStrandFlag = false;
+                break;
+              }
+            }
+            if (singleStrandFlag) {
+              nucleotideIndex1Delta = (sign(nucleotideIndex1End - nucleotideIndex1Start) * nucleotideIndex0Delta) as -1 | 0 | 1;
+            }
             break;
           }
-          // const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex0I];
         }
       }
-    }
-
-    if (nucleotideIndex1Delta === 0) {
-
     }
 
     function populateToBeDragged(
@@ -149,11 +157,17 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       singularRnaMoleculeProps0 : RnaMolecule.ExternalProps,
       singularRnaMoleculeProps1 : RnaMolecule.ExternalProps,
       basePairKeysToRerenderPerRnaComplex : BasePairKeysToRerenderPerRnaComplex,
-    ) {
-      let temporaryToBeDragged = new Array<Vector2D>();
-      let temporaryNucleotideKeysToRerenderPerRnaMolecule0 : NucleotideKeysToRerenderPerRnaMolecule = [];
-      let temporaryNucleotideKeysToRerenderPerRnaMolecule1 : NucleotideKeysToRerenderPerRnaMolecule = [];
+    ) : Extrema {
+      let extrema = {
+        0 : nucleotideIndex0,
+        1 : nucleotideIndex1
+      };
       outer: while (true) {
+        let lastBasePairedNucleotideIndex0 = nucleotideIndex0;
+        let temporaryNucleotideKeysToRerenderPerRnaMolecule0 : NucleotideKeysToRerenderPerRnaMolecule = [];
+        let temporaryNucleotideKeysToRerenderPerRnaMolecule1 : NucleotideKeysToRerenderPerRnaMolecule = [];
+        let temporaryToBeDragged0 = new Array<Vector2D>();
+        let temporaryToBeDragged1 = new Array<Vector2D>();
         inner: while (true) {
           nucleotideIndex0 += nucleotideIndex0Delta;
           if (!(nucleotideIndex0 in singularRnaMoleculeProps0.nucleotideProps)) {
@@ -163,7 +177,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
           if (nucleotideIndex0 in basePairsPerRnaMolecule0) {
             break inner;
           }
-          temporaryToBeDragged.push(singularNucleotideProps0);
+          temporaryToBeDragged0.push(singularNucleotideProps0);
           temporaryNucleotideKeysToRerenderPerRnaMolecule0.push(nucleotideIndex0);
         }
         inner: while(true) {
@@ -175,8 +189,13 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
           if (nucleotideIndex1 in basePairsPerRnaMolecule1) {
             break inner;
           }
-          temporaryToBeDragged.push(singularNucleotideProps1);
+          temporaryToBeDragged1.push(singularNucleotideProps1);
           temporaryNucleotideKeysToRerenderPerRnaMolecule1.push(nucleotideIndex1);
+        }
+        if (nucleotideIndex1 === lastBasePairedNucleotideIndex0) {
+          toBeDragged.push(...temporaryToBeDragged0);
+          nucleotideKeysToRerenderPerRnaMolecule0.push(...temporaryNucleotideKeysToRerenderPerRnaMolecule0);
+          break outer;
         }
         const mappedBasePairInformation = basePairsPerRnaMolecule0[nucleotideIndex0];
         if (mappedBasePairInformation.rnaMoleculeName !== rnaMoleculeName1) {
@@ -185,7 +204,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         if (mappedBasePairInformation.nucleotideIndex !== nucleotideIndex1) {
           break outer;
         }
-        toBeDragged.push(...temporaryToBeDragged);
+        toBeDragged.push(
+          ...temporaryToBeDragged0,
+          ...temporaryToBeDragged1
+        );
         nucleotideKeysToRerenderPerRnaMolecule0.push(...temporaryNucleotideKeysToRerenderPerRnaMolecule0);
         nucleotideKeysToRerenderPerRnaMolecule1.push(...temporaryNucleotideKeysToRerenderPerRnaMolecule1);
         const extremaWithCauseOfTermination = populateToBeDraggedWithHelix(
@@ -203,18 +225,21 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
           basePairKeysToRerenderPerRnaComplex,
           true
         );
-        const extrema = extremaWithCauseOfTermination.extrema;
+        extrema = extremaWithCauseOfTermination.extrema;
         nucleotideIndex0 = extrema[0];
         nucleotideIndex1 = extrema[1];
       }
+      return extrema;
     }
 
-    for (let nucleotideIndexDeltas of [{ 0 : 1, 1 : nucleotideIndex1Delta}, { 0 : -1, 1 : -nucleotideIndex1Delta }]) {
-      populateToBeDragged(
-        nucleotideIndexDeltas[0] as -1 | 1,
-        nucleotideIndexDeltas[1] as -1 | 1,
-        nucleotideIndex0,
-        nucleotideIndex1,
+    let boundingNucleotide0 : Vector2D;
+    let boundingNucleotide1 : Vector2D;;
+    if (nucleotideIndex1Delta !== 0) {
+      extremaIncremented = populateToBeDragged(
+        1,
+        nucleotideIndex1Delta,
+        extremaIncremented[0],
+        extremaIncremented[1],
         basePairsPerRnaMolecule0,
         basePairsPerRnaMolecule1,
         rnaMoleculeName0,
@@ -224,6 +249,55 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         singularRnaMoleculeProps1,
         basePairKeysToRerenderPerRnaComplex
       );
+      extremaDecremented = populateToBeDragged(
+        -1,
+        -nucleotideIndex1Delta as -1 | 1,
+        extremaDecremented[0],
+        extremaDecremented[1],
+        basePairsPerRnaMolecule0,
+        basePairsPerRnaMolecule1,
+        rnaMoleculeName0,
+        rnaMoleculeName1,
+        toBeDragged,
+        singularRnaMoleculeProps0,
+        singularRnaMoleculeProps1,
+        basePairKeysToRerenderPerRnaComplex
+      );
+      
+      let boundingNucleotideIndex0 : number;
+      let boundingNucleotideIndex1 : number;
+      boundingNucleotideIndex0 = Math.min(
+        extremaDecremented[0],
+        extremaDecremented[1],
+        extremaIncremented[0],
+        extremaIncremented[1]
+      );
+      switch (boundingNucleotideIndex0) {
+        case extremaDecremented[0] : {
+          boundingNucleotideIndex1 = extremaDecremented[1];
+          break;
+        }
+        case extremaDecremented[1] : {
+          boundingNucleotideIndex1 = extremaDecremented[0];
+          break;
+        }
+        case extremaIncremented[0] : {
+          boundingNucleotideIndex1 = extremaIncremented[1];
+          break;
+        }
+        case extremaIncremented[1] : {
+          boundingNucleotideIndex1 = extremaIncremented[0];
+          break;
+        }
+        default : {
+          throw "This case should be impossible.";
+        }
+      }
+      boundingNucleotide0 = singularRnaMoleculeProps0.nucleotideProps[boundingNucleotideIndex0];
+      boundingNucleotide1 = singularRnaMoleculeProps0.nucleotideProps[boundingNucleotideIndex1];
+    } else {
+      boundingNucleotide0 = singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex0];
+      boundingNucleotide1 = singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex1];
     }
 
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
@@ -233,14 +307,68 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
     nucleotideKeysToRerenderPerRnaMolecule1.sort(subtractNumbers);
     basePairKeysToRerenderPerRnaComplex.sort(compareBasePairKeys);
 
+    function rerender() {
+      setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
+      setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
+    }
+
     this.dragListener = linearDrag(
       structuredClone(singularNucleotideProps),
       toBeDragged,
-      function() {
-        setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
-        setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
-      }
+      rerender
     );
+    let nucleotideRange0Text = `Nucleotides [${extremaDecremented[0] + singularRnaMoleculeProps0.firstNucleotideIndex}, ${extremaIncremented[0] + singularRnaMoleculeProps0.firstNucleotideIndex}]`;
+    let nucleotideRange1Text = `Nucleotides [${extremaDecremented[1] + singularRnaMoleculeProps1.firstNucleotideIndex}, ${extremaIncremented[1] + singularRnaMoleculeProps1.firstNucleotideIndex}]`;
+    let nucleotideAndRnaMoleculeJsx : JSX.Element;
+    if (rnaMoleculeName0 === rnaMoleculeName1) {
+      nucleotideAndRnaMoleculeJsx = <>
+        {nucleotideRange0Text}
+        <br/>
+        Bound to
+        <br/>
+        {nucleotideRange1Text}
+        <br/>
+        In RNA molecule "{rnaMoleculeName0}"
+      </>;
+    } else {
+      nucleotideAndRnaMoleculeJsx = <>
+        {nucleotideRange0Text}
+        <br/>
+        In RNA molecule "{rnaMoleculeName0}"
+        <br/>
+        {nucleotideRange1Text}
+        <br/>
+        In RNA molecule "{rnaMoleculeName1}"
+      </>;
+    }
+    const boundingNucleotideCenter = scaleUp(
+      add(
+        boundingNucleotide0,
+        boundingNucleotide1
+      ),
+      0.5
+    );
+    const normalVector = orthogonalizeLeft(subtract(
+      boundingNucleotide1,
+      boundingNucleotide0
+    ));
+    this.editMenuHeader = <>
+      <b>
+        Edit stacked helices:
+      </b>
+      <br/>
+      {nucleotideAndRnaMoleculeJsx}
+      <br/>
+      In RNA complex "{singularRnaComplexProps.name}"
+      <br/>
+    </>;
+    this.editMenuProps = {
+      initialCenter : boundingNucleotideCenter,
+      positions : toBeDragged,
+      onUpdatePositions : rerender,
+      normal : normalVector,
+      initialAngle : asAngle(normalVector)
+    };
   }
 
   public override drag() {
@@ -248,6 +376,11 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
-    return <>Not yet implemented.</>;
+    return <>
+      {this.editMenuHeader}
+      <AppSpecificOrientationEditor.Component
+        {...this.editMenuProps}
+      />
+    </>;
   }
 }

@@ -1,17 +1,17 @@
 import { DragListener, RnaComplexProps, FullKeys } from "../../../App";
-import { SingleColorInteractionConstraintEditMenu } from "../../../components/app_specific/edit_menus/SingleColorInteractionConstraintEditMenu";
+import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import { BLACK, areEqual } from "../../../data_structures/Color";
-import { Vector2D } from "../../../data_structures/Vector2D";
+import { Vector2D, add } from "../../../data_structures/Vector2D";
+import { parseInteger } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
 import { InteractionConstraint } from "../InteractionConstraints";
 
 export class SingleColorInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
-  private readonly anchor : Vector2D;
-  private readonly toBeDragged : Array<Vector2D>;
-  private readonly rerender : () => void;
+  private readonly mismatchedColorBasePairExistsFlag : boolean;
+  private readonly rightClickMenuProps : AppSpecificOrientationEditor.SimplifiedProps;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -33,17 +33,16 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
       nucleotideIndex
     } = this.fullKeys;
     const toBeDragged = new Array<Vector2D>();
-    this.toBeDragged = toBeDragged;
     const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
     const basePairKeysToRerender : BasePairKeysToRerender = {};
 
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
-    this.anchor = singularNucleotideProps;
     const color = singularNucleotideProps.color ?? BLACK;
 
-    const rnaComplexIndices = Object.keys(this.rnaComplexProps).map(Number.parseInt);
+    const rnaComplexIndices = Object.keys(this.rnaComplexProps).map(parseInteger);
+    this.mismatchedColorBasePairExistsFlag = false;
     for (let rnaComplexIndex of rnaComplexIndices) {
       const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
       nucleotideKeysToRerender[rnaComplexIndex] = {};
@@ -57,14 +56,13 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
         nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] = [];
         const nucleotideKeysToRerenderPerRnaMolecule = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName];
         const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
-        const nucleotideIndices = Object.keys(singularRnaMoleculeProps.nucleotideProps).map(function(nucleotideIndexAsString) {
-          return Number.parseInt(nucleotideIndexAsString);
-        });
+        const nucleotideIndices = Object.keys(singularRnaMoleculeProps.nucleotideProps).map(parseInteger);
         for (let nucleotideIndex of nucleotideIndices) {
           const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+          const nucleotideColor = singularNucleotideProps.color ?? BLACK;
           if (areEqual(
             color,
-            singularNucleotideProps.color ?? BLACK
+            nucleotideColor
           )) {
             toBeDragged.push(singularNucleotideProps);
 
@@ -77,46 +75,70 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
               });
               const singularBasePairedRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName];
               const singularBasePairedNucleotideProps = singularBasePairedRnaMoleculeProps.nucleotideProps[mappedBasePairInformation.nucleotideIndex];
-              if (!areEqual(
+              let mismatchedColorBasePairExistsFlag = !areEqual(
                 color,
                 singularBasePairedNucleotideProps.color ?? BLACK
-              )) {
-                const error : InteractionConstraintError = {
-                  errorMessage : "Cannot drag nucleotides base-paired with different colors using this selection constraint."
-                };
-                throw error;
+              );
+              if (mismatchedColorBasePairExistsFlag) {
+                this.mismatchedColorBasePairExistsFlag = true;
               }
             }
           }
         }
       }
     }
-    const rerender = () => {
+    function rerender() {
       setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
       setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
     }
-    this.rerender = rerender;
     this.dragListener = linearDrag(
       structuredClone(singularNucleotideProps),
       toBeDragged,
       rerender
     );
+    this.rightClickMenuProps = {
+      boundingVector0 : add(
+        singularNucleotideProps,
+        {
+          x : -1,
+          y : 0
+        }
+      ),
+      boundingVector1 : add(
+        singularNucleotideProps,
+        {
+          x : 1,
+          y : 0
+        }
+      ),
+      positions : toBeDragged,
+      onUpdatePositions : rerender,
+      disabledFlag : this.mismatchedColorBasePairExistsFlag
+    };
   }
 
   public override drag() {
+    if (this.mismatchedColorBasePairExistsFlag) {
+      const error : InteractionConstraintError = {
+        errorMessage : "Cannot drag nucleotides base-paired with different colors using this selection constraint."
+      };
+      throw error;
+    }
     return this.dragListener;
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
     return <>
       <b>
-        Position of clicked-on nucleotide:
+        Edit all nucleotides with the same color:
       </b>
       <br/>
-      <SingleColorInteractionConstraintEditMenu.Component
-        {...this.anchor}
-        toBeDragged = {this.toBeDragged}
-        rerender = {this.rerender}
+      {this.mismatchedColorBasePairExistsFlag && <>
+        Cannot edit positions of these nucleotides, because some are base-paired to other colors.
+        <br/>
+      </>}
+      <AppSpecificOrientationEditor.Simplified
+        {...this.rightClickMenuProps}
       />
     </>;
   }

@@ -49,7 +49,9 @@ export function checkExtremaForSingleStrand(
   }
   if (singleStrandFlag) {
     nucleotideKeysToRerenderPerRnaMolecule.push(...toBeDraggedNucleotideIndices);
-    toBeDragged.push(...toBeDraggedNucleotideIndices.map(function(nucleotideIndex) { return singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]; }));
+    toBeDragged.push(...toBeDraggedNucleotideIndices.map(function(nucleotideIndex) {
+      return singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+    }));
   }
 }
 

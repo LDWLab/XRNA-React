@@ -61,6 +61,25 @@ export function binarySearch<T>(array : Array<T>, comparator : (t : T) => number
   return null;
 }
 
+export function sortedArraySplice<T>(sortedArray : Array<T>, comparator : (t : T) => number, deleteCount : number, ...toBeInserted : Array<T>) {
+  let arrayIndexLowBound = 0;
+  let arrayIndexHighBound = sortedArray.length - 1;
+  while (arrayIndexLowBound < arrayIndexHighBound) {
+    let arrayIndex = (arrayIndexLowBound + arrayIndexHighBound) >> 1;
+    let comparison = comparator(sortedArray[arrayIndex]);
+    if (comparison === 0) {
+      arrayIndexLowBound = arrayIndex;
+      break;
+    }
+    if (comparison > 0) {
+      arrayIndexHighBound = arrayIndex - 1;
+    } else {
+      arrayIndexLowBound = arrayIndex + 1;
+    }
+  }
+  sortedArray.splice(arrayIndexLowBound, deleteCount, ...toBeInserted);
+}
+
 export function radiansToDegrees(angle : number) {
   // 57.2957795131 === 180 / Math.PI
   return angle * 57.2957795131;
@@ -78,4 +97,17 @@ export function subtractNumbers(
   // Obviously, this function is trivial, but I don't want to have to write it repeatedly.
   // It is used for the sake of comparators. The default is alphanumeric, instead of numeric.
   return number0 - number1;
+}
+
+export function subtractNumbersNegated(
+  number0 : number,
+  number1 : number
+) {
+  return number1 - number0;
+}
+
+// This function exists strictly to enable the following: array.map(parseInteger).
+// array.map(Number.parseInt) does not work.
+export function parseInteger(string : string) {
+  return Number.parseInt(string);
 }

@@ -1,13 +1,15 @@
 import { DragListener, FullKeys, RnaComplexProps } from "../../../App";
-import { RnaComplexInteractionConstraintEditMenu } from "../../../components/app_specific/edit_menus/RnaComplexInteractionConstraintEditMenu";
+import { RnaComplexInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/RnaComplexInteractionConstraintEditMenu";
 import { NucleotideKeysToRerender, BasePairKeysToRerender, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
 import { Vector2D } from "../../../data_structures/Vector2D";
+import { parseInteger } from "../../../utils/Utils";
 import { AbstractInteractionConstraint } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
 import { InteractionConstraint } from "../InteractionConstraints";
 
 export class RnaComplexInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
+  private readonly rightClickMenuProps : RnaComplexInteractionConstraintEditMenu.Props;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -44,9 +46,7 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
       const nucleotideKeysToRerenderPerRnaMolecule : NucleotideKeysToRerenderPerRnaMolecule = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName];
       const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
       const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
-      const nucleotideIndices = Object.keys(singularRnaMoleculeProps.nucleotideProps).map(function(nucleotideIndexAsString) {
-        return Number.parseInt(nucleotideIndexAsString);
-      });
+      const nucleotideIndices = Object.keys(singularRnaMoleculeProps.nucleotideProps).map(parseInteger);
       for (let nucleotideIndex of nucleotideIndices) {
         const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
         toBeDragged.push(singularNucleotideProps);
@@ -61,14 +61,19 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
     }
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+    function rerender() {
+      setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
+      setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
+    }
     this.dragListener = linearDrag(
       structuredClone(singularNucleotideProps),
       toBeDragged,
-      function() {
-        setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
-        setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
-      }
+      rerender
     );
+    this.rightClickMenuProps = {
+      rerender,
+      singularRnaComplexProps
+    };
   }
 
   public override drag() {
@@ -76,8 +81,14 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
-    return <RnaComplexInteractionConstraintEditMenu.Component
-      rnaComplexName = ""
-    />;
+    return <>
+      <b>
+        Edit RNA complex:
+      </b>
+      <br/>
+      <RnaComplexInteractionConstraintEditMenu.Component
+        {...this.rightClickMenuProps}
+      />
+    </>;
   }
 }

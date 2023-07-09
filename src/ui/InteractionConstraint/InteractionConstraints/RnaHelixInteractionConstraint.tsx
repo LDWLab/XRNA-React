@@ -6,9 +6,13 @@ import { linearDrag } from "../CommonDragListeners";
 import { AbstractInteractionConstraint, nonBasePairedNucleotideError, nonBasePairedNucleotideErrorMessage } from "../AbstractInteractionConstraint";
 import { Extrema, InteractionConstraint, calculateExtremaMagnitudeDifference, checkExtremaForSingleStrand, populateToBeDraggedWithHelix } from "../InteractionConstraints";
 import { subtractNumbers } from "../../../utils/Utils";
+import { scaleUp, add, orthogonalizeLeft, subtract, asAngle, Vector2D } from "../../../data_structures/Vector2D";
+import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 
 export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
+  private readonly editMenuHeader : JSX.Element;
+  private readonly editMenuProps : AppSpecificOrientationEditor.Props;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -71,10 +75,10 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
         nucleotideIndex : originalMappedBasePairInformation.nucleotideIndex
       }
     ));
-    toBeDragged.push(
-      singularNucleotideProps0,
-      singularNucleotideProps1
-    );
+    // toBeDragged.push(
+    //   singularNucleotideProps0,
+    //   singularNucleotideProps1
+    // );
     const extrema0 = populateToBeDraggedWithHelix(
       -1,
       nucleotideIndex,
@@ -115,13 +119,16 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
           singularRnaMoleculeProps0,
           nucleotideKeysToRerenderPerRnaMolecule0
         );
-        checkExtremaForSingleStrand(
-          extrema1,
-          basePairsPerRnaMolecule0,
-          toBeDragged,
-          singularRnaMoleculeProps0,
-          nucleotideKeysToRerenderPerRnaMolecule0
-        );
+        if (extrema0[0] !== extrema1[0]) {
+          // This check removes duplicates from toBeDragged.
+          checkExtremaForSingleStrand(
+            extrema1,
+            basePairsPerRnaMolecule0,
+            toBeDragged,
+            singularRnaMoleculeProps0,
+            nucleotideKeysToRerenderPerRnaMolecule0
+          );
+        }
       } else if (extremaMagnitudeDifference < 0) {
         checkExtremaForSingleStrand(
           extrema0,
@@ -143,17 +150,107 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     nucleotideKeysToRerenderPerRnaMolecule0.sort(subtractNumbers);
     nucleotideKeysToRerenderPerRnaMolecule1.sort(subtractNumbers);
     basePairKeysToRerenderPerRnaComplex.sort(compareBasePairKeys);
+    function rerender() {
+      setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
+      setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
+    }
     this.dragListener = linearDrag(
       {
         x : singularNucleotideProps0.x,
         y : singularNucleotideProps0.y
       },
       toBeDragged,
-      function() {
-        setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
-        setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
-      }
+      rerender
     );
+    const nucleotideRange0Text = `Nucleotides [${extrema0[0] + singularRnaMoleculeProps0.firstNucleotideIndex}, ${extrema1[0] + singularRnaMoleculeProps0.firstNucleotideIndex}]`;
+    const nucleotideRange1Text = `Nucleotides [${extrema0[1] + singularRnaMoleculeProps1.firstNucleotideIndex}, ${extrema1[1] + singularRnaMoleculeProps1.firstNucleotideIndex}]`;
+    let nucleotideAndRnaMoleculeJsx : JSX.Element;
+    if (rnaMoleculeName0 === rnaMoleculeName1) {
+      nucleotideAndRnaMoleculeJsx = <>
+        {nucleotideRange0Text}
+        <br/>
+        Contiguously bound to
+        <br/>
+        {nucleotideRange1Text}
+        <br/>
+        In RNA molecule "{rnaMoleculeName0}"
+      </>;
+    } else {
+      nucleotideAndRnaMoleculeJsx = <>
+        {nucleotideRange0Text}
+        <br/>
+        In RNA molecule "{rnaMoleculeName0}"
+        <br/>
+        {nucleotideRange1Text}
+        <br/>
+        In RNA molecule "{rnaMoleculeName1}"
+      </>;
+    }
+    let boundingNucleotide0 : Vector2D;
+    let boundingNucleotide1 : Vector2D;
+    if (rnaMoleculeName0 === rnaMoleculeName1) {
+      let boundingNucleotideIndex0 = Math.min(
+        extrema0[0],
+        extrema0[1],
+        extrema1[0],
+        extrema1[1]
+      );
+      let boundingNucleotideIndex1 : number;
+      switch (boundingNucleotideIndex0) {
+        case extrema0[0] : {
+          boundingNucleotideIndex1 = extrema0[1];
+          break;
+        }
+        case extrema0[1] : {
+          boundingNucleotideIndex1 = extrema0[0];
+          break;
+        }
+        case extrema1[0] : {
+          boundingNucleotideIndex1 = extrema1[1];
+          break;
+        }
+        case extrema1[1] : {
+          boundingNucleotideIndex1 = extrema1[0];
+          break;
+        }
+        default : {
+          throw "This condition should be impossible.";
+        }
+      }
+      boundingNucleotide0 = singularRnaMoleculeProps0.nucleotideProps[boundingNucleotideIndex0];
+      boundingNucleotide1 = singularRnaMoleculeProps0.nucleotideProps[boundingNucleotideIndex1];
+    } else {
+      boundingNucleotide0 = singularNucleotideProps0;
+      boundingNucleotide1 = singularNucleotideProps1;
+    }
+    const boundingCenter = scaleUp(
+      add(
+        boundingNucleotide0,
+        boundingNucleotide1
+      ),
+      0.5
+    );
+    const normalVector = orthogonalizeLeft(subtract(
+      boundingNucleotide1,
+      boundingNucleotide0
+    ));
+    this.editMenuHeader = <>
+      <b>
+        Edit helix:
+      </b>
+      <br/>
+      {nucleotideAndRnaMoleculeJsx}
+      <br/>
+      In RNA complex "{singularRnaComplexProps.name}"
+      <br/>
+    </>;
+    this.editMenuProps = {
+      initialCenter : boundingCenter,
+      positions : toBeDragged,
+      onUpdatePositions : rerender,
+      normal : normalVector,
+      initialAngle : asAngle(normalVector)
+    };
   }
 
   public override drag() {
@@ -161,6 +258,11 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
-    return <>Not yet implemented.</>;
+    return <>
+      {this.editMenuHeader}
+      <AppSpecificOrientationEditor.Component
+        {...this.editMenuProps}
+      />
+    </>;
   }
 }

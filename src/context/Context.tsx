@@ -20,6 +20,11 @@ export namespace Context {
     export const Settings = createContext(DEFAULT_SETTINGS);
     export const ComplexDocumentName = createContext("");
     export const SetComplexDocumentName = createContext(function(newComplexDocumentName : string) { /* Do nothing. */ });
+    export const UpdateRnaMoleculeNameHelper = createContext(function(
+      rnaComplexIndex : number,
+      oldRnaMoleculeName : string,
+      newRnaMoleculeName : string
+    ) { /* Do nothing. */ });
   }
 
   export namespace RnaComplex {
@@ -51,6 +56,15 @@ export namespace Context {
       wobble: 0.5
     };
     export const Radius = createContext(DEFAULT_RADIUS);
+    export type KeysToEditPerRnaComplexType = {
+      add : Array<_RnaComplex.BasePairKeys>,
+      delete : Array<_RnaComplex.BasePairKeys>
+    };
+    export const DataToEditPerRnaComplex = createContext<KeysToEditPerRnaComplexType | undefined>({
+      add : [],
+      delete : []
+    });
+    export const SetDataToEdit = createContext(function(dataToEdit : Record<RnaComplexKey, KeysToEditPerRnaComplexType>) { /* Do nothing. */ });
   };
 
   export namespace Label {
