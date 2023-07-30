@@ -42,7 +42,8 @@ export namespace RnaMolecule {
     );
     return <g>
       <Context.RnaMolecule.FirstNucleotideIndex.Provider
-        value = {flattenedNucleotideProps.length === 0 ? NaN : flattenedNucleotideProps[0].scaffoldingKey}
+        value = {firstNucleotideIndex}
+        // value = {flattenedNucleotideProps.length === 0 ? NaN : flattenedNucleotideProps[0].scaffoldingKey}
       >
         <Scaffolding.Component<number, Nucleotide.ExternalProps>
           sortedProps = {flattenedNucleotideProps}

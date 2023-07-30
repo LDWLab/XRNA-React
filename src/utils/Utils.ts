@@ -64,11 +64,13 @@ export function binarySearch<T>(array : Array<T>, comparator : (t : T) => number
 export function sortedArraySplice<T>(sortedArray : Array<T>, comparator : (t : T) => number, deleteCount : number, ...toBeInserted : Array<T>) {
   let arrayIndexLowBound = 0;
   let arrayIndexHighBound = sortedArray.length - 1;
+  let finalDeleteCount = 0;
   while (arrayIndexLowBound < arrayIndexHighBound) {
     let arrayIndex = (arrayIndexLowBound + arrayIndexHighBound) >> 1;
     let comparison = comparator(sortedArray[arrayIndex]);
     if (comparison === 0) {
       arrayIndexLowBound = arrayIndex;
+      finalDeleteCount = deleteCount;
       break;
     }
     if (comparison > 0) {
@@ -77,7 +79,7 @@ export function sortedArraySplice<T>(sortedArray : Array<T>, comparator : (t : T
       arrayIndexLowBound = arrayIndex + 1;
     }
   }
-  sortedArray.splice(arrayIndexLowBound, deleteCount, ...toBeInserted);
+  sortedArray.splice(arrayIndexLowBound, finalDeleteCount, ...toBeInserted);
 }
 
 export function radiansToDegrees(angle : number) {

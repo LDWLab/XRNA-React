@@ -142,11 +142,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       basePairType : mappedBasePair.basePairType ?? getBasePairType(
         singularNucleotideProps.symbol,
         basePairedSingularNucleotideProps.symbol
-      ),
-      onChangeBasePairType : function(newBasePairType : BasePair.Type) {
-        mappedBasePair.basePairType = newBasePairType;
-        rerender();
-      }
+      )
     };
   }
 

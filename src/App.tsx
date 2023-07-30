@@ -542,7 +542,8 @@ function App() {
                 if ("errorMessage" in error) {
                   alert(error.errorMessage);
                 } else {
-                  console.log(error);
+                  throw error;
+                  // console.log(error);
                 }
                 return;
               }
@@ -1098,7 +1099,7 @@ function App() {
         });
       }}
     >
-      <Context.BasePair.SetDataToEdit.Provider
+      <Context.BasePair.SetKeysToEdit.Provider
         value = {setBasePairKeysToEdit}
       >
         <div
@@ -1300,7 +1301,7 @@ function App() {
             </text>
           </svg>
         </div>
-      </Context.BasePair.SetDataToEdit.Provider>
+      </Context.BasePair.SetKeysToEdit.Provider>
     </Context.App.UpdateRnaMoleculeNameHelper.Provider>
   </Context.App.Settings.Provider>;
 }

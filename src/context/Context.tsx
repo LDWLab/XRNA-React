@@ -64,7 +64,8 @@ export namespace Context {
       add : [],
       delete : []
     });
-    export const SetDataToEdit = createContext(function(dataToEdit : Record<RnaComplexKey, KeysToEditPerRnaComplexType>) { /* Do nothing. */ });
+    export type KeysToEdit = Record<RnaComplexKey, KeysToEditPerRnaComplexType>;
+    export const SetKeysToEdit = createContext(function(keysToEdit : KeysToEdit) { /* Do nothing. */ });
   };
 
   export namespace Label {

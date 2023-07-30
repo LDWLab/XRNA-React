@@ -112,15 +112,24 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
           <br/>
           <SingleNucleotideInteractionConstraintFormatMenu.Component
             rnaComplexProps = {this.rnaComplexProps}
-            initialBasePairsText = {`${nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex} # 1`}
-            approveParsedBasePairs = {function(parsedBasePairs : Array<BasePairsEditor.ParsedBasePair>) {
+            initialBasePairs = {[
+              {
+                rnaComplexIndex,
+                rnaMoleculeName0 : rnaMoleculeName,
+                rnaMoleculeName1 : rnaMoleculeName,
+                nucleotideIndex0 : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
+                length : 1
+              }
+            ]}
+            approveBasePairs = {function(parsedBasePairs : Array<BasePairsEditor.BasePair>) {
               if (parsedBasePairs.length !== 1) {
-                return "This interaction constraint expects a length of exactly one.";
+                throw "This interaction constraint expects exactly one base pair.";
+              }
+              const parsedBasePair = parsedBasePairs[0];
+              if (parsedBasePair.length !== 1) {
+                throw "This interaction constraint expects exactly one base pair.";
               }
             }}
-            defaultRnaMoleculeName0 = {rnaMoleculeName}
-            defaultRnaMoleculeName1 = {rnaMoleculeName}
-            defaultRnaComplexName = {singularRnaComplexProps.name}
           />
         </>;
       }

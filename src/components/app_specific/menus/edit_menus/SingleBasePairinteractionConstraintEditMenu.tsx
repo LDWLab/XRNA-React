@@ -4,40 +4,12 @@ import { AppSpecificOrientationEditor } from "../../editors/AppSpecificOrientati
 
 export namespace SingleBasePairInteractionConstraintEditMenu {
   export type Props = AppSpecificOrientationEditor.SimplifiedProps & {
-    basePairType : BasePair.Type,
-    onChangeBasePairType : (newBasePairType : BasePair.Type) => void
+    basePairType : BasePair.Type
   };
 
   export function Component(props : Props) {
-    const {
-      onChangeBasePairType
-    } = props;
-    // Begin state data.
-    const [
-      basePairType,
-      setBasePairType
-    ] = useState(props.basePairType);
     return <>
-      <label>
-        Base-pair type:&nbsp;
-        <select
-          value = {basePairType}
-          onChange = {function(e) {
-            const newBasePairType = e.target.value as BasePair.Type;
-            setBasePairType(newBasePairType);
-            onChangeBasePairType(newBasePairType);
-          }}
-        >
-          {BasePair.types.map(function(basePairTypeI : BasePair.Type) {
-            return <option
-              key = {basePairTypeI}
-              value = {basePairTypeI}
-            >
-              {basePairTypeI}
-            </option>
-          })}
-        </select>
-      </label>
+      Base-pair type: {props.basePairType.toLocaleLowerCase()}
       <br/>
       <AppSpecificOrientationEditor.Simplified
         {...props}
