@@ -1,8 +1,10 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { RnaComplexProps } from "../../../App";
 import { Context } from "../../../context/Context";
-import { DuplicateBasePairKeysHandler, RnaComplex, insertBasePair } from "../RnaComplex";
+import { DuplicateBasePairKeysHandler, insertBasePair } from "../RnaComplex";
 import { default as _BasePair } from  "../BasePair";
+import { Setting } from "../../../ui/Setting";
+import InputWithValidator from "../../generic/InputWithValidator";
 
 export namespace BasePairsEditor {
   export type BasePair = {
@@ -23,18 +25,18 @@ export namespace BasePairsEditor {
     defaultRnaMoleculeName1? : string
   };
 
+  export type InitialBasePairs = Array<PartialBasePair>;
+
   export type Props = DefaultData & {
     rnaComplexProps : RnaComplexProps,
     approveBasePairs : (basePairs : Array<BasePair>) => void,
-    initialTextBasedFlag? : boolean,
-    initialBasePairs? : Array<PartialBasePair>
+    initialBasePairs? : InitialBasePairs
   };
 
   export function Component(props : Props) {
     const {
       rnaComplexProps,
       approveBasePairs,
-      initialTextBasedFlag,
       initialBasePairs,
       defaultRnaComplexIndex,
       defaultRnaMoleculeName0,
@@ -42,15 +44,40 @@ export namespace BasePairsEditor {
     } = props;
     // Begin context data.
     const setBasePairKeysToEdit = useContext(Context.BasePair.SetKeysToEdit);
+    const settingsRecord = useContext(Context.App.Settings);
     // Begin state data.
     const [
       textBasedEditorFlag,
       setTextBasedEditorFlag
-    ] = useState(initialTextBasedFlag ?? true);
+    ] = useState(false);
     const [
       overrideConflictingBasePairsFlag,
       setOverrideConflictingBasePairsFlag
     ] = useState(false);
+    const [
+      repositionNucleotidesFlag,
+      setRepositionNucleotidesFlag
+    ] = useState(false);
+    const [
+      useDefaultBasePairDistancesFlag,
+      setUseDefaultBasePairDistancesFlag
+    ] = useState(true);
+    const [
+      canonicalBasePairDistance,
+      setCanonicalBasePairDistance
+    ] = useState(1);
+    const [
+      mismatchBasePairDistance,
+      setMismatchBasePairDistance
+    ] = useState(1);
+    const [
+      wobbleBasePairDistance,
+      setWobbleBasePairDistance
+    ] = useState(1);
+    const [
+      distanceBetweenContiguousBasePairs,
+      setDistanceBetweenContiguousBasePairs
+    ] = useState(1);
     const [
       basePairs,
       _setBasePairs
@@ -118,7 +145,6 @@ export namespace BasePairsEditor {
                 );
               } catch (error) {
                 if (typeof error === "string") {
-                  // throw `The base pair on line #${i + 1} was not created due to conflicting, preexisting base pair(s). Activate the relevant option above if you want to override them.`;
                   alert(`The base pair on line #${i + 1} was not created due to conflicting, preexisting base pair(s). Activate the relevant option above if you want to override them.`);
                   continue;
                 } else {
@@ -166,10 +192,40 @@ export namespace BasePairsEditor {
       },
       []
     );
+    // Begin effects.
+    useEffect(
+      function() {
+        const initialTextBasedEditorFlag = settingsRecord[Setting.TEXT_BASED_FORMAT_MENU] as boolean;
+        const initialRepositionNucleotidesFlag = settingsRecord[Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] as boolean;
+        const initialCanonicalBasePairDistance = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
+        const initialMismatchBasePairDistance = settingsRecord[Setting.MISMATCH_BASE_PAIR_DISTANCE] as number;
+        const initialWobbleBasePairDistance = settingsRecord[Setting.WOBBLE_BASE_PAIR_DISTANCE] as number;
+        const initialDistanceBetweenContiguousBasePairs = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
+
+        setTextBasedEditorFlag(initialTextBasedEditorFlag);
+        setRepositionNucleotidesFlag(initialRepositionNucleotidesFlag);
+        setCanonicalBasePairDistance(initialCanonicalBasePairDistance);
+        setMismatchBasePairDistance(initialMismatchBasePairDistance);
+        setWobbleBasePairDistance(initialWobbleBasePairDistance);
+        setDistanceBetweenContiguousBasePairs(initialDistanceBetweenContiguousBasePairs);
+      },
+      []
+    );
     // Begin render.
     return <>
       <label>
-        Override conflicting base pairs:
+        Text-based base-pairs editor:&nbsp;
+        <input
+          type = "checkbox"
+          checked = {textBasedEditorFlag}
+          onChange = {function() {
+            setTextBasedEditorFlag(!textBasedEditorFlag);
+          }}
+        />
+      </label>
+      <br/>
+      <label>
+        Override conflicting base pairs:&nbsp;
         <input
           type = "checkbox"
           checked = {overrideConflictingBasePairsFlag}
@@ -180,16 +236,55 @@ export namespace BasePairsEditor {
       </label>
       <br/>
       <label>
-        Text-based base-pairs editor:
+        Reposition nucleotides:&nbsp;
         <input
           type = "checkbox"
-          checked = {textBasedEditorFlag}
+          checked = {repositionNucleotidesFlag}
           onChange = {function() {
-            setTextBasedEditorFlag(!textBasedEditorFlag);
+            setRepositionNucleotidesFlag(!repositionNucleotidesFlag);
           }}
         />
       </label>
       <br/>
+      {repositionNucleotidesFlag && <>
+        <label>
+          Use default base-pair distances:&nbsp;
+          <input
+            type = "checkbox"
+            checked = {useDefaultBasePairDistancesFlag}
+            onChange = {function() {
+              setUseDefaultBasePairDistancesFlag(!useDefaultBasePairDistancesFlag);
+            }}
+          />
+        </label>
+        <br/>
+        {!useDefaultBasePairDistancesFlag && <>
+          <label>
+            Canonical base-pair distance:&nbsp;
+            <InputWithValidator.Number
+              value = {canonicalBasePairDistance}
+              setValue = {setCanonicalBasePairDistance}
+            />
+          </label>
+          <br/>
+          <label>
+            Mismatch base-pair distance:&nbsp;
+            <InputWithValidator.Number
+              value = {mismatchBasePairDistance}
+              setValue = {setMismatchBasePairDistance}
+            />
+          </label>
+          <br/>
+          <label>
+            Wobble base-pair distance:&nbsp;
+            <InputWithValidator.Number
+              value = {wobbleBasePairDistance}
+              setValue = {setWobbleBasePairDistance}
+            />
+          </label>
+          <br/>
+        </>}
+      </>}
       {textBasedEditorFlag && <TextBasedEditor
         rnaComplexProps = {rnaComplexProps}
         setBasePairs = {setBasePairs}
@@ -420,321 +515,3 @@ export namespace BasePairsEditor {
     return <></>;
   }
 }
-
-// import { useState, useEffect, useMemo, useContext } from "react";
-// import { DuplicateBasePairKeysHandler, RnaComplex, insertBasePair } from "../RnaComplex";
-// import { NucleotideKey, RnaComplexKey, RnaComplexProps, RnaMoleculeKey } from "../../../App";
-// import { Context } from "../../../context/Context";
-
-// export namespace BasePairsEditor {
-//   export type ParsedBasePair = {
-//     nucleotideIndex0 : NucleotideKey,
-//     nucleotideIndex1 : NucleotideKey,
-//     length : number,
-//     rnaMoleculeName0 : RnaMoleculeKey,
-//     rnaMoleculeName1 : RnaMoleculeKey,
-//     rnaComplexIndex : RnaComplexKey,
-//   };
-
-//   function parseBasePairs(
-//     basePairsText : string,
-//     flattenedRnaComplexProps : Array<RnaComplex.ExternalProps>,
-//     defaultRnaMoleculeName0? : string,
-//     defaultRnaMoleculeName1? : string,
-//     defaultRnaComplexName? : string
-//   ) : Array<ParsedBasePair> {
-//     const parsedBasePairs = new Array<ParsedBasePair>();
-//     const lines = basePairsText.split("\n");
-//     for (let i = 0; i < lines.length; i++) {
-//       let line = lines[i];
-//       line = line.trim();
-//       const dataAsText = line.split(/\s+/);
-//       if (dataAsText.length < 3) {
-//         throw `Too few arguments were provided in line #${i + 1}. At a minimum, nucleotide index 0, nucleotide index 1 and length are expected.`;
-//       }
-//       let nucleotideIndex0 = Number.parseInt(dataAsText[0]);
-//       if (Number.isNaN(nucleotideIndex0)) {
-//         throw "The first parameter provided - nucleotide index 1 - is not a number.";
-//       }
-//       let nucleotideIndex1 = Number.parseInt(dataAsText[1]);
-//       if (Number.isNaN(nucleotideIndex1)) {
-//         throw "The second parameter provided - nucleotide index 2 - is not a number.";
-//       }
-//       const length = Number.parseInt(dataAsText[2]);
-//       if (Number.isNaN(length)) {
-//         throw "The third parameter provided - length - is not a number.";
-//       }
-//       let rnaMoleculeName0 : string | undefined = defaultRnaMoleculeName0;
-//       if (dataAsText.length >= 4) {
-//         rnaMoleculeName0 = dataAsText[3];  
-//       }
-//       if (rnaMoleculeName0 === undefined) {
-//         throw "The fourth parameter - RNA molecule name 1 - was expected, but was not provided.";
-//       }
-//       let rnaMoleculeName1 : string | undefined = defaultRnaMoleculeName1;
-//       if (dataAsText.length >= 5) {
-//         rnaMoleculeName1 = dataAsText[4];
-//       }
-//       if (rnaMoleculeName1 === undefined) {
-//         throw "The fifth parameter - RNA molecule name 2 - was expected, but was not provided.";
-//       }
-//       let rnaComplexName : string | undefined = defaultRnaComplexName;
-//       if (dataAsText.length >= 6) {
-//         rnaComplexName = dataAsText[5];
-//       }
-//       if (rnaComplexName === undefined) {
-//         throw "The sixth parameter - RNA complex name - was expected, but was not provided.";
-//       }
-//       let foundRnaComplex : {
-//         props : RnaComplex.ExternalProps,
-//         index : number
-//       } | undefined = undefined;
-//       for (let i = 0; i < flattenedRnaComplexProps.length; i++) {
-//         const singularRnaComplexProps = flattenedRnaComplexProps[i];
-//         if (singularRnaComplexProps.name === rnaComplexName) {
-//           foundRnaComplex = {
-//             props : singularRnaComplexProps,
-//             index : i
-//           };
-//         }
-//       }
-//       if (foundRnaComplex === undefined) {
-//         throw "The sixth parameter - RNA complex name - did not match any known RNA complex's name.";
-//       }
-//       if (!(rnaMoleculeName0 in foundRnaComplex.props.rnaMoleculeProps)) {
-//         throw "The fourth parameter - RNA molecule name 1 - did not match any known RNA molecule's name.";
-//       }
-//       const singularRnaMoleculeProps0 = foundRnaComplex.props.rnaMoleculeProps[rnaMoleculeName0];
-//       if (!(rnaMoleculeName1 in foundRnaComplex.props.rnaMoleculeProps)) {
-//         throw "The fifth parameter - RNA molecule name 2 - did not match any known RNA molecule's name.";
-//       }
-//       const singularRnaMoleculeProps1 = foundRnaComplex.props.rnaMoleculeProps[rnaMoleculeName1];
-//       nucleotideIndex0 -= singularRnaMoleculeProps0.firstNucleotideIndex;
-//       if (!(nucleotideIndex0 in singularRnaMoleculeProps0.nucleotideProps)) {
-//         throw "The first parameter - nucleotide index 1 - did not match any known nucleotide index.";
-//       }
-//       nucleotideIndex1 -= singularRnaMoleculeProps1.firstNucleotideIndex;
-//       if (!(nucleotideIndex1 in singularRnaMoleculeProps1.nucleotideProps)) {
-//         throw "The second parameter - nucleotide index 2 - did not match any known nucleotide index.";
-//       }
-//       parsedBasePairs.push({
-//         nucleotideIndex0,
-//         nucleotideIndex1,
-//         length,
-//         rnaMoleculeName0,
-//         rnaMoleculeName1,
-//         rnaComplexIndex : foundRnaComplex.index
-//       });
-//     }
-//     return parsedBasePairs;
-//   }
-
-//   export type Props = {
-//     rnaComplexProps : RnaComplexProps,
-//     initialBasePairsText? : string,
-//     // string represents an error message. Void represents approval.
-//     approveParsedBasePairs : (parsedBasePairs : Array<ParsedBasePair>) => string | void,
-//     defaultRnaMoleculeName0? : string,
-//     defaultRnaMoleculeName1? : string,
-//     defaultRnaComplexName? : string
-//   };
-
-//   export function Component(props : Props) {
-//     const {
-//       rnaComplexProps,
-//       initialBasePairsText,
-//       approveParsedBasePairs,
-//       defaultRnaMoleculeName0,
-//       defaultRnaMoleculeName1,
-//       defaultRnaComplexName
-//     } = props;
-//     // Begin context data.
-//     const setBasePairDataToEdit = useContext(Context.BasePair.SetDataToEdit);
-//     // Begin state data.
-//     const [
-//       basePairsText,
-//       setBasePairsText
-//     ] = useState(initialBasePairsText ?? "");
-//     const [
-//       overrideConflictingBasePairsFlag,
-//       setOverrideConflictingBasePairsFlag
-//     ] = useState(false);
-//     const [
-//       preexistingBasePairKeys,
-//       setPreexistingBasePairKeys
-//     ] = useState<Record<RnaComplexKey, Array<RnaComplex.BasePairKeys>>>({});
-//     // Begin memo data.
-//     const flattenedRnaComplexProps = useMemo(
-//       function() {
-//         return Object.values(rnaComplexProps);
-//       },
-//       [rnaComplexProps]
-//     );
-//     // Begin effects.
-//     useEffect(
-//       function() {
-//         if (initialBasePairsText === undefined) {
-//           return;
-//         }
-//         let initialBasePairsTextTrimmed = initialBasePairsText.trim();
-//         if (initialBasePairsTextTrimmed.length === 0) {
-//           return;
-//         }
-//         const initialParsedBasePairs = parseBasePairs(
-//           initialBasePairsTextTrimmed,
-//           flattenedRnaComplexProps,
-//           defaultRnaMoleculeName0,
-//           defaultRnaMoleculeName1,
-//           defaultRnaComplexName
-//         );
-//         const basePairKeysFromInitialText : Record<RnaComplexKey, Array<RnaComplex.BasePairKeys>> = {};
-//         for (const parsedBasePair of initialParsedBasePairs) {
-//           const {
-//             rnaComplexIndex,
-//             rnaMoleculeName0,
-//             rnaMoleculeName1,
-//             nucleotideIndex0,
-//             nucleotideIndex1,
-//             length
-//           } = parsedBasePair;
-//           if (!(rnaComplexIndex in basePairKeysFromInitialText)) {
-//             basePairKeysFromInitialText[rnaComplexIndex] = [];
-//           }
-//           const basePairKeysFromInitialTextPerRnaComplex = basePairKeysFromInitialText[rnaComplexIndex];
-//           for (let i = 0; i < length; i++) {
-//             const formattedNucleotideIndex0 = nucleotideIndex0 + i;
-//             const formattedNucleotideIndex1 = nucleotideIndex1 - i;
-//             basePairKeysFromInitialTextPerRnaComplex.push(
-//               {
-//                 rnaMoleculeName : rnaMoleculeName0,
-//                 nucleotideIndex : formattedNucleotideIndex0
-//               },
-//               {
-//                 rnaMoleculeName : rnaMoleculeName1,
-//                 nucleotideIndex : formattedNucleotideIndex1
-//               }
-//             );
-//           }
-//         }
-//         setPreexistingBasePairKeys(basePairKeysFromInitialText);
-//       },
-//       [initialBasePairsText]
-//     );
-//     return <>
-//       <b>
-//         Base pairs:
-//       </b>
-//       <br/>
-//       <label>
-//         Override conflicting base pairs:&nbsp;
-//         <input
-//           type = "checkbox"
-//           onClick = {function() {
-//             setOverrideConflictingBasePairsFlag(!overrideConflictingBasePairsFlag);
-//           }}
-//         />
-//       </label>
-//       <br/>
-//       <textarea
-//         value = {basePairsText}
-//         onChange = {function(e) {
-//           const newBasePairsText = e.target.value;
-//           setBasePairsText(newBasePairsText);
-//         }}
-//       />
-//       <br/>
-//       <button
-//         onClick = {function() {
-//           try {
-//             const parsedBasePairs = parseBasePairs(
-//               basePairsText,
-//               flattenedRnaComplexProps,
-//               defaultRnaMoleculeName0,
-//               defaultRnaMoleculeName1,
-//               defaultRnaComplexName
-//             );
-//             const potentialErrorMessage = approveParsedBasePairs(parsedBasePairs);
-//             if (typeof potentialErrorMessage === "string") {
-//               alert(potentialErrorMessage);
-//               return;
-//             }
-//             const basePairKeysToEdit : Record<RnaComplexKey, Context.BasePair.KeysToEditPerRnaComplexType> = {};
-//             for (let parsedBasePair of parsedBasePairs) {
-//               let {
-//                 nucleotideIndex0,
-//                 nucleotideIndex1,
-//                 length,
-//                 rnaMoleculeName0,
-//                 rnaMoleculeName1,
-//                 rnaComplexIndex
-//               } = parsedBasePair;
-//               if (!(rnaComplexIndex in basePairKeysToEdit)) {
-//                 basePairKeysToEdit[rnaComplexIndex] = {
-//                   add : [],
-//                   delete : []
-//                 };
-//               }
-//               const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[rnaComplexIndex];
-//               for (let i = 0; i < length; i++) {
-//                 const formattedNucleotideIndex0 = nucleotideIndex0 + i;
-//                 const formattedNucleotideIndex1 = nucleotideIndex1 - i;
-//                 basePairKeysToEditPerRnaComplex.add.push(
-//                   {
-//                     rnaMoleculeName : rnaMoleculeName0,
-//                     nucleotideIndex : formattedNucleotideIndex0
-//                   },
-//                   {
-//                     rnaMoleculeName : rnaMoleculeName1,
-//                     nucleotideIndex : formattedNucleotideIndex1
-//                   }
-//                 );
-//                 try {
-//                   const basePairKeysToDelete = insertBasePair(
-//                     rnaComplexProps[rnaComplexIndex],
-//                     rnaMoleculeName0,
-//                     formattedNucleotideIndex0,
-//                     rnaMoleculeName1,
-//                     formattedNucleotideIndex1,
-//                     overrideConflictingBasePairsFlag ? DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING : DuplicateBasePairKeysHandler.THROW_ERROR
-//                   );
-//                   basePairKeysToEditPerRnaComplex.delete.push(...basePairKeysToDelete);
-//                 } catch (error) {
-//                   if (typeof error === "string") {
-//                     const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-//                     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
-//                     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
-//                     alert(`The base pair between RNA molecule "${rnaMoleculeName0}", nucleotide index #${singularRnaMoleculeProps0.firstNucleotideIndex + formattedNucleotideIndex0} and "${rnaMoleculeName1}", nucleotide index #${singularRnaMoleculeProps1.firstNucleotideIndex + formattedNucleotideIndex1} was not created, because a conflicting, pre-existing base pair was found.`);
-//                   } else {
-//                     throw error;
-//                   }
-//                 }
-//               }
-//             }
-//             for (const [rnaComplexIndexAsString, preexistingBasePairKeysPerRnaComplex] of Object.entries(preexistingBasePairKeys)) {
-//               const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-//               if (!(rnaComplexIndex in basePairKeysToEdit)) {
-//                 basePairKeysToEdit[rnaComplexIndex] = {
-//                   add : [],
-//                   delete : []
-//                 };
-//               }
-//               const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[rnaComplexIndex];
-//               basePairKeysToEditPerRnaComplex.delete.push(
-//                 ...preexistingBasePairKeysPerRnaComplex
-//               );
-//             }
-//             setBasePairDataToEdit(basePairKeysToEdit);
-//           } catch (error) {
-//             if (typeof error === "string") {
-//               alert(error);
-//             } else {
-//               throw error;
-//             }
-//           }
-//         }}
-//       >
-//         Update base pairs
-//       </button>
-//     </>;
-//   }
-// }

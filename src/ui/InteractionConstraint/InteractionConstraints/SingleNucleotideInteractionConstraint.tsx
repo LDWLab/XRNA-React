@@ -6,7 +6,6 @@ import { SingleNucleotideInteractionConstraintEditMenu } from "../../../componen
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { InteractionConstraint } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
-import { SingleNucleotideInteractionConstraintFormatMenu } from "../../../components/app_specific/menus/format_menus/SingleNucleotideInteractionConstraintFormatMenu";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 
 export class SingleNucleotideInteractionConstraint extends AbstractInteractionConstraint {
@@ -110,7 +109,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
         return <>
           {header}
           <br/>
-          <SingleNucleotideInteractionConstraintFormatMenu.Component
+          <BasePairsEditor.Component
             rnaComplexProps = {this.rnaComplexProps}
             initialBasePairs = {[
               {

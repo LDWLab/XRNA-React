@@ -15,7 +15,7 @@ export namespace AppSpecificAngleEditor {
       setValue
     } = props;
     const settingsRecord = useContext(Context.App.Settings);
-    const useDegreesFlag = settingsRecord[Setting.USE_DEGREES];
+    const useDegreesFlag = settingsRecord[Setting.USE_DEGREES] as boolean;
     return <InputWithValidator.Angle
       value = {value}
       setValue = {setValue}

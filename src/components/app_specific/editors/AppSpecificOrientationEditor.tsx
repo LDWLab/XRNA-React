@@ -9,7 +9,7 @@ export namespace AppSpecificOrientationEditor {
   export function Component(props : Props) {
     // Begin context data.
     const settingsRecord = useContext(Context.App.Settings);
-    const useDegreesFlag = settingsRecord[Setting.USE_DEGREES];
+    const useDegreesFlag = settingsRecord[Setting.USE_DEGREES] as boolean;
     return <>
       <b>
         Orientation:
@@ -27,7 +27,7 @@ export namespace AppSpecificOrientationEditor {
   export function Simplified(props : SimplifiedProps) {
     // Begin context data.
     const settingsRecord = useContext(Context.App.Settings);
-    const useDegreesFlag = settingsRecord[Setting.USE_DEGREES];
+    const useDegreesFlag = settingsRecord[Setting.USE_DEGREES] as boolean;
     return <>
       <b>
         Orientation:

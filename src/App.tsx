@@ -6,7 +6,7 @@ import { compareBasePairKeys, RnaComplex } from './components/app_specific/RnaCo
 import { OutputFileExtension, outputFileExtensions, outputFileWritersMap } from './io/OutputUI';
 import { SCALE_BASE, ONE_OVER_LOG_OF_SCALE_BASE, MouseButtonIndices } from './utils/Constants';
 import { inputFileExtensions, InputFileExtension, inputFileReadersRecord } from './io/InputUI';
-import { DEFAULT_SETTINGS, Setting, settings, settingsLongDescriptionsMap, settingsShortDescriptionsMap } from './ui/Setting';
+import { DEFAULT_SETTINGS, Setting, settings, settingsLongDescriptionsMap, settingsShortDescriptionsMap, settingsTypeMap, SettingValue } from './ui/Setting';
 import InputWithValidator from './components/generic/InputWithValidator';
 import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, Context, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaComplex } from './context/Context';
 import { sign, subtractNumbers } from './utils/Utils';
@@ -712,7 +712,7 @@ function App() {
         let numSeconds = 2;
         setTimeout(
           function() {
-            if (settingsRecord[Setting.RESET_VIEWPORT_ON_FILE_UPLOAD]) {
+            if (settingsRecord[Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD]) {
               resetViewport();
             }
             setSceneVisibility(true);
@@ -996,8 +996,8 @@ function App() {
             let keys = Object.keys(settingsJson);
             let formatCheckPassedFlag = true;
             for (let key of keys) {
-              if (!(settings as Array<string>).includes(key) || (typeof settingsJson[key] !== "boolean")) {
-                alert("The format of the uploaded settings file is unrecognized.");
+              if (!(settings as Array<string>).includes(key) || (typeof settingsJson[key] !== settingsTypeMap[key as Setting])) {
+                alert("Parsing the uploaded settings file failed. The content of that file is unrecognized.");
                 formatCheckPassedFlag = false;
                 break;
               }
@@ -1019,7 +1019,7 @@ function App() {
       <button
         onClick = {function() {
           let settingsFileDownloadHtmlAnchor = settingsFileDownloadHtmlAnchorReference.current as HTMLAnchorElement;
-          let settingsObject : Partial<Record<Setting, boolean>> = {};
+          let settingsObject : Partial<Record<Setting, SettingValue>> = {};
           for (let key of settings) {
             settingsObject[key] = settingsRecord[key];
           }
@@ -1038,16 +1038,12 @@ function App() {
       />
       <br/>
       {settings.map(function(setting : Setting, index : number) {
-        return <Fragment
-          key = {index}
-        >
-          <label
-            title = {settingsLongDescriptionsMap[setting]}
-          >
-            {settingsShortDescriptionsMap[setting]}:&nbsp;
-            <input
+        let input : JSX.Element = <></>;
+        switch (settingsTypeMap[setting]) {
+          case "boolean" : {
+            input = <input
               type = "checkbox"
-              checked = {settingsRecord[setting]}
+              checked = {settingsRecord[setting] as boolean}
               onChange = {function() {
                 setSettingsRecord({
                   ...settingsRecord,
@@ -1055,6 +1051,29 @@ function App() {
                 });
               }}
             />
+            break;
+          }
+          case "number" : {
+            input = <InputWithValidator.Number
+              value = {settingsRecord[setting] as number}
+              setValue = {function(newValue : number) {
+                setSettingsRecord({
+                  ...settingsRecord,
+                  [setting] : newValue
+                });
+              }}
+            />
+            break;
+          }
+        }
+        return <Fragment
+          key = {index}
+        >
+          <label
+            title = {settingsLongDescriptionsMap[setting]}
+          >
+            {settingsShortDescriptionsMap[setting]}:&nbsp;
+            {input}
           </label>
           <br/>
         </Fragment>;

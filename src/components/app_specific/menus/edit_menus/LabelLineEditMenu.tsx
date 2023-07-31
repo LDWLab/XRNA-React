@@ -269,7 +269,7 @@ export namespace LabelLineEditMenu {
               length
             );
           }}
-          useDegreesFlag = {settingsRecord[Setting.USE_DEGREES]}
+          useDegreesFlag = {settingsRecord[Setting.USE_DEGREES] as boolean}
         />
       </label>
       <br/>
