@@ -33,6 +33,8 @@ export namespace BasePairsEditor {
     initialBasePairs? : InitialBasePairs
   };
 
+  const defaultRepositionNucleotidesFlag = false;
+
   export function Component(props : Props) {
     const {
       rnaComplexProps,
@@ -55,9 +57,13 @@ export namespace BasePairsEditor {
       setOverrideConflictingBasePairsFlag
     ] = useState(false);
     const [
-      repositionNucleotidesFlag,
-      setRepositionNucleotidesFlag
-    ] = useState(false);
+      repositionNucleotidesAlongBasePairAxisFlag,
+      setRepositionNucleotidesAlongBasePairAxisFlag
+    ] = useState(defaultRepositionNucleotidesFlag);
+    const [
+      repositionNucleotidesAlongHelixAxisFlag,
+      setRepositionNucleotidesAlongHelixAxisFlag
+    ] = useState(defaultRepositionNucleotidesFlag);
     const [
       useDefaultBasePairDistancesFlag,
       setUseDefaultBasePairDistancesFlag
@@ -203,7 +209,8 @@ export namespace BasePairsEditor {
         const initialDistanceBetweenContiguousBasePairs = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
 
         setTextBasedEditorFlag(initialTextBasedEditorFlag);
-        setRepositionNucleotidesFlag(initialRepositionNucleotidesFlag);
+        setRepositionNucleotidesAlongBasePairAxisFlag(initialRepositionNucleotidesFlag);
+        setRepositionNucleotidesAlongHelixAxisFlag(initialRepositionNucleotidesFlag);
         setCanonicalBasePairDistance(initialCanonicalBasePairDistance);
         setMismatchBasePairDistance(initialMismatchBasePairDistance);
         setWobbleBasePairDistance(initialWobbleBasePairDistance);
@@ -213,6 +220,10 @@ export namespace BasePairsEditor {
     );
     // Begin render.
     return <>
+      <b>
+        Settings:
+      </b>
+      <br/>
       <label>
         Text-based base-pairs editor:&nbsp;
         <input
@@ -236,55 +247,101 @@ export namespace BasePairsEditor {
       </label>
       <br/>
       <label>
-        Reposition nucleotides:&nbsp;
+        Reposition nucleotides along base-pair axis:&nbsp;
         <input
           type = "checkbox"
-          checked = {repositionNucleotidesFlag}
+          checked = {repositionNucleotidesAlongBasePairAxisFlag}
           onChange = {function() {
-            setRepositionNucleotidesFlag(!repositionNucleotidesFlag);
+            setRepositionNucleotidesAlongBasePairAxisFlag(!repositionNucleotidesAlongBasePairAxisFlag);
           }}
         />
       </label>
       <br/>
-      {repositionNucleotidesFlag && <>
-        <label>
-          Use default base-pair distances:&nbsp;
-          <input
-            type = "checkbox"
-            checked = {useDefaultBasePairDistancesFlag}
-            onChange = {function() {
-              setUseDefaultBasePairDistancesFlag(!useDefaultBasePairDistancesFlag);
-            }}
-          />
-        </label>
-        <br/>
-        {!useDefaultBasePairDistancesFlag && <>
-          <label>
-            Canonical base-pair distance:&nbsp;
-            <InputWithValidator.Number
-              value = {canonicalBasePairDistance}
-              setValue = {setCanonicalBasePairDistance}
-            />
-          </label>
-          <br/>
-          <label>
-            Mismatch base-pair distance:&nbsp;
-            <InputWithValidator.Number
-              value = {mismatchBasePairDistance}
-              setValue = {setMismatchBasePairDistance}
-            />
-          </label>
-          <br/>
-          <label>
-            Wobble base-pair distance:&nbsp;
-            <InputWithValidator.Number
-              value = {wobbleBasePairDistance}
-              setValue = {setWobbleBasePairDistance}
-            />
-          </label>
-          <br/>
-        </>}
+      {repositionNucleotidesAlongBasePairAxisFlag && <>
+        <ul
+          style = {{
+            padding : 0,
+            margin : 0
+          }}
+        >
+          <li>
+            <label>
+              Use default base-pair distances:&nbsp;
+              <input
+                type = "checkbox"
+                checked = {useDefaultBasePairDistancesFlag}
+                onChange = {function() {
+                  setUseDefaultBasePairDistancesFlag(!useDefaultBasePairDistancesFlag);
+                }}
+              />
+            </label>
+            {!useDefaultBasePairDistancesFlag && <>
+              <ul>
+                <li>
+                  <label>
+                  Canonical base-pair distance:&nbsp;
+                  <InputWithValidator.Number
+                    value = {canonicalBasePairDistance}
+                    setValue = {setCanonicalBasePairDistance}
+                  />
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    Mismatch base-pair distance:&nbsp;
+                    <InputWithValidator.Number
+                      value = {mismatchBasePairDistance}
+                      setValue = {setMismatchBasePairDistance}
+                    />
+                  </label>
+                </li>
+                <li>
+                  <label>
+                    Wobble base-pair distance:&nbsp;
+                    <InputWithValidator.Number
+                      value = {wobbleBasePairDistance}
+                      setValue = {setWobbleBasePairDistance}
+                    />
+                  </label>
+                </li>
+              </ul>
+            </>}
+          </li>
+        </ul>
       </>}
+      <label>
+        Reposition nucleotides along helix axis:&nbsp;
+        <input
+          type = "checkbox"
+          checked = {repositionNucleotidesAlongHelixAxisFlag}
+          onChange = {function() {
+            setRepositionNucleotidesAlongHelixAxisFlag(!repositionNucleotidesAlongHelixAxisFlag)
+          }}
+        />
+      </label>
+      <br/>
+      {repositionNucleotidesAlongHelixAxisFlag && <>
+        <ul
+          style = {{
+            padding : 0,
+            margin : 0
+          }}
+        >
+          <li>
+            <label>
+              Distance between contiguous base pairs:&nbsp;
+              <InputWithValidator.Number
+                value = {distanceBetweenContiguousBasePairs}
+                setValue = {setDistanceBetweenContiguousBasePairs}
+              />
+            </label>
+          </li>
+        </ul>
+      </>}
+      <b>
+        Base-pairs editor:
+      </b>
+      <br/>
       {textBasedEditorFlag && <TextBasedEditor
         rnaComplexProps = {rnaComplexProps}
         setBasePairs = {setBasePairs}
