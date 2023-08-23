@@ -121,12 +121,12 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
               }
             ]}
             approveBasePairs = {function(parsedBasePairs : Array<BasePairsEditor.BasePair>) {
-              if (parsedBasePairs.length !== 1) {
-                throw "This interaction constraint expects exactly one base pair.";
+              if (parsedBasePairs.length > 1) {
+                throw "This interaction constraint expects at most one base pair.";
               }
               const parsedBasePair = parsedBasePairs[0];
-              if (parsedBasePair.length !== 1) {
-                throw "This interaction constraint expects exactly one base pair.";
+              if (parsedBasePair.length > 1) {
+                throw "This interaction constraint expects at most one base pair.";
               }
             }}
           />

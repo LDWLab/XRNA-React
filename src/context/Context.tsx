@@ -48,6 +48,7 @@ export namespace Context {
       fullKeys : FullKeys
     ) { /* Do nothing. */ });
     export const Index = createContext(NaN);
+    export const SetKeysToRerender = createContext(function(nucleotideKeysToRerender : NucleotideKeysToRerender) { /* Do nothing. */ });
   }
 
   export namespace BasePair {
@@ -66,6 +67,7 @@ export namespace Context {
     });
     export type KeysToEdit = Record<RnaComplexKey, KeysToEditPerRnaComplexType>;
     export const SetKeysToEdit = createContext(function(keysToEdit : KeysToEdit) { /* Do nothing. */ });
+    export const SetKeysToRerender = createContext(function(basePairKeysToRerender : BasePairKeysToRerender) { /* Do nothing. */ })
   };
 
   export namespace Label {

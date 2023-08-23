@@ -8,11 +8,14 @@ import { Extrema, InteractionConstraint, calculateExtremaMagnitudeDifference, ch
 import { subtractNumbers } from "../../../utils/Utils";
 import { scaleUp, add, orthogonalizeLeft, subtract, asAngle, Vector2D } from "../../../data_structures/Vector2D";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
+import { Tab } from "../../../app_data/Tab";
+import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 
 export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
   private readonly editMenuHeader : JSX.Element;
   private readonly editMenuProps : AppSpecificOrientationEditor.Props;
+  private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -75,14 +78,12 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
         nucleotideIndex : originalMappedBasePairInformation.nucleotideIndex
       }
     ));
-    // toBeDragged.push(
-    //   singularNucleotideProps0,
-    //   singularNucleotideProps1
-    // );
+    const nucleotideIndex0 = nucleotideIndex;
+    const nucleotideIndex1 = originalMappedBasePairInformation.nucleotideIndex;
     const extrema0 = populateToBeDraggedWithHelix(
       -1,
-      nucleotideIndex,
-      originalMappedBasePairInformation.nucleotideIndex,
+      nucleotideIndex0,
+      nucleotideIndex1,
       basePairsPerRnaMolecule0,
       rnaMoleculeName0,
       rnaMoleculeName1,
@@ -95,8 +96,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     ).extrema;
     const extrema1 = populateToBeDraggedWithHelix(
       1,
-      nucleotideIndex,
-      originalMappedBasePairInformation.nucleotideIndex,
+      nucleotideIndex0,
+      nucleotideIndex1,
       basePairsPerRnaMolecule0,
       rnaMoleculeName0,
       rnaMoleculeName1,
@@ -251,6 +252,16 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       normal : normalVector,
       initialAngle : asAngle(normalVector)
     };
+    this.initialBasePairs = [
+      {
+        rnaComplexIndex,
+        rnaMoleculeName0,
+        rnaMoleculeName1,
+        nucleotideIndex0 : Math.min(extrema0[0], extrema1[0]) + singularRnaMoleculeProps0.firstNucleotideIndex,
+        nucleotideIndex1 : Math.max(extrema0[1], extrema1[1]) + singularRnaMoleculeProps1.firstNucleotideIndex,
+        length : extrema1[0] - extrema0[0] + 1,
+      }
+    ];
   }
 
   public override drag() {
@@ -258,11 +269,27 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
-    return <>
-      {this.editMenuHeader}
-      <AppSpecificOrientationEditor.Component
-        {...this.editMenuProps}
-      />
-    </>;
+    switch (tab) {
+      case Tab.EDIT : {
+        return <>
+          {this.editMenuHeader}
+          <AppSpecificOrientationEditor.Component
+            {...this.editMenuProps}
+          />
+        </>;
+      }
+      case Tab.FORMAT : {
+        return <BasePairsEditor.Component
+          rnaComplexProps = {this.rnaComplexProps}
+          approveBasePairs = {function(basePairs : Array<BasePairsEditor.BasePair>) {
+            // Do nothing.
+          }}
+          initialBasePairs = {this.initialBasePairs}
+        />;
+      }
+      default : {
+        throw "Unrecognized Tab";
+      }
+    }
   }
 }

@@ -19,7 +19,7 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "Reset viewport after file upload",
   [Setting.USE_DEGREES] : "Use degrees",
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : "Reposition nucleotides when formatting",
-  [Setting.TEXT_BASED_FORMAT_MENU] : "Text-based format menu",
+  [Setting.TEXT_BASED_FORMAT_MENU] : "New format menu",
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "Canonical base-pair distance",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "Wobble base-pair distance",
   [Setting.MISMATCH_BASE_PAIR_DISTANCE] : "Mismatch base-pair distance",
@@ -54,7 +54,8 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number"> = {
 
 export type SettingValue = boolean | number;
 
-const NON_CANONICAL_BASE_PAIR_DISTANCE = 21;
+const DEFAULT_CANONICAL_BASE_PAIR_DISTANCE = 16;
+const DEFAULT_NON_CANONICAL_BASE_PAIR_DISTANCE = 21;
 
 export const DEFAULT_SETTINGS : Record<Setting, SettingValue> = {
   [Setting.SYNC_FILE_NAME] : true,
@@ -63,8 +64,8 @@ export const DEFAULT_SETTINGS : Record<Setting, SettingValue> = {
   [Setting.USE_DEGREES] : true,
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : true,
   [Setting.TEXT_BASED_FORMAT_MENU] : true,
-  [Setting.CANONICAL_BASE_PAIR_DISTANCE] : 16,
-  [Setting.WOBBLE_BASE_PAIR_DISTANCE] : NON_CANONICAL_BASE_PAIR_DISTANCE,
-  [Setting.MISMATCH_BASE_PAIR_DISTANCE] : NON_CANONICAL_BASE_PAIR_DISTANCE,
+  [Setting.CANONICAL_BASE_PAIR_DISTANCE] : DEFAULT_CANONICAL_BASE_PAIR_DISTANCE,
+  [Setting.WOBBLE_BASE_PAIR_DISTANCE] : DEFAULT_NON_CANONICAL_BASE_PAIR_DISTANCE,
+  [Setting.MISMATCH_BASE_PAIR_DISTANCE] : DEFAULT_NON_CANONICAL_BASE_PAIR_DISTANCE,
   [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : 6
 };

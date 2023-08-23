@@ -1,10 +1,13 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { RnaComplexProps } from "../../../App";
-import { Context } from "../../../context/Context";
-import { DuplicateBasePairKeysHandler, insertBasePair } from "../RnaComplex";
-import { default as _BasePair } from  "../BasePair";
+import { Context, NucleotideKeysToRerender } from "../../../context/Context";
+import { DuplicateBasePairKeysHandler, compareBasePairKeys, insertBasePair } from "../RnaComplex";
+import { default as _BasePair, getBasePairType } from  "../BasePair";
 import { Setting } from "../../../ui/Setting";
 import InputWithValidator from "../../generic/InputWithValidator";
+import { sign, subtractNumbers } from "../../../utils/Utils";
+import { scaleUp, add, orthogonalize, subtract, negate, normalize, scalarProject, dotProduct, magnitude } from "../../../data_structures/Vector2D";
+import { Nucleotide } from "../Nucleotide";
 
 export namespace BasePairsEditor {
   export type BasePair = {
@@ -45,6 +48,7 @@ export namespace BasePairsEditor {
       defaultRnaMoleculeName1
     } = props;
     // Begin context data.
+    const setNucleotideKeysToRerender = useContext(Context.Nucleotide.SetKeysToRerender);
     const setBasePairKeysToEdit = useContext(Context.BasePair.SetKeysToEdit);
     const settingsRecord = useContext(Context.App.Settings);
     // Begin state data.
@@ -64,10 +68,6 @@ export namespace BasePairsEditor {
       repositionNucleotidesAlongHelixAxisFlag,
       setRepositionNucleotidesAlongHelixAxisFlag
     ] = useState(defaultRepositionNucleotidesFlag);
-    const [
-      useDefaultBasePairDistancesFlag,
-      setUseDefaultBasePairDistancesFlag
-    ] = useState(true);
     const [
       canonicalBasePairDistance,
       setCanonicalBasePairDistance
@@ -102,6 +102,18 @@ export namespace BasePairsEditor {
     basePairsReference.current = basePairs;
     const overrideConflictingBasePairsFlagReference = useRef<boolean>();
     overrideConflictingBasePairsFlagReference.current = overrideConflictingBasePairsFlag;
+    const repositionNucleotidesAlongBasePairAxisFlagReference = useRef<boolean>();
+    repositionNucleotidesAlongBasePairAxisFlagReference.current = repositionNucleotidesAlongBasePairAxisFlag;
+    const repositionNucleotidesAlongHelixAxisFlagReference = useRef<boolean>();
+    repositionNucleotidesAlongHelixAxisFlagReference.current = repositionNucleotidesAlongHelixAxisFlag;
+    const canonicalBasePairDistanceReference = useRef<number>();
+    canonicalBasePairDistanceReference.current = canonicalBasePairDistance;
+    const wobbleBasePairDistanceReference = useRef<number>();
+    wobbleBasePairDistanceReference.current = wobbleBasePairDistance;
+    const mismatchBasePairDistanceReference = useRef<number>();
+    mismatchBasePairDistanceReference.current = mismatchBasePairDistance;
+    const distanceBetweenContiguousBasePairsReference = useRef<number>();
+    distanceBetweenContiguousBasePairsReference.current = distanceBetweenContiguousBasePairs;
     // Begin memo data.
     const populateBasePairKeysToEdit = useMemo(
       function() {
@@ -157,6 +169,9 @@ export namespace BasePairsEditor {
                   throw error;
                 }
               }
+            } else if (addOrDelete === "delete") {
+              delete singularRnaComplexProps.basePairs[rnaMoleculeName0][formattedNucleotideIndex0];
+              delete singularRnaComplexProps.basePairs[rnaMoleculeName1][formattedNucleotideIndex1];
             }
             arrayToEdit.push(
               {
@@ -176,7 +191,13 @@ export namespace BasePairsEditor {
     const setBasePairs = useMemo(
       function() {
         return function(newBasePairs : Array<BasePair>) {
+          const repositionNucleotidesAlongBasePairAxisFlag = repositionNucleotidesAlongBasePairAxisFlagReference.current as boolean;
+          const repositionNucleotidesAlongHelixAxisFlag = repositionNucleotidesAlongHelixAxisFlagReference.current as boolean;
           const basePairs = basePairsReference.current as Array<BasePair>;
+          const canonicalBasePairDistance = canonicalBasePairDistanceReference.current as number;
+          const wobbleBasePairDistance = wobbleBasePairDistanceReference.current as number;
+          const mismatchBasePairDistance = mismatchBasePairDistanceReference.current as number;
+          const distanceBetweenContiguousBasePairs = distanceBetweenContiguousBasePairsReference.current as number;
           const basePairKeysToEdit : Context.BasePair.KeysToEdit = {};
           for (let basePair of basePairs) {
             populateBasePairKeysToEdit(
@@ -191,6 +212,191 @@ export namespace BasePairsEditor {
               basePairKeysToEdit,
               "add"
             );
+          }
+          const repositionNucleotidesFlag = repositionNucleotidesAlongBasePairAxisFlag || repositionNucleotidesAlongHelixAxisFlag;
+          if (repositionNucleotidesFlag) {
+            const arraysToBeSorted = new Array<Array<number>>();
+            const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
+            const propSets = newBasePairs.map(function(basePair) {
+              const singularRnaComplexProps = rnaComplexProps[basePair.rnaComplexIndex];
+              const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName0];
+              const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName1];
+
+              const initialFormattedNucleotideIndex0 = basePair.nucleotideIndex0 - singularRnaMoleculeProps0.firstNucleotideIndex;
+              const initialFormattedNucleotideIndex1 = basePair.nucleotideIndex1 - singularRnaMoleculeProps1.firstNucleotideIndex;
+              
+              const nucleotideProps = new Array<{
+                0 : Nucleotide.ExternalProps,
+                1 : Nucleotide.ExternalProps,
+                basePairType : _BasePair.Type
+              }>();
+              const {
+                rnaComplexIndex,
+                rnaMoleculeName0,
+                rnaMoleculeName1
+              } = basePair;
+              if (!(rnaComplexIndex in nucleotideKeysToRerender)) {
+                nucleotideKeysToRerender[rnaComplexIndex] = {};
+              }
+              const nucleotideKeysToRerenderPerRnaComplex = nucleotideKeysToRerender[rnaComplexIndex];
+              if (!(rnaMoleculeName0 in nucleotideKeysToRerenderPerRnaComplex)) {
+                nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName0] = [];
+              }
+              const nucleotideKeysToRerenderPerRnaMolecule0 = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName0];
+              if (!(rnaMoleculeName1 in nucleotideKeysToRerenderPerRnaComplex)) {
+                nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName1] = [];
+              }
+              const nucleotideKeysToRerenderPerRnaMolecule1 = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName1];
+              for (let i = 0; i < basePair.length; i++) {
+                const formattedNucleotideIndex0 = initialFormattedNucleotideIndex0 + i;
+                const formattedNucleotideIndex1 = initialFormattedNucleotideIndex1 - i;
+                nucleotideKeysToRerenderPerRnaMolecule0.push(formattedNucleotideIndex0);
+                nucleotideKeysToRerenderPerRnaMolecule1.push(formattedNucleotideIndex1);
+                const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[formattedNucleotideIndex0];
+                const singularNucleotideProps1 = singularRnaMoleculeProps1.nucleotideProps[formattedNucleotideIndex1];
+                nucleotideProps.push({
+                  0 : singularNucleotideProps0,
+                  1 : singularNucleotideProps1,
+                  basePairType : basePair.type ?? getBasePairType(
+                    singularNucleotideProps0.symbol,
+                    singularNucleotideProps1.symbol
+                  )
+                });
+              }
+              
+              return {
+                nucleotideKeysToRerenderPerRnaMolecule0,
+                nucleotideKeysToRerenderPerRnaMolecule1,
+                nucleotideProps
+              };
+            });
+            const propSet0 = propSets[0];
+            if (propSet0 !== undefined && propSet0.nucleotideProps.length > 0) {
+              const nucleotideProps0 = propSet0.nucleotideProps[0];
+              const anchor0 = nucleotideProps0[0];
+              const anchor1 = nucleotideProps0[1];
+              const anchor = scaleUp(
+                add(
+                  anchor0,
+                  anchor1
+                ),
+                0.5
+              );
+              let anchorDirection = normalize(subtract(
+                anchor1,
+                anchor0
+              ));
+              let normalDirection = orthogonalize(anchorDirection);
+              let orientationVote = 0;
+              for (const propSet of propSets) {
+                for (let i = 0; i < propSet.nucleotideProps.length; i++) {
+                  const nucleotidePropsI = propSet.nucleotideProps[i];
+                  for (const singularNucleotideProps of [nucleotidePropsI[0], nucleotidePropsI[1]]) {
+                    orientationVote += sign(dotProduct  (
+                      subtract(
+                        singularNucleotideProps,
+                        anchor
+                      ),
+                      normalDirection
+                    ));
+                  }
+                }
+              }
+              if (orientationVote < 0) {
+                normalDirection = negate(normalDirection);
+              }
+              propSets.forEach(function(
+                propSet
+              ) {
+                const {
+                  nucleotideKeysToRerenderPerRnaMolecule0,
+                  nucleotideKeysToRerenderPerRnaMolecule1,
+                  nucleotideProps
+                } = propSet;
+
+                for (let i = 0; i < nucleotideProps.length; i++) {
+                  const nucleotidePropsWithIndicesI = nucleotideProps[i];
+                  const singularNucleotideProps0 = nucleotidePropsWithIndicesI[0];
+                  const singularNucleotideProps1 = nucleotidePropsWithIndicesI[1];
+                  const basePairType = nucleotidePropsWithIndicesI.basePairType;
+                  let center = scaleUp(add(
+                      singularNucleotideProps0,
+                      singularNucleotideProps1
+                    ),
+                    0.5
+                  );
+                  let dv = subtract(
+                    singularNucleotideProps1,
+                    singularNucleotideProps0
+                  );
+                  let dvDirection = normalize(dv);
+                  let distance = 0;
+                  if (repositionNucleotidesAlongBasePairAxisFlag) {
+                    switch (basePairType) {
+                      case _BasePair.Type.CANONICAL : {
+                        distance = canonicalBasePairDistance;
+                        break;
+                      }
+                      case _BasePair.Type.MISMATCH : {
+                        distance = mismatchBasePairDistance;
+                        break;
+                      }
+                      case _BasePair.Type.WOBBLE : {
+                        distance = wobbleBasePairDistance;
+                        break;
+                      }
+                      default : {
+                        throw `Unrecognized base-pair type "${basePairType}".`
+                      }
+                    }
+                  } else {
+                    distance = magnitude(dv);
+                  }
+                  distance *= 0.5;
+                  if (repositionNucleotidesAlongHelixAxisFlag) {
+                    center = add(
+                      anchor,
+                      scaleUp(
+                        normalDirection,
+                        i * distanceBetweenContiguousBasePairs
+                      )
+                    );
+                    dvDirection = anchorDirection;
+                  }
+
+                  dv = scaleUp(
+                    dvDirection,
+                    distance
+                  );
+                  let newPosition0 = subtract(
+                    center,
+                    dv
+                  );
+                  let newPosition1 = add(
+                    center,
+                    dv
+                  );
+
+                  singularNucleotideProps0.x = newPosition0.x;
+                  singularNucleotideProps0.y = newPosition0.y;
+                  singularNucleotideProps1.x = newPosition1.x;
+                  singularNucleotideProps1.y = newPosition1.y;
+                }
+
+                arraysToBeSorted.push(
+                  nucleotideKeysToRerenderPerRnaMolecule0,
+                  nucleotideKeysToRerenderPerRnaMolecule1
+                );
+              }); 
+            }
+            for (const arrayToBeSorted of arraysToBeSorted) {
+              arrayToBeSorted.sort(subtractNumbers);
+            }
+            setNucleotideKeysToRerender(nucleotideKeysToRerender);
+          }
+          for (const basePairKeysToEditPerRnaComplex of Object.values(basePairKeysToEdit)) {
+            basePairKeysToEditPerRnaComplex.add.sort(compareBasePairKeys);
+            basePairKeysToEditPerRnaComplex.delete.sort(compareBasePairKeys);
           }
           setBasePairKeysToEdit(basePairKeysToEdit);
           _setBasePairs(newBasePairs);
@@ -260,52 +466,35 @@ export namespace BasePairsEditor {
       {repositionNucleotidesAlongBasePairAxisFlag && <>
         <ul
           style = {{
-            padding : 0,
             margin : 0
           }}
         >
           <li>
             <label>
-              Use default base-pair distances:&nbsp;
-              <input
-                type = "checkbox"
-                checked = {useDefaultBasePairDistancesFlag}
-                onChange = {function() {
-                  setUseDefaultBasePairDistancesFlag(!useDefaultBasePairDistancesFlag);
-                }}
+            Canonical base-pair distance:&nbsp;
+            <InputWithValidator.Number
+              value = {canonicalBasePairDistance}
+              setValue = {setCanonicalBasePairDistance}
+            />
+            </label>
+          </li>
+          <li>
+            <label>
+              Mismatch base-pair distance:&nbsp;
+              <InputWithValidator.Number
+                value = {mismatchBasePairDistance}
+                setValue = {setMismatchBasePairDistance}
               />
             </label>
-            {!useDefaultBasePairDistancesFlag && <>
-              <ul>
-                <li>
-                  <label>
-                  Canonical base-pair distance:&nbsp;
-                  <InputWithValidator.Number
-                    value = {canonicalBasePairDistance}
-                    setValue = {setCanonicalBasePairDistance}
-                  />
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    Mismatch base-pair distance:&nbsp;
-                    <InputWithValidator.Number
-                      value = {mismatchBasePairDistance}
-                      setValue = {setMismatchBasePairDistance}
-                    />
-                  </label>
-                </li>
-                <li>
-                  <label>
-                    Wobble base-pair distance:&nbsp;
-                    <InputWithValidator.Number
-                      value = {wobbleBasePairDistance}
-                      setValue = {setWobbleBasePairDistance}
-                    />
-                  </label>
-                </li>
-              </ul>
-            </>}
+          </li>
+          <li>
+            <label>
+              Wobble base-pair distance:&nbsp;
+              <InputWithValidator.Number
+                value = {wobbleBasePairDistance}
+                setValue = {setWobbleBasePairDistance}
+              />
+            </label>
           </li>
         </ul>
       </>}
@@ -323,7 +512,6 @@ export namespace BasePairsEditor {
       {repositionNucleotidesAlongHelixAxisFlag && <>
         <ul
           style = {{
-            padding : 0,
             margin : 0
           }}
         >

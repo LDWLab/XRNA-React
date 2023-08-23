@@ -63,29 +63,26 @@ export enum CauseOfTermination {
   HairpinLoop = "Hairpin loop"
 }
 
-export type PopulateToBeDraggedReturnType = {
+export type HelixIterationReturnType = {
   extrema : Extrema,
   causeOfTermination : CauseOfTermination
 };
 
-export function populateToBeDraggedWithHelix(
+export function iterateOverHelix(
   nucleotideIndex0Delta : -1 | 1,
   initialNucleotideIndex0 : number,
   initialNucleotideIndex1 : number,
   basePairsPerRnaMolecule0 : RnaComplex.BasePairsPerRnaMolecule,
-  rnaMoleculeName0 : string,
   rnaMoleculeName1 : string,
-  toBeDragged : Array<Vector2D>,
   singularRnaMoleculeProps0 : RnaMolecule.ExternalProps,
-  singularRnaMoleculeProps1 : RnaMolecule.ExternalProps,
-  nucleotideKeysToRerenderPerRnaMolecule0 : NucleotideKeysToRerenderPerRnaMolecule,
-  nucleotideKeysToRerenderPerRnaMolecule1 : NucleotideKeysToRerenderPerRnaMolecule,
-  basePairKeysToRerenderPerRnaComplex : BasePairKeysToRerenderPerRnaComplex,
   includeInitialIndicesFlag = true,
-  helper = function(keys : RnaComplex.BasePairKeys) {
+  helper = function(
+    nucleotideIndex0 : number,
+    nucleotideIndex1 : number
+  ) {
     // Do nothing.
   }
-) : PopulateToBeDraggedReturnType {
+) : HelixIterationReturnType {
   let nucleotideIndex0 = initialNucleotideIndex0;
   let previousNucleotideIndex1 = initialNucleotideIndex1;
   let extrema = {
@@ -93,33 +90,8 @@ export function populateToBeDraggedWithHelix(
     1 : previousNucleotideIndex1
   };
   let causeOfTermination : CauseOfTermination;
-  function pushNucleotideIndices(
-    nucleotideIndex0 : number,
-    nucleotideIndex1 : number
-  ) {
-    toBeDragged.push(
-      singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex0],
-      singularRnaMoleculeProps1.nucleotideProps[nucleotideIndex1]
-    );
-    let keys0 = {
-      rnaMoleculeName : rnaMoleculeName0,
-      nucleotideIndex : nucleotideIndex0
-    };
-    let keys1 = {
-      rnaMoleculeName : rnaMoleculeName1,
-      nucleotideIndex : nucleotideIndex1
-    };
-    helper(keys0);
-    helper(keys1);
-    nucleotideKeysToRerenderPerRnaMolecule0.push(nucleotideIndex0);
-    nucleotideKeysToRerenderPerRnaMolecule1.push(nucleotideIndex1);
-    basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
-      keys0,
-      keys1
-    ));
-  }
   if (includeInitialIndicesFlag) {
-    pushNucleotideIndices(
+    helper(
       initialNucleotideIndex0,
       initialNucleotideIndex1
     );
@@ -145,7 +117,7 @@ export function populateToBeDraggedWithHelix(
       causeOfTermination = CauseOfTermination.NoncontiguousBasePair;
       break;
     }
-    pushNucleotideIndices(
+    helper(
       nucleotideIndex0,
       nucleotideIndex1
     );
@@ -159,6 +131,61 @@ export function populateToBeDraggedWithHelix(
     extrema,
     causeOfTermination
   };
+}
+
+export function populateToBeDraggedWithHelix(
+  nucleotideIndex0Delta : -1 | 1,
+  initialNucleotideIndex0 : number,
+  initialNucleotideIndex1 : number,
+  basePairsPerRnaMolecule0 : RnaComplex.BasePairsPerRnaMolecule,
+  rnaMoleculeName0 : string,
+  rnaMoleculeName1 : string,
+  toBeDragged : Array<Vector2D>,
+  singularRnaMoleculeProps0 : RnaMolecule.ExternalProps,
+  singularRnaMoleculeProps1 : RnaMolecule.ExternalProps,
+  nucleotideKeysToRerenderPerRnaMolecule0 : NucleotideKeysToRerenderPerRnaMolecule,
+  nucleotideKeysToRerenderPerRnaMolecule1 : NucleotideKeysToRerenderPerRnaMolecule,
+  basePairKeysToRerenderPerRnaComplex : BasePairKeysToRerenderPerRnaComplex,
+  includeInitialIndicesFlag = true,
+  helper = function(keys : RnaComplex.BasePairKeys) {
+    // Do nothing.
+  }
+) : HelixIterationReturnType {
+  function pushNucleotideIndices(
+    nucleotideIndex0 : number,
+    nucleotideIndex1 : number
+  ) {
+    toBeDragged.push(
+      singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex0],
+      singularRnaMoleculeProps1.nucleotideProps[nucleotideIndex1]
+    );
+    let keys0 = {
+      rnaMoleculeName : rnaMoleculeName0,
+      nucleotideIndex : nucleotideIndex0
+    };
+    let keys1 = {
+      rnaMoleculeName : rnaMoleculeName1,
+      nucleotideIndex : nucleotideIndex1
+    };
+    helper(keys0);
+    helper(keys1);
+    nucleotideKeysToRerenderPerRnaMolecule0.push(nucleotideIndex0);
+    nucleotideKeysToRerenderPerRnaMolecule1.push(nucleotideIndex1);
+    basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
+      keys0,
+      keys1
+    ));
+  }
+  return iterateOverHelix(
+    nucleotideIndex0Delta,
+    initialNucleotideIndex0,
+    initialNucleotideIndex1,
+    basePairsPerRnaMolecule0,
+    rnaMoleculeName1,
+    singularRnaMoleculeProps0,
+    includeInitialIndicesFlag,
+    pushNucleotideIndices
+  );
 }
 
 export function calculateExtremaMagnitudeDifference(

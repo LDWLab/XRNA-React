@@ -5,7 +5,7 @@ import { distance } from "../../data_structures/Vector2D";
 import Scaffolding from "../generic/Scaffolding";
 import BasePair, { getBasePairType } from "./BasePair";
 import { RnaMolecule } from "./RnaMolecule";
-import { sortedArraySplice } from "../../utils/Utils";
+import { HandleQueryNotFound, sortedArraySplice } from "../../utils/Utils";
 
 export enum DuplicateBasePairKeysHandler {
   DO_NOTHING,
@@ -288,7 +288,9 @@ export namespace RnaComplex {
                 basePairDatumToDelete
               );
             },
-            1
+            1,
+            [],
+            HandleQueryNotFound.DO_NOTHING
           );
         }
         for (const basePairDatumToAdd of basePairDataToEditPerRnaComplex.add) {
@@ -326,7 +328,8 @@ export namespace RnaComplex {
                 );
               },
               0,
-              newSingularFlattenedBasePairProps
+              [newSingularFlattenedBasePairProps],
+              HandleQueryNotFound.ADD
             );
           }
         }

@@ -704,7 +704,10 @@ function App() {
       }
       setRightClickMenuContent(<>{rightClickPrompt}</>);
     },
-    [tab]
+    [
+      tab,
+      interactionConstraint
+    ]
   );
   useEffect(
     function() {
@@ -1082,247 +1085,255 @@ function App() {
     [Tab.DEMOS] : <></>
   };
   // Parent div
-  return <Context.App.Settings.Provider
-    value = {settingsRecord}
+  return <Context.Nucleotide.SetKeysToRerender.Provider
+    value = {setNucleotideKeysToRerender}
   >
-    <Context.App.UpdateRnaMoleculeNameHelper.Provider
-      value = {function(
-        rnaComplexIndex,
-        oldRnaMoleculeName,
-        newRnaMoleculeName
-      ) {
-        const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-        const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
-
-        for (let rnaMoleculeName of Object.keys(singularRnaComplexProps.rnaMoleculeProps)) {
-          if (!(rnaMoleculeName in basePairsPerRnaComplex)) {
-            continue;
-          }
-          let basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
-          for (let mappedBasePairInformation of Object.values(basePairsPerRnaMolecule)) {
-            if (mappedBasePairInformation.rnaMoleculeName === oldRnaMoleculeName) {
-              mappedBasePairInformation.rnaMoleculeName = newRnaMoleculeName;
-            }
-          }
-        }
-
-        singularRnaComplexProps.rnaMoleculeProps[newRnaMoleculeName] = singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
-        delete singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
-
-        const basePairsPerRnaMolecule = basePairsPerRnaComplex[oldRnaMoleculeName];
-        delete basePairsPerRnaComplex[oldRnaMoleculeName];
-        basePairsPerRnaComplex[newRnaMoleculeName] = basePairsPerRnaMolecule;
-
-        setNucleotideKeysToRerender({
-          [rnaComplexIndex] : {}
-        });
-      }}
+    <Context.BasePair.SetKeysToRerender.Provider
+      value = {setBasePairKeysToRerender}
     >
-      <Context.BasePair.SetKeysToEdit.Provider
-        value = {setBasePairKeysToEdit}
+      <Context.App.Settings.Provider
+        value = {settingsRecord}
       >
-        <div
-          onKeyDown = {onKeyDown}
-          ref = {parentDivResizeDetector.ref}
-          style = {{
-            position : "absolute",
-            display : "block",
-            width : "100%",
-            height : "100%",
-            overflow : "hidden"
+        <Context.App.UpdateRnaMoleculeNameHelper.Provider
+          value = {function(
+            rnaComplexIndex,
+            oldRnaMoleculeName,
+            newRnaMoleculeName
+          ) {
+            const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+            const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+
+            for (let rnaMoleculeName of Object.keys(singularRnaComplexProps.rnaMoleculeProps)) {
+              if (!(rnaMoleculeName in basePairsPerRnaComplex)) {
+                continue;
+              }
+              let basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
+              for (let mappedBasePairInformation of Object.values(basePairsPerRnaMolecule)) {
+                if (mappedBasePairInformation.rnaMoleculeName === oldRnaMoleculeName) {
+                  mappedBasePairInformation.rnaMoleculeName = newRnaMoleculeName;
+                }
+              }
+            }
+
+            singularRnaComplexProps.rnaMoleculeProps[newRnaMoleculeName] = singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
+            delete singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
+
+            const basePairsPerRnaMolecule = basePairsPerRnaComplex[oldRnaMoleculeName];
+            delete basePairsPerRnaComplex[oldRnaMoleculeName];
+            basePairsPerRnaComplex[newRnaMoleculeName] = basePairsPerRnaMolecule;
+
+            setNucleotideKeysToRerender({
+              [rnaComplexIndex] : {}
+            });
           }}
         >
-          {/* Tools div */}
-          <div
-            ref = {toolsDivResizeDetector.ref}
-            style = {{
-              position : "absolute",
-              width : "100%",
-              height : "auto",
-              resize : "vertical",
-              overflow : "hidden",
-              display : "block",
-              borderBottom : "1px solid black"
-            }}
+          <Context.BasePair.SetKeysToEdit.Provider
+            value = {setBasePairKeysToEdit}
           >
-            {/* Left tools div */}
             <div
+              onKeyDown = {onKeyDown}
+              ref = {parentDivResizeDetector.ref}
               style = {{
-                width : "50%",
+                position : "absolute",
+                display : "block",
+                width : "100%",
                 height : "100%",
-                display : "inline-block",
-                overflowY : "auto",
-                verticalAlign : "top"
+                overflow : "hidden"
               }}
             >
-              {tabs.map(function(tabI : Tab) {
-                return <button
-                  key = {tabI}
-                  onClick = {function() {
-                    setTab(tabI);
-                  }}
-                >
-                  {tabI}
-                </button>
-              })}
-              <br/>
-              <b>
-                {tab}:
-              </b>
-              <br/>
-              {tabs.map(function(tabI : Tab) {
-                return <div
-                  key = {tabI}
-                  style = {{
-                    display : tab === tabI ? "block" : "none"
-                  }}
-                >
-                  {tabRenderRecord[tabI]}
-                </div>;
-              })}
-            </div>
-            {/* Right tools div */}
-            <div
-              style = {{
-                width : "50%",
-                height : "100%",
-                display : "inline-block",
-                overflowY : "auto",
-                verticalAlign : "top"
-              }}
-            >
-              <Context.App.ComplexDocumentName.Provider
-                value = {complexDocumentName}
+              {/* Tools div */}
+              <div
+                ref = {toolsDivResizeDetector.ref}
+                style = {{
+                  position : "absolute",
+                  width : "100%",
+                  height : "auto",
+                  resize : "vertical",
+                  overflow : "hidden",
+                  display : "block",
+                  borderBottom : "1px solid black"
+                }}
               >
-                <Context.App.SetComplexDocumentName.Provider
-                  value = {setComplexDocumentName}
+                {/* Left tools div */}
+                <div
+                  style = {{
+                    width : "50%",
+                    height : "100%",
+                    display : "inline-block",
+                    overflowY : "auto",
+                    verticalAlign : "top"
+                  }}
                 >
-                  {rightClickMenuContent}
-                </Context.App.SetComplexDocumentName.Provider>
-              </Context.App.ComplexDocumentName.Provider>
-            </div>
-          </div>
-          <svg
-            style = {{
-              top : (toolsDivResizeDetector.height ?? 0) + DIV_BUFFER_HEIGHT,
-              left : 0,
-              position : "absolute"
-            }}
-            xmlns = "http://www.w3.org/2000/svg"
-            viewBox = {`0 0 ${parentDivResizeDetector.width ?? 0} ${svgHeight}`}
-            tabIndex = {0}
-            onKeyDown = {onKeyDown}
-            onMouseDown = {function(e) {
-              switch (e.button) {
-                case MouseButtonIndices.Left : {
-                  setOriginOfDrag({
-                    x : e.clientX,
-                    y : e.clientY
-                  });
-                  break;
-                }
-              }
-            }}
-            onMouseMove = {function(e) {
-              if (dragListener !== null) {
-                const translation = subtract(
-                  {
-                    x : e.clientX,
-                    y : e.clientY
-                  },
-                  originOfDrag
-                );
-                translation.y = -translation.y;
-                dragListener.continueDrag(add(
-                  dragCache,
-                  scaleDown(
-                    translation,
-                    viewportScale * sceneBoundsScaleMin
-                  )
-                ));
-              }
-              e.preventDefault();
-            }}
-            onMouseUp = {function(e) {
-              if (dragListener !== null) {
-                if (dragListener.terminateDrag !== undefined) {
-                  dragListener.terminateDrag();
-                }
-                setDragListener(null);
-              }
-            }}
-            onMouseLeave = {function() {
-              setDragListener(null);
-            }}
-            onContextMenu = {function(event) {
-              event.preventDefault();
-            }}
-            onWheel = {function(e) {
-              // Apparently, the sign of <event.deltaY> needs to be negated in order to support intuitive scrolling...
-              let newScaleExponent = viewportScaleExponent - sign(e.deltaY);
-              let newScale = Math.pow(SCALE_BASE, newScaleExponent);
-              setViewportScale(newScale);
-              setViewportScaleExponent(newScaleExponent);
-              let uiVector = {
-                x : e.clientX,
-                y : e.clientY - (toolsDivResizeDetector.height ?? 0) - DIV_BUFFER_HEIGHT
-              };
-              let reciprocal = totalScale.negativeScale;
-              let inputVector = {
-                x : uiVector.x * reciprocal + sceneBounds.x - viewportTranslateX,
-                y : uiVector.y * reciprocal - sceneBounds.y + viewportTranslateY - sceneBounds.height
-              };
-              reciprocal = 1 / (newScale * sceneBoundsScaleMin);
-              let newOriginDeltaX = uiVector.x * reciprocal - inputVector.x + sceneBounds.x;
-              let newOriginDeltaY = -(uiVector.y * reciprocal - inputVector.y - sceneBounds.y - sceneBounds.height);
-              setViewportTranslateX(newOriginDeltaX);
-              setViewportTranslateY(newOriginDeltaY);
-            }}
-          >
-            <rect
-              width = "100%"
-              height = "100%"
-              fill = "white"
-              onMouseDown = {function(e) {
-                switch (e.button) {
-                  case MouseButtonIndices.Left : {
-                    setDragListener(viewportDragListener);
-                    break;
+                  {tabs.map(function(tabI : Tab) {
+                    return <button
+                      key = {tabI}
+                      onClick = {function() {
+                        setTab(tabI);
+                      }}
+                    >
+                      {tabI}
+                    </button>
+                  })}
+                  <br/>
+                  <b>
+                    {tab}:
+                  </b>
+                  <br/>
+                  {tabs.map(function(tabI : Tab) {
+                    return <div
+                      key = {tabI}
+                      style = {{
+                        display : tab === tabI ? "block" : "none"
+                      }}
+                    >
+                      {tabRenderRecord[tabI]}
+                    </div>;
+                  })}
+                </div>
+                {/* Right tools div */}
+                <div
+                  style = {{
+                    width : "50%",
+                    height : "100%",
+                    display : "inline-block",
+                    overflowY : "auto",
+                    verticalAlign : "top"
+                  }}
+                >
+                  <Context.App.ComplexDocumentName.Provider
+                    value = {complexDocumentName}
+                  >
+                    <Context.App.SetComplexDocumentName.Provider
+                      value = {setComplexDocumentName}
+                    >
+                      {rightClickMenuContent}
+                    </Context.App.SetComplexDocumentName.Provider>
+                  </Context.App.ComplexDocumentName.Provider>
+                </div>
+              </div>
+              <svg
+                style = {{
+                  top : (toolsDivResizeDetector.height ?? 0) + DIV_BUFFER_HEIGHT,
+                  left : 0,
+                  position : "absolute"
+                }}
+                xmlns = "http://www.w3.org/2000/svg"
+                viewBox = {`0 0 ${parentDivResizeDetector.width ?? 0} ${svgHeight}`}
+                tabIndex = {0}
+                onKeyDown = {onKeyDown}
+                onMouseDown = {function(e) {
+                  switch (e.button) {
+                    case MouseButtonIndices.Left : {
+                      setOriginOfDrag({
+                        x : e.clientX,
+                        y : e.clientY
+                      });
+                      break;
+                    }
                   }
-                }
-              }}
-            />
-            <g
-              style = {{
-                visibility : sceneVisibility ? "visible" : "hidden"
-              }}
-              transform = {totalScale.asTransform + " scale(1, -1) " + transformTranslate}
-            >
-              {debugVisualElements}
-              {renderedRnaComplexes}
-            </g>
-            <rect
-              x = {0}
-              y = {svgHeight - mouseOverTextDimensions.height}
-              width = {mouseOverTextDimensions.width}
-              height = {mouseOverTextDimensions.height}
-              fill = "black"
-            />
-            <text
-              fill = "white"
-              x = {0}
-              y = {svgHeight - mouseOverTextDimensions.height * 0.25}
-              ref = {mouseOverTextSvgTextElementReference}
-              fontFamily = "dialog"
-              fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
-            >
-              {mouseOverText}
-            </text>
-          </svg>
-        </div>
-      </Context.BasePair.SetKeysToEdit.Provider>
-    </Context.App.UpdateRnaMoleculeNameHelper.Provider>
-  </Context.App.Settings.Provider>;
+                }}
+                onMouseMove = {function(e) {
+                  if (dragListener !== null) {
+                    const translation = subtract(
+                      {
+                        x : e.clientX,
+                        y : e.clientY
+                      },
+                      originOfDrag
+                    );
+                    translation.y = -translation.y;
+                    dragListener.continueDrag(add(
+                      dragCache,
+                      scaleDown(
+                        translation,
+                        viewportScale * sceneBoundsScaleMin
+                      )
+                    ));
+                  }
+                  e.preventDefault();
+                }}
+                onMouseUp = {function(e) {
+                  if (dragListener !== null) {
+                    if (dragListener.terminateDrag !== undefined) {
+                      dragListener.terminateDrag();
+                    }
+                    setDragListener(null);
+                  }
+                }}
+                onMouseLeave = {function() {
+                  setDragListener(null);
+                }}
+                onContextMenu = {function(event) {
+                  event.preventDefault();
+                }}
+                onWheel = {function(e) {
+                  // Apparently, the sign of <event.deltaY> needs to be negated in order to support intuitive scrolling...
+                  let newScaleExponent = viewportScaleExponent - sign(e.deltaY);
+                  let newScale = Math.pow(SCALE_BASE, newScaleExponent);
+                  setViewportScale(newScale);
+                  setViewportScaleExponent(newScaleExponent);
+                  let uiVector = {
+                    x : e.clientX,
+                    y : e.clientY - (toolsDivResizeDetector.height ?? 0) - DIV_BUFFER_HEIGHT
+                  };
+                  let reciprocal = totalScale.negativeScale;
+                  let inputVector = {
+                    x : uiVector.x * reciprocal + sceneBounds.x - viewportTranslateX,
+                    y : uiVector.y * reciprocal - sceneBounds.y + viewportTranslateY - sceneBounds.height
+                  };
+                  reciprocal = 1 / (newScale * sceneBoundsScaleMin);
+                  let newOriginDeltaX = uiVector.x * reciprocal - inputVector.x + sceneBounds.x;
+                  let newOriginDeltaY = -(uiVector.y * reciprocal - inputVector.y - sceneBounds.y - sceneBounds.height);
+                  setViewportTranslateX(newOriginDeltaX);
+                  setViewportTranslateY(newOriginDeltaY);
+                }}
+              >
+                <rect
+                  width = "100%"
+                  height = "100%"
+                  fill = "white"
+                  onMouseDown = {function(e) {
+                    switch (e.button) {
+                      case MouseButtonIndices.Left : {
+                        setDragListener(viewportDragListener);
+                        break;
+                      }
+                    }
+                  }}
+                />
+                <g
+                  style = {{
+                    visibility : sceneVisibility ? "visible" : "hidden"
+                  }}
+                  transform = {totalScale.asTransform + " scale(1, -1) " + transformTranslate}
+                >
+                  {debugVisualElements}
+                  {renderedRnaComplexes}
+                </g>
+                <rect
+                  x = {0}
+                  y = {svgHeight - mouseOverTextDimensions.height}
+                  width = {mouseOverTextDimensions.width}
+                  height = {mouseOverTextDimensions.height}
+                  fill = "black"
+                />
+                <text
+                  fill = "white"
+                  x = {0}
+                  y = {svgHeight - mouseOverTextDimensions.height * 0.25}
+                  ref = {mouseOverTextSvgTextElementReference}
+                  fontFamily = "dialog"
+                  fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
+                >
+                  {mouseOverText}
+                </text>
+              </svg>
+            </div>
+          </Context.BasePair.SetKeysToEdit.Provider>
+        </Context.App.UpdateRnaMoleculeNameHelper.Provider>
+      </Context.App.Settings.Provider>
+    </Context.BasePair.SetKeysToRerender.Provider>
+  </Context.Nucleotide.SetKeysToRerender.Provider>;
 }
 
 export default App;

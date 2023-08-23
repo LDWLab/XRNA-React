@@ -61,16 +61,30 @@ export function binarySearch<T>(array : Array<T>, comparator : (t : T) => number
   return null;
 }
 
-export function sortedArraySplice<T>(sortedArray : Array<T>, comparator : (t : T) => number, deleteCount : number, ...toBeInserted : Array<T>) {
+export enum HandleQueryNotFound {
+  THROW_ERROR = "Throw error",
+  DELETE_AND_ADD = "Delete and add",
+  DELETE = "Delete",
+  ADD = "Add",
+  DO_NOTHING = "Do nothing"
+}
+
+export function sortedArraySplice<T>(
+  sortedArray : Array<T>,
+  comparator : (t : T) => number,
+  deleteCount : number,
+  toBeInserted : Array<T> = [],
+  handleQueryNotFound = HandleQueryNotFound.THROW_ERROR
+) {
   let arrayIndexLowBound = 0;
   let arrayIndexHighBound = sortedArray.length - 1;
-  let finalDeleteCount = 0;
-  while (arrayIndexLowBound < arrayIndexHighBound) {
+  let queryNotFoundFlag = true;
+  while (arrayIndexLowBound <= arrayIndexHighBound) {
     let arrayIndex = (arrayIndexLowBound + arrayIndexHighBound) >> 1;
     let comparison = comparator(sortedArray[arrayIndex]);
     if (comparison === 0) {
       arrayIndexLowBound = arrayIndex;
-      finalDeleteCount = deleteCount;
+      queryNotFoundFlag = false;
       break;
     }
     if (comparison > 0) {
@@ -79,7 +93,39 @@ export function sortedArraySplice<T>(sortedArray : Array<T>, comparator : (t : T
       arrayIndexLowBound = arrayIndex + 1;
     }
   }
-  sortedArray.splice(arrayIndexLowBound, finalDeleteCount, ...toBeInserted);
+  let finalDeleteCount = deleteCount;
+  let finalToBeInserted = toBeInserted;
+  if (queryNotFoundFlag) {
+    switch (handleQueryNotFound) {
+      case HandleQueryNotFound.THROW_ERROR : {
+        throw "The query was not found within the input sorted array.";
+      }
+      case HandleQueryNotFound.DELETE_AND_ADD : {
+        // Insert and delete.
+        break;
+      }
+      case HandleQueryNotFound.DELETE : {
+        // Insert nothing.
+        finalToBeInserted = [];
+        break;
+      }
+      case HandleQueryNotFound.ADD : {
+        // Delete nothing.
+        finalDeleteCount = 0;
+        break;
+      }
+      case HandleQueryNotFound.DO_NOTHING : {
+        // Insert nothing.
+        finalToBeInserted = [];
+        finalDeleteCount = 0;
+        break;
+      }
+      default : {
+        throw "Unhandled switch case.";
+      }
+    }
+  }
+  sortedArray.splice(arrayIndexLowBound, finalDeleteCount, ...finalToBeInserted);
 }
 
 export function radiansToDegrees(angle : number) {
