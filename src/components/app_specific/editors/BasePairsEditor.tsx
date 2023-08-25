@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { FunctionComponent, createElement, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { RnaComplexProps } from "../../../App";
 import { Context, NucleotideKeysToRerender } from "../../../context/Context";
 import { DuplicateBasePairKeysHandler, compareBasePairKeys, insertBasePair } from "../RnaComplex";
@@ -38,6 +38,20 @@ export namespace BasePairsEditor {
 
   const defaultRepositionNucleotidesFlag = false;
 
+  export enum EditorType {
+    TEXT_BASED = "Text-based",
+    // TABLE_BASED = "Table-based",
+    // GRAPHICS_BASED = "Graphics-based"
+  }
+
+  const editorTypes = Object.values(EditorType);
+
+  const editorTypeToEditorMap : Record<EditorType, FunctionComponent<EditorProps>> = {
+    [EditorType.TEXT_BASED] : TextBasedEditor,
+    // [EditorType.TABLE_BASED] : TableBasedEditor,
+    // [EditorType.GRAPHICS_BASED] : GraphicsBasedEditor
+  };
+
   export function Component(props : Props) {
     const {
       rnaComplexProps,
@@ -53,9 +67,9 @@ export namespace BasePairsEditor {
     const settingsRecord = useContext(Context.App.Settings);
     // Begin state data.
     const [
-      textBasedEditorFlag,
-      setTextBasedEditorFlag
-    ] = useState(false);
+      editorType,
+      setEditorType
+    ] = useState<EditorType>(EditorType.TEXT_BASED);
     const [
       overrideConflictingBasePairsFlag,
       setOverrideConflictingBasePairsFlag
@@ -407,14 +421,14 @@ export namespace BasePairsEditor {
     // Begin effects.
     useEffect(
       function() {
-        const initialTextBasedEditorFlag = settingsRecord[Setting.TEXT_BASED_FORMAT_MENU] as boolean;
+        const initialEditorType = settingsRecord[Setting.BASE_PAIRS_EDITOR_TYPE] as EditorType;
         const initialRepositionNucleotidesFlag = settingsRecord[Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] as boolean;
         const initialCanonicalBasePairDistance = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
         const initialMismatchBasePairDistance = settingsRecord[Setting.MISMATCH_BASE_PAIR_DISTANCE] as number;
         const initialWobbleBasePairDistance = settingsRecord[Setting.WOBBLE_BASE_PAIR_DISTANCE] as number;
         const initialDistanceBetweenContiguousBasePairs = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
 
-        setTextBasedEditorFlag(initialTextBasedEditorFlag);
+        setEditorType(initialEditorType);
         setRepositionNucleotidesAlongBasePairAxisFlag(initialRepositionNucleotidesFlag);
         setRepositionNucleotidesAlongHelixAxisFlag(initialRepositionNucleotidesFlag);
         setCanonicalBasePairDistance(initialCanonicalBasePairDistance);
@@ -429,17 +443,6 @@ export namespace BasePairsEditor {
       <b>
         Settings:
       </b>
-      <br/>
-      <label>
-        Text-based base-pairs editor:&nbsp;
-        <input
-          type = "checkbox"
-          checked = {textBasedEditorFlag}
-          onChange = {function() {
-            setTextBasedEditorFlag(!textBasedEditorFlag);
-          }}
-        />
-      </label>
       <br/>
       <label>
         Override conflicting base pairs:&nbsp;
@@ -530,24 +533,26 @@ export namespace BasePairsEditor {
         Base-pairs editor:
       </b>
       <br/>
-      {textBasedEditorFlag && <TextBasedEditor
-        rnaComplexProps = {rnaComplexProps}
-        setBasePairs = {setBasePairs}
-        defaultRnaComplexIndex = {defaultRnaComplexIndex}
-        defaultRnaMoleculeName0 = {defaultRnaMoleculeName0}
-        defaultRnaMoleculeName1 = {defaultRnaMoleculeName1}
-        approveBasePairs = {approveBasePairs}
-        initialBasePairs = {initialBasePairs}
-      />}
-      {!textBasedEditorFlag && <NonTextBasedEditor
-        rnaComplexProps = {rnaComplexProps}
-        setBasePairs = {setBasePairs}
-        defaultRnaComplexIndex = {defaultRnaComplexIndex}
-        defaultRnaMoleculeName0 = {defaultRnaMoleculeName0}
-        defaultRnaMoleculeName1 = {defaultRnaMoleculeName1}
-        approveBasePairs = {approveBasePairs}
-        initialBasePairs = {initialBasePairs}
-      />}
+      <label>
+        Editor type:&nbsp;
+        <EditorTypeSelector.Component
+          editorType = {editorType}
+          onChange = {setEditorType}
+        />
+      </label>
+      <br/>
+      {createElement(
+        editorTypeToEditorMap[editorType],
+        {
+          rnaComplexProps,
+          setBasePairs,
+          defaultRnaComplexIndex,
+          defaultRnaMoleculeName0,
+          defaultRnaMoleculeName1,
+          approveBasePairs,
+          initialBasePairs
+        }
+      )}
     </>;
   }
 
@@ -557,6 +562,35 @@ export namespace BasePairsEditor {
     approveBasePairs : (newBasePairs : Array<BasePair>) => void,
     initialBasePairs? : Array<PartialBasePair>
   };
+
+  export namespace EditorTypeSelector {
+    export type Props = {
+      editorType : EditorType,
+      onChange : (editorType : EditorType) => void
+    }
+
+    export function Component(props : Props) {
+      const {
+        editorType,
+        onChange
+      } = props;
+      return <select
+        value = {editorType}
+        onChange = {function(e) {
+          onChange(e.target.value as EditorType);
+        }}
+      >
+        {editorTypes.map(function(editorType, index) {
+          return <option
+            key = {index}
+            value = {editorType}
+          >
+            {editorType}
+          </option>;
+        })}
+      </select>
+    }
+  }
 
   export function TextBasedEditor(props : EditorProps) {
     const {
@@ -654,22 +688,39 @@ export namespace BasePairsEditor {
               line : string,
               lineIndex : number
             ) {
-              const stringsSeparatedByWhitespace = line.split(/\s+/);
+              const stringsSeparatedByWhitespace = line.split(/\s+/).filter(function(_string) {
+                return _string.length > 0;
+              });
               // Format: nucleotideIndex0 nucleotideIndex1 length rnaMoleculeName0? rnaMoleculeName1? rnaComplexName?
               if (stringsSeparatedByWhitespace.length < 3) {
                 throw `Too few arguments were found in line #${lineIndex + 1}`;
               }
-              const nucleotideIndex0 = Number.parseInt(stringsSeparatedByWhitespace[0]);
+              const nucleotideIndex0String = stringsSeparatedByWhitespace[0];
+              const nucleotideIndex0 = Number.parseInt(nucleotideIndex0String);
+              const nucleotideIndex0ErrorMessage = `The provided nucleotide index #1 in line #${lineIndex + 1} is not an integer.`;
+              if (!/^-?\d+$/.test(nucleotideIndex0String)) {
+                throw nucleotideIndex0ErrorMessage;
+              }
               if (Number.isNaN(nucleotideIndex0)) {
-                throw `The provided nucleotide index #1 in line #${lineIndex + 1} is not an integer.`;
+                throw nucleotideIndex0ErrorMessage;
               }
-              const nucleotideIndex1 = Number.parseInt(stringsSeparatedByWhitespace[1]);
+              const nucleotideIndex1String = stringsSeparatedByWhitespace[1];
+              const nucleotideIndex1 = Number.parseInt(nucleotideIndex1String);
+              const nucleotideIndex1ErrorMessage = `The provided nucleotide index #2 in line #${lineIndex + 1} is not an integer.`;
+              if (!/^-?\d+$/.test(nucleotideIndex1String)) {
+                throw nucleotideIndex1ErrorMessage;
+              }
               if (Number.isNaN(nucleotideIndex1)) {
-                throw `The provided nucleotide index #2 in line #${lineIndex + 1} is not an integer.`;
+                throw nucleotideIndex1ErrorMessage;
               }
-              const length = Number.parseInt(stringsSeparatedByWhitespace[2]);
+              const lengthString = stringsSeparatedByWhitespace[2];
+              const lengthErrorMessage = `The provided helix length in line #${lineIndex + 1} is not a non-negative integer.`;
+              if (!/^\d+$/.test(lengthString)) {
+                throw lengthErrorMessage;
+              }
+              const length = Number.parseInt(lengthString);
               if (Number.isNaN(length)) {
-                throw `The provided length in line #${lineIndex + 1} is not an integer.`;
+                throw lengthErrorMessage;
               }
               function getFormattedName(unformattedName : string) {
                 const match = /^"(.*)"$/.exec(unformattedName);
@@ -702,9 +753,9 @@ export namespace BasePairsEditor {
                 rnaMoleculeName0 = defaultRnaMoleculeName0;
               } else {
                 rnaMoleculeName0 = getFormattedName(stringsSeparatedByWhitespace[3]);
-                if (!(rnaMoleculeName0 in singularRnaComplexProps.rnaMoleculeProps)) {
-                  throw `The provided RNA molecule #1 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
-                }
+              }
+              if (!(rnaMoleculeName0 in singularRnaComplexProps.rnaMoleculeProps)) {
+                throw `The provided RNA molecule #1 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
               }
               let rnaMoleculeName1 : string;
               if (stringsSeparatedByWhitespace.length < 5) {
@@ -714,8 +765,20 @@ export namespace BasePairsEditor {
                 rnaMoleculeName1 = defaultRnaMoleculeName1;
               } else {
                 rnaMoleculeName1 = getFormattedName(stringsSeparatedByWhitespace[4]);
-                if (!(rnaMoleculeName1 in singularRnaComplexProps.rnaMoleculeProps)) {
-                  throw `The provided RNA molecule name #2 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
+              }
+              if (!(rnaMoleculeName1 in singularRnaComplexProps.rnaMoleculeProps)) {
+                throw `The provided RNA molecule name #2 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
+              }
+              const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+              const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+              for (let i = 0; i < length; i++) {
+                const formattedNucleotideIndex0 = nucleotideIndex0 + i;
+                const formattedNucleotideIndex1 = nucleotideIndex1 - i;
+                if (!(formattedNucleotideIndex0 in singularRnaMoleculeProps0.nucleotideProps)) {
+                  throw `The provided helix data includes a non-existent nucleotide at nucleotide index #${formattedNucleotideIndex0}.`;
+                }
+                if (!(formattedNucleotideIndex1 in singularRnaMoleculeProps1.nucleotideProps)) {
+                  throw `The provided helix data includes a non-existent nucleotide at nucleotide index #${formattedNucleotideIndex1}.`;
                 }
               }
               let type : string | undefined = stringsSeparatedByWhitespace[6];
@@ -756,7 +819,11 @@ export namespace BasePairsEditor {
     </>;
   }
 
-  export function NonTextBasedEditor(props : EditorProps) {
+  export function TableBasedEditor(props : EditorProps) {
+    return <></>;
+  }
+
+  export function GraphicsBasedEditor(props : EditorProps) {
     return <></>;
   }
 }

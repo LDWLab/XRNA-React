@@ -106,6 +106,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
         </>;
       }
       case Tab.FORMAT : {
+        const formattedNucleotideIndex0 = nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
         return <>
           {header}
           <br/>
@@ -115,8 +116,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
               {
                 rnaComplexIndex,
                 rnaMoleculeName0 : rnaMoleculeName,
-                rnaMoleculeName1 : rnaMoleculeName,
-                nucleotideIndex0 : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
+                nucleotideIndex0 : formattedNucleotideIndex0,
                 length : 1
               }
             ]}
@@ -127,6 +127,14 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
               const parsedBasePair = parsedBasePairs[0];
               if (parsedBasePair.length > 1) {
                 throw "This interaction constraint expects at most one base pair.";
+              }
+              const errorMessage = "This interaction constraint requires a base pair involving the clicked-on nucleotide.";
+              if (
+                parsedBasePair.rnaComplexIndex !== rnaComplexIndex ||
+                ![parsedBasePair.rnaMoleculeName0, parsedBasePair.rnaMoleculeName1].includes(rnaMoleculeName) ||
+                ![parsedBasePair.nucleotideIndex0, parsedBasePair.nucleotideIndex1].includes(formattedNucleotideIndex0)
+              ) {
+                throw errorMessage;
               }
             }}
           />

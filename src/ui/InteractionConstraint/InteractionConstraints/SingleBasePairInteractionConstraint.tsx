@@ -78,22 +78,22 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     const rnaMoleculeName0 = rnaMoleculeName;
     const rnaMoleculeName1 = mappedBasePair.rnaMoleculeName;
     const basePairsPerRnaMolecule0 = basePairs[rnaMoleculeName0];
-    for (const nucleotideIndex0IncrementOrDecrement of [-1, 1]) {
-      const incrementedOrDecrementedNucleotideIndex0 = nucleotideIndex0 + nucleotideIndex0IncrementOrDecrement;
-      if (incrementedOrDecrementedNucleotideIndex0 in basePairsPerRnaMolecule0) {
-        const mappedBasePairInformation = basePairsPerRnaMolecule0[incrementedOrDecrementedNucleotideIndex0];
-        const {
-          rnaMoleculeName,
-          nucleotideIndex
-        } = mappedBasePairInformation;
-        if (rnaMoleculeName === rnaMoleculeName1 && Math.abs(nucleotideIndex - nucleotideIndex1) === 1) {
-          const error : InteractionConstraintError = {
-            errorMessage : "Cannot interact with a single base pair that is part of a larger helix."
-          };
-          throw error;
-        }
-      }
-    }
+    // for (const nucleotideIndex0IncrementOrDecrement of [-1, 1]) {
+    //   const incrementedOrDecrementedNucleotideIndex0 = nucleotideIndex0 + nucleotideIndex0IncrementOrDecrement;
+    //   if (incrementedOrDecrementedNucleotideIndex0 in basePairsPerRnaMolecule0) {
+    //     const mappedBasePairInformation = basePairsPerRnaMolecule0[incrementedOrDecrementedNucleotideIndex0];
+    //     const {
+    //       rnaMoleculeName,
+    //       nucleotideIndex
+    //     } = mappedBasePairInformation;
+    //     if (rnaMoleculeName === rnaMoleculeName1 && Math.abs(nucleotideIndex - nucleotideIndex1) === 1) {
+    //       const error : InteractionConstraintError = {
+    //         errorMessage : "Cannot interact with a single base pair that is part of a larger helix."
+    //       };
+    //       throw error;
+    //     }
+    //   }
+    // }
     if (rnaMoleculeName0 === rnaMoleculeName1) {
       const nucleotideKeysToRerenderPerRnaMolecule : NucleotideKeysToRerenderPerRnaMolecule = [];
       nucleotideKeysToRerender[rnaComplexIndex] = {
@@ -190,12 +190,14 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
           rnaComplexProps = {this.rnaComplexProps}
           initialBasePairs = {this.initialBasePairs}
           approveBasePairs = {function(parsedBasePairs : Array<BasePairsEditor.BasePair>) {
-            if (parsedBasePairs.length !== 1) {
-              throw "This interaction constraint expects exactly one base pair.";
+            if (parsedBasePairs.length > 1) {
+              throw "This interaction constraint expects at most one base pair.";
             }
-            const parsedBasePair = parsedBasePairs[0];
-            if (parsedBasePair.length !== 1) {
-              throw "This interaction constraint expects exactly one base pair.";
+            if (parsedBasePairs.length === 1) {
+              const parsedBasePair = parsedBasePairs[0];
+              if (parsedBasePair.length > 1) {
+                throw "This interaction constraint expects at most one base pair.";
+              }
             }
           }}
         />;

@@ -17,6 +17,7 @@ import { InteractionConstraint } from './ui/InteractionConstraint/InteractionCon
 import { LabelContentEditMenu } from './components/app_specific/menus/edit_menus/LabelContentEditMenu';
 import { LabelLineEditMenu } from './components/app_specific/menus/edit_menus/LabelLineEditMenu';
 import { jsonObjectHandler } from './io/JsonInputFileHandler';
+import { BasePairsEditor } from './components/app_specific/editors/BasePairsEditor';
 
 // Begin types.
 export type RnaComplexKey = number;
@@ -1006,7 +1007,7 @@ function App() {
               }
             }
             if (formatCheckPassedFlag) {
-              let updatedSettings : Partial<Record<Setting, boolean>> = {};
+              let updatedSettings : Partial<Record<Setting, SettingValue>> = {};
               for (let key of keys) {
                 updatedSettings[key as Setting] = settingsJson[key];
               }
@@ -1053,7 +1054,7 @@ function App() {
                   [setting] : !settingsRecord[setting]
                 });
               }}
-            />
+            />;
             break;
           }
           case "number" : {
@@ -1065,8 +1066,23 @@ function App() {
                   [setting] : newValue
                 });
               }}
-            />
+            />;
             break;
+          }
+          case "BasePairsEditorType" : {
+            input = <BasePairsEditor.EditorTypeSelector.Component
+              editorType = {settingsRecord[setting] as BasePairsEditor.EditorType}
+              onChange = {function(newEditorType : BasePairsEditor.EditorType) {
+                setSettingsRecord({
+                  ...settingsRecord,
+                  [setting] : newEditorType
+                });
+              }}
+            />;
+            break;
+          }
+          default : {
+            throw "Unhandled switch case.";
           }
         }
         return <Fragment
