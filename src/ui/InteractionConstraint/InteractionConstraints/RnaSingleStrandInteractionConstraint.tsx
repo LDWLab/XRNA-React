@@ -118,6 +118,8 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     orientation : RnaSingleStrandInteractionConstraintEditMenu.Orientation,
     displacementAlongNormal : number
   ) => void
+  private readonly formattedLowerBoundingNucleotideIndex : number;
+  private readonly formattedUpperBoundingNucleotideIndex : number;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -374,6 +376,8 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         }
       }
     };
+    this.formattedLowerBoundingNucleotideIndex = lowerBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
+    this.formattedUpperBoundingNucleotideIndex = upperBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
   }
 
   public override drag() {
@@ -386,6 +390,8 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       rnaMoleculeName,
       nucleotideIndex
     } = this.fullKeys;
+    const formattedLowerBoundingNucleotideIndex = this.formattedLowerBoundingNucleotideIndex;
+    const formattedUpperBoundingNucleotideIndex = this.formattedUpperBoundingNucleotideIndex;
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const formattedNucleotideIndex = nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
@@ -421,32 +427,29 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
             approveBasePairs = {function(basePairs) {
               for (let i = 0; i < basePairs.length; i++) {
                 const basePair = basePairs[i];
-                const errorMessage = "This interaction constraint expects base pairs to include the clicked-on nucleotide.";
+                const errorMessage = `This interaction constraint expects base pairs to include the clicked-on single-stranded nucleotide region. The helix on line ${i + 1} does not.`;
                 if (rnaComplexIndex !== basePair.rnaComplexIndex) {
                   throw errorMessage;
                 }
-                const rnaMoleculeNameIndex = [basePair.rnaMoleculeName0, basePair.rnaMoleculeName1].findIndex(function(rnaMoleculeNameI) {
-                  return rnaMoleculeNameI === rnaMoleculeName;
-                });
-                switch (rnaMoleculeNameIndex) {
-                  case -1 : {
+                const rnaMoleculeName0MatchFlag = rnaMoleculeName === basePair.rnaMoleculeName0;
+                const rnaMoleculeName1MatchFlag = rnaMoleculeName === basePair.rnaMoleculeName1;
+                if (rnaMoleculeName0MatchFlag && rnaMoleculeName1MatchFlag) {
+                  if (
+                    (formattedUpperBoundingNucleotideIndex - 1 < basePair.nucleotideIndex0 || formattedLowerBoundingNucleotideIndex + 1 >= basePair.nucleotideIndex0 + basePair.length) &&
+                    (formattedUpperBoundingNucleotideIndex - 1 <= basePair.nucleotideIndex1 - basePair.length || formattedLowerBoundingNucleotideIndex + 1 > basePair.nucleotideIndex1)
+                  ) {
                     throw errorMessage;
                   }
-                  case 0 : {
-                    if (formattedNucleotideIndex < basePair.nucleotideIndex0 || formattedNucleotideIndex >= basePair.nucleotideIndex0 + basePair.length) {
-                      throw errorMessage;
-                    }
-                    break;
+                } else if (rnaMoleculeName0MatchFlag) {
+                  if (formattedUpperBoundingNucleotideIndex - 1 < basePair.nucleotideIndex0 || formattedLowerBoundingNucleotideIndex + 1 >= basePair.nucleotideIndex0 + basePair.length) {
+                    throw errorMessage;
                   }
-                  case 1 : {
-                    if (formattedNucleotideIndex > basePair.nucleotideIndex1 || formattedNucleotideIndex <= basePair.nucleotideIndex1 - basePair.length) {
-                      throw errorMessage;
-                    }
-                    break;
+                } else if (rnaMoleculeName1MatchFlag) {
+                  if (formattedUpperBoundingNucleotideIndex - 1 <= basePair.nucleotideIndex1 - basePair.length || formattedLowerBoundingNucleotideIndex + 1 > basePair.nucleotideIndex1) {
+                    throw errorMessage;
                   }
-                  default : {
-                    throw "Unhandled switch case";
-                  }
+                } else {
+                  throw errorMessage;
                 }
               }
             }}

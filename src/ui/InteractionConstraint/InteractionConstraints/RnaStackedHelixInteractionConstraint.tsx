@@ -16,6 +16,8 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
   private readonly partialHeader : JSX.Element;
   private readonly editMenuProps : AppSpecificOrientationEditor.Props;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
+  private readonly rnaMoleculeName0 : string;
+  private readonly rnaMoleculeName1 : string;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -416,6 +418,8 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         length : Math.abs(nucleotideIndex1Start - nucleotideIndex1Stop) + 1
       };
     });
+    this.rnaMoleculeName0 = rnaMoleculeName0;
+    this.rnaMoleculeName1 = rnaMoleculeName1;
   }
 
   public override drag() {
@@ -427,6 +431,8 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       rnaComplexIndex,
       rnaMoleculeName
     } = this.fullKeys;
+    const rnaMoleculeName0 = this.rnaMoleculeName0;
+    const rnaMoleculeName1 = this.rnaMoleculeName1;
     const header = <>
       <b>
         {tab} stacked helices:
@@ -450,7 +456,20 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
             rnaComplexProps = {this.rnaComplexProps}
             initialBasePairs = {this.initialBasePairs}
             approveBasePairs = {function(basePairs) {
-              // TODO: Implement this.
+              for (const basePair of basePairs) {
+                if (
+                  !(rnaMoleculeName0 === basePair.rnaMoleculeName0 && rnaMoleculeName1 === basePair.rnaMoleculeName1) &&
+                  !(rnaMoleculeName1 === basePair.rnaMoleculeName0 && rnaMoleculeName0 === basePair.rnaMoleculeName1)
+                ) {
+                  let errorMessage : string;
+                  if (rnaMoleculeName0 === rnaMoleculeName1) {
+                    errorMessage = `This interaction constraint exclusively expects base-pairs between RNA molecule "${rnaMoleculeName0}" and RNA molecule "${rnaMoleculeName1}".`
+                  } else {
+                    errorMessage = `This interaction constraint exclusivley expects base-pairs within RNA molecule "${rnaMoleculeName0}"`;
+                  }
+                  throw errorMessage;
+                }
+              }
             }}
             defaultRnaComplexIndex = {rnaComplexIndex}
             defaultRnaMoleculeName0 = {rnaMoleculeName}
