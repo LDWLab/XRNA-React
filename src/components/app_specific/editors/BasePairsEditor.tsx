@@ -20,7 +20,7 @@ export namespace BasePairsEditor {
     type? : _BasePair.Type
   };
 
-  export type PartialBasePair = Partial<BasePair>;
+  export type InitialBasePair = Partial<BasePair>;
 
   type DefaultData = {
     defaultRnaComplexIndex? : number,
@@ -28,7 +28,7 @@ export namespace BasePairsEditor {
     defaultRnaMoleculeName1? : string
   };
 
-  export type InitialBasePairs = Array<PartialBasePair>;
+  export type InitialBasePairs = Array<InitialBasePair>;
 
   export type Props = DefaultData & {
     rnaComplexProps : RnaComplexProps,
@@ -560,7 +560,7 @@ export namespace BasePairsEditor {
     rnaComplexProps : RnaComplexProps,
     setBasePairs : (newBasePairs : Array<BasePair>) => void,
     approveBasePairs : (newBasePairs : Array<BasePair>) => void,
-    initialBasePairs? : Array<PartialBasePair>
+    initialBasePairs? : Array<InitialBasePair>
   };
 
   export namespace EditorTypeSelector {
@@ -602,11 +602,16 @@ export namespace BasePairsEditor {
       defaultRnaMoleculeName0,
       defaultRnaMoleculeName1
     } = props;
+    const fontSize = 12;
     // Begin state data.
     const [
       text,
       setText
     ] = useState("");
+    const [
+      textAreaLineCount,
+      setTextAreaLineCount
+    ] = useState(0);
     // Begin memo data.
     const rnaComplexNames = useMemo(
       function() {
@@ -659,15 +664,22 @@ export namespace BasePairsEditor {
           return elements.join(" ");
         }).join("\n");
         setText(newText);
+        setTextAreaLineCount(initialBasePairs.length + 1);
       },
       [initialBasePairs]
     );
     return <>
       <textarea
         style = {{
-          width : "99%"
+          width : "99%",
+          height : `${fontSize * textAreaLineCount}px`,
+          fontSize : `${fontSize}px`
         }}
         value = {text}
+        onInput = {function(e : React.ChangeEvent<HTMLTextAreaElement>) {
+          const newText = e.target.value;
+          setTextAreaLineCount((newText.match(/\n/g)?.length ?? -1) + 2);
+        }}
         onChange = {function(e) {
           const newText = e.target.value;
           setText(newText);

@@ -176,7 +176,11 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     return this.dragListener;
   }
 
-  public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
+  public override createRightClickMenu(tab : InteractionConstraint.SupportedTab) {
+    const {
+      rnaComplexIndex,
+      rnaMoleculeName
+    } = this.fullKeys;
     let menu : JSX.Element = <></>;
     switch (tab) {
       case Tab.EDIT : {
@@ -200,6 +204,9 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
               }
             }
           }}
+          defaultRnaComplexIndex = {rnaComplexIndex}
+          defaultRnaMoleculeName0 = {rnaMoleculeName}
+          defaultRnaMoleculeName1 = {rnaMoleculeName}
         />;
         break;
       }

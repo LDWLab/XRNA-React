@@ -422,7 +422,6 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
               for (let i = 0; i < basePairs.length; i++) {
                 const basePair = basePairs[i];
                 const errorMessage = "This interaction constraint expects base pairs to include the clicked-on nucleotide.";
-                // TODO: Implement this.
                 if (rnaComplexIndex !== basePair.rnaComplexIndex) {
                   throw errorMessage;
                 }
@@ -451,6 +450,9 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
                 }
               }
             }}
+            defaultRnaComplexIndex = {rnaComplexIndex}
+            defaultRnaMoleculeName0 = {rnaMoleculeName}
+            defaultRnaMoleculeName1 = {rnaMoleculeName}
           />
         </>;
       }

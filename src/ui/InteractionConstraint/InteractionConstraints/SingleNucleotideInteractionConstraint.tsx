@@ -137,6 +137,9 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
                 throw errorMessage;
               }
             }}
+            defaultRnaComplexIndex = {rnaComplexIndex}
+            defaultRnaMoleculeName0 = {rnaMoleculeName}
+            defaultRnaMoleculeName1 = {rnaMoleculeName}
           />
         </>;
       }

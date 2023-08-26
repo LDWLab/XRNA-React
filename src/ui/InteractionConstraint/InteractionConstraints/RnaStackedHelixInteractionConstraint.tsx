@@ -1,7 +1,9 @@
 import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
+import { Tab } from "../../../app_data/Tab";
 import { RnaComplex, compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../../../components/app_specific/RnaMolecule";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
+import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideKeysToRerender, BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
 import { Vector2D, add, asAngle, orthogonalizeLeft, scaleUp, subtract } from "../../../data_structures/Vector2D";
 import { sign, subtractNumbers } from "../../../utils/Utils";
@@ -11,8 +13,9 @@ import { Extrema, InteractionConstraint, populateToBeDraggedWithHelix } from "..
 
 export class RnaStackedHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
-  private readonly editMenuHeader : JSX.Element;
+  private readonly partialHeader : JSX.Element;
   private readonly editMenuProps : AppSpecificOrientationEditor.Props;
+  private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -71,6 +74,12 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
 
+    type OrderedExtrema = Array<{
+      start : Extrema,
+      stop : Extrema
+    }>;
+
+    const orderedExtrema : OrderedExtrema = [];
     const extremaWithCauseOfTerminationIncremented = populateToBeDraggedWithHelix(
       1,
       nucleotideIndex0,
@@ -103,6 +112,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
     );
     let extremaIncremented = extremaWithCauseOfTerminationIncremented.extrema;
     let extremaDecremented = extremaWithCauseOfTerminationDecremented.extrema;
+    orderedExtrema.push({
+      start : extremaDecremented,
+      stop : extremaIncremented
+    });
     let nucleotideIndex1Delta = sign(extremaIncremented[1] - extremaDecremented[1]);
     if (nucleotideIndex1Delta === 0) {
       outerLoop: for (let nucleotideIndex0Delta of [-1, 1]) {
@@ -157,11 +170,11 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       singularRnaMoleculeProps0 : RnaMolecule.ExternalProps,
       singularRnaMoleculeProps1 : RnaMolecule.ExternalProps,
       basePairKeysToRerenderPerRnaComplex : BasePairKeysToRerenderPerRnaComplex,
-    ) : Extrema {
-      let extrema = {
-        0 : nucleotideIndex0,
-        1 : nucleotideIndex1
-      };
+    ) : OrderedExtrema {
+      const orderedExtrema = new Array<{
+        start : Extrema,
+        stop : Extrema
+      }>();
       outer: while (true) {
         let lastBasePairedNucleotideIndex0 = nucleotideIndex0;
         let temporaryNucleotideKeysToRerenderPerRnaMolecule0 : NucleotideKeysToRerenderPerRnaMolecule = [];
@@ -225,17 +238,27 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
           basePairKeysToRerenderPerRnaComplex,
           true
         );
-        extrema = extremaWithCauseOfTermination.extrema;
+        const extrema = extremaWithCauseOfTermination.extrema;
+        orderedExtrema.push({
+          start : {
+            0 : nucleotideIndex0,
+            1 : nucleotideIndex1
+          },
+          stop : {
+            0 : extrema[0],
+            1 : extrema[1]
+          }
+        });
         nucleotideIndex0 = extrema[0];
         nucleotideIndex1 = extrema[1];
       }
-      return extrema;
+      return orderedExtrema;
     }
 
     let boundingNucleotide0 : Vector2D;
-    let boundingNucleotide1 : Vector2D;;
+    let boundingNucleotide1 : Vector2D;
     if (nucleotideIndex1Delta !== 0) {
-      extremaIncremented = populateToBeDragged(
+      const incrementedOrderedExtrema = populateToBeDragged(
         1,
         nucleotideIndex1Delta,
         extremaIncremented[0],
@@ -249,7 +272,11 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         singularRnaMoleculeProps1,
         basePairKeysToRerenderPerRnaComplex
       );
-      extremaDecremented = populateToBeDragged(
+      if (incrementedOrderedExtrema.length > 0) {
+        extremaIncremented = incrementedOrderedExtrema[incrementedOrderedExtrema.length - 1].stop;
+        orderedExtrema.push(...incrementedOrderedExtrema);
+      }
+      const decrementedOrderedExtrema = populateToBeDragged(
         -1,
         -nucleotideIndex1Delta as -1 | 1,
         extremaDecremented[0],
@@ -263,6 +290,15 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         singularRnaMoleculeProps1,
         basePairKeysToRerenderPerRnaComplex
       );
+      if (decrementedOrderedExtrema.length > 0) {
+        extremaDecremented = decrementedOrderedExtrema[decrementedOrderedExtrema.length - 1].stop;
+        orderedExtrema.unshift(...decrementedOrderedExtrema.reverse().map(function({start, stop}) {
+          return {
+            start : stop,
+            stop : start
+          };
+        }));
+      }
       
       let boundingNucleotideIndex0 : number;
       let boundingNucleotideIndex1 : number;
@@ -352,11 +388,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       boundingNucleotide1,
       boundingNucleotide0
     ));
-    this.editMenuHeader = <>
-      <b>
-        Edit stacked helices:
-      </b>
-      <br/>
+    this.partialHeader = <>
       {nucleotideAndRnaMoleculeJsx}
       <br/>
       In RNA complex "{singularRnaComplexProps.name}"
@@ -369,18 +401,66 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       normal : normalVector,
       initialAngle : asAngle(normalVector)
     };
+    this.initialBasePairs = orderedExtrema.map(function(orderedExtremaI) {
+      const nucleotideIndex1Start = orderedExtremaI.start[1];
+      const nucleotideIndex1Stop = orderedExtremaI.stop[1];
+      const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+      const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+      const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+      return {
+        rnaComplexIndex,
+        rnaMoleculeName0,
+        rnaMoleculeName1,
+        nucleotideIndex0 : orderedExtremaI.start[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
+        nucleotideIndex1 : Math.max(nucleotideIndex1Start, nucleotideIndex1Stop) + singularRnaMoleculeProps1.firstNucleotideIndex,
+        length : Math.abs(nucleotideIndex1Start - nucleotideIndex1Stop) + 1
+      };
+    });
   }
 
   public override drag() {
     return this.dragListener;
   }
 
-  public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
-    return <>
-      {this.editMenuHeader}
-      <AppSpecificOrientationEditor.Component
-        {...this.editMenuProps}
-      />
+  public override createRightClickMenu(tab : InteractionConstraint.SupportedTab) {
+    const {
+      rnaComplexIndex,
+      rnaMoleculeName
+    } = this.fullKeys;
+    const header = <>
+      <b>
+        {tab} stacked helices:
+      </b>
+      <br/>
+      {this.partialHeader}
     </>;
+    switch (tab) {
+      case Tab.EDIT : {
+        return <>
+          {header}
+          <AppSpecificOrientationEditor.Component
+            {...this.editMenuProps}
+          />
+        </>;
+      }
+      case Tab.FORMAT : {
+        return <>
+          {header}
+          <BasePairsEditor.Component
+            rnaComplexProps = {this.rnaComplexProps}
+            initialBasePairs = {this.initialBasePairs}
+            approveBasePairs = {function(basePairs) {
+              // TODO: Implement this.
+            }}
+            defaultRnaComplexIndex = {rnaComplexIndex}
+            defaultRnaMoleculeName0 = {rnaMoleculeName}
+            defaultRnaMoleculeName1 = {rnaMoleculeName}
+          />
+        </>;
+      }
+      default : {
+        throw "Unhandled switch case";
+      }
+    }
   }
 }

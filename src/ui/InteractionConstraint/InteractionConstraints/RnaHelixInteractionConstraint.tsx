@@ -268,7 +268,11 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     return this.dragListener;
   }
 
-  public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
+  public override createRightClickMenu(tab : InteractionConstraint.SupportedTab) {
+    const {
+      rnaComplexIndex,
+      rnaMoleculeName
+    } = this.fullKeys
     switch (tab) {
       case Tab.EDIT : {
         return <>
@@ -285,6 +289,9 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
             // Do nothing.
           }}
           initialBasePairs = {this.initialBasePairs}
+          defaultRnaComplexIndex = {rnaComplexIndex}
+          defaultRnaMoleculeName0 = {rnaMoleculeName}
+          defaultRnaMoleculeName1 = {rnaMoleculeName}
         />;
       }
       default : {
