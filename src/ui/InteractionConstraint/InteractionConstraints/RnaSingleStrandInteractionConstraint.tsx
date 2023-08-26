@@ -7,6 +7,9 @@ import { interpolationDrag, linearDrag } from "../CommonDragListeners";
 import { AbstractInteractionConstraint, basePairedNucleotideError } from "../AbstractInteractionConstraint";
 import { RnaSingleStrandInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/RnaSingleStrandInteractionConstraintEditMenu";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
+import { InteractionConstraint } from "../InteractionConstraints";
+import { Tab } from "../../../app_data/Tab";
+import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 
 export const TWO_PI = 2 * Math.PI;
 
@@ -109,7 +112,7 @@ function flipAngleTraversalHelper(angleTraversal : number) {
 
 export class RnaSingleStrandInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
-  private readonly menuHeader : JSX.Element;
+  private readonly partialMenuHeader : JSX.Element;
   private readonly initialDisplacementAlongNormal : number;
   private readonly updateSingleStrand : (
     orientation : RnaSingleStrandInteractionConstraintEditMenu.Orientation,
@@ -254,11 +257,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         }
       };
     }
-    this.menuHeader = <>
-      <b>
-        Edit single-stranded region:
-      </b>
-      <br/>
+    this.partialMenuHeader = <>
       {toBeDragged.length} nucleotides in the range ({lowerBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex}, {upperBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex})
       <br/>
       In RNA molecule "{rnaMoleculeName}"
@@ -381,13 +380,86 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     return this.dragListener;
   }
 
-  public override createRightClickMenu() {
-    return <>
-      {this.menuHeader}
-      <RnaSingleStrandInteractionConstraintEditMenu.Component
-        initialDisplacementAlongNormal = {this.initialDisplacementAlongNormal}
-        updateSingleStrand = {this.updateSingleStrand}
-      />
+  public override createRightClickMenu(tab : InteractionConstraint.SupportedTab) {
+    const {
+      rnaComplexIndex,
+      rnaMoleculeName,
+      nucleotideIndex
+    } = this.fullKeys;
+    const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
+    const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
+    const formattedNucleotideIndex = nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
+    const header = <>
+      <b>
+        {tab} single-stranded region:
+      </b>
+      <br/>
+      {this.partialMenuHeader}
     </>;
+    switch (tab) {
+      case Tab.EDIT : {
+        return <>
+          {header}
+          <RnaSingleStrandInteractionConstraintEditMenu.Component
+            initialDisplacementAlongNormal = {this.initialDisplacementAlongNormal}
+            updateSingleStrand = {this.updateSingleStrand}
+          />
+        </>;
+      }
+      case Tab.FORMAT : {
+        return <>
+          {header}
+          <BasePairsEditor.Component
+            rnaComplexProps = {this.rnaComplexProps}
+            initialBasePairs = {[
+              {
+                rnaComplexIndex,
+                rnaMoleculeName0 : rnaMoleculeName,
+                nucleotideIndex0 : formattedNucleotideIndex
+              }
+            ]}
+            approveBasePairs = {function(basePairs) {
+              for (let i = 0; i < basePairs.length; i++) {
+                const basePair = basePairs[i];
+                const errorMessage = "This interaction constraint expects base pairs to include the clicked-on nucleotide.";
+                // TODO: Implement this.
+                if (rnaComplexIndex !== basePair.rnaComplexIndex) {
+                  throw errorMessage;
+                }
+                const rnaMoleculeNameIndex = [basePair.rnaMoleculeName0, basePair.rnaMoleculeName1].findIndex(function(rnaMoleculeNameI) {
+                  return rnaMoleculeNameI === rnaMoleculeName;
+                });
+                switch (rnaMoleculeNameIndex) {
+                  case -1 : {
+                    throw errorMessage;
+                  }
+                  case 0 : {
+                    if (formattedNucleotideIndex < basePair.nucleotideIndex0 || formattedNucleotideIndex >= basePair.nucleotideIndex0 + basePair.length) {
+                      throw errorMessage;
+                    }
+                    break;
+                  }
+                  case 1 : {
+                    if (formattedNucleotideIndex > basePair.nucleotideIndex1 || formattedNucleotideIndex <= basePair.nucleotideIndex1 - basePair.length) {
+                      throw errorMessage;
+                    }
+                    break;
+                  }
+                  default : {
+                    throw "Unhandled switch case";
+                  }
+                }
+              }
+            }}
+          />
+        </>;
+      }
+      default : {
+        const error = {
+          errorMessage : "Unhandled switch case."
+        }
+        throw error;
+      }
+    }
   }
 }
