@@ -1328,7 +1328,7 @@ function App() {
                 </g>
                 <rect
                   x = {0}
-                  y = {svgHeight - mouseOverTextDimensions.height}
+                  y = {svgHeight - mouseOverTextDimensions.height - 2}
                   width = {mouseOverTextDimensions.width}
                   height = {mouseOverTextDimensions.height}
                   fill = "black"
@@ -1336,7 +1336,7 @@ function App() {
                 <text
                   fill = "white"
                   x = {0}
-                  y = {svgHeight - mouseOverTextDimensions.height * 0.25}
+                  y = {svgHeight - mouseOverTextDimensions.height * 0.25 - 2}
                   ref = {mouseOverTextSvgTextElementReference}
                   fontFamily = "dialog"
                   fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}

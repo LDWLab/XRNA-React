@@ -1,15 +1,18 @@
 import { DragListener, FullKeys, RnaComplexProps } from "../../../App";
+import { Tab } from "../../../app_data/Tab";
+import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { RnaComplexInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/RnaComplexInteractionConstraintEditMenu";
 import { NucleotideKeysToRerender, BasePairKeysToRerender, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
 import { Vector2D } from "../../../data_structures/Vector2D";
 import { parseInteger } from "../../../utils/Utils";
 import { AbstractInteractionConstraint } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { InteractionConstraint } from "../InteractionConstraints";
+import { FilterHelicesMode, InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerRnaComplex } from "../InteractionConstraints";
 
 export class RnaComplexInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
-  private readonly rightClickMenuProps : RnaComplexInteractionConstraintEditMenu.Props;
+  private readonly editMenuProps : RnaComplexInteractionConstraintEditMenu.Props;
+  private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -70,10 +73,32 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
       toBeDragged,
       rerender
     );
-    this.rightClickMenuProps = {
+    this.editMenuProps = {
       rerender,
       singularRnaComplexProps
     };
+    const initialBasePairs : BasePairsEditor.InitialBasePairs = [];
+    iterateOverFreeNucleotidesAndHelicesPerRnaComplex(
+      rnaComplexIndex,
+      singularRnaComplexProps,
+      FilterHelicesMode.COMPARE_ALL_KEYS 
+    ).helixDataPerRnaMolecules.forEach(function(helixDataPerRnaMolecule) {
+      const rnaMoleculeName0 = helixDataPerRnaMolecule.rnaMoleculeName0;
+      const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+      initialBasePairs.push(...helixDataPerRnaMolecule.helixData.map(function(helixDatum) {
+        const rnaMoleculeName1 = helixDatum.rnaMoleculeName1;
+        const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+        return {
+          rnaComplexIndex,
+          rnaMoleculeName0,
+          rnaMoleculeName1,
+          nucleotideIndex0 : helixDatum.start[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
+          nucleotideIndex1 : Math.max(helixDatum.start[1], helixDatum.stop[1]) + singularRnaMoleculeProps1.firstNucleotideIndex,
+          length : Math.abs(helixDatum.start[0] - helixDatum.stop[0]) + 1
+        };
+      }));
+    });
+    this.initialBasePairs = initialBasePairs;
   }
 
   public override drag() {
@@ -81,14 +106,42 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
+    const {
+      rnaComplexIndex
+    } = this.fullKeys;
+    let menu : JSX.Element;
+    switch (tab) {
+      case Tab.EDIT : {
+        menu = <RnaComplexInteractionConstraintEditMenu.Component
+          {...this.editMenuProps}
+        />;
+        break;
+      }
+      case Tab.FORMAT : {
+        menu = <BasePairsEditor.Component
+          rnaComplexProps = {this.rnaComplexProps}
+          initialBasePairs = {this.initialBasePairs}
+          approveBasePairs = {function(basePairs) {
+            for (let i = 0; i < basePairs.length; i++) {
+              const basePair = basePairs[i];
+              if (rnaComplexIndex !== basePair.rnaComplexIndex) {
+                throw `This interaction constraint expects base pairs to be placed within the clicked-on RNA complex. The base pair(s) on line ${i + 1} do not.`;
+              }
+            }
+          }}
+        />;
+        break;
+      }
+      default : {
+        throw "Unhandled switch case.";
+      }
+    }
     return <>
       <b>
-        Edit RNA complex:
+        {tab} RNA complex:
       </b>
       <br/>
-      <RnaComplexInteractionConstraintEditMenu.Component
-        {...this.rightClickMenuProps}
-      />
+      {menu}
     </>;
   }
 }

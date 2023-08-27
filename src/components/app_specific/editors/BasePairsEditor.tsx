@@ -284,9 +284,18 @@ export namespace BasePairsEditor {
                 nucleotideProps
               };
             });
-            const propSet0 = propSets[0];
-            if (propSet0 !== undefined && propSet0.nucleotideProps.length > 0) {
-              const nucleotideProps0 = propSet0.nucleotideProps[0];
+            propSets.forEach(function(
+              propSet
+            ) {
+              const {
+                nucleotideKeysToRerenderPerRnaMolecule0,
+                nucleotideKeysToRerenderPerRnaMolecule1,
+                nucleotideProps
+              } = propSet;
+              if (propSet.nucleotideProps.length === 0) {
+                return;
+              }
+              const nucleotideProps0 = propSet.nucleotideProps[0];
               const anchor0 = nucleotideProps0[0];
               const anchor1 = nucleotideProps0[1];
               const anchor = scaleUp(
@@ -302,107 +311,95 @@ export namespace BasePairsEditor {
               ));
               let normalDirection = orthogonalize(anchorDirection);
               let orientationVote = 0;
-              for (const propSet of propSets) {
-                for (let i = 0; i < propSet.nucleotideProps.length; i++) {
-                  const nucleotidePropsI = propSet.nucleotideProps[i];
-                  for (const singularNucleotideProps of [nucleotidePropsI[0], nucleotidePropsI[1]]) {
-                    orientationVote += sign(dotProduct  (
-                      subtract(
-                        singularNucleotideProps,
-                        anchor
-                      ),
-                      normalDirection
-                    ));
-                  }
+              for (let i = 0; i < propSet.nucleotideProps.length; i++) {
+                const nucleotidePropsI = propSet.nucleotideProps[i];
+                for (const singularNucleotideProps of [nucleotidePropsI[0], nucleotidePropsI[1]]) {
+                  orientationVote += sign(dotProduct  (
+                    subtract(
+                      singularNucleotideProps,
+                      anchor
+                    ),
+                    normalDirection
+                  ));
                 }
               }
               if (orientationVote < 0) {
                 normalDirection = negate(normalDirection);
               }
-              propSets.forEach(function(
-                propSet
-              ) {
-                const {
-                  nucleotideKeysToRerenderPerRnaMolecule0,
-                  nucleotideKeysToRerenderPerRnaMolecule1,
-                  nucleotideProps
-                } = propSet;
-
-                for (let i = 0; i < nucleotideProps.length; i++) {
-                  const nucleotidePropsWithIndicesI = nucleotideProps[i];
-                  const singularNucleotideProps0 = nucleotidePropsWithIndicesI[0];
-                  const singularNucleotideProps1 = nucleotidePropsWithIndicesI[1];
-                  const basePairType = nucleotidePropsWithIndicesI.basePairType;
-                  let center = scaleUp(add(
-                      singularNucleotideProps0,
-                      singularNucleotideProps1
-                    ),
-                    0.5
-                  );
-                  let dv = subtract(
-                    singularNucleotideProps1,
-                    singularNucleotideProps0
-                  );
-                  let dvDirection = normalize(dv);
-                  let distance = 0;
-                  if (repositionNucleotidesAlongBasePairAxisFlag) {
-                    switch (basePairType) {
-                      case _BasePair.Type.CANONICAL : {
-                        distance = canonicalBasePairDistance;
-                        break;
-                      }
-                      case _BasePair.Type.MISMATCH : {
-                        distance = mismatchBasePairDistance;
-                        break;
-                      }
-                      case _BasePair.Type.WOBBLE : {
-                        distance = wobbleBasePairDistance;
-                        break;
-                      }
-                      default : {
-                        throw `Unrecognized base-pair type "${basePairType}".`
-                      }
+              for (let i = 0; i < nucleotideProps.length; i++) {
+                const nucleotidePropsWithIndicesI = nucleotideProps[i];
+                const singularNucleotideProps0 = nucleotidePropsWithIndicesI[0];
+                const singularNucleotideProps1 = nucleotidePropsWithIndicesI[1];
+                const basePairType = nucleotidePropsWithIndicesI.basePairType;
+                let center = scaleUp(add(
+                    singularNucleotideProps0,
+                    singularNucleotideProps1
+                  ),
+                  0.5
+                );
+                let dv = subtract(
+                  singularNucleotideProps1,
+                  singularNucleotideProps0
+                );
+                let dvDirection = normalize(dv);
+                let distance = 0;
+                if (repositionNucleotidesAlongBasePairAxisFlag) {
+                  switch (basePairType) {
+                    case _BasePair.Type.CANONICAL : {
+                      distance = canonicalBasePairDistance;
+                      break;
                     }
-                  } else {
-                    distance = magnitude(dv);
+                    case _BasePair.Type.MISMATCH : {
+                      distance = mismatchBasePairDistance;
+                      break;
+                    }
+                    case _BasePair.Type.WOBBLE : {
+                      distance = wobbleBasePairDistance;
+                      break;
+                    }
+                    default : {
+                      throw `Unrecognized base-pair type "${basePairType}".`
+                    }
                   }
-                  distance *= 0.5;
-                  if (repositionNucleotidesAlongHelixAxisFlag) {
-                    center = add(
-                      anchor,
-                      scaleUp(
-                        normalDirection,
-                        i * distanceBetweenContiguousBasePairs
-                      )
-                    );
-                    dvDirection = anchorDirection;
-                  }
-
-                  dv = scaleUp(
-                    dvDirection,
-                    distance
+                } else {
+                  distance = magnitude(dv);
+                }
+                distance *= 0.5;
+                if (repositionNucleotidesAlongHelixAxisFlag) {
+                  center = add(
+                    anchor,
+                    scaleUp(
+                      normalDirection,
+                      i * distanceBetweenContiguousBasePairs
+                    )
                   );
-                  let newPosition0 = subtract(
-                    center,
-                    dv
-                  );
-                  let newPosition1 = add(
-                    center,
-                    dv
-                  );
-
-                  singularNucleotideProps0.x = newPosition0.x;
-                  singularNucleotideProps0.y = newPosition0.y;
-                  singularNucleotideProps1.x = newPosition1.x;
-                  singularNucleotideProps1.y = newPosition1.y;
+                  dvDirection = anchorDirection;
                 }
 
-                arraysToBeSorted.push(
-                  nucleotideKeysToRerenderPerRnaMolecule0,
-                  nucleotideKeysToRerenderPerRnaMolecule1
+                dv = scaleUp(
+                  dvDirection,
+                  distance
                 );
-              }); 
-            }
+                let newPosition0 = subtract(
+                  center,
+                  dv
+                );
+                let newPosition1 = add(
+                  center,
+                  dv
+                );
+
+                singularNucleotideProps0.x = newPosition0.x;
+                singularNucleotideProps0.y = newPosition0.y;
+                singularNucleotideProps1.x = newPosition1.x;
+                singularNucleotideProps1.y = newPosition1.y;
+              }
+
+              arraysToBeSorted.push(
+                nucleotideKeysToRerenderPerRnaMolecule0,
+                nucleotideKeysToRerenderPerRnaMolecule1
+              );
+            }); 
             for (const arrayToBeSorted of arraysToBeSorted) {
               arrayToBeSorted.sort(subtractNumbers);
             }
@@ -610,8 +607,11 @@ export namespace BasePairsEditor {
     ] = useState("");
     const [
       textAreaLineCount,
-      setTextAreaLineCount
+      _setTextAreaLineCount
     ] = useState(0);
+    function setTextAreaLineCount(unboundTextAreaLineCount : number) {
+      _setTextAreaLineCount(Math.min(unboundTextAreaLineCount, 5));
+    }
     // Begin memo data.
     const rnaComplexNames = useMemo(
       function() {

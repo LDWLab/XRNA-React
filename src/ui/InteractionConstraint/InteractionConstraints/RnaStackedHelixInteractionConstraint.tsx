@@ -9,7 +9,7 @@ import { Vector2D, add, asAngle, orthogonalizeLeft, scaleUp, subtract } from "..
 import { sign, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { Extrema, InteractionConstraint, populateToBeDraggedWithHelix } from "../InteractionConstraints";
+import { Extrema, InteractionConstraint, HelixData, populateToBeDraggedWithHelix } from "../InteractionConstraints";
 
 export class RnaStackedHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -76,12 +76,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
 
-    type OrderedExtrema = Array<{
-      start : Extrema,
-      stop : Extrema
-    }>;
-
-    const orderedExtrema : OrderedExtrema = [];
+    const helixData : HelixData = [];
     const extremaWithCauseOfTerminationIncremented = populateToBeDraggedWithHelix(
       1,
       nucleotideIndex0,
@@ -114,9 +109,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
     );
     let extremaIncremented = extremaWithCauseOfTerminationIncremented.extrema;
     let extremaDecremented = extremaWithCauseOfTerminationDecremented.extrema;
-    orderedExtrema.push({
+    helixData.push({
       start : extremaDecremented,
-      stop : extremaIncremented
+      stop : extremaIncremented,
+      rnaMoleculeName1
     });
     let nucleotideIndex1Delta = sign(extremaIncremented[1] - extremaDecremented[1]);
     if (nucleotideIndex1Delta === 0) {
@@ -172,11 +168,8 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       singularRnaMoleculeProps0 : RnaMolecule.ExternalProps,
       singularRnaMoleculeProps1 : RnaMolecule.ExternalProps,
       basePairKeysToRerenderPerRnaComplex : BasePairKeysToRerenderPerRnaComplex,
-    ) : OrderedExtrema {
-      const orderedExtrema = new Array<{
-        start : Extrema,
-        stop : Extrema
-      }>();
+    ) : HelixData {
+      const helixData : HelixData = [];
       outer: while (true) {
         let lastBasePairedNucleotideIndex0 = nucleotideIndex0;
         let temporaryNucleotideKeysToRerenderPerRnaMolecule0 : NucleotideKeysToRerenderPerRnaMolecule = [];
@@ -241,26 +234,24 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
           true
         );
         const extrema = extremaWithCauseOfTermination.extrema;
-        orderedExtrema.push({
+        helixData.push({
           start : {
             0 : nucleotideIndex0,
             1 : nucleotideIndex1
           },
-          stop : {
-            0 : extrema[0],
-            1 : extrema[1]
-          }
+          stop : extrema,
+          rnaMoleculeName1
         });
         nucleotideIndex0 = extrema[0];
         nucleotideIndex1 = extrema[1];
       }
-      return orderedExtrema;
+      return helixData;
     }
 
     let boundingNucleotide0 : Vector2D;
     let boundingNucleotide1 : Vector2D;
     if (nucleotideIndex1Delta !== 0) {
-      const incrementedOrderedExtrema = populateToBeDragged(
+      const incrementedHelixData = populateToBeDragged(
         1,
         nucleotideIndex1Delta,
         extremaIncremented[0],
@@ -274,11 +265,11 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         singularRnaMoleculeProps1,
         basePairKeysToRerenderPerRnaComplex
       );
-      if (incrementedOrderedExtrema.length > 0) {
-        extremaIncremented = incrementedOrderedExtrema[incrementedOrderedExtrema.length - 1].stop;
-        orderedExtrema.push(...incrementedOrderedExtrema);
+      if (incrementedHelixData.length > 0) {
+        extremaIncremented = incrementedHelixData[incrementedHelixData.length - 1].stop;
+        helixData.push(...incrementedHelixData);
       }
-      const decrementedOrderedExtrema = populateToBeDragged(
+      const decrementedHelixData = populateToBeDragged(
         -1,
         -nucleotideIndex1Delta as -1 | 1,
         extremaDecremented[0],
@@ -292,12 +283,13 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         singularRnaMoleculeProps1,
         basePairKeysToRerenderPerRnaComplex
       );
-      if (decrementedOrderedExtrema.length > 0) {
-        extremaDecremented = decrementedOrderedExtrema[decrementedOrderedExtrema.length - 1].stop;
-        orderedExtrema.unshift(...decrementedOrderedExtrema.reverse().map(function({start, stop}) {
+      if (decrementedHelixData.length > 0) {
+        extremaDecremented = decrementedHelixData[decrementedHelixData.length - 1].stop;
+        helixData.unshift(...decrementedHelixData.reverse().map(function({start, stop}) {
           return {
             start : stop,
-            stop : start
+            stop : start,
+            rnaMoleculeName1
           };
         }));
       }
@@ -403,9 +395,9 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       normal : normalVector,
       initialAngle : asAngle(normalVector)
     };
-    this.initialBasePairs = orderedExtrema.map(function(orderedExtremaI) {
-      const nucleotideIndex1Start = orderedExtremaI.start[1];
-      const nucleotideIndex1Stop = orderedExtremaI.stop[1];
+    this.initialBasePairs = helixData.map(function(helixDatum) {
+      const nucleotideIndex1Start = helixDatum.start[1];
+      const nucleotideIndex1Stop = helixDatum.stop[1];
       const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
       const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
       const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
@@ -413,7 +405,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         rnaComplexIndex,
         rnaMoleculeName0,
         rnaMoleculeName1,
-        nucleotideIndex0 : orderedExtremaI.start[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
+        nucleotideIndex0 : helixDatum.start[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
         nucleotideIndex1 : Math.max(nucleotideIndex1Start, nucleotideIndex1Stop) + singularRnaMoleculeProps1.firstNucleotideIndex,
         length : Math.abs(nucleotideIndex1Start - nucleotideIndex1Stop) + 1
       };

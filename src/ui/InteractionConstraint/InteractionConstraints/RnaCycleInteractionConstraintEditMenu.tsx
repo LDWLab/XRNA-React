@@ -20,10 +20,6 @@ export namespace RnaCycleInteractionConstraintEditMenu {
       setRadius
     ] = useState(initialRadius);
     return <>
-      <b>
-        Edit RNA cycle:
-      </b>
-      <br/>
       <button
         onClick = {function() {
           updatePositionsHelper(radius);

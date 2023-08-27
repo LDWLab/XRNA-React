@@ -1,18 +1,23 @@
 import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
+import { Tab } from "../../../app_data/Tab";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { RnaComplex, compareBasePairKeys, isRelevantBasePairKeySetInPair } from "../../../components/app_specific/RnaComplex";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
+import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideKeysToRerender, BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, NucleotideKeysToRerenderPerRnaMolecule, NucleotideKeysToRerenderPerRnaComplex } from "../../../context/Context";
 import { scaleUp, add, orthogonalizeLeft, subtract, asAngle } from "../../../data_structures/Vector2D";
 import { subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { InteractionConstraint, populateToBeDraggedWithHelix } from "../InteractionConstraints";
+import { InteractionConstraint, HelixData, populateToBeDraggedWithHelix, iterateOverFreeNucleotidesAndHelicesPerNucleotideRange, FilterHelicesMode } from "../InteractionConstraints";
 
 export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
-  private readonly editMenuHeader : JSX.Element;
+  private readonly partialMenuHeader : JSX.Element;
   private readonly editMenuProps : AppSpecificOrientationEditor.Props;
+  private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
+  private readonly minimumNucleotideIndex : number;
+  private readonly maximumNucleotideIndex : number;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -83,7 +88,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       basePairKeysToRerenderPerRnaComplex,
       true,
       pushToListOfNucleotideIndices
-    );
+    ).extrema;
     const extremaDecremented = populateToBeDraggedWithHelix(
       -1,
       nucleotideIndex0,
@@ -99,7 +104,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       basePairKeysToRerenderPerRnaComplex,
       false,
       pushToListOfNucleotideIndices
-    );
+    ).extrema;
     listOfNucleotideIndices.sort(subtractNumbers);
     let startingNucleotideIndex = listOfNucleotideIndices[(listOfNucleotideIndices.length - 1) >> 1];
     let endingNucleotideIndex = listOfNucleotideIndices[listOfNucleotideIndices.length >> 1];
@@ -138,11 +143,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       ),
       0.5
     );
-    this.editMenuHeader = <>
-      <b>
-        Edit RNA subdomain:
-      </b>
-      <br/>
+    this.partialMenuHeader = <>
       Nucleotides bound by
       <br/>
       #{boundingNucleotideIndex0 + singularRnaMoleculeProps.firstNucleotideIndex} ({boundingNucleotideProps0.symbol})
@@ -167,18 +168,107 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       normal : normalVector,
       initialAngle : asAngle(normalVector)
     };
+    this.minimumNucleotideIndex = Math.min(
+      extremaDecremented[0],
+      extremaDecremented[1],
+      extremaIncremented[0],
+      extremaIncremented[1]
+    );
+    this.maximumNucleotideIndex = Math.max(
+      extremaDecremented[0],
+      extremaDecremented[1],
+      extremaIncremented[0],
+      extremaIncremented[1]
+    );
+    const helixData = iterateOverFreeNucleotidesAndHelicesPerNucleotideRange(
+      singularRnaComplexProps,
+      rnaMoleculeName,
+      this.minimumNucleotideIndex,
+      this.maximumNucleotideIndex,
+      FilterHelicesMode.COMPARE_NUCLEOTIDE_INDICES 
+    );
+    this.initialBasePairs = helixData.helixData.map(function(helixDatum) {
+      return {
+        rnaComplexIndex,
+        rnaMoleculeName0 : rnaMoleculeName,
+        rnaMoleculeName1 : rnaMoleculeName,
+        nucleotideIndex0 : helixDatum.start[0] + singularRnaMoleculeProps.firstNucleotideIndex,
+        nucleotideIndex1 : Math.max(helixDatum.start[1], helixDatum.stop[1]) + singularRnaMoleculeProps.firstNucleotideIndex,
+        length : Math.abs(helixDatum.start[0] - helixDatum.stop[0]) + 1
+      };
+    });
   }
 
   public override drag() {
     return this.dragListener;
   }
 
-  public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
+  public override createRightClickMenu(tab : InteractionConstraint.SupportedTab) {
+    const {
+      rnaComplexIndex,
+      rnaMoleculeName
+    } = this.fullKeys;
+    const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
+    const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
+    const formattedMinimumNucleotideIndex = this.minimumNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
+    const formattedMaximumNucleotideIndex = this.maximumNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
+    let menu : JSX.Element;
+    switch (tab) {
+      case Tab.EDIT : {
+        menu = <AppSpecificOrientationEditor.Component
+          {...this.editMenuProps}
+        />;
+        break;
+      }
+      case Tab.FORMAT : {
+        menu = <BasePairsEditor.Component
+          rnaComplexProps = {this.rnaComplexProps}
+          approveBasePairs = {function(basePairs) {
+            for (let i = 0; i < basePairs.length; i++) {
+              const errorMessage = `This interaction constraint expects base-pairs to exist strictly within the clicked-on subdomain.`;
+              const basePair = basePairs[i];
+              if (basePair.rnaComplexIndex !== rnaComplexIndex) {
+                throw errorMessage;
+              }
+              if (
+                basePair.rnaMoleculeName0 !== rnaMoleculeName ||
+                basePair.rnaMoleculeName1 !== rnaMoleculeName
+              ) {
+                throw errorMessage;
+              }
+              for (const nucleotideIndex of [
+                basePair.nucleotideIndex0,
+                basePair.nucleotideIndex0 + basePair.length - 1,
+                basePair.nucleotideIndex1,
+                basePair.nucleotideIndex1 - basePair.length + 1
+              ]) {
+                if (
+                  nucleotideIndex < formattedMinimumNucleotideIndex ||
+                  nucleotideIndex > formattedMaximumNucleotideIndex
+                ) {
+                  throw errorMessage;
+                }
+              }
+            }
+          }}
+          initialBasePairs = {this.initialBasePairs}
+          defaultRnaComplexIndex = {rnaComplexIndex}
+          defaultRnaMoleculeName0 = {rnaMoleculeName}
+          defaultRnaMoleculeName1 = {rnaMoleculeName}
+        />;
+        break;
+      }
+      default : {
+        throw "Unhandled switch case";
+      }
+    }
     return <>
-      {this.editMenuHeader}
-      <AppSpecificOrientationEditor.Component
-        {...this.editMenuProps}
-      />
+      <b>
+        {tab} RNA subdomain:
+      </b>
+      <br/>
+      {this.partialMenuHeader}
+      {menu}
     </>;
   }
 }

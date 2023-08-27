@@ -22,6 +22,175 @@ export type Extrema = {
   1 : number
 }
 
+export type HelixData = Array<{
+  start : Extrema,
+  stop : Extrema,
+  rnaMoleculeName1 : string
+}>;
+
+export type HelixDataPerRnaMolecule = {
+  rnaMoleculeName0 : string,
+  helixData : HelixData
+};
+
+export type HelixDataPerRnaComplex = {
+  rnaComplexIndex : number,
+  helixDataPerRnaMolecules : Array<HelixDataPerRnaMolecule>
+}
+
+export enum FilterHelicesMode {
+  NO_FILTER = "No filter",
+  COMPARE_NUCLEOTIDE_INDICES = "Compare nucleotide indices",
+  COMPARE_ALL_KEYS = "Compare all keys",
+  RNA_MOLECULE_MODE = "RNA-molecule mode"
+}
+
+export function iterateOverFreeNucleotidesAndHelicesPerScene(
+  rnaComplexProps : RnaComplexProps,
+  filterHelicesMode : FilterHelicesMode
+) : Array<HelixDataPerRnaComplex> {
+  const helixDataPerScene : Array<HelixDataPerRnaComplex> = [];
+  for (const rnaComplexIndexAsString in rnaComplexProps) {
+    const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+    helixDataPerScene.push(iterateOverFreeNucleotidesAndHelicesPerRnaComplex(
+      rnaComplexIndex,
+      rnaComplexProps[rnaComplexIndex],
+      filterHelicesMode
+    ));
+  }
+  return helixDataPerScene;
+}
+
+export function iterateOverFreeNucleotidesAndHelicesPerRnaComplex(
+  rnaComplexIndex : number,
+  singularRnaComplexProps : RnaComplex.ExternalProps,
+  filterHelicesMode : FilterHelicesMode 
+) : HelixDataPerRnaComplex {
+  const helixDataPerRnaMolecules : Array<HelixDataPerRnaMolecule> = [];
+  for (let rnaMoleculeName in singularRnaComplexProps.rnaMoleculeProps) {
+    const helixDatumPerRnaMolecule = iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
+      singularRnaComplexProps,
+      rnaMoleculeName,
+      filterHelicesMode
+    );
+    helixDataPerRnaMolecules.push(helixDatumPerRnaMolecule);
+  }
+  return {
+    rnaComplexIndex,
+    helixDataPerRnaMolecules
+  };
+}
+
+export function iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
+  singularRnaComplexProps : RnaComplex.ExternalProps,
+  rnaMoleculeName0 : string,
+  filterHelicesMode : FilterHelicesMode 
+) : HelixDataPerRnaMolecule {
+  const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+  let minimumNucleotideIndex = Number.POSITIVE_INFINITY;
+  let maximumNucleotideIndex = Number.NEGATIVE_INFINITY;
+  for (const nucleotideIndexAsString in singularRnaMoleculeProps0.nucleotideProps) {
+    const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+    if (nucleotideIndex < minimumNucleotideIndex) {
+      minimumNucleotideIndex = nucleotideIndex;
+    }
+    if (nucleotideIndex > maximumNucleotideIndex) {
+      maximumNucleotideIndex = nucleotideIndex;
+    }
+  }
+  return iterateOverFreeNucleotidesAndHelicesPerNucleotideRange(
+    singularRnaComplexProps,
+    rnaMoleculeName0,
+    minimumNucleotideIndex,
+    maximumNucleotideIndex,
+    filterHelicesMode
+  );
+}
+
+export function iterateOverFreeNucleotidesAndHelicesPerNucleotideRange(
+  singularRnaComplexProps : RnaComplex.ExternalProps,
+  rnaMoleculeName : string,
+  minimumNucleotideIndex : number,
+  maximumNucleotideIndex : number,
+  filterHelicesMode : FilterHelicesMode 
+) : HelixDataPerRnaMolecule {
+  const rnaMoleculeName0 = rnaMoleculeName;
+  const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+  const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+  const basePairsPerRnaMolecule0 = basePairsPerRnaComplex[rnaMoleculeName0];
+  const helixData : HelixData = [];
+  for (let nucleotideIndex0 = minimumNucleotideIndex; nucleotideIndex0 <= maximumNucleotideIndex;) {
+    if (nucleotideIndex0 in basePairsPerRnaMolecule0) {
+      const mappedBasePairInformation0 = basePairsPerRnaMolecule0[nucleotideIndex0];
+      const nucleotideIndex1 = mappedBasePairInformation0.nucleotideIndex;
+      const rnaMoleculeName1 = mappedBasePairInformation0.rnaMoleculeName;
+      const stop = iterateOverHelix(
+        1,
+        nucleotideIndex0,
+        nucleotideIndex1,
+        basePairsPerRnaMolecule0,
+        rnaMoleculeName1,
+        singularRnaMoleculeProps0,
+        true,
+        function(
+          nucleotideIndex0 : number,
+          nucleotideIndex1 : number
+        ) {
+          // Do nothing.
+        }
+      ).extrema;
+      let addHelixFlag = false;
+      switch (filterHelicesMode) {
+        case FilterHelicesMode.NO_FILTER : {
+          addHelixFlag = true;
+          break;
+        }
+        case FilterHelicesMode.COMPARE_NUCLEOTIDE_INDICES : {
+          addHelixFlag = (nucleotideIndex0 - nucleotideIndex1) < 0;
+          break;
+        }
+        case FilterHelicesMode.COMPARE_ALL_KEYS : {
+          addHelixFlag = compareBasePairKeys(
+            {
+              rnaMoleculeName : rnaMoleculeName0,
+              nucleotideIndex : nucleotideIndex0
+            },
+            {
+              rnaMoleculeName : rnaMoleculeName1,
+              nucleotideIndex : nucleotideIndex1
+            }
+          ) < 0;
+          break;
+        }
+        case FilterHelicesMode.RNA_MOLECULE_MODE : {
+          addHelixFlag = rnaMoleculeName0 !== rnaMoleculeName1 || (nucleotideIndex0 - nucleotideIndex1) < 0;
+          break;
+        } 
+        default : {
+          throw "Unhandled switch case."
+        }
+      }
+      if (addHelixFlag) {
+        helixData.push({
+          start : {
+            0 : nucleotideIndex0,
+            1 : nucleotideIndex1
+          },
+          stop,
+          rnaMoleculeName1
+        });
+      }
+      nucleotideIndex0 = stop[0] + 1;
+    } else {
+      nucleotideIndex0++;
+    }
+  }
+  return {
+    rnaMoleculeName0,
+    helixData
+  };
+}
+
 export function checkExtremaForSingleStrand(
   extrema : Extrema,
   basePairsPerRnaMolecule : RnaComplex.BasePairsPerRnaMolecule,
@@ -124,7 +293,7 @@ export function iterateOverHelix(
     previousNucleotideIndex1 = nucleotideIndex1;
     extrema = {
       0 : nucleotideIndex0,
-      1 : previousNucleotideIndex1
+      1 : nucleotideIndex1
     };
   }
   return {

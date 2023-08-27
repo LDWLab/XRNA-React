@@ -128,7 +128,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
               if (parsedBasePair.length > 1) {
                 throw "This interaction constraint expects at most one base pair.";
               }
-              const errorMessage = "This interaction constraint requires a base pair involving the clicked-on nucleotide.";
+              const errorMessage = "This interaction constraint expects a base pair involving the clicked-on nucleotide.";
               if (
                 parsedBasePair.rnaComplexIndex !== rnaComplexIndex ||
                 ![parsedBasePair.rnaMoleculeName0, parsedBasePair.rnaMoleculeName1].includes(rnaMoleculeName) ||

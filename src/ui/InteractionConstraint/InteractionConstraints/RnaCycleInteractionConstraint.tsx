@@ -8,9 +8,10 @@ import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, dist
 import { getBoundingCircle } from "../../../data_structures/Geometry";
 import { sign, subtractNumbers } from "../../../utils/Utils";
 import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
+import { Tab } from "../../../app_data/Tab";
 
 export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint {
-  private readonly rightClickMenuProps : RnaCycleInteractionConstraintEditMenu.Props;
+  private readonly editMenuProps : RnaCycleInteractionConstraintEditMenu.Props;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -335,7 +336,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
             const mappedBasePairInformation = basePairsPerRnaMolecule0[nucleotideIndex0];
             if (mappedBasePairInformation.rnaMoleculeName !== rnaMoleculeName1 || (mappedBasePairInformation.nucleotideIndex - initialNucleotideIndex1) * nucleotideIndexIncrement1 < 0) {
               const error : InteractionConstraintError = {
-                errorMessage : "Cannot edit this RNA cycle; it contains complex base-pair arrangements."
+                errorMessage : "Cannot interact with this RNA cycle; it contains complex base-pair arrangements."
               };
               throw error;
             }
@@ -366,7 +367,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
             const mappedBasePairInformation = basePairsPerRnaMolecule1[nucleotideIndex1];
             if (mappedBasePairInformation.rnaMoleculeName !== rnaMoleculeName0 || (mappedBasePairInformation.nucleotideIndex - initialNucleotideIndex0) * nucleotideIndexIncrement0 < 0) {
               const error : InteractionConstraintError = {
-                errorMessage : "Cannot edit this RNA cycle; it contains complex base-pair arrangements."
+                errorMessage : "Cannot interact with this RNA cycle; it contains complex base-pair arrangements."
               };
               throw error;
             }
@@ -507,7 +508,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       ) / initialCandidateRadii.length
     );
 
-    this.rightClickMenuProps = {
+    this.editMenuProps = {
       initialRadius,
       minimumRadius,
       updatePositionsHelper
@@ -522,8 +523,30 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
-    return <RnaCycleInteractionConstraintEditMenu.Component
-      {...this.rightClickMenuProps}
-    />;
+    let menu : JSX.Element;
+    switch (tab) {
+      case Tab.EDIT : {
+        menu = <RnaCycleInteractionConstraintEditMenu.Component
+          {...this.editMenuProps}
+        />;
+        break;
+      }
+      case Tab.FORMAT : {
+        menu = <>
+          This interaction-constraint does not support the format menu.
+        </>;
+        break;
+      }
+      default : {
+        throw "Unhandled switch case";
+      }
+    }
+    return <>
+      <b>
+        {tab} RNA cycle:
+      </b>
+      <br/>
+      {menu}
+    </>;
   }
 }

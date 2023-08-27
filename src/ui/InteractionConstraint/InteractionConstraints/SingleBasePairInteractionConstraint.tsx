@@ -15,6 +15,10 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
   private editMenuProps : SingleBasePairInteractionConstraintEditMenu.Props;
   private partialHeader : JSX.Element;
   private initialBasePairs : BasePairsEditor.InitialBasePairs;
+  private basePairedKeys : {
+    rnaMoleculeName : string,
+    nucleotideIndex : number
+  };
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -170,6 +174,10 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       length : 1,
       type : basePairType
     }];
+    this.basePairedKeys = {
+      rnaMoleculeName : rnaMoleculeName1,
+      nucleotideIndex : nucleotideIndex1
+    }
   }
 
   public override drag() {
@@ -181,6 +189,8 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       rnaComplexIndex,
       rnaMoleculeName
     } = this.fullKeys;
+    const fullKeys = this.fullKeys;
+    const basePairedKeys = this.basePairedKeys;
     let menu : JSX.Element = <></>;
     switch (tab) {
       case Tab.EDIT : {
@@ -202,6 +212,14 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
               if (parsedBasePair.length > 1) {
                 throw "This interaction constraint expects at most one base pair.";
               }
+              // for (let {rnaMoleculeName, nucleotideIndex} of [fullKeys, basePairedKeys]) {
+              //   if (
+              //     (rnaMoleculeName !== parsedBasePair.rnaMoleculeName0 || nucleotideIndex !== parsedBasePair.nucleotideIndex0) &&
+              //     (rnaMoleculeName !== parsedBasePair.rnaMoleculeName1 || nucleotideIndex !== parsedBasePair.nucleotideIndex1)
+              //   ) {
+              //     throw "This interaction constraint expects a base pair strictly between the original nucleotides.";
+              //   }
+              // }
             }
           }}
           defaultRnaComplexIndex = {rnaComplexIndex}

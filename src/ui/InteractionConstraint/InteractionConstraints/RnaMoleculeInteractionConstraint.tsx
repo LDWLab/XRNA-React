@@ -6,13 +6,15 @@ import { Vector2D } from "../../../data_structures/Vector2D";
 import { parseInteger, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { InteractionConstraint } from "../InteractionConstraints";
+import { FilterHelicesMode, InteractionConstraint, iterateOverFreeNucleotidesandHelicesPerRnaMolecule } from "../InteractionConstraints";
+import { Tab } from "../../../app_data/Tab";
+import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 
 export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
   private readonly dragError? : InteractionConstraintError;
-  private readonly editMenuHeader : JSX.Element;
   private readonly editMenuProps : RnaMoleculeInteractionConstraintEditMenu.Props;
+  private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -77,13 +79,6 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
         setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
       }
     );
-    this.editMenuHeader = <>
-      <b>
-        Edit RNA molecule:
-      </b>
-      <br/>
-      Name:&nbsp;
-    </>;
     this.editMenuProps = {
       initialName : rnaMoleculeName,
       rnaComplexProps : rnaComplexProps,
@@ -91,6 +86,20 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender
     };
+    this.initialBasePairs = iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
+      singularRnaComplexProps,
+      rnaMoleculeName,
+      FilterHelicesMode.RNA_MOLECULE_MODE 
+    ).helixData.map(function(helixDatum) {
+      return {
+        rnaComplexIndex,
+        rnaMoleculeName0 : rnaMoleculeName,
+        rnaMoleculeName1 : helixDatum.rnaMoleculeName1,
+        nucleotideIndex0 : helixDatum.start[0] + singularRnaMoleculeProps.firstNucleotideIndex,
+        nucleotideIndex1 : Math.max(helixDatum.start[1], helixDatum.stop[1]) + singularRnaMoleculeProps.firstNucleotideIndex,
+        length : Math.abs(helixDatum.start[0] - helixDatum.stop[0]) + 1
+      };
+    });
   }
 
   public override drag() {
@@ -101,11 +110,47 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
+    const {
+      rnaComplexIndex,
+      rnaMoleculeName
+    } = this.fullKeys;
+    let menu : JSX.Element;
+    switch (tab) {
+      case Tab.EDIT : {
+        menu = <RnaMoleculeInteractionConstraintEditMenu.Component
+          {...this.editMenuProps}
+        />;
+        break;
+      }
+      case Tab.FORMAT : {
+        menu = <BasePairsEditor.Component
+          rnaComplexProps = {this.rnaComplexProps}
+          initialBasePairs = {this.initialBasePairs}
+          approveBasePairs = {function(basePairs) {
+            for (let i = 0; i < basePairs.length; i++) {
+              const basePair = basePairs[i];
+              const errorMessage = `This interaction constraint expects base pairs to involve the clicked-on RNA molecule. The base pair on line #${i + 1} does not.`;
+              if (
+                rnaComplexIndex !== basePair.rnaComplexIndex ||
+                (rnaMoleculeName !== basePair.rnaMoleculeName0 && rnaMoleculeName !== basePair.rnaMoleculeName1)
+              ) {
+                throw errorMessage;
+              }
+            }
+          }}
+        />;
+        break;
+      }
+      default : {
+        throw "Unhandled switch case.";
+      }
+    }
     return <>
-      {this.editMenuHeader}
-      <RnaMoleculeInteractionConstraintEditMenu.Component
-        {...this.editMenuProps}
-      />
+      <b>
+        {tab} RNA molecule:
+      </b>
+      <br/>
+      {menu}
     </>;
   }
 }

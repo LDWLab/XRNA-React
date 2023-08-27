@@ -124,6 +124,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
       );
 
       return <>
+        Name:&nbsp;
         <InputWithValidator.Component<string>
           value = {name}
           setValue = {function(newName) {
