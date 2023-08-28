@@ -22,11 +22,15 @@ namespace InputWithValidator {
     errorMessage : string
   };
 
-  export type Props<T> = CoreProps<T> & {
+  export type NonCoreProps<T> = {
     valueToString : (value : T) => string,
     stringToValue : (valueAsString : string) => T | undefined | Error,
     htmlInputType? : HTMLInputTypeAttribute
   };
+
+  export type Props<T> = CoreProps<T> & NonCoreProps<T>;
+
+  export type BuiltInProps<T> = CoreProps<T> & Partial<NonCoreProps<T>>;
 
   export enum StringToValueReturnType {
     VALUE = "value",
@@ -67,12 +71,13 @@ namespace InputWithValidator {
     ] = useState<string | undefined>(undefined);
     // Begin effects.
     useEffect(function() {
-      if (!listenForValueChangeFlag) {
+      if (listenForValueChangeFlag) {
+        setValueAsText(props.valueToString(props.value));
+      } else {
         // Ignore changes made to <props.value> originating from within this Component.
         setListenForValueChangeFlag(true);
         setValueAsTextValidityFlag(true);
       }
-      setValueAsText(props.valueToString(props.value));
     }, [props.value]);
     // Begin render.
     return <input
@@ -114,21 +119,21 @@ namespace InputWithValidator {
 
   export function Number(props : CoreProps<number>) {
     return <Component<number>
-      {...props}
       valueToString = {numberToFormattedStringHelper}
       stringToValue = {parseFloatReturnUndefinedOnFail}
       htmlInputType = "number"
+      {...props}
     />
   }
 
   export function Integer(props : CoreProps<number>) {
     return <Component<number>
-      {...props}
       valueToString = {function(n : number) {
         return n.toString();
       }}
       stringToValue = {parseIntReturnUndefinedOnFail}
       htmlInputType = "number"
+      {...props}
     />
   }
 
@@ -141,7 +146,6 @@ namespace InputWithValidator {
     );
     return <>
       <Component<number>
-        {...props}
         valueToString = {function(value : number) {
           let formattedValue = props.useDegreesFlag ? radiansToDegrees(value) : value;
           return numberToFormattedStringHelper(formattedValue);
@@ -155,6 +159,7 @@ namespace InputWithValidator {
         }}
         htmlInputType= "number"
         step = {step}
+        {...props}
       />
       {props.useDegreesFlag ? "°" : "radians"}
     </>
