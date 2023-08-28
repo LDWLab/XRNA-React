@@ -804,53 +804,53 @@ function App() {
     [Tab.INPUT_OUTPUT] : <>
       <label>
         Input File:&nbsp;
-          <input
-            ref = {uploadInputFileHtmlInputReference}
-            style = {{
-              display : "none"
-            }}
-            type = "file"
-            accept = {inputFileExtensions.map(function(inputFileExtension : InputFileExtension) {
-              return "." + inputFileExtension;
-            }).join(",")}
-            onChange = {function(e) {
-              let files = e.target.files;
-              if (files === null || files.length === 0) {
-                return;
-              }
-              let file = files[0];
-              let inputFileNameAndExtension = file.name;
-              setInputFileNameAndExtension(inputFileNameAndExtension);
-              let regexMatch = /^(.*)\.(.+)$/.exec(inputFileNameAndExtension) as RegExpExecArray;
-              let fileName = regexMatch[1];
-              let fileExtension = regexMatch[2];
-              if (settingsRecord[Setting.SYNC_FILE_NAME]) {
-                setOutputFileName(fileName);
-              }
-              if (settingsRecord[Setting.SYNC_FILE_EXTENSION] && (fileExtension in outputFileWritersMap)) {
-                setOutputFileExtension(fileExtension as OutputFileExtension);
-              }
-              let reader = new FileReader();
-              reader.addEventListener("load", function(event) {
-                // Read the content of the settings file.
-                let parsedInputFile = inputFileReadersRecord[fileExtension as InputFileExtension]((event.target as FileReader).result as string);
-                setComplexDocumentName(parsedInputFile.complexDocumentName);
-                setRnaComplexProps(parsedInputFile.rnaComplexProps);
-              });
-              reader.readAsText(files[0] as File);
-            }}
-          />
-          <button
-            onClick = {function() {
-              (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
-            }}
-          >
-            Upload
-          </button>
-          <em>
-            {inputFileNameAndExtension}
-          </em>
+        <input
+          ref = {uploadInputFileHtmlInputReference}
+          style = {{
+            display : "none"
+          }}
+          type = "file"
+          accept = {inputFileExtensions.map(function(inputFileExtension : InputFileExtension) {
+            return "." + inputFileExtension;
+          }).join(",")}
+          onChange = {function(e) {
+            let files = e.target.files;
+            if (files === null || files.length === 0) {
+              return;
+            }
+            let file = files[0];
+            let inputFileNameAndExtension = file.name;
+            setInputFileNameAndExtension(inputFileNameAndExtension);
+            let regexMatch = /^(.*)\.(.+)$/.exec(inputFileNameAndExtension) as RegExpExecArray;
+            let fileName = regexMatch[1];
+            let fileExtension = regexMatch[2];
+            if (settingsRecord[Setting.SYNC_FILE_NAME]) {
+              setOutputFileName(fileName);
+            }
+            if (settingsRecord[Setting.SYNC_FILE_EXTENSION] && (fileExtension in outputFileWritersMap)) {
+              setOutputFileExtension(fileExtension as OutputFileExtension);
+            }
+            let reader = new FileReader();
+            reader.addEventListener("load", function(event) {
+              // Read the content of the settings file.
+              let parsedInputFile = inputFileReadersRecord[fileExtension as InputFileExtension]((event.target as FileReader).result as string);
+              setComplexDocumentName(parsedInputFile.complexDocumentName);
+              setRnaComplexProps(parsedInputFile.rnaComplexProps);
+            });
+            reader.readAsText(files[0] as File);
+          }}
+        />
       </label>
+      <button
+        onClick = {function() {
+          (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
+        }}
+      >
+        Upload
+      </button>
+      <em>
+        {inputFileNameAndExtension}
+      </em>
       <br/>
       <label>
         Output File:&nbsp;
