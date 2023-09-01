@@ -4,7 +4,7 @@ import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../conte
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { InteractionConstraint } from "../InteractionConstraints";
 import { RnaCycleInteractionConstraintEditMenu } from "./RnaCycleInteractionConstraintEditMenu";
-import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, orthogonalize, orthogonalizeLeft, orthogonalizeRight, scaleUp, subtract, toCartesian, toPolar } from "../../../data_structures/Vector2D";
+import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, negate, orthogonalizeLeft, scaleUp, subtract, toCartesian, toPolar } from "../../../data_structures/Vector2D";
 import { getBoundingCircle } from "../../../data_structures/Geometry";
 import { sign, subtractNumbers } from "../../../utils/Utils";
 import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
@@ -197,7 +197,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const incrementedCycleGraphNode = cycleGraphNodes[(boundingVector0ArrayIndex + 1) % cycleGraphNodes.length];
     const boundingVectorsIncrementedFlag = incrementedCycleGraphNode.rnaMoleculeName === mappedBasePairInformation.rnaMoleculeName && incrementedCycleGraphNode.nucleotideIndex === mappedBasePairInformation.nucleotideIndex;
     const arrayIndexIncrement = boundingVectorsIncrementedFlag ? -1 : 1;
-    const boundingVector1ArrayIndex = (boundingVector0ArrayIndex + arrayIndexIncrement + cycleGraphNodes.length) % cycleGraphNodes.length;
+    const boundingVector1ArrayIndex = (boundingVector0ArrayIndex - arrayIndexIncrement + cycleGraphNodes.length) % cycleGraphNodes.length;
 
     const minimumRadius = distance(boundingVector0, boundingVector1) * 0.5;
     if (minimumRadius === 0) {
@@ -238,6 +238,47 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const bSquared = b * b;
     const cPlusRadiusSquared = x0Squared + y0Squared + w * w - 2 * x0 * w;
     const dyReciprocal = 1 / normal.y;
+
+    function getCenterFromRadius(radius : number) {
+      const c = cPlusRadiusSquared - radius * radius;
+      // Assume that radius is sufficiently large. This ensures a non-negative discriminant.
+      // This is enforced by the minimumRadius variable.
+      const centerYCandidate = (negativeB + Math.sqrt(bSquared - fourA * c)) * twoAReciprocal;
+      // y = yMidpoint + dy * t
+      // y - yMidpoint = dy * t
+      // t = (y - yMidpoint) / dy
+      // abs() ensures that t is positive. This selects a single center from the two candidate centers.
+      const t = Math.abs((centerYCandidate - boundingVectorsMidpoint.y) * dyReciprocal);
+      return add(
+        boundingVectorsMidpoint,
+        scaleUp(
+          normal,
+          t
+        )
+      );
+    }
+
+    const initialCandidateRadii = cycleGraphPositions.map(function(cycleGraphPositionI) {
+      return getBoundingCircle(
+        boundingVector0,
+        boundingVector1,
+        cycleGraphPositionI
+      ).radius;
+    });
+    // The initialRadius is max(minimumRadius, avg. radius)
+    const initialRadius = Math.max(
+      minimumRadius,
+      initialCandidateRadii.reduce(
+        function(
+          initialCandidateRadius0 : number,
+          initialCandidateRadius1 : number
+        ) {
+          return initialCandidateRadius0 + initialCandidateRadius1;
+        },
+        0
+      ) / initialCandidateRadii.length
+    );
+    const initialCenter = getCenterFromRadius(initialRadius);
 
     const nucleotideKeysToRerender : NucleotideKeysToRerender = {
       [rnaComplexIndex] : {}
@@ -286,12 +327,22 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
         ),
         0.5
       );
-      const normal = orthogonalizeRight(
+      let normal = orthogonalizeLeft(
         subtract(
           incrementedPosition,
           position
         )
       );
+      // Neither orthogonalizeLeft nor orthogonalizeRight is always correct. The normal vector should point out, away from the circle center.
+      if (dotProduct(
+        normal,
+        subtract(
+          midpoint,
+          initialCenter
+        )
+      ) < 0) {
+        normal = negate(normal);
+      }
       const normalAngle = asAngle(normal);
       if (cycleGraphNodeI.rnaMoleculeName !== cycleGraphNodeIncremented.rnaMoleculeName || Math.abs(cycleGraphNodeI.nucleotideIndex - cycleGraphNodeIncremented.nucleotideIndex) !== 1) {
         // A base pair exists between these two graph nodes.
@@ -395,31 +446,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     }
 
     function updatePositionsHelper(newRadius : number) {
-      const c = cPlusRadiusSquared - newRadius * newRadius;
-      // Assume that newRadius is sufficiently large. This ensures a non-negative discriminant.
-      // This is enforced by the minimumRadius variable.
-      const centerYCandidate = (negativeB + Math.sqrt(bSquared - fourA * c)) * twoAReciprocal;
-      // y = yMidpoint + dy * t
-      // y - yMidpoint = dy * t
-      // t = (y - yMidpoint) / dy
-      // abs() ensures that t is positive. This selects a single center from the two candidate centers.
-      const t = Math.abs((centerYCandidate - boundingVectorsMidpoint.y) * dyReciprocal);
-      const center = add(
-        boundingVectorsMidpoint,
-        scaleUp(
-          normal,
-          t
-        )
-      );
-      setDebugVisualElements([
-        <circle
-          fill = "none"
-          stroke = "red"
-          r = {newRadius}
-          cx = {center.x}
-          cy = {center.y}
-        />
-      ]);
+      const center = getCenterFromRadius(newRadius);
 
       const dv0 = subtract(
         boundingVector0,
@@ -487,26 +514,6 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       }
       rerender();
     }
-    const initialCandidateRadii = cycleGraphPositions.map(function(cycleGraphPositionI) {
-      return getBoundingCircle(
-        boundingVector0,
-        boundingVector1,
-        cycleGraphPositionI
-      ).radius;
-    });
-    // The initialRadius is max(minimumRadius, avg. radius)
-    const initialRadius = Math.max(
-      minimumRadius,
-      initialCandidateRadii.reduce(
-        function(
-          initialCandidateRadius0 : number,
-          initialCandidateRadius1 : number
-        ) {
-          return initialCandidateRadius0 + initialCandidateRadius1;
-        },
-        0
-      ) / initialCandidateRadii.length
-    );
 
     this.editMenuProps = {
       initialRadius,
