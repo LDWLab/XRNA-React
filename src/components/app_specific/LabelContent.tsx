@@ -37,7 +37,7 @@ export namespace LabelContent {
     // Begin reference data.
     const contentSvgTextElementReference = createRef<SVGTextElement>();
     // Begin context data.
-    const conditionallySetVisibility = useContext(Context.App.ConditionallySetVisibility);
+    const conditionallySetStroke = useContext(Context.App.ConditionallySetStroke);
     const onMouseDownHelper = useContext(Context.Label.Content.OnMouseDownHelper);
 
     // Begin state data.
@@ -56,9 +56,9 @@ export namespace LabelContent {
       y : 0
     });
     const [
-      strokeVisibilityFlag,
-      setStrokeVisibilityFlag
-    ] = useState(false);
+      stroke,
+      setStroke
+    ] = useState("none");
     // Begin memo data.
     const color = useMemo(
       function() {
@@ -111,7 +111,7 @@ export namespace LabelContent {
         fontFamily = {font.family}
         fontWeight = {font.weight}
         fontStyle = {font.style}
-        stroke = {strokeVisibilityFlag ? "red" : "none"}
+        stroke = {stroke}
         strokeWidth = {strokeWidth}
         fill = {toCSS(color)}
         onMouseDown = {function(e) {
@@ -122,10 +122,10 @@ export namespace LabelContent {
           e.preventDefault();
         }}
         onMouseOver = {function() {
-          conditionallySetVisibility(setStrokeVisibilityFlag);
+          conditionallySetStroke(setStroke);
         }}
         onMouseLeave = {function() {
-          setStrokeVisibilityFlag(false);
+          setStroke("none");
         }}
       >
         {content}

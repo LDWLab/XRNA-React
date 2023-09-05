@@ -18,6 +18,9 @@ import { LabelContentEditMenu } from './components/app_specific/menus/edit_menus
 import { LabelLineEditMenu } from './components/app_specific/menus/edit_menus/LabelLineEditMenu';
 import { jsonObjectHandler } from './io/JsonInputFileHandler';
 import { BasePairsEditor } from './components/app_specific/editors/BasePairsEditor';
+import { Collapsible } from './components/generic/Collapsible';
+import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
+import { fileExtensionDescriptions } from './io/FileExtension';
 
 // Begin types.
 export type RnaComplexKey = number;
@@ -38,6 +41,13 @@ function App() {
   // Begin app-specific constants.
   const DIV_BUFFER_HEIGHT = 2;
   const MOUSE_OVER_TEXT_FONT_SIZE = 20;
+  const UPLOAD_BUTTON_TEXT = "Upload";
+  const DOWNLOAD_ROW_TEXT = "Output File";
+  const DOWNLOAD_BUTTON_TEXT = "Download";
+  const TRANSLATION_TEXT = "Translation";
+  const SCALE_TEXT = "Scale";
+  const INTERACTION_CONSTRAINT_TEXT = "Constraint";
+  const XRNA_SETTINGS_FILE_NAME = "xrna_settings";
   // Begin state data.
   const [
     complexDocumentName,
@@ -215,6 +225,7 @@ function App() {
   const uploadInputFileHtmlInputReference = createRef<HTMLInputElement>();
   const downloadOutputFileHtmlButtonReference = createRef<HTMLButtonElement>();
   const downloadOutputFileHtmlAnchorReference = createRef<HTMLAnchorElement>();
+  const downloadSampleInputFileHtmlAnchorReference = createRef<HTMLAnchorElement>();
   const settingsFileDownloadHtmlAnchorReference = createRef<HTMLAnchorElement>();
   const settingsFileUploadHtmlInputReference = createRef<HTMLInputElement>();
   const mouseOverTextSvgTextElementReference = createRef<SVGTextElement>();
@@ -333,7 +344,7 @@ function App() {
           }
           case MouseButtonIndices.Right : {
             switch (tabReference.current) {
-              case Tab.EDIT:
+              case Tab.EDIT : {
                 setRightClickMenuContent(<LabelContentEditMenu.Component
                   rnaComplexProps = {rnaComplexPropsReference.current as RnaComplexProps}
                   fullKeys = {fullKeys}
@@ -345,8 +356,10 @@ function App() {
                     });
                   }}
                 />);
-              break;
+                break;
+              }
             }
+            break;
           }
         }
       }
@@ -456,17 +469,19 @@ function App() {
             break;
           }
           case MouseButtonIndices.Right : {
-            setRightClickMenuContent(<LabelLineEditMenu.Component
-              rnaComplexProps = {rnaComplexPropsReference.current as RnaComplexProps}
-              fullKeys = {fullKeys}
-              triggerRerender = {function() {
-                setNucleotideKeysToRerender({
-                  [rnaComplexIndex] : {
-                    [rnaMoleculeName] : [nucleotideIndex]
-                  }
-                });
-              }}
-            />);
+            if (tabReference.current === Tab.EDIT) {
+              setRightClickMenuContent(<LabelLineEditMenu.Component
+                rnaComplexProps = {rnaComplexPropsReference.current as RnaComplexProps}
+                fullKeys = {fullKeys}
+                triggerRerender = {function() {
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex] : {
+                      [rnaMoleculeName] : [nucleotideIndex]
+                    }
+                  });
+                }}
+              />);
+            }
             break;
           }
         }
@@ -474,10 +489,19 @@ function App() {
     },
     []
   );
-  const conditionallySetVisibility = useMemo(
+  const conditionallySetStroke = useMemo(
     function() {
-      return function(setVisibility : (visibility : boolean) => void) {
-        setVisibility(tabReference.current === Tab.EDIT);
+      return function(setStroke : (stroke : string) => void) {
+        switch (tabReference.current) {
+          case Tab.EDIT : {
+            setStroke("red");
+            break;
+          }
+          case Tab.FORMAT : {
+            setStroke("blue");
+            break;
+          }
+        }
       };
     },
     []
@@ -561,8 +585,8 @@ function App() {
       return <Context.App.SetMouseOverText.Provider
         value = {setMouseOverText}
       >
-        <Context.App.ConditionallySetVisibility.Provider
-          value = {conditionallySetVisibility}
+        <Context.App.ConditionallySetStroke.Provider
+          value = {conditionallySetStroke}
         >
           <Context.Nucleotide.OnMouseDownHelper.Provider
             value = {nucleotideOnMouseDownHelper}
@@ -611,7 +635,7 @@ function App() {
               </Context.Label.Line.Body.OnMouseDownHelper.Provider>
             </Context.Label.Content.OnMouseDownHelper.Provider>
           </Context.Nucleotide.OnMouseDownHelper.Provider>
-        </Context.App.ConditionallySetVisibility.Provider>
+        </Context.App.ConditionallySetStroke.Provider>
       </Context.App.SetMouseOverText.Provider>;
     },
     [
@@ -777,29 +801,273 @@ function App() {
     [basePairKeysToEdit]
   );
   // Begin render data.
-  const interactionConstraintSelectHtmlElement = <select
-    value = {interactionConstraint}
-    onChange = {function(e) {
-      setInteractionConstraint(e.target.value as InteractionConstraint.Enum);
-    }}
-  >
-    <option
-      style = {{
-        display : "none"
+  const interactionConstraintSelectHtmlElement = <>
+    {INTERACTION_CONSTRAINT_TEXT}:&nbsp;
+    <select
+      value = {interactionConstraint}
+      onChange = {function(e) {
+        setInteractionConstraint(e.target.value as InteractionConstraint.Enum);
       }}
-      value = {undefined}
     >
-      Select an interaction constraint.
-    </option>
-    {InteractionConstraint.all.map(function(interactionConstraint : InteractionConstraint.Enum) {
-      return (<option
-        key = {interactionConstraint}
-        value = {interactionConstraint}
+      <option
+        style = {{
+          display : "none"
+        }}
+        value = {undefined}
       >
-        {interactionConstraint}
-      </option>);
-    })}
-  </select>;
+        Select an interaction constraint.
+      </option>
+      {InteractionConstraint.all.map(function(interactionConstraint : InteractionConstraint.Enum) {
+        return (<option
+          key = {interactionConstraint}
+          value = {interactionConstraint}
+        >
+          {interactionConstraint}
+        </option>);
+      })}
+    </select>
+  </>;
+  const tabInstructionsRecord : Record<Tab, JSX.Element> = {
+    [Tab.INPUT_OUTPUT] : <>
+      Here, you can:
+      <br/>
+      <ul
+        style = {{
+          margin : 0
+        }}
+      >
+        <li>
+          Upload input files
+        </li>
+        <li>
+          Download output files
+        </li>
+      </ul>
+      Together, these processes enable conversion between file formats.
+      <Collapsible.Component
+        title = "How to upload input files"
+      >
+        <ol
+          style = {{
+            margin : 0
+          }}
+        >
+          <li>
+            Click the "{UPLOAD_BUTTON_TEXT}" button.
+          </li>
+          <li>
+            Select one of the following supported input-file formats:
+            <ul
+              style = {{
+                margin : 0
+              }}
+            >
+              {inputFileExtensions.map(function(
+                inputFileExtension,
+                index
+              ) {
+                return <Fragment
+                  key = {index}
+                >
+                  <li>
+                    .{inputFileExtension} - {fileExtensionDescriptions[inputFileExtension]}
+                  </li>
+                </Fragment>
+              })}
+            </ul>
+          </li>
+          <li>
+            Upload the file.
+          </li>
+        </ol>
+      </Collapsible.Component>
+      <Collapsible.Component
+        title = "How to download output files"
+      >
+        Within the "{DOWNLOAD_ROW_TEXT}" row:
+        <ol
+          style = {{
+            margin : 0
+          }}
+        >
+          <li>
+            Provide an output-file name.
+          </li>
+          <li>
+            Select one of the following supported output-file formats:
+            <ul
+              style = {{
+                margin : 0
+              }}
+            >
+              {outputFileExtensions.map(function(
+                outputFileExtension,
+                index
+              ) {
+                return <Fragment
+                  key = {index}
+                >
+                  <li>
+                    .{outputFileExtension} - {fileExtensionDescriptions[outputFileExtension]}
+                  </li>
+                </Fragment>
+              })}
+            </ul>
+          </li>
+          <li>
+            Click the "{DOWNLOAD_BUTTON_TEXT}" button
+          </li>
+        </ol>
+      </Collapsible.Component>
+    </>,
+    [Tab.VIEWPORT] : <>
+      Here, you can manipulate the viewport with precision.
+      <br/>
+      To clarify, the viewport is the main component of XRNA. Within it, interactive RNA diagrms are displayed.
+      <Collapsible.Component
+        title = {TRANSLATION_TEXT}
+      >
+        {`"${TRANSLATION_TEXT}" refers to the 2D displacement of the entire viewport. It is synchronized with click-and-drag within the viewport.`}
+        <ul
+          style = {{
+            margin : 0
+          }}
+        >
+          <li>
+            x: The horizontal displacement. Rightward displacement is positive; leftward is negative.
+          </li>
+          <li>
+            y: The vertical displacement. Upward displacement is positive; downward is negative.
+          </li>
+        </ul>
+      </Collapsible.Component>
+      <Collapsible.Component
+        title = {SCALE_TEXT}
+      >
+        <ul
+          style = {{
+            margin : 0
+          }}
+        >
+          <li>
+            "{SCALE_TEXT}" refers to the "in-and-out zoom" of the entire viewport. It is synchronized with the mousewheel within the viewport.
+          </li>
+          <li>
+            Scrolling up with the mouse wheel increases zoom; this means zooming in. Scrolling down does the opposite.
+          </li>
+        </ul>
+      </Collapsible.Component>
+    </>,
+    [Tab.EDIT] : <>
+      Here, you can edit nucleotide data which has been uploaded and is displayed within the viewport.
+      <ol
+        style = {{
+          margin : 0
+        }}
+      >
+        <li>
+          Select a constraint. This selects the set of tools which you will use to edit data.
+        </li>
+        <li>
+          Navigate within the viewport to the portion of the scene you plan to edit.
+        </li>
+        <li>
+          Next, do one of the following:
+          <ul
+            style = {{
+              margin : 0
+            }}
+          >
+            <li>
+              Left-click on a nucleotide. Drag it to change relevant nucleotide data, according to the behavior of the constraint.
+            </li>
+            <li>
+              Right-click on a nucleotide. This will populate a right-hand menu, which will allow you precisely edit data.
+            </li>
+          </ul>
+          <Collapsible.Component
+            title = "Notes"
+          >
+            <ul>
+              <li>
+                Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
+              </li>
+              <li>
+                Other constraints have more restrictive usage requirements.
+              </li>
+              <li>
+                Annotations may be edited in the same exact way as nucleotides / nucleotide regions (described above).
+              </li>
+              <li>
+                Annotations are not present in some input files, but they can be added within the "{Tab.ANNOTATE}" tab.
+              </li>
+            </ul>
+          </Collapsible.Component>
+        </li>
+      </ol>
+    </>,
+    [Tab.FORMAT] : <>
+      Here, you can add, delete, or edit base pairs.
+      <ol
+        style = {{
+          margin : 0
+        }}
+      >
+        <li>
+          Select a constraint. This selects the set of tools which you will use to format base-pair data.
+        </li>
+        <li>
+          Navigate within the viewport to the portion of the scene you plan to edit.
+        </li>
+        <li>
+          Right-click on a nucleotide. This will populate right-hand menu, which will allow you to format base-pair data.
+        </li>
+      </ol>
+      <Collapsible.Component
+        title = "Notes"
+      >
+        <ul
+          style = {{
+            margin : 0
+          }}
+        >
+          <li>
+            Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
+          </li>
+          <li>
+            Other constraints have more restrictive usage requirements.
+          </li>
+        </ul>
+      </Collapsible.Component>
+    </>,
+    [Tab.ANNOTATE] : <>
+      Here, you can add, delete, or edit annotations.
+      <br/>
+      Annotations include:
+      <ul
+        style = {{
+          margin : 0
+        }}
+      >
+        <li>Label content</li>
+        <li>label lines</li>
+      </ul>
+       <b>
+        This tab is not yet implemented.
+      </b>
+    </>,
+    [Tab.SETTINGS] : <>
+      Here, you can change settings which regulate how XRNA behaves.
+      <br/>
+      These settings apply across tabs.
+      <br/>
+      Support for saving your settings is implemented by the pair of upload/download buttons. 
+      <br/>
+      Store the "{XRNA_SETTINGS_FILE_NAME}" file somewhere you will remember for later use.
+    </>,
+    // Show nothing.
+    [Tab.ABOUT] : <></>
+  };
   const tabRenderRecord : Record<Tab, JSX.Element> = {
     [Tab.INPUT_OUTPUT] : <>
       <label>
@@ -846,14 +1114,14 @@ function App() {
           (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
         }}
       >
-        Upload
+        {UPLOAD_BUTTON_TEXT}
       </button>
       <em>
         {inputFileNameAndExtension}
       </em>
       <br/>
       <label>
-        Output File:&nbsp;
+        {DOWNLOAD_ROW_TEXT}:&nbsp;
         <input
           type = "text"
           placeholder = "output_file_name"
@@ -898,7 +1166,7 @@ function App() {
         }}
         disabled = {(outputFileName === "") || (outputFileExtension === undefined)}
       >
-        Download
+        {DOWNLOAD_BUTTON_TEXT}
       </button>
       <a
         ref = {downloadOutputFileHtmlAnchorReference}
@@ -910,7 +1178,7 @@ function App() {
     </>,
     [Tab.VIEWPORT] : <>
       <b>
-        Translate:
+        {TRANSLATION_TEXT}:
       </b>
       <br/>
       <label>
@@ -930,7 +1198,7 @@ function App() {
       </label>
       <br/>
       <b>
-        Scale:&nbsp;
+        {SCALE_TEXT}:&nbsp;
       </b>
       <br/>
       <input
@@ -1038,7 +1306,7 @@ function App() {
         style = {{
           display : "none"
         }}
-        download = "xrna_settings.json"
+        download = {`${XRNA_SETTINGS_FILE_NAME}.json`}
       />
       <br/>
       {settings.map(function(setting : Setting, index : number) {
@@ -1098,7 +1366,72 @@ function App() {
         </Fragment>;
       })}
     </>,
-    [Tab.DEMOS] : <></>
+    [Tab.ABOUT] : <>
+      <Collapsible.Component
+        title = "Getting Started"
+      >
+        <ol
+          style = {{
+            margin : 0
+          }}
+        >
+          <li>
+            <label>
+              To begin working with XRNA, you need an input file:&nbsp;
+              <button
+                onClick = {function() {
+                  const downloadAnchor = downloadSampleInputFileHtmlAnchorReference.current as HTMLAnchorElement;
+                  downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(SAMPLE_XRNA_FILE)}`;
+                  downloadAnchor.click();
+                }}
+              >Download</button>
+              <a
+                style = {{
+                  display : "none"
+                }}
+                ref = {downloadSampleInputFileHtmlAnchorReference}
+                download = "example.xrna"
+              />
+            </label>
+          </li>
+          <li>
+            Now that you have an input file, navigate to the "{Tab.INPUT_OUTPUT}" tab to upload it. It should take just a few seconds for the program to import its data.
+            <br/>
+          </li>
+          <li>
+            Once the data is imported, you can continue work in several different ways:
+            <ul>
+              <li>Download its data to a different file</li>
+              <li>Edit its data (e.g. positions)</li>
+              <li>Add/remove/edit base base pairs</li>
+              <li>Add/remove annotations</li>
+              <li>Open a different input file.</li>
+            </ul>
+            For explanation of these, read the relevant section of the "{Tab.ABOUT}" tab.
+          </li>
+        </ol>
+      </Collapsible.Component>
+      {tabs.map(function(tabI) {
+        let content = <></>;
+        if (tabI !== Tab.ABOUT) {
+          content = <Collapsible.Component
+            title = {`The ${tabI} tab`}
+          >
+            {tabInstructionsRecord[tabI]}
+          </Collapsible.Component>;
+        }
+        return <Fragment
+          key = {tabI}
+        >
+          {content}
+        </Fragment>;
+      })}
+      <Collapsible.Component
+        title = "How to cite XRNA"
+      >
+        This version of XRNA (written in JavaScript) is currently unpublished. Once it becomes published, citation instructions will replace this text block.
+      </Collapsible.Component>
+    </>
   };
   // Parent div
   return <Context.Nucleotide.SetKeysToRerender.Provider
@@ -1181,7 +1514,12 @@ function App() {
                   }}
                 >
                   {tabs.map(function(tabI : Tab) {
+                    const color = tab === tabI ? "#add8e6" : "#ccc";
                     return <button
+                      style = {{
+                        border : `1px solid ${color}`,
+                        backgroundColor : color
+                      }}
                       key = {tabI}
                       onClick = {function() {
                         setTab(tabI);
@@ -1190,10 +1528,6 @@ function App() {
                       {tabI}
                     </button>
                   })}
-                  <br/>
-                  <b>
-                    {tab}:
-                  </b>
                   <br/>
                   {tabs.map(function(tabI : Tab) {
                     return <div

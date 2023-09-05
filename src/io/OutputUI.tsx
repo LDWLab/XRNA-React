@@ -1,16 +1,14 @@
 import { RnaComplexProps } from "../App";
+import FileExtension from "./FileExtension";
 import { jsonFileWriter } from "./JsonFileWriter";
 import { xrnaFileWriter } from "./XrnaFileWriter";
 
-export enum OutputFileExtension {
-  XRNA = "xrna",
-  // TR = "tr",
-  // CSV = "csv",
-  // JPG = "jpg",
-  // BPSEQ = "bpseq",
-  JSON = "json",
-  // SVG = "svg"
-}
+export type OutputFileExtension = Extract<FileExtension, FileExtension.XRNA | FileExtension.JSON>;
+
+export const OutputFileExtension = {
+  [FileExtension.XRNA] : FileExtension.XRNA,
+  [FileExtension.JSON] : FileExtension.JSON
+} as const;
 
 export const outputFileExtensions = Object.values(OutputFileExtension);
 
@@ -20,6 +18,6 @@ export type OutputFileWriter = (
 ) => string;
 
 export const outputFileWritersMap : Record<OutputFileExtension, OutputFileWriter> = {
-  [OutputFileExtension.XRNA] : xrnaFileWriter,
-  [OutputFileExtension.JSON] : jsonFileWriter
+  [OutputFileExtension.xrna] : xrnaFileWriter,
+  [OutputFileExtension.json] : jsonFileWriter
 };

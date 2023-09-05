@@ -57,7 +57,7 @@ export namespace Nucleotide {
     const firstNucleotideIndexInRnaMolecule = useContext(Context.RnaMolecule.FirstNucleotideIndex);
     const setMouseOverText = useContext(Context.App.SetMouseOverText);
     const onMouseDownHelper = useContext(Context.Nucleotide.OnMouseDownHelper);
-    const conditionallySetVisibility = useContext(Context.App.ConditionallySetVisibility);
+    const conditionallySetStroke = useContext(Context.App.ConditionallySetStroke);
     // Begin state data.
     const [
       textDimensions,
@@ -67,9 +67,9 @@ export namespace Nucleotide {
       height : 0
     });
     const [
-      strokeVisibilityFlag,
-      setStrokeVisibilityFlag
-    ] = useState(false);
+      stroke,
+      setStroke
+    ] = useState("none");
     // Begin references.
     const symbolReference = createRef<SVGTextElement>();
     // Begin memo data.
@@ -119,7 +119,7 @@ export namespace Nucleotide {
         fontSize = {font.size}
         strokeWidth = {strokeWidth}
         fill = {toCSS(color)}
-        stroke = {strokeVisibilityFlag ? "red" : "none"}
+        stroke = {stroke}
         onMouseDown = {function(e : React.MouseEvent<Nucleotide.SvgRepresentation>) {
           onMouseDownHelper(
             e,
@@ -127,12 +127,12 @@ export namespace Nucleotide {
           );
         }}
         onMouseOver = {function(e : React.MouseEvent<Nucleotide.SvgRepresentation>) {
-          conditionallySetVisibility(setStrokeVisibilityFlag);
+          conditionallySetStroke(setStroke);
           setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
         }}
         onMouseLeave = {function() {
           setMouseOverText("");
-          setStrokeVisibilityFlag(false);
+          setStroke("none");
         }}
       >
         {symbol}

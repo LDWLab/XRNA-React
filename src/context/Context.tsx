@@ -15,7 +15,7 @@ export type BasePairKeysToRerender = Record<RnaComplexKey, BasePairKeysToRerende
 
 export namespace Context {
   export namespace App {
-    export const ConditionallySetVisibility = createContext(function(setVisibility : (visibility : boolean) => void) { /* Do nothing. */ })
+    export const ConditionallySetStroke = createContext(function(setStroke : (stroke : string) => void) { /* Do nothing. */ })
     export const SetMouseOverText = createContext(function(mouseOverText : string) { /* Do nothing. */ })
     export const Settings = createContext(DEFAULT_SETTINGS);
     export const ComplexDocumentName = createContext("");

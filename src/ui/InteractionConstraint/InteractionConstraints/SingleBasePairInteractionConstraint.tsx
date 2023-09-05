@@ -1,4 +1,4 @@
-import { RnaComplex, compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
+import { RnaComplex, compareBasePairKeys, selectRelevantBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { NucleotideKeysToRerender, BasePairKeysToRerender, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
 import { linearDrag } from "../CommonDragListeners";
 import { AbstractInteractionConstraint, InteractionConstraintError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
@@ -9,6 +9,7 @@ import BasePair, { getBasePairType } from "../../../components/app_specific/Base
 import { Vector2D, orthogonalizeLeft } from "../../../data_structures/Vector2D";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
+import { min } from "../../../utils/Utils";
 
 export class SingleBasePairInteractionConstraint extends AbstractInteractionConstraint {
   private dragListener : DragListener;
@@ -69,6 +70,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     basePairKeysToRerender[rnaComplexIndex] = [
       lesserKeys
     ];
+    const basePairKeysToRerenderPerRnaComplex = basePairKeysToRerender[rnaComplexIndex];
     const initialDrag = {
       x : singularNucleotideProps.x,
       y : singularNucleotideProps.y
@@ -108,6 +110,21 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
         if (nucleotideIndex in singularRnaMoleculeProps.nucleotideProps) {
           nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
           toBeDragged.push(singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]);
+        }
+        if (nucleotideIndex in basePairsPerRnaMolecule0) {
+          const basePairKeys0 = {
+            rnaMoleculeName : rnaMoleculeName0,
+            nucleotideIndex : nucleotideIndex
+          };
+          const mappedBasePairInformation = basePairsPerRnaMolecule0[nucleotideIndex];
+          const basePairKeys1 = {
+            rnaMoleculeName : mappedBasePairInformation.rnaMoleculeName,
+            nucleotideIndex : mappedBasePairInformation.nucleotideIndex
+          };
+          basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
+            basePairKeys0,
+            basePairKeys1
+          ));
         }
       }
       nucleotideKeysToRerenderPerRnaMolecule.push(greaterKeys.nucleotideIndex);

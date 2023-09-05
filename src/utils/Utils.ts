@@ -159,3 +159,47 @@ export function subtractNumbersNegated(
 export function parseInteger(string : string) {
   return Number.parseInt(string);
 }
+
+function minMaxHelper<T>(
+  comparator : (t0 : T, t1 : T) => number,
+  array : Array<T>,
+  condition : (n : number) => boolean
+) : T | undefined {
+    if (array.length === 0) {
+      return undefined;
+    }
+    let extremum = array[0];
+    for (let i = 1; i < array.length; i++) {
+      let t = array[i];
+      if (condition(comparator(t, extremum))) {
+        extremum = t;
+      }
+    }
+    return extremum;
+}
+
+export function min<T>(
+  comparator : (t0 : T, t1 : T) => number,
+  ...array : Array<T>
+) {
+  return minMaxHelper(
+    comparator,
+    array,
+    function(n : number) {
+      return n > 0;
+    } 
+  );
+}
+
+export function max<T>(
+  comparator : (t0 : T, t1 : T) => number,
+  ...array : Array<T>
+) {
+  return minMaxHelper(
+    comparator,
+    array,
+    function(n : number) {
+      return n < 0;
+    } 
+  );
+}

@@ -3,6 +3,7 @@ import Color, { BLACK, ColorFormat, DEFAULT_ALPHA, DEFAULT_COLOR_FORMAT, colorFo
 import Wheel from '@uiw/react-color-wheel';
 import { rgbaToHsva, hsvaToRgba } from '@uiw/color-convert';
 import ShadeSlider from '@uiw/react-color-shade-slider';
+import { Collapsible } from "../Collapsible";
 
 export namespace ColorEditor {
   enum EditMode {
@@ -378,31 +379,32 @@ export namespace ColorEditor {
       </>
     };
     return <>
-      <b>
-        Color:
-      </b>
-      <br/>
-      Edit mode:&nbsp;<select
-        value = {editMode}
-        onChange = {function(e) {
-          const newEditMode = e.target.value;
-          setEditMode(newEditMode as EditMode);
-        }}
+      <Collapsible.Component
+        title = "Color"
       >
-        {editModes.map(function(editModeI : EditMode) {
-          return <option>{editModeI}</option>;
-        })}
-      </select>
-      {editModes.map(function(editModeI : EditMode) {
-        return <div
-          key = {editModeI}
-          style = {{
-            display : editMode === editModeI ? "block" : "none"
+        Edit mode:&nbsp;
+        <select
+          value = {editMode}
+          onChange = {function(e) {
+            const newEditMode = e.target.value;
+            setEditMode(newEditMode as EditMode);
           }}
         >
-          {modeRenderData[editModeI]}
-        </div>;
-      })}
+          {editModes.map(function(editModeI : EditMode) {
+            return <option>{editModeI}</option>;
+          })}
+        </select>
+        {editModes.map(function(editModeI : EditMode) {
+          return <div
+            key = {editModeI}
+            style = {{
+              display : editMode === editModeI ? "block" : "none"
+            }}
+          >
+            {modeRenderData[editModeI]}
+          </div>;
+        })}
+      </Collapsible.Component>
     </>;
   }
 }

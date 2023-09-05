@@ -38,21 +38,21 @@ export namespace LabelLine {
     const BOUNDING_PATH_RADIUS = 1;
     // Begin context.
     const bodyOnMouseDownHelper = useContext(Context.Label.Line.Body.OnMouseDownHelper);
-    const conditionallySetVisibility = useContext(Context.App.ConditionallySetVisibility);
+    const conditionallySetStroke = useContext(Context.App.ConditionallySetStroke);
     const endpointOnMouseDownHelper = useContext(Context.Label.Line.Endpoint.OnMouseDownHelper);
     // Begin state data.
     const [
-      bodyVisibilityFlag,
-      setBodyVisibilityFlag
-    ] = useState(false);
+      bodyStroke,
+      setBodyStroke
+    ] = useState("none");
     const [
-      endpoint0VisibilityFlag,
-      setEndpoint0VisibilityFlag
-    ] = useState(false);
+      endpoint0Stroke,
+      setEndpoint0Stroke
+    ] = useState("none");
     const [
-      endpoint1VisibilityFlag,
-      setEndpoint1VisibilityFlag
-    ] = useState(false);
+      endpoint1Stroke,
+      setEndpoint1Stroke
+    ] = useState("none");
     const endpoint0 = {
       x : x0,
       y : y0
@@ -92,13 +92,13 @@ export namespace LabelLine {
       />
       <circle
         pointerEvents = "all"
-        stroke = "red"
+        stroke = {endpoint0Stroke}
         strokeWidth = {DEFAULT_STROKE_WIDTH}
         fill = "none"
         cx = {x0}
         cy = {y0}
         r = {radius}
-        visibility = {endpoint0VisibilityFlag ? "visible" : "hidden"}
+        visibility = {endpoint0Stroke === "none" ? "hidden" : "visible"}
         onMouseDown = {function(e) {
           endpointOnMouseDownHelper(
             e,
@@ -108,21 +108,21 @@ export namespace LabelLine {
           e.preventDefault();
         }}
         onMouseOver = {function() {
-          conditionallySetVisibility(setEndpoint0VisibilityFlag);
+          conditionallySetStroke(setEndpoint0Stroke);
         }}
         onMouseLeave = {function() {
-          setEndpoint0VisibilityFlag(false);
+          setEndpoint0Stroke("none");
         }}
       />
       <circle
         pointerEvents = "all"
-        stroke = "red"
+        stroke = {endpoint1Stroke}
         strokeWidth = {DEFAULT_STROKE_WIDTH}
         fill = "none"
         cx = {x1}
         cy = {y1}
         r = {radius}
-        visibility = {endpoint1VisibilityFlag ? "visible" : "hidden"}
+        visibility = {endpoint1Stroke === "none" ? "hidden" : "visible"}
         onMouseDown = {function(e) {
           endpointOnMouseDownHelper(
             e,
@@ -132,19 +132,19 @@ export namespace LabelLine {
           e.preventDefault();
         }}
         onMouseOver = {function() {
-          conditionallySetVisibility(setEndpoint1VisibilityFlag);
+          conditionallySetStroke(setEndpoint1Stroke);
         }}
         onMouseLeave = {function() {
-          setEndpoint1VisibilityFlag(false);
+          setEndpoint1Stroke("none");
         }}
       />
       <path
         pointerEvents = "all"
-        stroke = "red"
+        stroke = {bodyStroke}
         strokeWidth = {DEFAULT_STROKE_WIDTH}
         fill = "none"
         d = {`M ${endpoint0TranslatedPositively.x} ${endpoint0TranslatedPositively.y} A 1 1 0 0 0 ${endpoint0TranslatedNegatively.x} ${endpoint0TranslatedNegatively.y} L ${endpoint1TranslatedNegatively.x} ${endpoint1TranslatedNegatively.y} A 1 1 0 0 0 ${endpoint1TranslatedPositively.x} ${endpoint1TranslatedPositively.y} z`}
-        visibility = {bodyVisibilityFlag ? "visible" : "hidden"}
+        visibility = {bodyStroke === "none" ? "hidden" : "visible"}
         onMouseDown = {function(e) {
           bodyOnMouseDownHelper(
             e,
@@ -153,10 +153,10 @@ export namespace LabelLine {
           e.preventDefault();
         }}
         onMouseOver = {function(e) {
-          conditionallySetVisibility(setBodyVisibilityFlag);
+          conditionallySetStroke(setBodyStroke);
         }}
         onMouseLeave = {function() {
-          setBodyVisibilityFlag(false)
+          setBodyStroke("none");
         }}
       />
     </g>;
