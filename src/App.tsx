@@ -1020,7 +1020,7 @@ function App() {
           Navigate within the viewport to the portion of the scene you plan to edit.
         </li>
         <li>
-          Right-click on a nucleotide. This will populate right-hand menu, which will allow you to format base-pair data.
+          Right-click on a nucleotide. This will populate a right-hand menu, which will allow you to format base-pair data.
         </li>
       </ol>
       <Collapsible.Component
@@ -1058,8 +1058,6 @@ function App() {
     </>,
     [Tab.SETTINGS] : <>
       Here, you can change settings which regulate how XRNA behaves.
-      <br/>
-      These settings apply across tabs.
       <br/>
       Support for saving your settings is implemented by the pair of upload/download buttons. 
       <br/>
