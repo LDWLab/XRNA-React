@@ -5,6 +5,7 @@ import { RnaComplex } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
 import Color, { toCSS, BLACK } from "../data_structures/Color";
 import Font from "../data_structures/Font";
+import { Vector2D } from "../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
 import { OutputFileWriter } from "./OutputUI";
 
@@ -36,10 +37,7 @@ type LabelForJson = {
   },
   labelLine? : {
     classes : Array<string>,
-    x1 : number,
-    y1 : number,
-    x2 : number,
-    y2 : number
+    points : Array<Vector2D>
   },
   residueIndex : number
 };
@@ -205,10 +203,7 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
               if (labelLineProps !== undefined) {
                 label.labelLine = {
                   classes : labelLineCssClasses[nucleotideIndex],
-                  x1 : labelLineProps.x0 + singularNucleotideProps.x,
-                  y1 : labelLineProps.y0 + singularNucleotideProps.y,
-                  x2 : labelLineProps.x1 + singularNucleotideProps.x,
-                  y2 : labelLineProps.y1 + singularNucleotideProps.y
+                  points : labelLineProps.points
                 };
               }
               labels.push(label);

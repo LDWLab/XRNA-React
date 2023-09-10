@@ -2,17 +2,14 @@ import React, { FunctionComponent, LegacyRef, useContext, useEffect, useMemo, us
 import { FullKeys } from "../../App";
 import { Context } from "../../context/Context";
 import Color, { toCSS, BLACK } from "../../data_structures/Color";
-import { subtract, scaleUp, orthogonalize, magnitude, add } from "../../data_structures/Vector2D";
+import { subtract, scaleUp, orthogonalize, magnitude, add, Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 
 export namespace LabelLine {
   export type BodySvgRepresentation = SVGPathElement;
   export type EndpointSvgRepresentation = SVGCircleElement;
   export type ExternalProps = {
-    x0 : number,
-    y0 : number,
-    x1 : number,
-    y1 : number,
+    points : Array<Vector2D>
     color? : Color,
     strokeWidth? : number
   };
@@ -21,19 +18,17 @@ export namespace LabelLine {
     fullKeys : FullKeys
   }
 
+  type RenderData = {
+    pathDAttribute : string,
+    polylinePointsAttribute : string,
+
+  };
+
   export function Component(props : Props) {
     const {
       fullKeys,
-      x0,
-      y0,
-      x1,
-      y1
+      points
     } = props;
-    const {
-      rnaComplexIndex,
-      rnaMoleculeName,
-      nucleotideIndex
-    } = fullKeys;
     // Begin constants.
     const BOUNDING_PATH_RADIUS = 1;
     // Begin context.
@@ -46,28 +41,44 @@ export namespace LabelLine {
       setBodyStroke
     ] = useState("none");
     const [
-      endpoint0Stroke,
-      setEndpoint0Stroke
-    ] = useState("none");
-    const [
-      endpoint1Stroke,
-      setEndpoint1Stroke
-    ] = useState("none");
-    const endpoint0 = {
-      x : x0,
-      y : y0
-    };
-    const endpoint1 = {
-      x : x1,
-      y : y1
-    }
-    const difference = subtract(endpoint1, endpoint0);
+      pointStrokes,
+      setPointStrokes
+    ] = useState<Record<number, string>>({});
     const radius = BOUNDING_PATH_RADIUS;
-    const scaledOrthogonal = scaleUp(orthogonalize(difference), BOUNDING_PATH_RADIUS / magnitude(difference));
-    const endpoint0TranslatedPositively = add(endpoint0, scaledOrthogonal);
-    const endpoint0TranslatedNegatively = subtract(endpoint0, scaledOrthogonal);
-    const endpoint1TranslatedPositively = add(endpoint1, scaledOrthogonal);
-    const endpoint1TranslatedNegatively = subtract(endpoint1, scaledOrthogonal);
+    const [
+      renderData,
+      setRenderData
+    ] = useState<RenderData>({
+      pathDAttribute : "",
+      polylinePointsAttribute : ""
+    });
+    function updateRenderData() {
+      let endpoint0 = points[0];
+      let endpoint1 = endpoint0;
+      const paths = new Array<string>();
+      for (let i = 1; i < points.length; i++) {
+        endpoint1 = points[i];
+        const difference = subtract(endpoint1, endpoint0);
+        const scaledOrthogonal = scaleUp(orthogonalize(difference), BOUNDING_PATH_RADIUS / magnitude(difference));
+        const endpoint0TranslatedPositively = add(endpoint0, scaledOrthogonal);
+        const endpoint0TranslatedNegatively = subtract(endpoint0, scaledOrthogonal);
+        const endpoint1TranslatedPositively = add(endpoint1, scaledOrthogonal);
+        const endpoint1TranslatedNegatively = subtract(endpoint1, scaledOrthogonal);
+        endpoint0 = endpoint1;
+        paths.push(`M ${endpoint0TranslatedPositively.x} ${endpoint0TranslatedPositively.y} A 1 1 0 0 0 ${endpoint0TranslatedNegatively.x} ${endpoint0TranslatedNegatively.y} L ${endpoint1TranslatedNegatively.x} ${endpoint1TranslatedNegatively.y} A 1 1 0 0 0 ${endpoint1TranslatedPositively.x} ${endpoint1TranslatedPositively.y} z`);
+      }
+      setRenderData({
+        pathDAttribute : paths.join(" "),
+        polylinePointsAttribute : points.map(function(point) {
+          return `${point.x},${point.y}`;
+        }).join(" ")
+      });
+    }
+    useEffect(
+      updateRenderData,
+      [points]
+    );
+    // Begin memo data.
     const color = useMemo(
       function() {
         return props.color ?? BLACK;
@@ -81,74 +92,63 @@ export namespace LabelLine {
       [props.strokeWidth]
     );
     return <g>
-      <line
+      <polyline
+        points = {renderData.polylinePointsAttribute}
         pointerEvents = "none"
-        x1 = {x0}
-        y1 = {y0}
-        x2 = {x1}
-        y2 = {y1}
         stroke = {toCSS(color)}
         strokeWidth = {strokeWidth}
       />
-      <circle
-        pointerEvents = "all"
-        stroke = {endpoint0Stroke}
-        strokeWidth = {DEFAULT_STROKE_WIDTH}
-        fill = "none"
-        cx = {x0}
-        cy = {y0}
-        r = {radius}
-        visibility = {endpoint0Stroke === "none" ? "hidden" : "visible"}
-        onMouseDown = {function(e) {
-          endpointOnMouseDownHelper(
-            e,
-            fullKeys,
-            0
-          );
-          e.preventDefault();
-        }}
-        onMouseOver = {function() {
-          conditionallySetStroke(setEndpoint0Stroke);
-        }}
-        onMouseLeave = {function() {
-          setEndpoint0Stroke("none");
-        }}
-      />
-      <circle
-        pointerEvents = "all"
-        stroke = {endpoint1Stroke}
-        strokeWidth = {DEFAULT_STROKE_WIDTH}
-        fill = "none"
-        cx = {x1}
-        cy = {y1}
-        r = {radius}
-        visibility = {endpoint1Stroke === "none" ? "hidden" : "visible"}
-        onMouseDown = {function(e) {
-          endpointOnMouseDownHelper(
-            e,
-            fullKeys,
-            1
-          );
-          e.preventDefault();
-        }}
-        onMouseOver = {function() {
-          conditionallySetStroke(setEndpoint1Stroke);
-        }}
-        onMouseLeave = {function() {
-          setEndpoint1Stroke("none");
-        }}
-      />
+      {points.map(function(
+        point,
+        pointIndex
+      ) {
+        const stroke = pointIndex in pointStrokes ? pointStrokes[pointIndex] : "none";
+        return <circle
+          key = {pointIndex}
+          pointerEvents = "all"
+          stroke = {stroke}
+          strokeWidth = {DEFAULT_STROKE_WIDTH}
+          fill = "none"
+          cx = {point.x}
+          cy = {point.y}
+          r = {radius}
+          visibility = {stroke === "none" ? "hidden" : "visible"}
+          onMouseDown = {function(e) {
+            endpointOnMouseDownHelper(
+              e,
+              fullKeys,
+              pointIndex,
+              updateRenderData
+            );
+          }}
+          onMouseOver = {function() {
+            conditionallySetStroke(function(newStroke : string) {
+              setPointStrokes({
+                ...pointStrokes,
+                [pointIndex] : newStroke
+              });
+            });
+          }}
+          onMouseLeave = {function() {
+            setPointStrokes({
+              ...pointStrokes,
+              [pointIndex] : "none"
+            });
+          }}
+        />
+      })}
       <path
         pointerEvents = "all"
         stroke = {bodyStroke}
         strokeWidth = {DEFAULT_STROKE_WIDTH}
         fill = "none"
-        d = {`M ${endpoint0TranslatedPositively.x} ${endpoint0TranslatedPositively.y} A 1 1 0 0 0 ${endpoint0TranslatedNegatively.x} ${endpoint0TranslatedNegatively.y} L ${endpoint1TranslatedNegatively.x} ${endpoint1TranslatedNegatively.y} A 1 1 0 0 0 ${endpoint1TranslatedPositively.x} ${endpoint1TranslatedPositively.y} z`}
+        d = {renderData.pathDAttribute}
         visibility = {bodyStroke === "none" ? "hidden" : "visible"}
         onMouseDown = {function(e) {
           bodyOnMouseDownHelper(
             e,
-            fullKeys
+            fullKeys,
+            updateRenderData
           );
           e.preventDefault();
         }}

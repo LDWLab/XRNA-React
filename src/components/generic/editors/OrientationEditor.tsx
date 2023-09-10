@@ -56,8 +56,7 @@ export namespace OrientationEditor {
       },
       [
         initialCenter,
-        positions,
-        props
+        positions
       ]
     );
     const disabledFlagNullCoalesced = useMemo(
@@ -151,6 +150,26 @@ export namespace OrientationEditor {
       }
       onUpdatePositions();
     }
+    // Begin effects.
+    useEffect(
+      function() {
+        setAngle(initialAngleNullCoalesced);
+      },
+      [initialAngleNullCoalesced]
+    );
+    useEffect(
+      function() {
+        setScale(initialScaleNullCoalesced);
+      },
+      [initialScaleNullCoalesced]
+    );
+    useEffect(
+      function() {
+        setCenterX(initialCenter.x);
+        setCenterY(initialCenter.y);
+      },
+      [initialCenter]
+    );
     return <>
       <label>
         x:&nbsp;
@@ -272,14 +291,24 @@ export namespace OrientationEditor {
       boundingVector1,
       boundingVector0
     ));
+    // Begin memo data.
+    const initialCenter = useMemo(
+      function() {
+        return scaleUp(
+          add(
+            boundingVector0,
+            boundingVector1
+          ),
+          0.5
+        );
+      },
+      [
+        boundingVector0,
+        boundingVector1
+      ]
+    );
     return <Component
-      initialCenter = {scaleUp(
-        add(
-          boundingVector0,
-          boundingVector1
-        ),
-        0.5
-      )}
+      initialCenter = {initialCenter}
       positions = {positions}
       onUpdatePositions = {onUpdatePositions}
       useDegreesFlag = {useDegreesFlag}

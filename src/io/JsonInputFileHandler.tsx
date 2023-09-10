@@ -2,7 +2,7 @@ import BasePair from "../components/app_specific/BasePair";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { RnaComplex, insertBasePair, DuplicateBasePairKeysHandler } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
-import { fromCssString, BLACK } from "../data_structures/Color";
+import Color, { fromCssString, BLACK } from "../data_structures/Color";
 import Font from "../data_structures/Font";
 import { subtract } from "../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
@@ -14,7 +14,10 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
     }
     let rnaComplexProps : Array<RnaComplex.ExternalProps> = [];
     let complexDocumentName = "Unknown";
-    let cssClasses = parsedJson.classes as Array<any>;
+    if (!Array.isArray(parsedJson.classes)) {
+      throw "JSON \"classes\" variable should be an array.";
+    }
+    const cssClasses = parsedJson.classes as Array<any>;
     rnaComplexProps = (parsedJson.rnaComplexes as Array<any>).map((inputRnaComplex : any, inputRnaComplexIndex : number) => {
       if (!("name" in inputRnaComplex) || !("rnaMolecules" in inputRnaComplex)) {
         throw "Input rnaComplex elements of input Json should have \"name\" and \"rnaMolecules\" variables."
@@ -34,11 +37,56 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
           firstNucleotideIndex : Number.MAX_VALUE,
           nucleotideProps : []
         };
+        const parsedClassesForSequence = {
+          font : structuredClone(Font.DEFAULT),
+          color : structuredClone(BLACK)
+        };
+        const classesForSequence = inputRnaMolecule.classesForSequence;
+        if (classesForSequence !== undefined) {
+          if (!Array.isArray(classesForSequence)) {
+            throw "RNA-molecule \"classesForSequence\" variable should be an array;";
+          }
+          (classesForSequence as Array<any>).forEach(((classForSequence : any) => {
+            if (typeof classForSequence !== "string") {
+              throw "\"classForSequence\" variable should be a string.";
+            }
+            if (classForSequence.startsWith("text-")) {
+              parsedClassesForSequence.color = fromCssString(classForSequence.substring("text-".length));
+            }
+            let cssClass = cssClasses.find(cssClass => cssClass.name === classForSequence);
+            if (cssClass !== undefined) {
+              Object.entries(cssClass).forEach(cssClassData => {
+                switch (cssClassData[0]) {
+                  case "font-family" : {
+                    (parsedClassesForSequence.font as Font).family = cssClassData[1] as string;
+                    break;
+                  }
+                  case "font-size" : {
+                    (parsedClassesForSequence.font as Font).size = cssClassData[1] as string;
+                    break;
+                  }
+                  case "font-weight" : {
+                    (parsedClassesForSequence.font as Font).weight = cssClassData[1] as string;
+                    break;
+                  }
+                  case "font-style" : {
+                    (parsedClassesForSequence.font as Font).style = cssClassData[1] as string;
+                    break;
+                  }
+                  case "color" : {
+                    parsedClassesForSequence.color = fromCssString(cssClassData[1] as string);
+                    break;
+                  }
+                }
+              });
+            }
+          }));
+        }
         const rnaMoleculeName = inputRnaMolecule.name;
         singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName] = singularRnaMoleculeProps;
         (inputRnaMolecule.sequence as Array<any>).forEach(inputSequenceEntry => {
-          if (!("classes" in inputSequenceEntry) || !("residueIndex" in inputSequenceEntry) || !("x" in inputSequenceEntry) || !("y" in inputSequenceEntry) || !("residueName" in inputSequenceEntry)) {
-            throw "Input sequence elements of input Json should have \"classes\", \"residueIndex\", \"residueName\", \"x\" and \"y\" variables.";
+          if (!("residueIndex" in inputSequenceEntry) || !("x" in inputSequenceEntry) || !("y" in inputSequenceEntry) || !("residueName" in inputSequenceEntry)) {
+            throw "Input sequence elements of input Json should have \"residueIndex\", \"residueName\", \"x\" and \"y\" variables.";
           }
           let nucleotideIndex = Number.parseInt(inputSequenceEntry.residueIndex);
           if (nucleotideIndex < singularRnaMoleculeProps.firstNucleotideIndex) {
@@ -52,75 +100,161 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
             x : Number.parseFloat(inputSequenceEntry.x),
             y : Number.parseFloat(inputSequenceEntry.y)
           };
+          singularNucleotideProps.font = structuredClone(parsedClassesForSequence.font);
+          singularNucleotideProps.color = structuredClone(parsedClassesForSequence.color);
           singularRnaMoleculeProps.nucleotideProps[nucleotideIndex] = singularNucleotideProps;
-          (inputSequenceEntry.classes as Array<string>).forEach(className => {
-            let cssClass = cssClasses.find(cssClass => cssClass.name === className);
+          const classes = inputSequenceEntry.classes;
+          if (classes !== undefined) {
+            if (!Array.isArray(classes)) {
+              throw "Nucleotide \"classes\" variable should be an array.";
+            }
+            (classes as Array<string>).forEach(className => {
+              if (className.startsWith("text-")) {
+                singularNucleotideProps.color = fromCssString(className.substring("text-".length));
+              }
+              let cssClass = cssClasses.find(cssClass => cssClass.name === className);
+              if (cssClass !== undefined) {
+                Object.entries(cssClass).forEach(cssClassData => {
+                  switch (cssClassData[0]) {
+                    case "font-family" : {
+                      (singularNucleotideProps.font as Font).family = cssClassData[1] as string;
+                      break;
+                    }
+                    case "font-size" : {
+                      (singularNucleotideProps.font as Font).size = cssClassData[1] as string;
+                      break;
+                    }
+                    case "font-weight" : {
+                      (singularNucleotideProps.font as Font).weight = cssClassData[1] as string;
+                      break;
+                    }
+                    case "font-style" : {
+                      (singularNucleotideProps.font as Font).style = cssClassData[1] as string;
+                      break;
+                    }
+                    case "color" : {
+                      singularNucleotideProps.color = fromCssString(cssClassData[1] as string);
+                      break;
+                    }
+                  }
+                });
+              }
+            });
+          }
+        });
+        const parsedClassesForLabels = {
+          font : structuredClone(Font.DEFAULT),
+          color : structuredClone(BLACK),
+          stroke : structuredClone(BLACK),
+          strokeWidth : DEFAULT_STROKE_WIDTH
+        };
+        const classesForLabels = inputRnaMolecule.classesForLabels;
+        if (classesForLabels !== undefined) {
+          if (!Array.isArray(classesForLabels)) {
+            throw "RNA-molecule \"classsesForLabels\" variable should be an array.";
+          }
+          classesForLabels.forEach(function(classForLabel : any) {
+            if (typeof classForLabel !== "string") {
+              throw "\"classForLabel\" variable should be a string";
+            }
+            if (classForLabel.startsWith("text-")) {
+              parsedClassesForLabels.color = fromCssString(classForLabel.substring("text-".length));
+            }
+            let cssClass = cssClasses.find(cssClass => cssClass.name === classForLabel);
             if (cssClass !== undefined) {
-              Object.entries(cssClass).forEach(cssClassData => {
-                switch (cssClassData[0]) {
+              Object.entries(cssClass).forEach(cssClassEntry => {
+                switch (cssClassEntry[0]) {
                   case "font-family" : {
-                    (singularNucleotideProps.font ?? Font.DEFAULT).family = cssClassData[1] as string;
+                    parsedClassesForLabels.font.family = cssClassEntry[1] as string;
                     break;
                   }
                   case "font-size" : {
-                    (singularNucleotideProps.font ?? Font.DEFAULT).size = cssClassData[1] as string;
+                    parsedClassesForLabels.font.size = cssClassEntry[1] as string;
                     break;
                   }
                   case "font-weight" : {
-                    (singularNucleotideProps.font ?? Font.DEFAULT).weight = cssClassData[1] as string;
+                    parsedClassesForLabels.font.weight = cssClassEntry[1] as string;
                     break;
                   }
                   case "font-style" : {
-                    (singularNucleotideProps.font ?? Font.DEFAULT).style = cssClassData[1] as string;
+                    parsedClassesForLabels.font.style = cssClassEntry[1] as string;
+                    break;
+                  }
+                  case "stroke" : {
+                    parsedClassesForLabels.stroke = fromCssString(cssClassEntry[1] as string);
+                    break;
+                  }
+                  case "color" : {
+                    parsedClassesForLabels.color = fromCssString(cssClassEntry[1] as string);
+                    break;
+                  }
+                  case "stroke-width" : {
+                    parsedClassesForLabels.strokeWidth = Number.parseFloat(cssClassEntry[1] as string);
                     break;
                   }
                 }
               });
-            } else if (className.startsWith("text-")) {
-              singularNucleotideProps.color = fromCssString(className.substring("text-".length));
             }
           });
-        });
+        }
         (inputRnaMolecule.labels as Array<any>).forEach(label => {
           if (!("residueIndex" in label)) {
             throw "Input label elements of input Json should have a \"residueIndex\" variable."
           }
           let nucleotideProps = singularRnaMoleculeProps.nucleotideProps[Number.parseInt(label.residueIndex) - singularRnaMoleculeProps.firstNucleotideIndex];
           if ("labelContent" in label) {
-            let font = Font.DEFAULT;
-            let color = BLACK;
-            (label.labelContent.classes as Array<any>).forEach(labelClassName => {
-              let cssClass = cssClasses.find(cssClass => cssClass.name === labelClassName);
-              if (cssClass !== undefined) {
-                Object.entries(cssClass).forEach(cssClassEntry => {
-                  switch (cssClassEntry[0]) {
-                    case "font-family" : {
-                      font.family = cssClassEntry[1] as string;
-                      break;
-                    }
-                    case "font-size" : {
-                      font.size = cssClassEntry[1] as string;
-                      break;
-                    }
-                    case "font-weight" : {
-                      font.weight = cssClassEntry[1] as string;
-                      break;
-                    }
-                    case "font-style" : {
-                      font.style = cssClassEntry[1] as string;
-                      break;
-                    }
-                  }
-                });
-              } else if (labelClassName.startsWith("text-")) {
-                color = fromCssString(labelClassName.substring("text-".length));
+            let font = structuredClone(parsedClassesForLabels.font);
+            let color = structuredClone(parsedClassesForLabels.color);
+            const classes = label.labelContent.classes;
+            if (classes !== undefined) {
+              if (!Array.isArray(classes)) {
+                throw "LabelContent \"classes\" variable should be an array.";
               }
-            });
+              (classes as Array<any>).forEach(labelClassName => {
+                if (labelClassName.startsWith("text-")) {
+                  color = fromCssString(labelClassName.substring("text-".length));
+                }
+                let cssClass = cssClasses.find(cssClass => cssClass.name === labelClassName);
+                if (cssClass !== undefined) {
+                  Object.entries(cssClass).forEach(cssClassEntry => {
+                    switch (cssClassEntry[0]) {
+                      case "font-family" : {
+                        font.family = cssClassEntry[1] as string;
+                        break;
+                      }
+                      case "font-size" : {
+                        font.size = cssClassEntry[1] as string;
+                        break;
+                      }
+                      case "font-weight" : {
+                        font.weight = cssClassEntry[1] as string;
+                        break;
+                      }
+                      case "font-style" : {
+                        font.style = cssClassEntry[1] as string;
+                        break;
+                      }
+                      case "color" : {
+                        color = fromCssString(cssClassEntry[1] as string);
+                        break;
+                      }
+                      case "stroke" : {
+                        color = fromCssString(cssClassEntry[1] as string);
+                        break;
+                      }
+                    }
+                  });
+                }
+              });
+            }
             nucleotideProps.labelContentProps = {
-              ...subtract({
-                x : Number.parseFloat(label.labelContent.x),
-                y : Number.parseFloat(label.labelContent.y)
-              }, nucleotideProps),
+              ...subtract(
+                {
+                  x : Number.parseFloat(label.labelContent.x),
+                  y : Number.parseFloat(label.labelContent.y)
+                },
+                nucleotideProps
+              ),
               content : label.labelContent.label,
               font,
               color,
@@ -129,52 +263,107 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
           }
           if ("labelLine" in label) {
             let labelLine = label.labelLine;
-            let color = BLACK;
-            let strokeWidth = DEFAULT_STROKE_WIDTH;
-            if (!("x1" in labelLine) || !("y1" in labelLine) || !("x2" in labelLine) || !("y2" in labelLine) || !("classes" in labelLine)) {
-              throw "Input label-line elements should have \"x1\", \"y1\", \"x2\", \"y2\" and \"classes\" variables."
+            let color = structuredClone(parsedClassesForLabels.stroke);
+            let strokeWidth = parsedClassesForLabels.strokeWidth;
+            if (!("points" in labelLine)) {
+              throw "Input label-line elements should have a \"points\" variables."
             }
-            (labelLine.classes as Array<any>).forEach(className => {
-              let cssClass = cssClasses.find(cssClass => cssClass.name === className);
-              if (cssClass !== undefined) {
-                Object.entries(cssClass).forEach(cssClassData => {
-                  switch (cssClassData[0]) {
-                    case "stroke" : {
-                      color = fromCssString(cssClassData[1] as string);
-                      break;
-                    }
-                    case "stroke-width" : {
-                      strokeWidth = Number.parseFloat(cssClassData[1] as string);
-                      break;
-                    }
-                  }
-                });
+            const classes = labelLine.classes;
+            if (classes !== undefined) {
+              if (!Array.isArray(classes)) {
+                throw "Label-line \"classes\" variable should be an array.";
               }
-            });
-            const endpoint0 = subtract({
-              x : Number.parseFloat(labelLine.x1),
-              y : Number.parseFloat(labelLine.y1)
-            }, nucleotideProps);
-            const endpoint1 = subtract({
-              x : Number.parseFloat(labelLine.x2),
-              y : Number.parseFloat(labelLine.y2)
-            }, nucleotideProps);
+              (classes as Array<any>).forEach(className => {
+                let cssClass = cssClasses.find(cssClass => cssClass.name === className);
+                if (cssClass !== undefined) {
+                  Object.entries(cssClass).forEach(cssClassData => {
+                    switch (cssClassData[0]) {
+                      case "stroke" : {
+                        color = fromCssString(cssClassData[1] as string);
+                        break;
+                      }
+                      case "stroke-width" : {
+                        strokeWidth = Number.parseFloat(cssClassData[1] as string);
+                        break;
+                      }
+                      case "color" : {
+                        color = fromCssString(cssClassData[1] as string);
+                        break;
+                      }
+                    }
+                  });
+                }
+              });
+            }
+            const points = labelLine.points;
+            if (!Array.isArray(points)) {
+              throw "Label-line \"points\" variable should be an array.";
+            }
+
             nucleotideProps.labelLineProps = {
-              x0 : endpoint0.x,
-              y0 : endpoint0.y,
-              x1 : endpoint1.x,
-              y1 : endpoint1.y,
+              points : points.map(function(point) {
+                if (!("x" in point) || !("y"in point)) {
+                  throw "Label-line point elements should include \"x\" and \"y\" properties.";
+                }
+                const x = Number.parseFloat(point.x);
+                const y = Number.parseFloat(point.y);
+                if (Number.isNaN(x) || Number.isNaN(y)) {
+                  throw "x and y properties of label-line point elements should be numbers.";
+                }
+                return {
+                  x,
+                  y
+                };
+              }),
               color,
               strokeWidth
             };
           }
         });
-        (inputRnaMolecule.basePairs as Array<any>).forEach(basePair => {
-          if (!("basePairType" in basePair) || !("residueIndex1" in basePair) || !("residueIndex2" in basePair) || !("classes" in basePair)) {
-            throw "Input basePairs elements of input Json should have \"basePairType\", \"residueIndex1\", \"residueIndex2\" and \"classes\" variables."
+        const parsedClassesForBasePairs = {
+          strokeWidth : DEFAULT_STROKE_WIDTH,
+          stroke : structuredClone(BLACK)
+        };
+        const classesForBasePairs = inputRnaMolecule.classesForBasePairs;
+        if (classesForBasePairs !== undefined) {
+          if (!Array.isArray(classesForBasePairs)) {
+            throw "RNA-molecule \"classesForBasePairs\" variable should be an array.";
           }
-          let basePairType : BasePair.Type;
+          classesForBasePairs.forEach((classForBasePair : any) => {
+            if (typeof classForBasePair !== "string") {
+              throw "\"classForBasePair\" should be a string.";
+            }
+            let cssClass = cssClasses.find(cssClass => cssClass.name === classForBasePair);
+            if (cssClass !== undefined) {
+              Object.entries(cssClass).forEach(cssClassData => {
+                switch (cssClassData[0]) {
+                  case "stroke-width" : {
+                    parsedClassesForBasePairs.strokeWidth = Number.parseFloat(cssClassData[1] as string);
+                    break;
+                  }
+                  case "stroke" : {
+                    parsedClassesForBasePairs.stroke = fromCssString(cssClassData[1] as string);
+                    break;
+                  }
+                  case "color" : {
+                    parsedClassesForBasePairs.stroke = fromCssString(cssClassData[1] as string);
+                    break;
+                  }
+                }
+              });
+            }
+          });
+        }
+        (inputRnaMolecule.basePairs as Array<any>).forEach(basePair => {
+          if (!("basePairType" in basePair) || !("residueIndex1" in basePair) || !("residueIndex2" in basePair)) {
+            throw "Input basePairs elements of input Json should have \"basePairType\", \"residueIndex1\" and \"residueIndex2\" variables."
+          }
+          let basePairType : BasePair.Type | null | undefined = undefined;
           switch (basePair.basePairType) {
+            case null : {
+              basePairType = undefined;
+              break;
+            }
             case "canonical" : {
               basePairType = BasePair.Type.CANONICAL;
               break;
@@ -193,25 +382,35 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
           }
           let residueIndex1 = Number.parseInt(basePair.residueIndex1) - singularRnaMoleculeProps.firstNucleotideIndex;
           let residueIndex2 = Number.parseInt(basePair.residueIndex2) - singularRnaMoleculeProps.firstNucleotideIndex;
-          let strokeWidth = DEFAULT_STROKE_WIDTH;
-          let color = BLACK;
-          (basePair.classes as Array<string>).forEach(className => {
-            let cssClass = cssClasses.find(cssClass => cssClass.name === className);
-            if (cssClass !== undefined) {
-              Object.entries(cssClass).forEach(cssClassData => {
-                switch (cssClassData[0]) {
-                  case "stroke-width" : {
-                    strokeWidth = Number.parseFloat(cssClassData[1] as string);
-                    break;
-                  }
-                  case "stroke" : {
-                    color = fromCssString(cssClassData[1] as string);
-                    break;
-                  }
-                }
-              });
+          let strokeWidth = parsedClassesForBasePairs.strokeWidth;
+          let color = structuredClone(parsedClassesForBasePairs.stroke);
+          const classes = basePair.classes;
+          if (classes !== undefined) {
+            if (!Array.isArray(classes)) {
+              throw "Base-pair \"classes\" variable should be an array.";
             }
-          });
+            (classes as Array<string>).forEach(className => {
+              let cssClass = cssClasses.find(cssClass => cssClass.name === className);
+              if (cssClass !== undefined) {
+                Object.entries(cssClass).forEach(cssClassData => {
+                  switch (cssClassData[0]) {
+                    case "stroke-width" : {
+                      strokeWidth = Number.parseFloat(cssClassData[1] as string);
+                      break;
+                    }
+                    case "stroke" : {
+                      color = fromCssString(cssClassData[1] as string);
+                      break;
+                    }
+                    case "color" : {
+                      color = fromCssString(cssClassData[1] as string);
+                      break;
+                    }
+                  }
+                });
+              }
+            });
+          }
           insertBasePair(
             singularRnaComplexProps,
             rnaMoleculeName,
@@ -236,8 +435,9 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
           Object.values(singularRnaMoleculeProps.nucleotideProps).forEach((singularNucleotideProps : Nucleotide.ExternalProps) => {
             singularNucleotideProps.y *= -1;
             if (singularNucleotideProps.labelLineProps !== undefined) {
-              singularNucleotideProps.labelLineProps.y0 *= -1;
-              singularNucleotideProps.labelLineProps.y1 *= -1;
+              for (let i = 0; i < singularNucleotideProps.labelLineProps.points.length; i++) {
+                singularNucleotideProps.labelLineProps.points[i].y *= -1;
+              }
             }
             if (singularNucleotideProps.labelContentProps !== undefined) {
               singularNucleotideProps.labelContentProps.y *= -1;

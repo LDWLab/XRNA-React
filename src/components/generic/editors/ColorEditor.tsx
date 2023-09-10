@@ -286,7 +286,9 @@ export namespace ColorEditor {
             }}
           >
             {colorFormats.map(function(colorFormatI : ColorFormat) {
-              return <option>
+              return <option
+                key = {colorFormatI}
+              >
                 {colorFormatI}
               </option>;
             })}
@@ -391,7 +393,11 @@ export namespace ColorEditor {
           }}
         >
           {editModes.map(function(editModeI : EditMode) {
-            return <option>{editModeI}</option>;
+            return <option
+              key = {editModeI}
+            >
+              {editModeI}
+            </option>;
           })}
         </select>
         {editModes.map(function(editModeI : EditMode) {

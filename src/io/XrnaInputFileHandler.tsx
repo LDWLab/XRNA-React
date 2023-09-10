@@ -330,10 +330,16 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
                     throw new Error(`This <LabelList> label-line line has a non-numeric strokeWidth value: ${strokeWidthAsString}`)
                   }
                   nucleotideProps.labelLineProps = {
-                    x0,
-                    y0,
-                    x1,
-                    y1,
+                    points : [
+                      {
+                        x : x0,
+                        y : y0
+                      },
+                      {
+                        x : x1,
+                        y : y1
+                      }
+                    ],
                     color : fromHexadecimal(textContentLineData[6] as string, ColorFormat.RGB),
                     strokeWidth
                   };

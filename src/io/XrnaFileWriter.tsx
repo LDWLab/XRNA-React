@@ -99,12 +99,15 @@ export function xrnaFileWriter(
           let innerHtmlArray = [];
           if (singularNucleotideProps.labelLineProps !== undefined) {
             const labelLineProps = singularNucleotideProps.labelLineProps;
+            const points = labelLineProps.points;
+            const point0 = points[0];
+            const point1 = points[points.length - 1];
             innerHtmlArray.push([
               "l",
-              labelLineProps.x0.toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT),
-              labelLineProps.y0.toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT),
-              labelLineProps.x1.toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT),
-              labelLineProps.y1.toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT),
+              point0.x.toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT),
+              point0.y.toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT),
+              point1.x.toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT),
+              point1.y.toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT),
               (labelLineProps.strokeWidth ?? DEFAULT_STROKE_WIDTH).toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT),
               toHexadecimal(labelLineProps.color ?? BLACK),
               "0.0",

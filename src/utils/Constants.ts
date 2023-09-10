@@ -11,7 +11,7 @@ export const numberToFormattedStringHelper = function(n : number, numberOfDecima
   return n.toFixed(numberOfDecimalDigitsCount);
 };
 export const parseIntReturnUndefinedOnFail = function(s : string) {
-  return /^-?0x?\d+$/.test(s) ? Number.parseInt(s) : undefined;
+  return /^-?(0x)?\d+$/.test(s) ? Number.parseInt(s) : undefined;
 }
 export const parseFloatReturnUndefinedOnFail = function(s : string) {
   let attemptToString = Number.parseFloat(s);

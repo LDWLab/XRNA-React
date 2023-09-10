@@ -370,33 +370,45 @@ function App() {
     function() {
       return function(
         e : React.MouseEvent<LabelLine.BodySvgRepresentation>,
-        fullKeys : FullKeys
+        fullKeys : FullKeys,
+        helper : () => void
       ) {
         const {
           rnaComplexIndex,
           rnaMoleculeName,
           nucleotideIndex
         } = fullKeys;
+        const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
+        const labelLineProps = singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
         switch (e.button) {
           case MouseButtonIndices.Left : {
             let newDragListener = viewportDragListener;
             if (tabReference.current === Tab.EDIT) {
-              const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
-              const labelLineProps = singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
-              const deltaX = labelLineProps.x1 - labelLineProps.x0;
-              const deltaY = labelLineProps.y1 - labelLineProps.y0;
+              const point0 = labelLineProps.points[0];
+              const displacementsPerPoint = labelLineProps.points.map(function(point) {
+                return subtract(
+                  point,
+                  point0
+                );
+              });
               newDragListener = {
                 initiateDrag() {
                   return {
-                    x : labelLineProps.x0,
-                    y : labelLineProps.y0
+                    x : point0.x,
+                    y : point0.y
                   };
                 },
                 continueDrag(totalDrag) {
-                  labelLineProps.x0 = totalDrag.x;
-                  labelLineProps.y0 = totalDrag.y;
-                  labelLineProps.x1 = totalDrag.x + deltaX;
-                  labelLineProps.y1 = totalDrag.y + deltaY;
+                  for (let i = 0; i < labelLineProps.points.length; i++) {
+                    const point = labelLineProps.points[i];
+                    const newPosition = add(
+                      totalDrag,
+                      displacementsPerPoint[i]
+                    );
+                    point.x = newPosition.x;
+                    point.y = newPosition.y;
+                  }
+                  helper();
                   setNucleotideKeysToRerender({
                     [rnaComplexIndex] : {
                       [rnaMoleculeName] : [nucleotideIndex]
@@ -434,29 +446,32 @@ function App() {
       return function(
         e : React.MouseEvent<LabelLine.EndpointSvgRepresentation>,
         fullKeys : FullKeys,
-        endpointIndex : 0 | 1
+        pointIndex : number,
+        helper : () => void
       ) {
         const {
           rnaComplexIndex,
           rnaMoleculeName,
           nucleotideIndex
         } = fullKeys;
+        const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
+        const labelLineProps = (singularNucleotideProps.labelLineProps as LabelLine.ExternalProps);
         switch (e.button) {
           case MouseButtonIndices.Left : {
             let newDragListener = viewportDragListener;
             if (tabReference.current === Tab.EDIT) {
-              const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
-              const labelLineProps = (singularNucleotideProps.labelLineProps as LabelLine.ExternalProps);
+              const point = labelLineProps.points[pointIndex];
               newDragListener = {
                 initiateDrag() {
                   return {
-                    x : labelLineProps[`x${endpointIndex}`],
-                    y : labelLineProps[`y${endpointIndex}`]
+                    x : point.x,
+                    y : point.y
                   };
                 },
                 continueDrag(totalDrag) {
-                  labelLineProps[`x${endpointIndex}`] = totalDrag.x;
-                  labelLineProps[`y${endpointIndex}`] = totalDrag.y;
+                  point.x = totalDrag.x;
+                  point.y = totalDrag.y;
+                  helper();
                   setNucleotideKeysToRerender({
                     [rnaComplexIndex] : {
                       [rnaMoleculeName] : [nucleotideIndex]
@@ -1099,7 +1114,7 @@ function App() {
             let reader = new FileReader();
             reader.addEventListener("load", function(event) {
               // Read the content of the settings file.
-              let parsedInputFile = inputFileReadersRecord[fileExtension as InputFileExtension]((event.target as FileReader).result as string);
+              let parsedInputFile = inputFileReadersRecord[fileExtension.toLocaleLowerCase() as InputFileExtension]((event.target as FileReader).result as string);
               setComplexDocumentName(parsedInputFile.complexDocumentName);
               setRnaComplexProps(parsedInputFile.rnaComplexProps);
             });

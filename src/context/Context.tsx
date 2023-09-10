@@ -82,7 +82,8 @@ export namespace Context {
       export namespace Body {
         export const OnMouseDownHelper = createContext(function(
           e : React.MouseEvent<_LabelLine.BodySvgRepresentation>,
-          fullKeys : FullKeys
+          fullKeys : FullKeys,
+          helper : () => void
         ) { /* Do nothing. */ });
         }
 
@@ -90,7 +91,8 @@ export namespace Context {
         export const OnMouseDownHelper = createContext(function(
           e : React.MouseEvent<_LabelLine.EndpointSvgRepresentation>,
           fullKeys : FullKeys,
-          endpointIndex : 0 | 1
+          pointIndex : number,
+          helper : () => void
         ) { /* Do nothing. */ });
       }
     }
