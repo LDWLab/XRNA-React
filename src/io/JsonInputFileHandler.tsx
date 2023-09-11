@@ -4,7 +4,7 @@ import { RnaComplex, insertBasePair, DuplicateBasePairKeysHandler } from "../com
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
 import Color, { fromCssString, BLACK } from "../data_structures/Color";
 import Font from "../data_structures/Font";
-import { subtract } from "../data_structures/Vector2D";
+import { Vector2D, subtract } from "../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
 import { ParsedInputFile, InputFileReader } from "./InputUI";
 
@@ -261,13 +261,11 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
               strokeWidth : DEFAULT_STROKE_WIDTH
             };
           }
+
           if ("labelLine" in label) {
             let labelLine = label.labelLine;
             let color = structuredClone(parsedClassesForLabels.stroke);
             let strokeWidth = parsedClassesForLabels.strokeWidth;
-            if (!("points" in labelLine)) {
-              throw "Input label-line elements should have a \"points\" variables."
-            }
             const classes = labelLine.classes;
             if (classes !== undefined) {
               if (!Array.isArray(classes)) {
@@ -295,13 +293,44 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
                 }
               });
             }
-            const points = labelLine.points;
-            if (!Array.isArray(points)) {
-              throw "Label-line \"points\" variable should be an array.";
-            }
-
-            nucleotideProps.labelLineProps = {
-              points : points.map(function(point) {
+            let parsedPoints : Array<Vector2D> = [];
+            if (!("points" in labelLine)) {
+              if ("x1" in labelLine && "y1" in labelLine && "x2" in labelLine && "y2" in labelLine) {
+                let parsedX1 = Number.parseFloat(labelLine.x1);
+                if (Number.isNaN(parsedX1)) {
+                  throw "\"x1\" variable should be a number.";
+                }
+                let parsedY1 = Number.parseFloat(labelLine.y1);
+                if (Number.isNaN(parsedY1)) {
+                  throw "\"y1\" variable should be a number.";
+                }
+                let parsedX2 = Number.parseFloat(labelLine.x2);
+                if (Number.isNaN(parsedX2)) {
+                  throw "\"x2\" variable should be a number.";
+                }
+                let parsedY2 = Number.parseFloat(labelLine.y2);
+                if (Number.isNaN(parsedY2)) {
+                  throw "\"y2\" variable should be a number.";
+                }
+                parsedPoints.push(
+                  {
+                    x : parsedX1,
+                    y : parsedY1
+                  },
+                  {
+                    x : parsedX2,
+                    y : parsedY2
+                  }
+                );
+              } else {
+                throw "Input label-line elements should have a \"points\" variable.";
+              }
+            } else {
+              const points = labelLine.points;
+              if (!Array.isArray(points)) {
+                throw "Label-line \"points\" variable should be an array.";
+              }
+              parsedPoints = points.map(function(point) {
                 if (!("x" in point) || !("y"in point)) {
                   throw "Label-line point elements should include \"x\" and \"y\" properties.";
                 }
@@ -314,7 +343,11 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
                   x,
                   y
                 };
-              }),
+              })
+            }
+
+            nucleotideProps.labelLineProps = {
+              points : parsedPoints,
               color,
               strokeWidth
             };

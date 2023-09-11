@@ -3,7 +3,7 @@ export enum FileExtension {
   XML = "xml",
   JSON = "json",
   // TR = "tr",
-  // CSV = "csv",
+  CSV = "csv",
   // JPG = "jpg",
   // BPSEQ = "bpseq",
   // SVG = "svg",
@@ -12,7 +12,8 @@ export enum FileExtension {
 export const fileExtensionDescriptions : Record<FileExtension, string> = {
   [FileExtension.XRNA] : "the native input-file format of XRNA (an extension of .xml)",
   [FileExtension.XML] : "a data-file format native to the internet. Highly similar to .xrna",
-  [FileExtension.JSON] : "a general-purpose data-file format native to the internet. Logically equivalent to .xrna"
+  [FileExtension.JSON] : "a general-purpose data-file format native to the internet. Logically equivalent to .xrna",
+  [FileExtension.CSV] : "a comma-separated-values file. Logically equivalent to .xrna. Intended for use with RiboVision"
 };
 
 export const fileExtensions = Object.values(FileExtension);
