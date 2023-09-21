@@ -1,5 +1,5 @@
 import { createRef, useContext, useEffect, useMemo, useState } from "react";
-import { FullKeys } from "../../App";
+import { FullKeys, HTML_ELEMENT_ID_DELIMITER } from "../../App";
 import { Context } from "../../context/Context";
 import Color, { BLACK, toCSS } from "../../data_structures/Color";
 import Font from "../../data_structures/Font";
@@ -7,6 +7,14 @@ import { Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 import { LabelContent } from "./LabelContent";
 import { LabelLine } from "./LabelLine";
+
+export function getLabelContentHtmlElementId(
+  rnaComplexIndex : number,
+  rnaMoleculeName : string,
+  nucleotideIndex : number
+) {
+  return `${rnaComplexIndex}${HTML_ELEMENT_ID_DELIMITER}${rnaMoleculeName}${HTML_ELEMENT_ID_DELIMITER}${nucleotideIndex}${HTML_ELEMENT_ID_DELIMITER}LabelContent`;
+}
 
 export namespace Nucleotide {
   export type SvgRepresentation = SVGTextElement;
@@ -143,6 +151,11 @@ export namespace Nucleotide {
       />}
       {labelContentProps && <LabelContent.Component
         {...labelContentProps}
+        id = {getLabelContentHtmlElementId(
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        )}
         fullKeys = {fullKeys}
       />}
     </g>;

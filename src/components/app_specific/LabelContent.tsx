@@ -18,7 +18,8 @@ export namespace LabelContent {
   };
 
   export type Props = ExternalProps & {
-    fullKeys : FullKeys
+    fullKeys : FullKeys,
+    id : string
   };
 
   export function Component(props : Props) {
@@ -26,7 +27,8 @@ export namespace LabelContent {
       content,
       x,
       y,
-      fullKeys
+      fullKeys,
+      id
     } = props;
     const {
       rnaComplexIndex,
@@ -105,6 +107,7 @@ export namespace LabelContent {
       transform = {`translate(${x + graphicalAdjustment.x} ${y + graphicalAdjustment.y})`}
     >
       <text
+        id = {id}
         ref = {contentSvgTextElementReference}
         transform = "scale(1 -1)"
         fontSize = {font.size}

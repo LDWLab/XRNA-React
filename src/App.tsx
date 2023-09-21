@@ -22,6 +22,9 @@ import { Collapsible } from './components/generic/Collapsible';
 import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
 import { fileExtensionDescriptions } from './io/FileExtension';
 
+// Begin externally-facing constants.
+export const HTML_ELEMENT_ID_DELIMITER = "|";
+
 // Begin types.
 export type RnaComplexKey = number;
 export type RnaMoleculeKey = string;
