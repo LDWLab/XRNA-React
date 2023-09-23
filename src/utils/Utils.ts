@@ -203,3 +203,10 @@ export function max<T>(
     } 
   );
 }
+
+export function isEmpty(object : object) {
+  for (let _key in object) {
+    return false;
+  }
+  return true;
+}

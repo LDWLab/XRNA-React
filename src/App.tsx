@@ -9,7 +9,7 @@ import { inputFileExtensions, InputFileExtension, inputFileReadersRecord } from 
 import { DEFAULT_SETTINGS, Setting, settings, settingsLongDescriptionsMap, settingsShortDescriptionsMap, settingsTypeMap, SettingValue } from './ui/Setting';
 import InputWithValidator from './components/generic/InputWithValidator';
 import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, Context, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaComplex } from './context/Context';
-import { sign, subtractNumbers } from './utils/Utils';
+import { isEmpty, sign, subtractNumbers } from './utils/Utils';
 import { Nucleotide } from './components/app_specific/Nucleotide';
 import { LabelContent } from './components/app_specific/LabelContent';
 import { LabelLine } from './components/app_specific/LabelLine';
@@ -21,6 +21,8 @@ import { BasePairsEditor } from './components/app_specific/editors/BasePairsEdit
 import { Collapsible } from './components/generic/Collapsible';
 import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
 import { fileExtensionDescriptions } from './io/FileExtension';
+
+export const SVG_ELEMENT_HTML_ID = "viewport";
 
 // Begin externally-facing constants.
 export const HTML_ELEMENT_ID_DELIMITER = "|";
@@ -167,6 +169,10 @@ function App() {
     debugVisualElements,
     setDebugVisualElements
   ] = useState<Array<JSX.Element>>([]);
+  const [
+    downloadButtonErrorMessage,
+    setDownloadButtonErrorMessage
+  ] = useState<string>("");
   // Begin state-relevant helper functions.
   function resetViewport() {
     setSceneBounds((sceneSvgGElementReference.current as SVGGElement).getBBox());
@@ -818,6 +824,24 @@ function App() {
     },
     [basePairKeysToEdit]
   );
+  useEffect(
+    function() {
+      let downloadButtonErrorMessage = "";
+      if (isEmpty(rnaComplexProps)) {
+        downloadButtonErrorMessage = "Import data to enable downloads.";
+      } else if (outputFileName === "") {
+        downloadButtonErrorMessage = "Provide an output-file name to enable downloads.";
+      } else if (outputFileExtension === undefined) {
+        downloadButtonErrorMessage = "Provide an output-file extension to enable downloads.";
+      }
+      setDownloadButtonErrorMessage(downloadButtonErrorMessage);
+    },
+    [
+      rnaComplexProps,
+      outputFileName,
+      outputFileExtension
+    ]
+  );
   // Begin render data.
   const interactionConstraintSelectHtmlElement = <>
     {INTERACTION_CONSTRAINT_TEXT}:&nbsp;
@@ -1180,7 +1204,8 @@ function App() {
           ))}`;
           downloadAnchor.click();
         }}
-        disabled = {(outputFileName === "") || (outputFileExtension === undefined)}
+        disabled = {downloadButtonErrorMessage !== ""}
+        title = {downloadButtonErrorMessage}
       >
         {DOWNLOAD_BUTTON_TEXT}
       </button>
@@ -1449,7 +1474,6 @@ function App() {
       </Collapsible.Component>
     </>
   };
-  // Parent div
   return <Context.Nucleotide.SetKeysToRerender.Provider
     value = {setNucleotideKeysToRerender}
   >
@@ -1578,6 +1602,7 @@ function App() {
                 </div>
               </div>
               <svg
+                id = {SVG_ELEMENT_HTML_ID}
                 style = {{
                   top : (toolsDivResizeDetector.height ?? 0) + DIV_BUFFER_HEIGHT,
                   left : 0,

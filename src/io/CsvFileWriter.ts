@@ -3,22 +3,8 @@ import { Nucleotide, getLabelContentHtmlElementId } from "../components/app_spec
 import Color, { BLACK, toHexadecimal } from "../data_structures/Color";
 import Font from "../data_structures/Font";
 import { DEFAULT_STROKE_WIDTH, numberToFormattedStringHelper } from "../utils/Constants";
+import { OUTPUT_BOUNDS, OUTPUT_MIDPOINT } from "./OutputUI";
 
-// Note that these values are arbitrary, but they come from the XRNA Java program.
-export const CSV_OUTPUT_BOUNDS = {
-  x : {
-    max : 576,
-    min : 36
-  },
-  y : {
-    max : 756,
-    min : 36
-  }
-};
-export const CSV_OUTPUT_MIDPOINT = {
-  x : (CSV_OUTPUT_BOUNDS.x.min + CSV_OUTPUT_BOUNDS.x.max) * 0.5,
-  y : (CSV_OUTPUT_BOUNDS.y.min + CSV_OUTPUT_BOUNDS.y.max) * 0.5
-};
 export const CSV_NUCLEOTIDE_FONT_SCALAR = 1.2;
 
 export function csvFileWriter(
@@ -81,14 +67,9 @@ export function csvFileWriter(
       max : Number.NEGATIVE_INFINITY
     }
   };
-  for (let rnaComplexIndexAsString in rnaComplexProps) {
-    const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-    const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-    for (let rnaMoleculeName in singularRnaComplexProps.rnaMoleculeProps) {
-      const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
-      for (let nucleotideIndexAsString in singularRnaMoleculeProps.nucleotideProps) {
-        const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
-        const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+  for (let singularRnaComplexProps of Object.values(rnaComplexProps)) {
+    for (let singularRnaMoleculeProps of Object.values(singularRnaComplexProps.rnaMoleculeProps)) {
+      for (let singularNucleotideProps of Object.values(singularRnaMoleculeProps.nucleotideProps)) {
         const x = singularNucleotideProps.x;
         const y = singularNucleotideProps.y;
         if (x < nucleotideBounds.x.min) {
@@ -107,8 +88,8 @@ export function csvFileWriter(
     }
   }
   const scaleX = Math.min(
-    (CSV_OUTPUT_BOUNDS.x.max - CSV_OUTPUT_BOUNDS.x.min) / (nucleotideBounds.x.max - nucleotideBounds.x.min),
-    (CSV_OUTPUT_BOUNDS.y.max - CSV_OUTPUT_BOUNDS.y.min) / (nucleotideBounds.y.max  - nucleotideBounds.y.min)
+    (OUTPUT_BOUNDS.x.max - OUTPUT_BOUNDS.x.min) / (nucleotideBounds.x.max - nucleotideBounds.x.min),
+    (OUTPUT_BOUNDS.y.max - OUTPUT_BOUNDS.y.min) / (nucleotideBounds.y.max  - nucleotideBounds.y.min)
   );
   const scaleY = -scaleX;
   const inputMidpoint = {
@@ -126,8 +107,8 @@ export function csvFileWriter(
         const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
         const singularLabelLineProps = singularNucleotideProps.labelLineProps;
         let outputFromLabelLine = Array(6).fill("");
-        const x = scaleX * (singularNucleotideProps.x - inputMidpoint.x) + CSV_OUTPUT_MIDPOINT.x;
-        const y = scaleY * (singularNucleotideProps.y - inputMidpoint.y) + CSV_OUTPUT_MIDPOINT.y;
+        const x = scaleX * (singularNucleotideProps.x - inputMidpoint.x) + OUTPUT_MIDPOINT.x;
+        const y = scaleY * (singularNucleotideProps.y - inputMidpoint.y) + OUTPUT_MIDPOINT.y;
         const nucleotideFontSize = Math.round(getFontSize(singularNucleotideProps.font) * CSV_NUCLEOTIDE_FONT_SCALAR);
         if (singularLabelLineProps !== undefined) {
           const point0 = singularLabelLineProps.points[0];

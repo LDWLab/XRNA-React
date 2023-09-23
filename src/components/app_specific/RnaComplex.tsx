@@ -345,33 +345,35 @@ export namespace RnaComplex {
         value = {name}
       >
         <>
-        <Context.BasePair.Radius.Provider
-          value = {basePairRadius}
-        >
-          <Scaffolding.Component<BasePairKeys, BasePair.Props>
-            sortedProps = {editedFlattenedBasePairProps}
-            childComponent = {BasePair.Component}
-            propsToRerenderKeys = {basePairKeysToRerenderPerRnaComplex}
-            comparator = {compareBasePairKeys}
-          />
-        </Context.BasePair.Radius.Provider>
-        {flattenedRnaMoleculeProps.map(function(
-          [
-            rnaMoleculeName,
-            singularRnaMoleculeProps
-          ]
-        ) {
-          return <Context.RnaMolecule.Name.Provider
-            key = {rnaMoleculeName}
-            value = {rnaMoleculeName}
-          >
-            <RnaMolecule.Component
+          <g>
+            <Context.BasePair.Radius.Provider
+              value = {basePairRadius}
+            >
+              <Scaffolding.Component<BasePairKeys, BasePair.Props>
+                sortedProps = {editedFlattenedBasePairProps}
+                childComponent = {BasePair.Component}
+                propsToRerenderKeys = {basePairKeysToRerenderPerRnaComplex}
+                comparator = {compareBasePairKeys}
+              />
+            </Context.BasePair.Radius.Provider>
+          </g>
+          {flattenedRnaMoleculeProps.map(function(
+            [
+              rnaMoleculeName,
+              singularRnaMoleculeProps
+            ]
+          ) {
+            return <Context.RnaMolecule.Name.Provider
               key = {rnaMoleculeName}
-              {...singularRnaMoleculeProps}
-              nucleotideKeysToRerender = {nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] ?? []}
-            />
-          </Context.RnaMolecule.Name.Provider>
-        })}
+              value = {rnaMoleculeName}
+            >
+              <RnaMolecule.Component
+                key = {rnaMoleculeName}
+                {...singularRnaMoleculeProps}
+                nucleotideKeysToRerender = {nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] ?? []}
+              />
+            </Context.RnaMolecule.Name.Provider>
+          })}
         </>
       </Context.RnaComplex.Name.Provider>
     </g>;
