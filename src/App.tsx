@@ -691,6 +691,10 @@ function App() {
   // Begin effects.
   useEffect(
     function() {
+      window.onbeforeunload = function(e) {
+        // Custom messages aren't allowed anymore.
+        return "";
+      };
       let documentUrl = document.URL;
       let index = documentUrl.indexOf('?');
       if (index != -1) {
@@ -1732,7 +1736,7 @@ function App() {
               </svg>
               {sceneState === SceneState.DATA_IS_LOADING && <img
                 style = {{
-                  top : ((toolsDivResizeDetector.height ?? 0) * -0.5 + (parentDivResizeDetector.height ?? 0) * 0.5) - 45,
+                  top : ((toolsDivResizeDetector.height ?? 0) + (parentDivResizeDetector.height ?? 0)) * 0.5 - 100,
                   left : (parentDivResizeDetector.width ?? 0) * 0.5 - 50,
                   position : "absolute"
                 }}
