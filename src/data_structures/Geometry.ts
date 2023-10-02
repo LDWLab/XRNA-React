@@ -6,12 +6,17 @@ export type Circle = {
   radius : number
 };
 
-export type Line2D = {
+export type ParametricLine2D = {
   anchor : Vector2D,
   direction : Vector2D
 };
 
-export function intersect2dLines(l0 : Line2D, l1 : Line2D) : number | Line2D | null {
+export type Line2D = {
+  v0 : Vector2D,
+  v1 : Vector2D
+};
+
+export function intersect2dLines(l0 : ParametricLine2D, l1 : ParametricLine2D) : number | ParametricLine2D | null {
   let _crossProduct = crossProduct(l0.direction, l1.direction);
   if (sign(_crossProduct) === 0) {
     if (sign(crossProduct(subtract(l0.anchor, l1.anchor), l0.direction)) === 0) {
@@ -24,7 +29,7 @@ export function intersect2dLines(l0 : Line2D, l1 : Line2D) : number | Line2D | n
   }
 }
 
-export function intersectNonparallel2dLines(l0 : Line2D, l1 : Line2D, denominator = crossProduct(l0.direction, l1.direction)) : number {
+export function intersectNonparallel2dLines(l0 : ParametricLine2D, l1 : ParametricLine2D, denominator = crossProduct(l0.direction, l1.direction)) : number {
   // See https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
   return crossProduct(
     subtract(
@@ -35,7 +40,7 @@ export function intersectNonparallel2dLines(l0 : Line2D, l1 : Line2D, denominato
   ) / denominator;
 }
 
-export function interpolate(l : Line2D, interpolationFactor : number) : Vector2D {
+export function interpolate(l : ParametricLine2D, interpolationFactor : number) : Vector2D {
   return add(
     l.anchor,
     scaleUp(

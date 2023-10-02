@@ -21,6 +21,7 @@ import { BasePairsEditor } from './components/app_specific/editors/BasePairsEdit
 import { Collapsible } from './components/generic/Collapsible';
 import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
 import { fileExtensionDescriptions } from './io/FileExtension';
+import loadingGif from './images/loading.svg';
 
 export const SVG_ELEMENT_HTML_ID = "viewport";
 
@@ -42,6 +43,13 @@ export type DragListener = {
   terminateDrag? : () => void
 }
 export type RnaComplexProps = Record<RnaComplexKey, RnaComplex.ExternalProps>;
+
+enum SceneState {
+  NO_DATA = "No data",
+  DATA_IS_LOADING = "Data is loading",
+  DATA_IS_LOADED = "Data is loaded"
+}
+
 function App() {
   // Begin app-specific constants.
   const DIV_BUFFER_HEIGHT = 2;
@@ -113,9 +121,9 @@ function App() {
     setBasePairKeysToRerender
   ] = useState<BasePairKeysToRerender>({});
   const [
-    sceneVisibility,
-    setSceneVisibility
-  ] = useState(false);
+    sceneState,
+    setSceneState
+  ] = useState(SceneState.NO_DATA);
   const [
     mouseOverText,
     setMouseOverText
@@ -767,7 +775,7 @@ function App() {
             if (settingsRecord[Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD]) {
               resetViewport();
             }
-            setSceneVisibility(true);
+            setSceneState(SceneState.DATA_IS_LOADED);
           },
           numSeconds * 1000
         );
@@ -1126,6 +1134,7 @@ function App() {
             if (files === null || files.length === 0) {
               return;
             }
+            setSceneState(SceneState.DATA_IS_LOADING);
             let file = files[0];
             let inputFileNameAndExtension = file.name;
             setInputFileNameAndExtension(inputFileNameAndExtension);
@@ -1146,6 +1155,9 @@ function App() {
               setRnaComplexProps(parsedInputFile.rnaComplexProps);
             });
             reader.readAsText(files[0] as File);
+          }}
+          onClick = {function(e) {
+            e.currentTarget.value = "";
           }}
         />
       </label>
@@ -1693,7 +1705,7 @@ function App() {
                 />
                 <g
                   style = {{
-                    visibility : sceneVisibility ? "visible" : "hidden"
+                    visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
                   }}
                   transform = {totalScale.asTransform + " scale(1, -1) " + transformTranslate}
                 >
@@ -1718,6 +1730,15 @@ function App() {
                   {mouseOverText}
                 </text>
               </svg>
+              {sceneState === SceneState.DATA_IS_LOADING && <img
+                style = {{
+                  top : ((toolsDivResizeDetector.height ?? 0) * -0.5 + (parentDivResizeDetector.height ?? 0) * 0.5) - 45,
+                  left : (parentDivResizeDetector.width ?? 0) * 0.5 - 50,
+                  position : "absolute"
+                }}
+                src = {loadingGif}
+                alt = "Loading..."
+              />}
             </div>
           </Context.BasePair.SetKeysToEdit.Provider>
         </Context.App.UpdateRnaMoleculeNameHelper.Provider>

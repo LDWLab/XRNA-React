@@ -7,6 +7,8 @@ export const DEFAULT_BACKGROUND_COLOR_CSS_STRING = toCSS(CHARCOAL_GRAY);
 export const SCALE_BASE = 1.1;
 export const ONE_OVER_LOG_OF_SCALE_BASE = 1 / Math.log(SCALE_BASE);
 
+export const FLOATING_POINT_REGEX = "-?(?:(?:\\d+)|(?:(?:\\d+)?\\.\\d+))(?:e-?\\d+)?";
+
 export const numberToFormattedStringHelper = function(n : number, numberOfDecimalDigitsCount = DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT) {
   return n.toFixed(numberOfDecimalDigitsCount);
 };

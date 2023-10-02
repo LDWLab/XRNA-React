@@ -5,7 +5,8 @@ export enum FileExtension {
   TR = "tr",
   CSV = "csv",
   BPSEQ = "bpseq",
-  SVG = "svg"
+  SVG = "svg",
+  STR = "str"
 }
 
 export const fileExtensionDescriptions : Record<FileExtension, string> = {
@@ -15,7 +16,8 @@ export const fileExtensionDescriptions : Record<FileExtension, string> = {
   [FileExtension.CSV] : "a comma-separated-values file. Logically equivalent to .xrna. Intended for use with RiboVision",
   [FileExtension.BPSEQ] : "a simplified representation of the nucleotides of the scene.",
   [FileExtension.TR] : "a XML-like format for R2DT. Contains nucleotides with positions.",
-  [FileExtension.SVG] : "an image-file format. Can be converted to other file formats using external tools"
+  [FileExtension.SVG] : "an image-file format. Can be converted to other file formats using external tools",
+  [FileExtension.STR] : "a file containing nucleotide sequences and base pairs"
 };
 
 export const fileExtensions = Object.values(FileExtension);
