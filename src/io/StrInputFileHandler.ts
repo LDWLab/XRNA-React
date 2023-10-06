@@ -50,7 +50,7 @@ export function strInputFileHandler(inputFileContent : string) {
     let label = regexMatch[1];
     switch (label) {
       case "text" : {
-        const regex = /\{\s*([\d.]+)\s+([\d.]+)\s*\}.*(A|C|G|U)\s+0\s*$/;
+        const regex = /\{\s*(-?[\d.]+)\s+(-?[\d.]+)\s*\}.*(A|C|G|U)\s+0\s*$/;
         const textRegexMatch = subcontents.match(regex);
         if (textRegexMatch !== null) {
           nucleotideProps.push({
@@ -62,7 +62,7 @@ export function strInputFileHandler(inputFileContent : string) {
         break;
       }
       case "line" : {
-        const regex = /\{\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*\}/;
+        const regex = /\{\s*(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)\s*\}/;
         const lineRegexMatch = subcontents.match(regex);
         if (lineRegexMatch === null) {
           throw "lineRegexMatch should never be null.";

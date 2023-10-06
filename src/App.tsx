@@ -22,6 +22,7 @@ import { Collapsible } from './components/generic/Collapsible';
 import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
 import { fileExtensionDescriptions } from './io/FileExtension';
 import loadingGif from './images/loading.svg';
+import { SvgPropertyXrnaDataType } from './io/SvgInputFileHandler';
 
 export const SVG_ELEMENT_HTML_ID = "viewport";
 
@@ -633,6 +634,7 @@ function App() {
                   value = {labelLineEndpointOnMouseDownHelper}
                 >
                   <g
+                    data-xrna_type = {SvgPropertyXrnaDataType.SCENE}
                     ref = {function(svgGElement : SVGGElement | null) {
                       if (svgGElement === null) {
                         return;
@@ -731,7 +733,7 @@ function App() {
     function() {
       let rightClickPrompt = "";
       if (flattenedRnaComplexProps.length === 0) {
-        const promptStart = "You must load an input file before attempting to ";
+        const promptStart = "You must load a non-empty input file before attempting to ";
         switch (tab) {
           case Tab.EDIT : {
             rightClickPrompt = promptStart + "edit.";
@@ -783,6 +785,8 @@ function App() {
           },
           numSeconds * 1000
         );
+      } else {
+        setSceneState(SceneState.NO_DATA);
       }
     },
     [flattenedRnaComplexProps]
@@ -1616,6 +1620,16 @@ function App() {
                     </Context.App.SetComplexDocumentName.Provider>
                   </Context.App.ComplexDocumentName.Provider>
                 </div>
+                {sceneState === SceneState.NO_DATA && <>
+                  <br/>
+                  <b
+                    style = {{
+                      color : "red"
+                    }}
+                  >
+                    No data to display.
+                  </b>
+                </>}
               </div>
               <svg
                 id = {SVG_ELEMENT_HTML_ID}
@@ -1708,6 +1722,7 @@ function App() {
                   }}
                 />
                 <g
+                  data-xrna_type = {SvgPropertyXrnaDataType.MISCELLANEOUS}
                   style = {{
                     visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
                   }}

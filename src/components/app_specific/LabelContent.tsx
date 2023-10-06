@@ -6,6 +6,7 @@ import Color, { BLACK, toCSS } from "../../data_structures/Color";
 import Font from "../../data_structures/Font";
 import { Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
+import { SvgPropertyXrnaDataType } from "../../io/SvgInputFileHandler";
 
 export namespace LabelContent {
   export type SvgRepresentation = SVGTextElement;
@@ -103,36 +104,33 @@ export namespace LabelContent {
       },
       [contentDimensions]
     );
-    return <g
-      transform = {`translate(${x + graphicalAdjustment.x} ${y + graphicalAdjustment.y})`}
+    return <text
+      data-xrna_type = {SvgPropertyXrnaDataType.LABEL_CONTENT}
+      id = {id}
+      ref = {contentSvgTextElementReference}
+      transform = {`translate(${x}, ${y}) translate(${graphicalAdjustment.x}, ${graphicalAdjustment.y}) scale(1 -1)`}
+      fontSize = {font.size}
+      fontFamily = {font.family}
+      fontWeight = {font.weight}
+      fontStyle = {font.style}
+      stroke = {stroke}
+      strokeWidth = {strokeWidth}
+      fill = {toCSS(color)}
+      onMouseDown = {function(e) {
+        onMouseDownHelper(
+          e,
+          fullKeys
+        );
+        e.preventDefault();
+      }}
+      onMouseOver = {function() {
+        conditionallySetStroke(setStroke);
+      }}
+      onMouseLeave = {function() {
+        setStroke("none");
+      }}
     >
-      <text
-        id = {id}
-        ref = {contentSvgTextElementReference}
-        transform = "scale(1 -1)"
-        fontSize = {font.size}
-        fontFamily = {font.family}
-        fontWeight = {font.weight}
-        fontStyle = {font.style}
-        stroke = {stroke}
-        strokeWidth = {strokeWidth}
-        fill = {toCSS(color)}
-        onMouseDown = {function(e) {
-          onMouseDownHelper(
-            e,
-            fullKeys
-          );
-          e.preventDefault();
-        }}
-        onMouseOver = {function() {
-          conditionallySetStroke(setStroke);
-        }}
-        onMouseLeave = {function() {
-          setStroke("none");
-        }}
-      >
-        {content}
-      </text>
-    </g>;
+      {content}
+    </text>;
   }
 }

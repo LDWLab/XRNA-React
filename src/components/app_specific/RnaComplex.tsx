@@ -6,6 +6,7 @@ import Scaffolding from "../generic/Scaffolding";
 import BasePair, { getBasePairType } from "./BasePair";
 import { RnaMolecule } from "./RnaMolecule";
 import { HandleQueryNotFound, sortedArraySplice } from "../../utils/Utils";
+import { SvgPropertyXrnaDataType } from "../../io/SvgInputFileHandler";
 
 export enum DuplicateBasePairKeysHandler {
   DO_NOTHING,
@@ -122,11 +123,6 @@ export function selectRelevantBasePairKeys(
 }
 
 export namespace RnaComplex {
-  type ScaffoldingKey = {
-    rnaMoleculeName : string,
-    nucleotideIndex : number
-  };
-
   export type BasePairKeys = {
     rnaMoleculeName : RnaMoleculeKey,
     nucleotideIndex : NucleotideKey
@@ -165,6 +161,7 @@ export namespace RnaComplex {
       basePairKeysToRerenderPerRnaComplex
     } = props;
     // Begin context data.
+    const index = useContext(Context.RnaComplex.Index);
     const basePairDataToEditPerRnaComplex = useContext(Context.BasePair.DataToEditPerRnaComplex);
     // Begin state data.
     // const [
@@ -226,7 +223,7 @@ export namespace RnaComplex {
     //   },
     //   [rnaMoleculeProps]
     // );
-    const flattenedBasePairProps =  useMemo(
+    const flattenedBasePairProps = useMemo(
       function() {
         const flattenedBasePairProps = new Array<SingularFlattenedBasePairProps>();
         Object.entries(basePairs).forEach(function([
@@ -261,7 +258,11 @@ export namespace RnaComplex {
                 props : {
                   mappedBasePair : mappedBasePair as BasePair.FinalizedMappedBasePair,
                   position0 : singularNucleotideProps,
-                  position1 : singularBasePairedNucleotideProps
+                  position1 : singularBasePairedNucleotideProps,
+                  rnaMoleculeName0 : rnaMoleculeName,
+                  formattedNucleotideIndex0 : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
+                  rnaMoleculeName1 : mappedBasePair.rnaMoleculeName,
+                  formattedNucleotideIndex1 : mappedBasePair.nucleotideIndex + singularBasePairedRnaMoleculeProps.firstNucleotideIndex
                 }
               });
             }
@@ -303,8 +304,10 @@ export namespace RnaComplex {
             basePairDatumToAdd,
             mappedBasePair
           )) {
-            const singularNucleotideProps = rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
-            const singularBasePairedNucleotideProps = rnaMoleculeProps[mappedBasePair.rnaMoleculeName].nucleotideProps[mappedBasePair.nucleotideIndex];
+            const singularRnaMoleculeProps = rnaMoleculeProps[rnaMoleculeName];
+            const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+            const singularBasePairedRnaMoleculeProps = rnaMoleculeProps[mappedBasePair.rnaMoleculeName];
+            const singularBasePairedNucleotideProps = singularBasePairedRnaMoleculeProps.nucleotideProps[mappedBasePair.nucleotideIndex];
             if (mappedBasePair.basePairType === undefined) {
               mappedBasePair.basePairType = getBasePairType(
                 singularNucleotideProps.symbol,
@@ -316,7 +319,11 @@ export namespace RnaComplex {
               props : {
                 mappedBasePair : mappedBasePair as BasePair.FinalizedMappedBasePair,
                 position0 : singularNucleotideProps,
-                position1 : singularBasePairedNucleotideProps
+                position1 : singularBasePairedNucleotideProps,
+                rnaMoleculeName0 : rnaMoleculeName,
+                formattedNucleotideIndex0 : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
+                rnaMoleculeName1 : mappedBasePair.rnaMoleculeName,
+                formattedNucleotideIndex1 : mappedBasePair.nucleotideIndex + singularBasePairedRnaMoleculeProps.firstNucleotideIndex
               }
             };
             sortedArraySplice(
@@ -340,12 +347,17 @@ export namespace RnaComplex {
         basePairDataToEditPerRnaComplex
       ]
     );
-    return <g>
+    return <g
+      data-xrna_type = {SvgPropertyXrnaDataType.RNA_COMPLEX}
+      data-rna_complex_index = {index}
+    >
       <Context.RnaComplex.Name.Provider
         value = {name}
       >
         <>
-          <g>
+          <g
+            data-xrna_type = {SvgPropertyXrnaDataType.BASE_PAIRS_PER_RNA_COMPLEX}
+          >
             <Context.BasePair.Radius.Provider
               value = {basePairRadius}
             >

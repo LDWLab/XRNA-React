@@ -7,6 +7,7 @@ import { Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 import { LabelContent } from "./LabelContent";
 import { LabelLine } from "./LabelLine";
+import { SvgPropertyXrnaDataType } from "../../io/SvgInputFileHandler";
 
 export function getLabelContentHtmlElementId(
   rnaComplexIndex : number,
@@ -16,9 +17,10 @@ export function getLabelContentHtmlElementId(
   return `${rnaComplexIndex}${HTML_ELEMENT_ID_DELIMITER}${rnaMoleculeName}${HTML_ELEMENT_ID_DELIMITER}${nucleotideIndex}${HTML_ELEMENT_ID_DELIMITER}LabelContent`;
 }
 
+
 export namespace Nucleotide {
   export type SvgRepresentation = SVGTextElement;
-
+  
   export enum Symbol {
     FIVE_PRIME = "5'",
     THREE_PRIME = "3'",
@@ -30,6 +32,10 @@ export namespace Nucleotide {
     U = "U"
   };
   export const symbols = Object.values(Symbol);
+
+  export function isSymbol(candidateSymbol : string) : candidateSymbol is Symbol {
+    return (symbols as string[]).includes(candidateSymbol);
+  }
 
   export type ExternalProps = Vector2D & {
     symbol : Symbol,
@@ -116,6 +122,8 @@ export namespace Nucleotide {
       []
     );
     return <g
+      data-xrna_type = {SvgPropertyXrnaDataType.NUCLEOTIDE}
+      data-xrna_formatted_nucleotide_index = {nucleotideIndex + firstNucleotideIndexInRnaMolecule}
       transform = {`translate(${x}, ${y})`}
     >
       <text

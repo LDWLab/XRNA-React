@@ -4,6 +4,7 @@ import { Context } from "../../context/Context";
 import Color, { toCSS, BLACK } from "../../data_structures/Color";
 import { subtract, scaleUp, orthogonalize, magnitude, add, Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
+import { SvgPropertyXrnaDataType } from "../../io/SvgInputFileHandler";
 
 export namespace LabelLine {
   export type BodySvgRepresentation = SVGPathElement;
@@ -91,7 +92,9 @@ export namespace LabelLine {
       },
       [props.strokeWidth]
     );
-    return <g>
+    return <g
+      data-xrna_type = {SvgPropertyXrnaDataType.LABEL_LINE}
+    >
       <polyline
         points = {renderData.polylinePointsAttribute}
         pointerEvents = "none"
