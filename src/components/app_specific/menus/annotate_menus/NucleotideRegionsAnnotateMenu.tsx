@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { NucleotideKey, RnaComplexKey, RnaComplexProps, RnaMoleculeKey } from "../../../../App";
 import InputWithValidator from "../../../generic/InputWithValidator";
 import { NucleotideKeysToRerender } from "../../../../context/Context";
-import { asAngle, crossProduct, magnitude, orthogonalizeLeft, orthogonalizeRight, scaleUp, subtract, toNormalCartesian } from "../../../../data_structures/Vector2D";
+import { asAngle, crossProduct, magnitude, normalize, orthogonalizeLeft, orthogonalizeRight, scaleUp, subtract, toNormalCartesian } from "../../../../data_structures/Vector2D";
 import { Nucleotide } from "../../Nucleotide";
 import { sign, subtractNumbers } from "../../../../utils/Utils";
 import { Collapsible } from "../../../generic/Collapsible";
@@ -97,15 +97,15 @@ export namespace NucleotideRegionsAnnotateMenu {
         const averageAngle = (angle0 + angle1) * 0.5;
         return toNormalCartesian(averageAngle);
       } else if (previousNucleotideExistsFlag) {
-        return subtract(
+        return normalize(subtract(
           singularNucleotideProps,
           nucleotideProps[previousNucleotideIndex]
-        );
+        ));
       } else if (nextNucleotideExistsFlag) {
-        return subtract(
+        return normalize(subtract(
           nucleotideProps[nextNucleotideIndex],
           singularNucleotideProps
-        );
+        ));
       } else {
         return {
           x : 1,
@@ -126,6 +126,8 @@ export namespace NucleotideRegionsAnnotateMenu {
 
         const rightOrthogonalizationFlagRecordPerRnaComplex = annotationData.rightOrthogonalizationFlagRecord[rnaComplexIndex];
 
+        const startingNucleotideIndicesPerRegionPerRnaComplex = startingNucleotideIndicesPerRegion[rnaComplexIndex];
+
         const regionsPerRnaComplex = regions[rnaComplexIndex];
         const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
         const rnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps;
@@ -139,14 +141,21 @@ export namespace NucleotideRegionsAnnotateMenu {
 
           const rightOrthogonalizationFlagRecordPerRnaMolecule = rightOrthogonalizationFlagRecordPerRnaComplex[rnaMoleculeName];
 
+          const startingNucleotideIndicesPerRegionPerRnaMolecule = startingNucleotideIndicesPerRegionPerRnaComplex[rnaMoleculeName];
+
           const regionsPerRnaMolecule = regionsPerRnaComplex[rnaMoleculeName];
           const singularRnaMoleculeProps = rnaMoleculeProps[rnaMoleculeName];
           const nucleotideProps = singularRnaMoleculeProps.nucleotideProps;
-          for (const {
-            minimumNucleotideIndexInclusive,
-            maximumNucleotideIndexInclusive
-          } of regionsPerRnaMolecule) {
-            for (let nucleotideIndex = minimumNucleotideIndexInclusive; nucleotideIndex <= maximumNucleotideIndexInclusive; nucleotideIndex += nucleotideIndexIncrement) {
+          for (let i = 0; i < regionsPerRnaMolecule.length; i++) {
+            const {
+              minimumNucleotideIndexInclusive,
+              maximumNucleotideIndexInclusive
+            } = regionsPerRnaMolecule[i];
+            const startingNucleotideIndexPerRegion = startingNucleotideIndicesPerRegionPerRnaMolecule[i];
+            for (let nucleotideIndex = startingNucleotideIndexPerRegion; nucleotideIndex <= maximumNucleotideIndexInclusive; nucleotideIndex += nucleotideIndexIncrement) {
+              if (!(nucleotideIndex in nucleotideProps)) {
+                continue;
+              }
               const singularNucleotideProps = nucleotideProps[nucleotideIndex];
               if (affectLabelContentFlag || affectLabelLineFlag) {
                 nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
@@ -417,11 +426,8 @@ export namespace NucleotideRegionsAnnotateMenu {
             regionIndex : number,
             newStartingNucleotideIndex : NucleotideKey
           ) {
-            const newStartingNucleotideIndicesPerRegion = {
-              ...startingNucleotideIndicesPerRegion
-            };
-            newStartingNucleotideIndicesPerRegion[rnaComplexIndex][rnaMoleculeName][regionIndex] = newStartingNucleotideIndex;
-            setStartingNucleotideIndicesPerRegion(newStartingNucleotideIndicesPerRegion);
+            startingNucleotideIndicesPerRegion[rnaComplexIndex][rnaMoleculeName][regionIndex] = newStartingNucleotideIndex;
+            setStartingNucleotideIndicesPerRegion(structuredClone(startingNucleotideIndicesPerRegion));
           }}
         />
       </Collapsible.Component>
@@ -597,7 +603,7 @@ namespace StartingNucleotideIndicesEditor {
           <select
             value = {selectedRegionIndex}
             onChange = {function(e) {
-              const newSelectedRegionIndex = Number.parseInt(e.target.value) - 1;
+              const newSelectedRegionIndex = Number.parseInt(e.target.value);
               setSelectedRegionIndex(newSelectedRegionIndex);
               setSelectedRegion(regionsPerSelectedRnaMolecule[newSelectedRegionIndex]);
               setStartingNucleotideIndex(startingNucleotideIndicesPerRegionPerRnaMolecule[newSelectedRegionIndex]);
@@ -611,12 +617,11 @@ namespace StartingNucleotideIndicesEditor {
               Select a region index
             </option>
             {regionsPerSelectedRnaMolecule.map(function(_, i) {
-              const incrementedI = i + 1;
               return <option
                 key = {i}
-                value = {incrementedI}
+                value = {i}
               >
-                {incrementedI}
+                {i + 1}
               </option>;
             })}
           </select>
@@ -631,7 +636,7 @@ namespace StartingNucleotideIndicesEditor {
               selectedRnaComplexIndex as number,
               selectedRnaMoleculeName as string,
               selectedRegionIndex,
-              newFirstNucleotideIndex
+              newFirstNucleotideIndex - (firstNucleotideIndexPerRnaMolecule ?? Number.NaN)
             );
         }}
           min = {selectedRegion.minimumNucleotideIndexInclusive + (firstNucleotideIndexPerRnaMolecule ?? Number.NaN)}

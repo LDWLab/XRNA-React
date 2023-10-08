@@ -1,6 +1,7 @@
 import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
+import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import { EntireSceneInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/EntireSceneInteractionConstraintEditMenu";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import { AbstractInteractionConstraint } from "../AbstractInteractionConstraint";
@@ -79,6 +80,41 @@ export class EntireSceneInteractionConstraint extends AbstractInteractionConstra
           approveBasePairs = {function(basePairs) {
             // Do nothing.
           }}
+        />;
+        break;
+      }
+      case Tab.ANNOTATE : {
+        const regions : NucleotideRegionsAnnotateMenu.Regions = {};
+        for (const rnaComplexIndexAsString in this.rnaComplexProps) {
+          const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+          regions[rnaComplexIndex] = {};
+          const regionsPerRnaComplex = regions[rnaComplexIndex];
+          const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
+          for (const rnaMoleculeName in singularRnaComplexProps.rnaMoleculeProps) {
+            regionsPerRnaComplex[rnaMoleculeName] = [];
+            const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
+            const regionsPerRnaMolecule = regionsPerRnaComplex[rnaMoleculeName];
+            let minimumNucleotideIndexInclusive = Number.POSITIVE_INFINITY;
+            let maximumNucleotideIndexInclusive = Number.NEGATIVE_INFINITY;
+            for (const nucleotideIndexAsString in singularRnaMoleculeProps.nucleotideProps) {
+              const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+              if (nucleotideIndex < minimumNucleotideIndexInclusive) {
+                minimumNucleotideIndexInclusive = nucleotideIndex;
+              }
+              if (nucleotideIndex > maximumNucleotideIndexInclusive) {
+                maximumNucleotideIndexInclusive = nucleotideIndex;
+              }
+            }
+            regionsPerRnaMolecule.push({
+              minimumNucleotideIndexInclusive,
+              maximumNucleotideIndexInclusive
+            });
+          }
+        }
+        menu = <NucleotideRegionsAnnotateMenu.Component
+          regions = {regions}
+          rnaComplexProps = {this.rnaComplexProps}
+          setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
         />;
         break;
       }

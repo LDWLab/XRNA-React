@@ -2,6 +2,7 @@ import { DragListener, RnaComplexProps, FullKeys } from "../../../App";
 import { Tab } from "../../../app_data/Tab";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
+import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import Color, { BLACK, DEFAULT_ALPHA, areEqual } from "../../../data_structures/Color";
 import { Vector2D, add } from "../../../data_structures/Vector2D";
@@ -16,6 +17,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
   private readonly color : Color;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
   private readonly approveBasePair : (basePair : BasePairsEditor.BasePair) => boolean;
+  private readonly fullKeysOfNucleotidesWithColor : Array<FullKeys>;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -47,6 +49,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     const color = singularNucleotideProps.color ?? BLACK;
     this.color = color;
 
+    this.fullKeysOfNucleotidesWithColor = [];
     const rnaComplexIndices = Object.keys(this.rnaComplexProps).map(parseInteger);
     for (let rnaComplexIndex of rnaComplexIndices) {
       const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
@@ -69,6 +72,11 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
             color,
             nucleotideColor
           )) {
+            this.fullKeysOfNucleotidesWithColor.push({
+              rnaComplexIndex,
+              rnaMoleculeName,
+              nucleotideIndex
+            });
             toBeDragged.push(singularNucleotideProps);
 
             nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
@@ -80,11 +88,11 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
               });
               const singularBasePairedRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName];
               const singularBasePairedNucleotideProps = singularBasePairedRnaMoleculeProps.nucleotideProps[mappedBasePairInformation.nucleotideIndex];
-              let mismatchedColorBasePairExistsFlag = !areEqual(
+              const mismatchedColorBasePairExistsFlag = !areEqual(
                 color,
                 singularBasePairedNucleotideProps.color ?? BLACK
               );
-              if (mismatchedColorBasePairExistsFlag) {
+              if (mismatchedColorBasePairExistsFlag && tab !== Tab.ANNOTATE) {
                 const error : InteractionConstraintError = {
                   errorMessage : "Cannot interact with pairs of differently colored base-paired nucleotides using this selection constraint."
                 };
@@ -203,6 +211,47 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
               }
             }
           }}
+        />;
+        break;
+      }
+      case Tab.ANNOTATE : {
+        const regions : NucleotideRegionsAnnotateMenu.Regions = {};
+        for (const {
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        } of this.fullKeysOfNucleotidesWithColor) {
+          if (!(rnaComplexIndex in regions)) {
+            regions[rnaComplexIndex] = {};
+          }
+          const regionsPerRnaComplex = regions[rnaComplexIndex];
+          if (!(rnaMoleculeName in regionsPerRnaComplex)) {
+            regionsPerRnaComplex[rnaMoleculeName] = [];
+          }
+          const regionsPerRnaMolecule = regionsPerRnaComplex[rnaMoleculeName];
+          if (regionsPerRnaMolecule.length > 0) {
+            const previouslyAddedRegion = regionsPerRnaMolecule[regionsPerRnaMolecule.length - 1];
+            if (nucleotideIndex === previouslyAddedRegion.maximumNucleotideIndexInclusive + 1) {
+              previouslyAddedRegion.maximumNucleotideIndexInclusive = nucleotideIndex;
+            } else if (nucleotideIndex === previouslyAddedRegion.minimumNucleotideIndexInclusive - 1) {
+              previouslyAddedRegion.minimumNucleotideIndexInclusive = nucleotideIndex;
+            } else {
+              regionsPerRnaMolecule.push({
+                minimumNucleotideIndexInclusive : nucleotideIndex,
+                maximumNucleotideIndexInclusive : nucleotideIndex
+              });
+            }
+          } else {
+            regionsPerRnaMolecule.push({
+              minimumNucleotideIndexInclusive : nucleotideIndex,
+              maximumNucleotideIndexInclusive : nucleotideIndex
+            });
+          }
+        }
+        menu = <NucleotideRegionsAnnotateMenu.Component
+          regions = {regions}
+          rnaComplexProps = {this.rnaComplexProps}
+          setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
         />;
         break;
       }

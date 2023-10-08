@@ -9,9 +9,14 @@ import { getBoundingCircle } from "../../../data_structures/Geometry";
 import { sign, subtractNumbers } from "../../../utils/Utils";
 import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { Tab } from "../../../app_data/Tab";
+import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 
 export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint {
   private readonly editMenuProps : RnaCycleInteractionConstraintEditMenu.Props;
+  private readonly cycleIndices : Array<{
+    rnaMoleculeName : RnaMoleculeKey,
+    nucleotideIndex : NucleotideKey
+  }>;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -174,6 +179,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       };
       throw error;
     }
+    this.cycleIndices = cycleGraphNodes;
     const cycleGraphPositions = cycleGraphNodes.map(function(graphNode : GraphNode) {
       const {
         rnaMoleculeName,
@@ -531,6 +537,10 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
+    const {
+      rnaComplexIndex,
+      rnaMoleculeName
+    } = this.fullKeys;
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
@@ -543,6 +553,53 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
         menu = <>
           This interaction-constraint does not support the format menu.
         </>;
+        break;
+      }
+      case Tab.ANNOTATE : {
+        const regions : NucleotideRegionsAnnotateMenu.Regions = {
+          [rnaComplexIndex] : {
+
+          }
+        };
+        const regionsPerRnaComplex = regions[rnaComplexIndex];
+        let previousCycleIndices = {
+          // This is deliberate. I want the rnaMoleculeName comparison to fail on the first iteration.
+          rnaMoleculeName : undefined as any as string
+        };
+        for (const cycleIndices of this.cycleIndices) {
+          const {
+            rnaMoleculeName,
+            nucleotideIndex
+          } = cycleIndices;
+          if (!(rnaMoleculeName in regionsPerRnaComplex)) {
+            regionsPerRnaComplex[rnaMoleculeName] = [];
+          }
+          const regionsPerRnaMolecule = regionsPerRnaComplex[rnaMoleculeName];
+          if (rnaMoleculeName === previousCycleIndices.rnaMoleculeName && regionsPerRnaMolecule.length > 0) {
+            const previouslyAddedRegion = regionsPerRnaMolecule[regionsPerRnaMolecule.length - 1];
+            if (nucleotideIndex === previouslyAddedRegion.minimumNucleotideIndexInclusive - 1) {
+              previouslyAddedRegion.minimumNucleotideIndexInclusive = nucleotideIndex;
+            } else if (nucleotideIndex === previouslyAddedRegion.maximumNucleotideIndexInclusive + 1) {
+              previouslyAddedRegion.maximumNucleotideIndexInclusive = nucleotideIndex;
+            } else {
+              regionsPerRnaMolecule.push({
+                minimumNucleotideIndexInclusive : nucleotideIndex,
+                maximumNucleotideIndexInclusive : nucleotideIndex
+              });
+            }
+          } else {
+            regionsPerRnaMolecule.push({
+              minimumNucleotideIndexInclusive : nucleotideIndex,
+              maximumNucleotideIndexInclusive : nucleotideIndex
+            });
+          }
+        }
+        
+        menu = <NucleotideRegionsAnnotateMenu.Component
+          regions = {regions}
+          rnaComplexProps = {this.rnaComplexProps}
+          setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
+        />;
         break;
       }
       default : {

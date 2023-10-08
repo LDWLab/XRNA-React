@@ -10,6 +10,7 @@ import { Vector2D, orthogonalizeLeft } from "../../../data_structures/Vector2D";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { min } from "../../../utils/Utils";
+import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 
 export class SingleBasePairInteractionConstraint extends AbstractInteractionConstraint {
   private dragListener : DragListener;
@@ -20,6 +21,12 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     rnaMoleculeName : string,
     nucleotideIndex : number
   };
+  private nucleotideIndices : {
+    rnaMoleculeName0 : string,
+    nucleotideIndex0 : number,
+    rnaMoleculeName1 : string
+    nucleotideIndex1 : number
+  }
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -84,6 +91,12 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     const nucleotideIndex1 = mappedBasePair.nucleotideIndex;
     const rnaMoleculeName0 = rnaMoleculeName;
     const rnaMoleculeName1 = mappedBasePair.rnaMoleculeName;
+    this.nucleotideIndices = {
+      rnaMoleculeName0,
+      nucleotideIndex0,
+      rnaMoleculeName1,
+      nucleotideIndex1
+    };
     const basePairsPerRnaMolecule0 = basePairs[rnaMoleculeName0];
     // for (const nucleotideIndex0IncrementOrDecrement of [-1, 1]) {
     //   const incrementedOrDecrementedNucleotideIndex0 = nucleotideIndex0 + nucleotideIndex0IncrementOrDecrement;
@@ -209,6 +222,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     } = this.fullKeys;
     const fullKeys = this.fullKeys;
     const basePairedKeys = this.basePairedKeys;
+    const nucleotideIndices = this.nucleotideIndices;
     let menu : JSX.Element = <></>;
     switch (tab) {
       case Tab.EDIT : {
@@ -244,6 +258,40 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
           defaultRnaMoleculeName0 = {rnaMoleculeName}
           defaultRnaMoleculeName1 = {rnaMoleculeName}
         />;
+        break;
+      }
+      case Tab.ANNOTATE : {
+        let regions : NucleotideRegionsAnnotateMenu.Regions;
+        const region0 = {
+          minimumNucleotideIndexInclusive : nucleotideIndices.nucleotideIndex0,
+          maximumNucleotideIndexInclusive : nucleotideIndices.nucleotideIndex0
+        };
+        const region1 = {
+          minimumNucleotideIndexInclusive : nucleotideIndices.nucleotideIndex1,
+          maximumNucleotideIndexInclusive : nucleotideIndices.nucleotideIndex1
+        };
+        if (nucleotideIndices.rnaMoleculeName0 === nucleotideIndices.rnaMoleculeName1) {
+          regions = {
+            [rnaComplexIndex] : {
+              [nucleotideIndices.rnaMoleculeName0] : [
+                region0,
+                region1
+              ]
+            }
+          };
+        } else {
+          regions = {
+            [rnaComplexIndex] : {
+              [nucleotideIndices.rnaMoleculeName0] : [region0],
+              [nucleotideIndices.rnaMoleculeName1] : [region1]
+            }
+          };
+        }
+        menu = <NucleotideRegionsAnnotateMenu.Component
+          regions = {regions}
+          rnaComplexProps = {this.rnaComplexProps}
+          setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
+        />
         break;
       }
     }

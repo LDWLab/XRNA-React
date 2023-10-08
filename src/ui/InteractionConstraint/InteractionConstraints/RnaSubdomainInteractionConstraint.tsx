@@ -4,6 +4,7 @@ import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { RnaComplex, compareBasePairKeys, isRelevantBasePairKeySetInPair } from "../../../components/app_specific/RnaComplex";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
+import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import { NucleotideKeysToRerender, BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, NucleotideKeysToRerenderPerRnaMolecule, NucleotideKeysToRerenderPerRnaComplex } from "../../../context/Context";
 import { scaleUp, add, orthogonalizeLeft, subtract, asAngle } from "../../../data_structures/Vector2D";
 import { subtractNumbers } from "../../../utils/Utils";
@@ -257,6 +258,24 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
           defaultRnaMoleculeName0 = {rnaMoleculeName}
           defaultRnaMoleculeName1 = {rnaMoleculeName}
         />;
+        break;
+      }
+      case Tab.ANNOTATE : {
+        menu = <NucleotideRegionsAnnotateMenu.Component
+          regions = {{
+            [rnaComplexIndex] : {
+              [rnaMoleculeName] : [
+                {
+                  minimumNucleotideIndexInclusive : this.minimumNucleotideIndex,
+                  maximumNucleotideIndexInclusive : this.maximumNucleotideIndex
+                }
+              ]
+            }
+          }}
+          rnaComplexProps = {this.rnaComplexProps}
+          setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
+          />;
+          console.log(this.minimumNucleotideIndex, this.maximumNucleotideIndex);
         break;
       }
       default : {

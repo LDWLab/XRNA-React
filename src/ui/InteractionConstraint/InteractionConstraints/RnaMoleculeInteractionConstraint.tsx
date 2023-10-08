@@ -9,6 +9,7 @@ import { linearDrag } from "../CommonDragListeners";
 import { FilterHelicesMode, InteractionConstraint, iterateOverFreeNucleotidesandHelicesPerRnaMolecule } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
+import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 
 export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -139,6 +140,26 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
               }
             }
           }}
+        />;
+        break;
+      }
+      case Tab.ANNOTATE : {
+        const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
+        const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
+        const maximumNucleotideIndexInclusive = Math.max(...Object.keys(singularRnaMoleculeProps.nucleotideProps).map(parseInteger));
+        menu =  <NucleotideRegionsAnnotateMenu.Component
+          regions = {{
+            [rnaComplexIndex] : {
+              [rnaMoleculeName] : [
+                {
+                  minimumNucleotideIndexInclusive : 0,
+                  maximumNucleotideIndexInclusive
+                }
+              ]
+            }
+          }}
+          rnaComplexProps = {this.rnaComplexProps}
+          setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
         />;
         break;
       }

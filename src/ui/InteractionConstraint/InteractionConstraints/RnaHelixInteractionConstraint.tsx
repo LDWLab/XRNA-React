@@ -5,11 +5,12 @@ import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, Nucleotide
 import { linearDrag } from "../CommonDragListeners";
 import { AbstractInteractionConstraint, nonBasePairedNucleotideError, nonBasePairedNucleotideErrorMessage } from "../AbstractInteractionConstraint";
 import { Extrema, InteractionConstraint, calculateExtremaMagnitudeDifference, checkExtremaForSingleStrand, populateToBeDraggedWithHelix } from "../InteractionConstraints";
-import { subtractNumbers } from "../../../utils/Utils";
+import { parseInteger, subtractNumbers } from "../../../utils/Utils";
 import { scaleUp, add, orthogonalizeLeft, subtract, asAngle, Vector2D } from "../../../data_structures/Vector2D";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
+import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 
 export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -273,7 +274,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     const {
       rnaComplexIndex,
       rnaMoleculeName
-    } = this.fullKeys
+    } = this.fullKeys;
     switch (tab) {
       case Tab.EDIT : {
         return <>
@@ -293,6 +294,53 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
           defaultRnaComplexIndex = {rnaComplexIndex}
           defaultRnaMoleculeName0 = {rnaMoleculeName}
           defaultRnaMoleculeName1 = {rnaMoleculeName}
+        />;
+      }
+      case Tab.ANNOTATE : {
+        const initialBasePairs0 = this.initialBasePairs[0];
+        const {
+          rnaMoleculeName0,
+          rnaMoleculeName1,
+          nucleotideIndex0,
+          nucleotideIndex1,
+          length
+        } = initialBasePairs0 as Required<BasePairsEditor.BasePair>;
+        const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
+        const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+        const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+        let regions : NucleotideRegionsAnnotateMenu.Regions;
+        const minimumNucleotideIndexInclusive0 = nucleotideIndex0 - singularRnaMoleculeProps0.firstNucleotideIndex;
+        const maximumNucleotideIndexInclusive1 = nucleotideIndex1 - singularRnaMoleculeProps1.firstNucleotideIndex;
+        const region0 = {
+          minimumNucleotideIndexInclusive : minimumNucleotideIndexInclusive0,
+          maximumNucleotideIndexInclusive : minimumNucleotideIndexInclusive0 + length - 1
+        };
+        const region1 = {
+          minimumNucleotideIndexInclusive : maximumNucleotideIndexInclusive1 - length + 1,
+          maximumNucleotideIndexInclusive : maximumNucleotideIndexInclusive1
+        };
+        if (rnaMoleculeName0 === rnaMoleculeName1) {
+          regions = {
+            [rnaComplexIndex] : {
+              [rnaMoleculeName0] : [
+                region0,
+                region1
+              ]
+            }
+          };
+        } else {
+          regions = {
+            [rnaComplexIndex] : {
+              [rnaMoleculeName0] : [region0],
+              [rnaMoleculeName1] : [region1]
+            }
+          };
+        }
+        console.log("regions", regions);
+        return <NucleotideRegionsAnnotateMenu.Component
+          regions = {regions}
+          rnaComplexProps = {this.rnaComplexProps}
+          setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
         />;
       }
       default : {

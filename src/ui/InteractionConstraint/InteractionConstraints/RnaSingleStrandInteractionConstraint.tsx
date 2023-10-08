@@ -10,6 +10,7 @@ import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { InteractionConstraint } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
+import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 
 export const TWO_PI = 2 * Math.PI;
 
@@ -457,6 +458,25 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
             defaultRnaComplexIndex = {rnaComplexIndex}
             defaultRnaMoleculeName0 = {rnaMoleculeName}
             defaultRnaMoleculeName1 = {rnaMoleculeName}
+          />
+        </>;
+      }
+      case Tab.ANNOTATE : {
+        return <>
+          {header}
+          <NucleotideRegionsAnnotateMenu.Component
+            regions = {{
+              [rnaComplexIndex] : {
+                [rnaMoleculeName] : [
+                  {
+                    minimumNucleotideIndexInclusive : formattedLowerBoundingNucleotideIndex - singularRnaMoleculeProps.firstNucleotideIndex + 1,
+                    maximumNucleotideIndexInclusive : formattedUpperBoundingNucleotideIndex - singularRnaMoleculeProps.firstNucleotideIndex - 1
+                  }
+                ]
+              }
+            }}
+            rnaComplexProps = {this.rnaComplexProps}
+            setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
           />
         </>;
       }
