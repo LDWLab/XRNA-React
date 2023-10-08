@@ -4,7 +4,7 @@ import InputWithValidator from "../../../generic/InputWithValidator";
 import { NucleotideKeysToRerender } from "../../../../context/Context";
 import { asAngle, crossProduct, magnitude, orthogonalizeLeft, orthogonalizeRight, scaleUp, subtract, toNormalCartesian } from "../../../../data_structures/Vector2D";
 import { Nucleotide } from "../../Nucleotide";
-import { sign } from "../../../../utils/Utils";
+import { sign, subtractNumbers } from "../../../../utils/Utils";
 import { Collapsible } from "../../../generic/Collapsible";
 
 export namespace NucleotideRegionsAnnotateMenu {
@@ -211,6 +211,11 @@ export namespace NucleotideRegionsAnnotateMenu {
               }
             }
           }
+        }
+      }
+      for (const nucleotideKeysToRerenderPerRnaComplex of Object.values(nucleotideKeysToRerender)) {
+        for (const nucleotideKeysToRerenderPerRnaMolecule of Object.values(nucleotideKeysToRerenderPerRnaComplex)) {
+          nucleotideKeysToRerenderPerRnaMolecule.sort(subtractNumbers);
         }
       }
       setNucleotideKeysToRerender(nucleotideKeysToRerender);
@@ -629,8 +634,8 @@ namespace StartingNucleotideIndicesEditor {
               newFirstNucleotideIndex
             );
         }}
-          min = {selectedRegion.minimumNucleotideIndexInclusive}
-          max = {selectedRegion.maximumNucleotideIndexInclusive}
+          min = {selectedRegion.minimumNucleotideIndexInclusive + (firstNucleotideIndexPerRnaMolecule ?? Number.NaN)}
+          max = {selectedRegion.maximumNucleotideIndexInclusive + (firstNucleotideIndexPerRnaMolecule ?? Number.NaN)}
         />
       </>}
     </>;
