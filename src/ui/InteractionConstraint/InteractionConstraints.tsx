@@ -397,7 +397,8 @@ export namespace InteractionConstraint {
       fullKeys : FullKeys,
       setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
       setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
-      setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void
+      setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
+      tab : Tab
     ) => AbstractInteractionConstraint
   > = {
     [Enum.SINGLE_NUCLEOTIDE] : function(
@@ -405,14 +406,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new SingleNucleotideInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       ); 
     },
     [Enum.SINGLE_BASE_PAIR] : function(
@@ -420,14 +423,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new SingleBasePairInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     },
     [Enum.RNA_SINGLE_STRAND] : function(
@@ -435,14 +440,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new RnaSingleStrandInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     },
     [Enum.RNA_HELIX] : function(
@@ -450,14 +457,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new RnaHelixInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     },
     [Enum.RNA_STACKED_HELIX] : function(
@@ -465,14 +474,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new RnaStackedHelixInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     },
     [Enum.RNA_CYCLE] : function(
@@ -480,14 +491,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new RnaCycleInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     },
     [Enum.RNA_SUB_DOMAIN] : function(
@@ -495,14 +508,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new RnaSubdomainInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     },
     [Enum.RNA_MOLECULE] : function(
@@ -510,14 +525,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new RnaMoleculeInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     },
     [Enum.RNA_COMPLEX] : function(
@@ -525,14 +542,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new RnaComplexInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     },
     [Enum.SINGLE_COLOR] : function(
@@ -540,14 +559,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new SingleColorInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     },
     [Enum.ENTIRE_SCENE] : function(
@@ -555,14 +576,16 @@ export namespace InteractionConstraint {
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      tab
     ) {
       return new EntireSceneInteractionConstraint(
         rnaComplexProps,
         fullKeys,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender,
-        setDebugVisualElements
+        setDebugVisualElements,
+        tab
       );
     }
   };

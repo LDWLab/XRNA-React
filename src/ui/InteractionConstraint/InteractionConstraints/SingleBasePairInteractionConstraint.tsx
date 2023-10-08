@@ -26,7 +26,8 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
-    setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void
+    setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
+    tab : Tab
   ) {
     super(
       rnaComplexProps,

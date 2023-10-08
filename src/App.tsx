@@ -534,6 +534,10 @@ function App() {
             setStroke("blue");
             break;
           }
+          case Tab.ANNOTATE : {
+            setStroke("orange");
+            break;
+          }
         }
       };
     },
@@ -561,14 +565,15 @@ function App() {
                   fullKeys,
                   setNucleotideKeysToRerender,
                   setBasePairKeysToRerender,
-                  setDebugVisualElements
+                  setDebugVisualElements,
+                  tab
                 );
                 const newDragListenerAttempt = helper.drag();
                 if (newDragListenerAttempt != undefined) {
                   newDragListener = newDragListenerAttempt
                 }
               } catch (error : any) {
-                if ("errorMessage" in error) {
+                if (typeof error === "object" && "errorMessage" in error) {
                   alert(error.errorMessage);
                 } else {
                   throw error;
@@ -592,12 +597,13 @@ function App() {
                   fullKeys,
                   setNucleotideKeysToRerender,
                   setBasePairKeysToRerender,
-                  setDebugVisualElements
+                  setDebugVisualElements,
+                  tab
                 );
                 const rightClickMenu = helper.createRightClickMenu(tab as InteractionConstraint.SupportedTab);
                 setRightClickMenuContent(rightClickMenu);
               } catch (error : any) {
-                if ("errorMessage" in error) {
+                if (typeof error === "object" && "errorMessage" in error) {
                   alert(error.errorMessage);
                 } else {
                   throw error;
@@ -685,6 +691,15 @@ function App() {
     promise.then(data => {
       data.json().then(json => {
         let parsedInput = jsonObjectHandler(json);
+        const rnaComplexNames = new Set<string>();
+        for (const singularRnaComplexProps of Object.values(parsedInput.rnaComplexProps)) {
+          const { name } = singularRnaComplexProps;
+          if (rnaComplexNames.has(name)) {
+            throw `RNA complexes must have distinct names.`;
+          }
+          rnaComplexNames.add(name);
+        }
+
         setRnaComplexProps(parsedInput.rnaComplexProps);
         setComplexDocumentName(parsedInput.complexDocumentName);
       });

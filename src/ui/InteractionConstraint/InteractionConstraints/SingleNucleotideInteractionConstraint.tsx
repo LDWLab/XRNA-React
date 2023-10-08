@@ -7,6 +7,7 @@ import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { InteractionConstraint } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
+import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 
 export class SingleNucleotideInteractionConstraint extends AbstractInteractionConstraint {
   private readonly singularNucleotideProps : Nucleotide.ExternalProps;
@@ -16,7 +17,8 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
     fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
-    setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void
+    setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
+    tab : Tab
   ) {
     super(
       rnaComplexProps,
@@ -34,7 +36,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
     const {
       basePairs
     } = singularRnaComplexProps;
-    if (rnaMoleculeName in basePairs && nucleotideIndex in basePairs[rnaMoleculeName]) {
+    if (tab !== Tab.ANNOTATE && rnaMoleculeName in basePairs && nucleotideIndex in basePairs[rnaMoleculeName]) {
       throw basePairedNucleotideError;
     }
     this.singularNucleotideProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
@@ -142,6 +144,20 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
             defaultRnaMoleculeName1 = {rnaMoleculeName}
           />
         </>;
+      }
+      case Tab.ANNOTATE : {
+        return <NucleotideRegionsAnnotateMenu.Component
+          regions = {{
+            [rnaComplexIndex] : {
+              [rnaMoleculeName] : [{
+                minimumNucleotideIndexInclusive : nucleotideIndex,
+                maximumNucleotideIndexInclusive : nucleotideIndex + 10
+              }]
+            }
+          }}
+          rnaComplexProps = {this.rnaComplexProps}
+          setNucleotideKeysToRerender = {setNucleotideKeysToRerender}
+        />;
       }
       default : {
         const error : InteractionConstraintError = {
