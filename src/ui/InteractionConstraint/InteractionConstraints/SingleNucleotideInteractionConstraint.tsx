@@ -151,7 +151,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
             [rnaComplexIndex] : {
               [rnaMoleculeName] : [{
                 minimumNucleotideIndexInclusive : nucleotideIndex,
-                maximumNucleotideIndexInclusive : nucleotideIndex + 10
+                maximumNucleotideIndexInclusive : nucleotideIndex
               }]
             }
           }}
