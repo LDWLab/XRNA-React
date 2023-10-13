@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { RnaComplexProps } from "../../../../App";
 import InputWithValidator from "../../../generic/InputWithValidator";
 import { BasePairKeysToRerender, Context, NucleotideKeysToRerender } from "../../../../context/Context";
@@ -32,7 +32,13 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
         name,
         setName
       ] = useState(initialName);
-
+      // Begin effects.
+      useEffect(
+        function() {
+          setName(initialName)
+        },
+        [initialName]
+      );
       // Begin memo data.
       const orientationEditor : JSX.Element = useMemo(
         function() {
@@ -120,7 +126,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
             boundingVector1 = {boundingVectors[1]}
           />
         },
-        []
+        [initialName]
       );
 
       return <>
