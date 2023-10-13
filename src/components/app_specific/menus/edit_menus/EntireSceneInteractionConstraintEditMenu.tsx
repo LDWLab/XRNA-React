@@ -104,7 +104,7 @@ export namespace EntireSceneInteractionConstraintEditMenu {
     );
     return <>
       <label>
-        Complex document name:&nbsp;
+        Name:&nbsp;
         <input
           type = "text"
           value = {complexDocumentName}
