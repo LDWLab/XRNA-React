@@ -275,7 +275,6 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
           rnaComplexProps = {this.rnaComplexProps}
           setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
           />;
-          console.log(this.minimumNucleotideIndex, this.maximumNucleotideIndex);
         break;
       }
       default : {
