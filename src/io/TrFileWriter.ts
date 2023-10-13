@@ -45,10 +45,6 @@ export function trFileWriter(
     (OUTPUT_BOUNDS.y.max - OUTPUT_BOUNDS.y.min) / (nucleotideBounds.y.max  - nucleotideBounds.y.min)
   );
   const scaleY = -scaleX;
-  // console.log("nucleotideBounds", nucleotideBounds);
-  // console.log("scaleX", scaleX);
-  // console.log("scaleY", scaleY);
-  // console.log("scaleX", scaleX);
 
 
   const lines = new Array<string>();
