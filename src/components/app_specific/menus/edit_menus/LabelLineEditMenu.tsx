@@ -27,16 +27,6 @@ export namespace LabelLineEditMenu {
       }
       _triggerRerender();
     }
-    const {
-      rnaComplexIndex,
-      rnaMoleculeName,
-      nucleotideIndex
-    } = fullKeys;
-    const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-    const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
-    const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
-    const labelLineProps = singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
-    const points = labelLineProps.points;
     // Begin state data.
     const [
       pointIndex,
@@ -83,16 +73,51 @@ export namespace LabelLineEditMenu {
       // });
     }
     // Begin memo data.
+    const {
+      rnaComplexIndex,
+      rnaMoleculeName,
+      nucleotideIndex,
+      singularRnaComplexProps,
+      singularRnaMoleculeProps,
+      singularNucleotideProps,
+      labelLineProps,
+      points
+    } = useMemo(
+      function() {
+        const {
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        } = fullKeys;
+        const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+        const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
+        const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+        const labelLineProps = singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
+        const points = labelLineProps.points;
+        return {
+          ...fullKeys,
+          singularRnaComplexProps,
+          singularRnaMoleculeProps,
+          singularNucleotideProps,
+          labelLineProps,
+          points
+        }
+      },
+      [fullKeys]
+    );
     const point = useMemo(
       function() {
         const normalizedPointIndex = pointIndex - 1;
         return points[normalizedPointIndex];
       },
-      [pointIndex]
+      [
+        pointIndex,
+        points
+      ]
     );
     useEffect(
       updateOrientationEditorProps,
-      []
+      [fullKeys]
     );
     // Begin effects.
     useEffect(
@@ -101,6 +126,14 @@ export namespace LabelLineEditMenu {
         setY(point.y);
       },
       [point]
+    );
+    useEffect(
+      function() {
+        if (pointIndex > points.length) {
+          setPointIndex(points.length);
+        }
+      },
+      [fullKeys]
     );
     return <>
       <b>
