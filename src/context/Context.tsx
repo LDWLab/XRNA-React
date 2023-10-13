@@ -97,4 +97,8 @@ export namespace Context {
       }
     }
   }
+
+  export namespace OrientationEditor {
+    export const ResetDataTrigger = createContext(false);
+  }
 };
