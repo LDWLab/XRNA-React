@@ -5,7 +5,7 @@ import { useResizeDetector } from 'react-resize-detector';
 import { compareBasePairKeys, RnaComplex } from './components/app_specific/RnaComplex';
 import { OutputFileExtension, outputFileExtensions, outputFileWritersMap } from './io/OutputUI';
 import { SCALE_BASE, ONE_OVER_LOG_OF_SCALE_BASE, MouseButtonIndices } from './utils/Constants';
-import { inputFileExtensions, InputFileExtension, inputFileReadersRecord } from './io/InputUI';
+import { inputFileExtensions, InputFileExtension, inputFileReadersRecord, ParsedInputFile } from './io/InputUI';
 import { DEFAULT_SETTINGS, Setting, settings, settingsLongDescriptionsMap, settingsShortDescriptionsMap, settingsTypeMap, SettingValue } from './ui/Setting';
 import InputWithValidator from './components/generic/InputWithValidator';
 import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, Context, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaComplex } from './context/Context';
@@ -16,13 +16,13 @@ import { LabelLine } from './components/app_specific/LabelLine';
 import { InteractionConstraint } from './ui/InteractionConstraint/InteractionConstraints';
 import { LabelContentEditMenu } from './components/app_specific/menus/edit_menus/LabelContentEditMenu';
 import { LabelLineEditMenu } from './components/app_specific/menus/edit_menus/LabelLineEditMenu';
-import { jsonObjectHandler } from './io/JsonInputFileHandler';
 import { BasePairsEditor } from './components/app_specific/editors/BasePairsEditor';
 import { Collapsible } from './components/generic/Collapsible';
 import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
 import { fileExtensionDescriptions } from './io/FileExtension';
 import loadingGif from './images/loading.svg';
 import { SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from './io/SvgInputFileHandler';
+import { BLACK } from './data_structures/Color';
 
 export const SVG_ELEMENT_HTML_ID = "viewport";
 
@@ -235,6 +235,50 @@ function App() {
       setDragCache(dragListener.initiateDrag());
     }
     _setDragListener(dragListener);
+  }
+  function parseInputFileContent(
+    inputFileContent : string,
+    inputFileExtension : InputFileExtension
+  ) {
+    try {
+      const parsedInput = inputFileReadersRecord[inputFileExtension](inputFileContent);
+      const rnaComplexNames = new Set<string>();
+      for (const singularRnaComplexProps of Object.values(parsedInput.rnaComplexProps)) {
+        const { name } = singularRnaComplexProps;
+        if (rnaComplexNames.has(name)) {
+          throw `RNA complexes must have distinct names.`;
+        }
+        rnaComplexNames.add(name);
+  
+        for (const singularRnaMoleculeProps of Object.values(singularRnaComplexProps.rnaMoleculeProps)) {
+          for (const singularNucleotideProps of Object.values(singularRnaMoleculeProps.nucleotideProps)) {
+            if (singularNucleotideProps.color === undefined) {
+              singularNucleotideProps.color = structuredClone(BLACK);
+            }
+            if (singularNucleotideProps.labelContentProps !== undefined) {
+              const labelContentProps = singularNucleotideProps.labelContentProps;
+              if (labelContentProps.color === undefined) {
+                labelContentProps.color = structuredClone(BLACK);
+              }
+            }
+            if (singularNucleotideProps.labelLineProps !== undefined) {
+              const labelLineProps = singularNucleotideProps.labelLineProps;
+              if (labelLineProps.color === undefined) {
+                labelLineProps.color = structuredClone(BLACK);
+              }
+            }
+          }
+        }
+      }
+      setRnaComplexProps(parsedInput.rnaComplexProps);
+      setComplexDocumentName(parsedInput.complexDocumentName);
+    } catch (error) {
+      setSceneState(SceneState.DATA_LOADING_FAILED);
+      if (typeof error === "string") {
+        setDataLoadingFailedErrorMessage(error);
+      }
+      throw error;
+    }
   }
   const viewportDragListener : DragListener = {
     initiateDrag() {
@@ -702,19 +746,11 @@ function App() {
       method : "GET"
     });
     promise.then(data => {
-      data.json().then(json => {
-        let parsedInput = jsonObjectHandler(json);
-        const rnaComplexNames = new Set<string>();
-        for (const singularRnaComplexProps of Object.values(parsedInput.rnaComplexProps)) {
-          const { name } = singularRnaComplexProps;
-          if (rnaComplexNames.has(name)) {
-            throw `RNA complexes must have distinct names.`;
-          }
-          rnaComplexNames.add(name);
-        }
-
-        setRnaComplexProps(parsedInput.rnaComplexProps);
-        setComplexDocumentName(parsedInput.complexDocumentName);
+      data.text().then(dataAsText => {
+        parseInputFileContent(
+          dataAsText,
+          InputFileExtension.json
+        );
       });
     });
   }
@@ -1192,17 +1228,10 @@ function App() {
             let reader = new FileReader();
             reader.addEventListener("load", function(event) {
               // Read the content of the settings file.
-              try {
-                let parsedInputFile = inputFileReadersRecord[fileExtension.toLocaleLowerCase() as InputFileExtension]((event.target as FileReader).result as string);
-                setComplexDocumentName(parsedInputFile.complexDocumentName);
-                setRnaComplexProps(parsedInputFile.rnaComplexProps);
-              } catch (error) {
-                setSceneState(SceneState.DATA_LOADING_FAILED);
-                if (typeof error === "string") {
-                  setDataLoadingFailedErrorMessage(error);
-                }
-                throw error;
-              }
+              parseInputFileContent(
+                (event.target as FileReader).result as string,
+                fileExtension.toLocaleLowerCase() as InputFileExtension
+              );
             });
             reader.readAsText(files[0] as File);
           }}
