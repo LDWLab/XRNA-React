@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import InputWithValidator from "../../../generic/InputWithValidator";
 
 export namespace RnaSingleStrandInteractionConstraintEditMenu {
@@ -27,6 +27,13 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
       displacementAlongNormal,
       setDisplacementAlongNormal
     ] = useState(initialDisplacementAlongNormal);
+    // Begin effects
+    useEffect(
+      function() {
+        setDisplacementAlongNormal(initialDisplacementAlongNormal);
+      },
+      [initialDisplacementAlongNormal]
+    );
     const radioButtonName = "orientation";
     function setOrientation(
       newOrientation : Orientation
