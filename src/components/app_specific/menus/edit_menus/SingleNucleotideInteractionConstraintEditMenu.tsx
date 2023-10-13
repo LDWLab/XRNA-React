@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RnaComplexProps, FullKeys } from "../../../../App";
 import { Nucleotide } from "../../Nucleotide";
 import { Vector2D, distance } from "../../../../data_structures/Vector2D";
@@ -21,11 +21,31 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
     const {
       rnaComplexIndex,
       rnaMoleculeName,
-      nucleotideIndex
+      nucleotideIndex,
+      singularRnaComplexProps,
+      singularRnaMoleculeProps,
+      singularNucleotideProps
+    } = useMemo(
+      function() {
+        const {
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        } = fullKeys;
+        const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+        const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
+        const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+        return {
+          ...fullKeys,
+          singularRnaComplexProps,
+          singularRnaMoleculeProps,
+          singularNucleotideProps
+        };
+      },
+      [fullKeys]
+    );
+    const {
     } = fullKeys;
-    const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-    const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
-    const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
     // Begin state data.
     const [
       symbol,
@@ -44,13 +64,13 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       function() {
         return (nucleotideIndex - 1) in singularRnaMoleculeProps.nucleotideProps ? singularRnaMoleculeProps.nucleotideProps[nucleotideIndex - 1] : undefined;
       },
-      []
+      [fullKeys]
     );
     const nextNucleotidePosition : Vector2D | undefined = useMemo(
       function() {
         return (nucleotideIndex + 1) in singularRnaMoleculeProps.nucleotideProps ? singularRnaMoleculeProps.nucleotideProps[nucleotideIndex + 1] : undefined
       },
-      []
+      [fullKeys]
     );
     const previousNucleotideDistanceJsx = useMemo(
       function() {
@@ -88,6 +108,15 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
         x,
         y
       ]
+    );
+    // Begin effects.
+    useEffect(
+      function() {
+        setSymbol(singularNucleotideProps.symbol);
+        setX(singularNucleotideProps.x);
+        setY(singularNucleotideProps.y);
+      },
+      [fullKeys]
     );
     return <>
       {previousNucleotideDistanceJsx}
