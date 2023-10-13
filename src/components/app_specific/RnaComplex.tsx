@@ -6,7 +6,7 @@ import Scaffolding from "../generic/Scaffolding";
 import BasePair, { getBasePairType } from "./BasePair";
 import { RnaMolecule } from "./RnaMolecule";
 import { HandleQueryNotFound, sortedArraySplice } from "../../utils/Utils";
-import { SvgPropertyXrnaDataType } from "../../io/SvgInputFileHandler";
+import { SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 
 export enum DuplicateBasePairKeysHandler {
   DO_NOTHING,
@@ -348,16 +348,16 @@ export namespace RnaComplex {
       ]
     );
     return <g
-      data-xrna_type = {SvgPropertyXrnaDataType.RNA_COMPLEX}
-      data-rna_complex_index = {index}
+      {...{
+        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.RNA_COMPLEX,
+        [SVG_PROPERTY_XRNA_COMPLEX_NAME] : name
+      }}
     >
       <Context.RnaComplex.Name.Provider
         value = {name}
       >
         <>
-          <g
-            data-xrna_type = {SvgPropertyXrnaDataType.BASE_PAIRS_PER_RNA_COMPLEX}
-          >
+          <g>
             <Context.BasePair.Radius.Provider
               value = {basePairRadius}
             >

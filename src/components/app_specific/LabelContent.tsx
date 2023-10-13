@@ -6,7 +6,7 @@ import Color, { BLACK, toCSS } from "../../data_structures/Color";
 import Font from "../../data_structures/Font";
 import { Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
-import { SvgPropertyXrnaDataType } from "../../io/SvgInputFileHandler";
+import { SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 
 export namespace LabelContent {
   export type SvgRepresentation = SVGTextElement;
@@ -105,7 +105,9 @@ export namespace LabelContent {
       [contentDimensions]
     );
     return <text
-      data-xrna_type = {SvgPropertyXrnaDataType.LABEL_CONTENT}
+      {...{
+        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.LABEL_CONTENT
+      }}
       id = {id}
       ref = {contentSvgTextElementReference}
       transform = {`translate(${x}, ${y}) translate(${graphicalAdjustment.x}, ${graphicalAdjustment.y}) scale(1 -1)`}

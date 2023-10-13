@@ -2,7 +2,7 @@ import { useContext, useMemo } from "react";
 import { Context, NucleotideKeysToRerenderPerRnaMolecule } from "../../context/Context";
 import Scaffolding from "../generic/Scaffolding";
 import { Nucleotide } from "./Nucleotide";
-import { SvgPropertyXrnaDataType } from "../../io/SvgInputFileHandler";
+import { SVG_PROPERTY_XRNA_RNA_MOLECULE_FIRST_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 
 export namespace RnaMolecule {
   export type ExternalProps = {
@@ -45,9 +45,11 @@ export namespace RnaMolecule {
       [nucleotideProps]
     );
     return <g
-      data-xrna_type = {SvgPropertyXrnaDataType.RNA_MOLECULE}
-      data-xrna_rna_molecule_name = {name}
-      data-xrna_rna_molecule_first_nucleotide_index = {firstNucleotideIndex}
+      {...{
+        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.RNA_MOLECULE,
+        [SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME] : name,
+        [SVG_PROPERTY_XRNA_RNA_MOLECULE_FIRST_NUCLEOTIDE_INDEX] : firstNucleotideIndex
+      }}
     >
       <Context.RnaMolecule.FirstNucleotideIndex.Provider
         value = {firstNucleotideIndex}

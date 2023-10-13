@@ -4,7 +4,7 @@ import Color, { toCSS, BLACK } from "../../data_structures/Color";
 import { Vector2D, interpolate } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 import { Nucleotide } from "./Nucleotide";
-import { SvgPropertyXrnaDataType } from "../../io/SvgInputFileHandler";
+import { SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0, SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_1, SVG_PROPERTY_XRNA_BASE_PAIR_TYPE, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 
 export function getBasePairType(symbol0 : Nucleotide.Symbol, symbol1 : Nucleotide.Symbol) : BasePair.Type {
   switch (`${symbol0}_${symbol1}`) {
@@ -98,12 +98,14 @@ namespace BasePair {
       1 - interpolationFactor0
     );
     return <line
-      data-xrna_type = {SvgPropertyXrnaDataType.BASE_PAIR}
-      data-xrna_base_pair_rna_molecule_name_0 = {rnaMoleculeName0}
-      data-xrna_base_pair_formatted_nucleotide_index_0 = {formattedNucleotideIndex0}
-      data-xrna_base_pair_rna_molecule_name_1 = {rnaMoleculeName1}
-      data-xrna_base_pair_formatted_nucleotide_index_1 = {formattedNucleotideIndex1}
-      data-xrna_base_pair_type = {Type.CANONICAL}
+      {...{
+        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.BASE_PAIR,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0] : rnaMoleculeName0,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_1] : rnaMoleculeName1,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0] : formattedNucleotideIndex0,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1] : formattedNucleotideIndex1,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_TYPE] : Type.CANONICAL
+      }}
       style = {{
         pointerEvents : "none"
       }}
@@ -134,12 +136,14 @@ namespace BasePair {
     }
     const basePairRadiusContext = useContext(Context.BasePair.Radius);
     return <circle
-      data-xrna_type = {SvgPropertyXrnaDataType.BASE_PAIR}
-      data-xrna_base_pair_rna_molecule_name_0 = {rnaMoleculeName0}
-      data-xrna_base_pair_formatted_nucleotide_index_0 = {formattedNucleotideIndex0}
-      data-xrna_base_pair_rna_molecule_name_1 = {rnaMoleculeName1}
-      data-xrna_base_pair_formatted_nucleotide_index_1 = {formattedNucleotideIndex1}
-      data-xrna_base_pair_type = {Type.WOBBLE}
+      {...{
+        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.BASE_PAIR,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0] : rnaMoleculeName0,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_1] : rnaMoleculeName1,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0] : formattedNucleotideIndex0,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1] : formattedNucleotideIndex1,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_TYPE] : Type.WOBBLE
+      }}
       style = {{
         pointerEvents : "none"
       }}
@@ -170,12 +174,14 @@ namespace BasePair {
     }
     const basePairRadiusContext = useContext(Context.BasePair.Radius);
     return <circle
-      data-xrna_type = {SvgPropertyXrnaDataType.BASE_PAIR}
-      data-xrna_base_pair_rna_molecule_name_0 = {rnaMoleculeName0}
-      data-xrna_base_pair_formatted_nucleotide_index_0 = {formattedNucleotideIndex0}
-      data-xrna_base_pair_rna_molecule_name_1 = {rnaMoleculeName1}
-      data-xrna_base_pair_formatted_nucleotide_index_1 = {formattedNucleotideIndex1}
-      data-xrna_base_pair_type = {Type.MISMATCH}
+      {...{
+        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.BASE_PAIR,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0] : rnaMoleculeName0,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_1] : rnaMoleculeName1,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0] : formattedNucleotideIndex0,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1] : formattedNucleotideIndex1,
+        [SVG_PROPERTY_XRNA_BASE_PAIR_TYPE] : Type.MISMATCH
+      }}
       style = {{
         pointerEvents : "none"
       }}
