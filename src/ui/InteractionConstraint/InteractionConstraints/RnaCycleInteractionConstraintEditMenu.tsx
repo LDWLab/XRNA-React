@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import InputWithValidator from "../../../components/generic/InputWithValidator";
 
 export namespace RnaCycleInteractionConstraintEditMenu {
@@ -19,6 +19,13 @@ export namespace RnaCycleInteractionConstraintEditMenu {
       radius,
       setRadius
     ] = useState(initialRadius);
+    // Begin effects.
+    useEffect(
+      function() {
+        setRadius(initialRadius);
+      },
+      [initialRadius]
+    );
     return <>
       <button
         onClick = {function() {
