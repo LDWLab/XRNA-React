@@ -22,7 +22,7 @@ import { Collapsible } from './components/generic/Collapsible';
 import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
 import { fileExtensionDescriptions } from './io/FileExtension';
 import loadingGif from './images/loading.svg';
-import { SvgPropertyXrnaDataType } from './io/SvgInputFileHandler';
+import { SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from './io/SvgInputFileHandler';
 
 export const SVG_ELEMENT_HTML_ID = "viewport";
 
@@ -48,7 +48,8 @@ export type RnaComplexProps = Record<RnaComplexKey, RnaComplex.ExternalProps>;
 enum SceneState {
   NO_DATA = "No data",
   DATA_IS_LOADING = "Data is loading",
-  DATA_IS_LOADED = "Data is loaded"
+  DATA_IS_LOADED = "Data is loaded",
+  DATA_LOADING_FAILED = "Data loading failed"
 }
 
 function App() {
@@ -157,6 +158,10 @@ function App() {
     dragListener,
     _setDragListener
   ] = useState<DragListener | null>(null);
+  const [
+    resetOrientationDataTrigger,
+    setResetOrientationDataTrigger
+  ] = useState(false);
   // Begin viewport-relevant state data.
   const [
     viewportTranslateX,
@@ -181,6 +186,10 @@ function App() {
   const [
     downloadButtonErrorMessage,
     setDownloadButtonErrorMessage
+  ] = useState<string>("");
+  const [
+    dataLoadingFailedErrorMessage,
+    setDataLoadingFailedErrorMessage
   ] = useState<string>("");
   // Begin state-relevant helper functions.
   function resetViewport() {
@@ -601,6 +610,7 @@ function App() {
                   tab
                 );
                 const rightClickMenu = helper.createRightClickMenu(tab as InteractionConstraint.SupportedTab);
+                setResetOrientationDataTrigger(!resetOrientationDataTrigger);
                 setRightClickMenuContent(rightClickMenu);
               } catch (error : any) {
                 if (typeof error === "object" && "errorMessage" in error) {
@@ -640,7 +650,10 @@ function App() {
                   value = {labelLineEndpointOnMouseDownHelper}
                 >
                   <g
-                    data-xrna_type = {SvgPropertyXrnaDataType.SCENE}
+                    {...{
+                      [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.SCENE,
+                      [SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME] : complexDocumentName
+                    }}
                     ref = {function(svgGElement : SVGGElement | null) {
                       if (svgGElement === null) {
                         return;
@@ -872,6 +885,12 @@ function App() {
       outputFileName,
       outputFileExtension
     ]
+  );
+  useEffect(
+    function() {
+      setResetOrientationDataTrigger(!resetOrientationDataTrigger)
+    },
+    [rightClickMenuContent]
   );
   // Begin render data.
   const interactionConstraintSelectHtmlElement = <>
@@ -1173,9 +1192,17 @@ function App() {
             let reader = new FileReader();
             reader.addEventListener("load", function(event) {
               // Read the content of the settings file.
-              let parsedInputFile = inputFileReadersRecord[fileExtension.toLocaleLowerCase() as InputFileExtension]((event.target as FileReader).result as string);
-              setComplexDocumentName(parsedInputFile.complexDocumentName);
-              setRnaComplexProps(parsedInputFile.rnaComplexProps);
+              try {
+                let parsedInputFile = inputFileReadersRecord[fileExtension.toLocaleLowerCase() as InputFileExtension]((event.target as FileReader).result as string);
+                setComplexDocumentName(parsedInputFile.complexDocumentName);
+                setRnaComplexProps(parsedInputFile.rnaComplexProps);
+              } catch (error) {
+                setSceneState(SceneState.DATA_LOADING_FAILED);
+                if (typeof error === "string") {
+                  setDataLoadingFailedErrorMessage(error);
+                }
+                throw error;
+              }
             });
             reader.readAsText(files[0] as File);
           }}
@@ -1507,6 +1534,25 @@ function App() {
       >
         This version of XRNA (written in JavaScript) is currently unpublished. Once it becomes published, citation instructions will replace this text block.
       </Collapsible.Component>
+      <Collapsible.Component
+        title = "Contact us"
+      >
+        <a
+          href = "https://www.linkedin.com/in/caedenmeade/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Message the developer
+        </a>
+        <br/>
+        <a
+          href = "https://github.com/LDWLab/XRNA-React/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Report a bug
+        </a>
+      </Collapsible.Component>
     </>
   };
   return <Context.Nucleotide.SetKeysToRerender.Provider
@@ -1631,7 +1677,11 @@ function App() {
                     <Context.App.SetComplexDocumentName.Provider
                       value = {setComplexDocumentName}
                     >
-                      {rightClickMenuContent}
+                      <Context.OrientationEditor.ResetDataTrigger.Provider
+                        value = {resetOrientationDataTrigger}
+                      >
+                        {rightClickMenuContent}
+                      </Context.OrientationEditor.ResetDataTrigger.Provider>
                     </Context.App.SetComplexDocumentName.Provider>
                   </Context.App.ComplexDocumentName.Provider>
                 </div>
@@ -1644,6 +1694,24 @@ function App() {
                   >
                     No data to display.
                   </b>
+                </>}
+                {sceneState === SceneState.DATA_LOADING_FAILED && <>
+                  <br/>
+                  <b
+                    style = {{
+                      color : "red"
+                    }}
+                  >
+                    Parsing the provided input file failed.&nbsp;{dataLoadingFailedErrorMessage ? dataLoadingFailedErrorMessage : "Try another file, or report a bug."}
+                  </b>
+                  &nbsp;
+                  <a
+                    href = "https://github.com/LDWLab/XRNA-React/issues"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Report a bug
+                  </a>
                 </>}
               </div>
               <svg
@@ -1737,7 +1805,6 @@ function App() {
                   }}
                 />
                 <g
-                  data-xrna_type = {SvgPropertyXrnaDataType.MISCELLANEOUS}
                   style = {{
                     visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
                   }}
