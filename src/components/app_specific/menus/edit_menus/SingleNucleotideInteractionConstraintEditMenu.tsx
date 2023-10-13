@@ -4,6 +4,8 @@ import { Nucleotide } from "../../Nucleotide";
 import { Vector2D, distance } from "../../../../data_structures/Vector2D";
 import { DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT } from "../../../../utils/Constants";
 import InputWithValidator from "../../../generic/InputWithValidator";
+import { ColorEditor } from "../../../generic/editors/ColorEditor";
+import { BLACK } from "../../../../data_structures/Color";
 
 export namespace SingleNucleotideInteractionConstraintEditMenu {
   export type Props = {
@@ -59,6 +61,10 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       y,
       setY
     ] = useState(singularNucleotideProps.y);
+    const [
+      color,
+      setColor
+    ] = useState(singularNucleotideProps.color ?? BLACK);
     // Begin memo data.
     const previousNucleotidePosition : Vector2D | undefined = useMemo(
       function() {
@@ -118,6 +124,12 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       },
       [fullKeys]
     );
+    useEffect(
+      function() {
+        setColor(singularNucleotideProps.color ?? BLACK);
+      },
+      [singularNucleotideProps.color]
+    );
     return <>
       {previousNucleotideDistanceJsx}
       {nextNucleotideDistanceJsx}
@@ -167,6 +179,14 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
           }}
         />
       </label>
+      <ColorEditor.Component
+        color = {color}
+        setColorHelper = {function(newColor) {
+          singularNucleotideProps.color = newColor;
+          setColor(newColor);
+          triggerRerender();
+        }}
+      />
     </>;
   }
 }
