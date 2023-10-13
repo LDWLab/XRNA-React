@@ -119,7 +119,7 @@ export namespace ColorEditor {
           _alpha
         );
       },
-      []
+      [color]
     );
     // Begin render data.
     const modeRenderData : Record<EditMode, JSX.Element> = {

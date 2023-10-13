@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FullKeys, RnaComplexProps } from "../../../../App";
 import { LabelContent } from "../../LabelContent";
 import Font from "../../../../data_structures/Font";
@@ -21,15 +21,43 @@ export namespace LabelContentEditMenu {
       rnaComplexProps,
       triggerRerender,
     } = props;
+    // Begin memo data.
     const {
       rnaComplexIndex,
       rnaMoleculeName,
-      nucleotideIndex
-    } = fullKeys;
-    const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-    const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
-    const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
-    const labelContentProps = singularNucleotideProps.labelContentProps as LabelContent.ExternalProps;
+      nucleotideIndex,
+      singularRnaComplexProps,
+      singularRnaMoleculeProps,
+      singularNucleotideProps,
+      labelContentProps,
+      color
+    } = useMemo(
+      function() {
+        const {
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        } = fullKeys;
+        const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+        const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
+        const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+        const labelContentProps = singularNucleotideProps.labelContentProps as LabelContent.ExternalProps;
+        const color = labelContentProps.color;
+        const content = labelContentProps.content;
+        return {
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex,
+          singularRnaComplexProps,
+          singularRnaMoleculeProps,
+          singularNucleotideProps,
+          labelContentProps,
+          color,
+          content
+        };
+      },
+      [fullKeys]
+    );
     // Begin state data.
     const [
       content,
@@ -63,6 +91,7 @@ export namespace LabelContentEditMenu {
       y,
       setY
     ] = useState(labelContentProps.y);
+    // Begin effects.
     useEffect(
       function() {
         const font = labelContentProps.font ?? Font.DEFAULT;
@@ -72,6 +101,29 @@ export namespace LabelContentEditMenu {
         setFamily(font.family);
       },
       []
+    );
+    useEffect(
+      function() {
+        let {
+          content,
+          strokeWidth,
+          x,
+          y,
+          font
+        } = labelContentProps;
+        if (font === undefined) {
+          font = Font.DEFAULT;
+        }
+        setContent(content);
+        setStrokeWidth(strokeWidth ?? DEFAULT_STROKE_WIDTH);
+        setX(x);
+        setY(y);
+        setSize(typeof font.size === "string" ? font.size : font.size.toFixed(DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT));
+        setStyle(font.style);
+        setWeight(font.weight);
+        setFamily(font.family);
+      },
+      [labelContentProps]
     );
     return <>
       <b>
