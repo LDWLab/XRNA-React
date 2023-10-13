@@ -15,7 +15,7 @@ import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/
 export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
   private readonly editMenuHeader : JSX.Element;
-  private readonly editMenuProps : AppSpecificOrientationEditor.Props;
+  private readonly editMenuProps : AppSpecificOrientationEditor.SimplifiedProps;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
 
   constructor(
@@ -248,12 +248,18 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       <br/>
     </>;
     this.editMenuProps = {
-      initialCenter : boundingCenter,
       positions : toBeDragged,
       onUpdatePositions : rerender,
-      normal : normalVector,
-      initialAngle : asAngle(normalVector)
+      boundingVector0 : boundingNucleotide0,
+      boundingVector1 : boundingNucleotide1
     };
+    // this.editMenuProps = {
+    //   initialCenter : boundingCenter,
+    //   positions : toBeDragged,
+    //   onUpdatePositions : rerender,
+    //   normal : normalVector,
+    //   initialAngle : asAngle(normalVector)
+    // };
     this.initialBasePairs = [
       {
         rnaComplexIndex,
@@ -279,7 +285,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       case Tab.EDIT : {
         return <>
           {this.editMenuHeader}
-          <AppSpecificOrientationEditor.Component
+          <AppSpecificOrientationEditor.Simplified
             {...this.editMenuProps}
           />
         </>;
@@ -336,7 +342,6 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
             }
           };
         }
-        console.log("regions", regions);
         return <NucleotideRegionsAnnotateMenu.Component
           regions = {regions}
           rnaComplexProps = {this.rnaComplexProps}
