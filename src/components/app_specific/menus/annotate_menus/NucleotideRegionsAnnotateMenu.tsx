@@ -538,7 +538,6 @@ namespace StartingNucleotideIndicesEditor {
             // const newSelectedRnaComplexIndex = Object.values(rnaComplexProps).findIndex(function(singularRnaComplexProps) {
             //   return singularRnaComplexProps.name === selectedRnaComplexName;
             // });
-            // console.log("newSelectedRnaComplexIndex", newSelectedRnaComplexIndex);
             setSelectedRnaComplexIndex(newSelectedRnaComplexIndex);
             setRegionsPerSelectedRnaComplex(regions[newSelectedRnaComplexIndex]);
             setStartingNucleotideIndicesPerRegionPerRnaComplex(startingNucleotideIndicesPerRegion[newSelectedRnaComplexIndex]);
