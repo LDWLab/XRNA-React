@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Vector2D, add, asAngle, distance, orthogonalizeLeft, projectAndReject, scaleUp, subtract, toCartesian, toPolar } from "../../../data_structures/Vector2D";
 import InputWithValidator from "../InputWithValidator";
+import { Context } from "../../../context/Context";
 
 export namespace OrientationEditor {
   export type Props = {
@@ -25,6 +26,8 @@ export namespace OrientationEditor {
       initialScale,
       disabledFlag
     } = props;
+    // Begin context data.
+    const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
     // Begin memo data.
     const initialAngleNullCoalesced = useMemo(
       function() {
@@ -169,6 +172,14 @@ export namespace OrientationEditor {
         setCenterY(initialCenter.y);
       },
       [initialCenter]
+    );
+    useEffect(
+      function() {
+        setFlipPositionsFlag(false);
+        setAngle(initialAngleNullCoalesced)
+        setScale(initialScaleNullCoalesced);
+      },
+      [resetDataTrigger]
     );
     return <>
       <label>
