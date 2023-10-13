@@ -833,7 +833,8 @@ function App() {
     },
     [
       tab,
-      interactionConstraint
+      interactionConstraint,
+      rnaComplexProps
     ]
   );
   useEffect(
