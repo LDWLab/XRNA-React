@@ -362,9 +362,7 @@ export namespace NucleotideRegionsAnnotateMenu {
         }
         setStartingNucleotideIndicesPerRegion(startingNucleotideIndicesPerRegion);
       },
-      [
-        regions
-      ]
+      [regions]
     );
     return <>
       <b>
@@ -523,9 +521,7 @@ namespace StartingNucleotideIndicesEditor {
         const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[selectedRnaMoleculeName];
         return singularRnaMoleculeProps.firstNucleotideIndex;
       },
-      [
-        startingNucleotideIndex
-      ]
+      [startingNucleotideIndex]
     );
     return <>
       <label>

@@ -29,8 +29,7 @@ export namespace LabelContentEditMenu {
       singularRnaComplexProps,
       singularRnaMoleculeProps,
       singularNucleotideProps,
-      labelContentProps,
-      color
+      labelContentProps
     } = useMemo(
       function() {
         const {
@@ -42,8 +41,6 @@ export namespace LabelContentEditMenu {
         const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
         const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
         const labelContentProps = singularNucleotideProps.labelContentProps as LabelContent.ExternalProps;
-        const color = labelContentProps.color;
-        const content = labelContentProps.content;
         return {
           rnaComplexIndex,
           rnaMoleculeName,
@@ -51,9 +48,7 @@ export namespace LabelContentEditMenu {
           singularRnaComplexProps,
           singularRnaMoleculeProps,
           singularNucleotideProps,
-          labelContentProps,
-          color,
-          content
+          labelContentProps
         };
       },
       [fullKeys]
