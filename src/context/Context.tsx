@@ -5,6 +5,7 @@ import { Nucleotide as _Nucleotide } from "../components/app_specific/Nucleotide
 import { LabelContent as _LabelContent } from "../components/app_specific/LabelContent";
 import { LabelLine as _LabelLine } from "../components/app_specific/LabelLine";
 import { DEFAULT_SETTINGS } from "../ui/Setting";
+import { InteractionConstraint } from "../ui/InteractionConstraint/InteractionConstraints";
 
 export type NucleotideKeysToRerenderPerRnaMolecule = Array<NucleotideKey>;
 export type NucleotideKeysToRerenderPerRnaComplex = Record<RnaMoleculeKey, NucleotideKeysToRerenderPerRnaMolecule>;
@@ -25,6 +26,8 @@ export namespace Context {
       oldRnaMoleculeName : string,
       newRnaMoleculeName : string
     ) { /* Do nothing. */ });
+    export const InteractionConstraintOptions = createContext(InteractionConstraint.DEFAULT_OPTIONS);
+    export const UpdateInteractionConstraintOptions = createContext(function(options : Partial<InteractionConstraint.Options>) { /* Do nothing. */ });
   }
 
   export namespace RnaComplex {
