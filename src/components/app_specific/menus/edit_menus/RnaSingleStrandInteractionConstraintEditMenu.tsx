@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import InputWithValidator from "../../../generic/InputWithValidator";
+import { ColorEditor } from "../../../generic/editors/ColorEditor";
+import Color, { BLACK } from "../../../../data_structures/Color";
 
 export namespace RnaSingleStrandInteractionConstraintEditMenu {
   export type Props = {
     initialDisplacementAlongNormal : number,
-    updateSingleStrand : (orientation : Orientation, displacementAlongNormal : number) => void
+    updateSingleStrandPositions : (orientation : Orientation, displacementAlongNormal : number) => void,
+    updateSingleStrandColors : (newColor : Color) => void,
+    initialColor : Color
   };
 
   export enum Orientation {
@@ -16,7 +20,9 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
   export function Component(props : Props) {
     const {
       initialDisplacementAlongNormal,
-      updateSingleStrand
+      updateSingleStrandPositions,
+      updateSingleStrandColors,
+      initialColor
     } = props;
     // Begin state data.
     const [
@@ -27,6 +33,10 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
       displacementAlongNormal,
       setDisplacementAlongNormal
     ] = useState(initialDisplacementAlongNormal);
+    const [
+      color,
+      setColor
+    ] = useState(initialColor);
     // Begin effects
     useEffect(
       function() {
@@ -39,11 +49,17 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
       newOrientation : Orientation
     ) {
       _setOrientation(newOrientation);
-      updateSingleStrand(
+      updateSingleStrandPositions(
         newOrientation,
         displacementAlongNormal
       );
     }
+    useEffect(
+      function() {
+        setColor(initialColor);
+      },
+      [initialColor]
+    );
     return <>
       <b>
         Orientation:
@@ -95,13 +111,20 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
           value = {displacementAlongNormal}
           setValue = {function(newDisplacementAlongNormal) {
             setDisplacementAlongNormal(newDisplacementAlongNormal);
-            updateSingleStrand(
+            updateSingleStrandPositions(
               orientation as Orientation,
               newDisplacementAlongNormal
             );
           }}
         />
       </label>
+      <ColorEditor.Component
+        color = {color}
+        setColorHelper = {function(newColor) {
+          updateSingleStrandColors(newColor);
+          setColor(newColor);
+        }}
+      />
     </>;
   }
 }
