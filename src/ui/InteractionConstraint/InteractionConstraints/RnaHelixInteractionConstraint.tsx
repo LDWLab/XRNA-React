@@ -14,7 +14,7 @@ import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/
 
 export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
-  private readonly editMenuHeader : JSX.Element;
+  private readonly partialHeader : JSX.Element;
   private readonly editMenuProps : AppSpecificOrientationEditor.SimplifiedProps;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
 
@@ -237,10 +237,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       boundingNucleotide1,
       boundingNucleotide0
     ));
-    this.editMenuHeader = <>
-      <b>
-        Edit helix:
-      </b>
+    this.partialHeader = <>
       <br/>
       {nucleotideAndRnaMoleculeJsx}
       <br/>
@@ -281,17 +278,22 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       rnaComplexIndex,
       rnaMoleculeName
     } = this.fullKeys;
+    let menu : JSX.Element;
+    const header = <>
+      <b>
+        {tab} helix:
+      </b>
+      {this.partialHeader}
+    </>;
     switch (tab) {
       case Tab.EDIT : {
-        return <>
-          {this.editMenuHeader}
-          <AppSpecificOrientationEditor.Simplified
-            {...this.editMenuProps}
-          />
-        </>;
+        menu = <AppSpecificOrientationEditor.Simplified
+          {...this.editMenuProps}
+        />;
+        break;
       }
       case Tab.FORMAT : {
-        return <BasePairsEditor.Component
+        menu = <BasePairsEditor.Component
           rnaComplexProps = {this.rnaComplexProps}
           approveBasePairs = {function(basePairs : Array<BasePairsEditor.BasePair>) {
             // Do nothing.
@@ -301,6 +303,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
           defaultRnaMoleculeName0 = {rnaMoleculeName}
           defaultRnaMoleculeName1 = {rnaMoleculeName}
         />;
+        break;
       }
       case Tab.ANNOTATE : {
         const initialBasePairs0 = this.initialBasePairs[0];
@@ -342,15 +345,20 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
             }
           };
         }
-        return <NucleotideRegionsAnnotateMenu.Component
+        menu = <NucleotideRegionsAnnotateMenu.Component
           regions = {regions}
           rnaComplexProps = {this.rnaComplexProps}
           setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
         />;
+        break;
       }
       default : {
         throw "Unrecognized Tab";
       }
     }
+    return <>
+      {header}
+      {menu}
+    </>
   }
 }

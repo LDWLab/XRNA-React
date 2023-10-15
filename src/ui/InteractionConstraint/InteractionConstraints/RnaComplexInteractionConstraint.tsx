@@ -111,9 +111,16 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
     const {
       rnaComplexIndex
     } = this.fullKeys;
+    const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
+    let header : JSX.Element = <b>
+      {tab} RNA complex "{singularRnaComplexProps.name}":
+    </b>;
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
+        header = <b>
+          {tab} RNA complex:
+        </b>
         menu = <RnaComplexInteractionConstraintEditMenu.Component
           {...this.editMenuProps}
         />;
@@ -164,7 +171,6 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
             });
           }
         }
-
         menu = <NucleotideRegionsAnnotateMenu.Component
           regions = {regions}
           rnaComplexProps = {this.rnaComplexProps}
@@ -177,9 +183,7 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
       }
     }
     return <>
-      <b>
-        {tab} RNA complex:
-      </b>
+      {header}
       <br/>
       {menu}
     </>;

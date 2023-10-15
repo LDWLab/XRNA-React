@@ -116,9 +116,19 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
       rnaComplexIndex,
       rnaMoleculeName
     } = this.fullKeys;
+    let header : JSX.Element = <b>
+      {tab} RNA molecule "{rnaMoleculeName}":
+      <br/>
+    </b>;
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
+        header = <>
+          <b>
+            {tab} RNA molecule:
+          </b>
+          <br/>
+        </>;
         menu = <RnaMoleculeInteractionConstraintEditMenu.Component
           {...this.editMenuProps}
         />;
@@ -147,7 +157,7 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
         const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
         const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
         const maximumNucleotideIndexInclusive = Math.max(...Object.keys(singularRnaMoleculeProps.nucleotideProps).map(parseInteger));
-        menu =  <NucleotideRegionsAnnotateMenu.Component
+        menu = <NucleotideRegionsAnnotateMenu.Component
           regions = {{
             [rnaComplexIndex] : {
               [rnaMoleculeName] : [
@@ -168,10 +178,7 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
       }
     }
     return <>
-      <b>
-        {tab} RNA molecule:
-      </b>
-      <br/>
+      {header}
       {menu}
     </>;
   }

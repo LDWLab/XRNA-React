@@ -88,65 +88,61 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       In RNA molecule "{rnaMoleculeName}"
       <br/>
       In RNA complex "{singularRnaComplexProps.name}"
+      <br/>
     </>;
+    let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
-        return <>
-          {header}
-          <br/>
-          <SingleNucleotideInteractionConstraintEditMenu.Component
-            rnaComplexProps = {this.rnaComplexProps}
-            fullKeys = {this.fullKeys}
-            triggerRerender = {function() {
-              setNucleotideKeysToRerender({
-                [rnaComplexIndex] : {
-                  [rnaMoleculeName] : [nucleotideIndex]
-                }
-              });
-            }}
-          />
-        </>;
+        menu = <SingleNucleotideInteractionConstraintEditMenu.Component
+          rnaComplexProps = {this.rnaComplexProps}
+          fullKeys = {this.fullKeys}
+          triggerRerender = {function() {
+            setNucleotideKeysToRerender({
+              [rnaComplexIndex] : {
+                [rnaMoleculeName] : [nucleotideIndex]
+              }
+            });
+          }}
+        />;
+        break;
       }
       case Tab.FORMAT : {
         const formattedNucleotideIndex0 = nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
-        return <>
-          {header}
-          <br/>
-          <BasePairsEditor.Component
-            rnaComplexProps = {this.rnaComplexProps}
-            initialBasePairs = {[
-              {
-                rnaComplexIndex,
-                rnaMoleculeName0 : rnaMoleculeName,
-                nucleotideIndex0 : formattedNucleotideIndex0,
-                length : 1
-              }
-            ]}
-            approveBasePairs = {function(parsedBasePairs : Array<BasePairsEditor.BasePair>) {
-              if (parsedBasePairs.length > 1) {
-                throw "This interaction constraint expects at most one base pair.";
-              }
-              const parsedBasePair = parsedBasePairs[0];
-              if (parsedBasePair.length > 1) {
-                throw "This interaction constraint expects at most one base pair.";
-              }
-              const errorMessage = "This interaction constraint expects a base pair involving the clicked-on nucleotide.";
-              if (
-                parsedBasePair.rnaComplexIndex !== rnaComplexIndex ||
-                ![parsedBasePair.rnaMoleculeName0, parsedBasePair.rnaMoleculeName1].includes(rnaMoleculeName) ||
-                ![parsedBasePair.nucleotideIndex0, parsedBasePair.nucleotideIndex1].includes(formattedNucleotideIndex0)
-              ) {
-                throw errorMessage;
-              }
-            }}
-            defaultRnaComplexIndex = {rnaComplexIndex}
-            defaultRnaMoleculeName0 = {rnaMoleculeName}
-            defaultRnaMoleculeName1 = {rnaMoleculeName}
-          />
-        </>;
+        menu = <BasePairsEditor.Component
+          rnaComplexProps = {this.rnaComplexProps}
+          initialBasePairs = {[
+            {
+              rnaComplexIndex,
+              rnaMoleculeName0 : rnaMoleculeName,
+              nucleotideIndex0 : formattedNucleotideIndex0,
+              length : 1
+            }
+          ]}
+          approveBasePairs = {function(parsedBasePairs : Array<BasePairsEditor.BasePair>) {
+            if (parsedBasePairs.length > 1) {
+              throw "This interaction constraint expects at most one base pair.";
+            }
+            const parsedBasePair = parsedBasePairs[0];
+            if (parsedBasePair.length > 1) {
+              throw "This interaction constraint expects at most one base pair.";
+            }
+            const errorMessage = "This interaction constraint expects a base pair involving the clicked-on nucleotide.";
+            if (
+              parsedBasePair.rnaComplexIndex !== rnaComplexIndex ||
+              ![parsedBasePair.rnaMoleculeName0, parsedBasePair.rnaMoleculeName1].includes(rnaMoleculeName) ||
+              ![parsedBasePair.nucleotideIndex0, parsedBasePair.nucleotideIndex1].includes(formattedNucleotideIndex0)
+            ) {
+              throw errorMessage;
+            }
+          }}
+          defaultRnaComplexIndex = {rnaComplexIndex}
+          defaultRnaMoleculeName0 = {rnaMoleculeName}
+          defaultRnaMoleculeName1 = {rnaMoleculeName}
+        />;
+        break;
       }
       case Tab.ANNOTATE : {
-        return <NucleotideRegionsAnnotateMenu.Component
+        menu = <NucleotideRegionsAnnotateMenu.Component
           regions = {{
             [rnaComplexIndex] : {
               [rnaMoleculeName] : [{
@@ -158,6 +154,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
           rnaComplexProps = {this.rnaComplexProps}
           setNucleotideKeysToRerender = {setNucleotideKeysToRerender}
         />;
+        break;
       }
       default : {
         const error : InteractionConstraintError = {
@@ -166,5 +163,9 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
         throw error;
       }
     }
+    return <>
+      {header}
+      {menu}
+    </>;
   }
 };
