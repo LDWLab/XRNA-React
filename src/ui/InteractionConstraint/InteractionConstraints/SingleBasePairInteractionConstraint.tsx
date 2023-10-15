@@ -11,9 +11,13 @@ import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { min } from "../../../utils/Utils";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
+import { BLACK, areEqual } from "../../../data_structures/Color";
 
 export class SingleBasePairInteractionConstraint extends AbstractInteractionConstraint {
-  private dragListener : DragListener;
+  private dragListenersPerAffectHairpinNucleotidesFlag : {
+    true : DragListener,
+    false : DragListener
+  };
   private editMenuProps : SingleBasePairInteractionConstraintEditMenu.Props;
   private partialHeader : JSX.Element;
   private initialBasePairs : BasePairsEditor.InitialBasePairs;
@@ -83,7 +87,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       x : singularNucleotideProps.x,
       y : singularNucleotideProps.y
     };
-    const toBeDragged = [
+    const allNucleotides = [
       singularNucleotideProps,
       basePairedSingularNucleotideProps
     ];
@@ -120,38 +124,73 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
         [rnaMoleculeName] : nucleotideKeysToRerenderPerRnaMolecule
       }
       nucleotideKeysToRerenderPerRnaMolecule.push(lesserKeys.nucleotideIndex);
+      let hairpinLoopFlag = true;
+      const temporaryNucleotideData = [];
       for (let nucleotideIndex = lesserKeys.nucleotideIndex + 1; nucleotideIndex < greaterKeys.nucleotideIndex; nucleotideIndex++) {
-        if (nucleotideIndex in singularRnaMoleculeProps.nucleotideProps) {
-          nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
-          toBeDragged.push(singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]);
-        }
         if (nucleotideIndex in basePairsPerRnaMolecule0) {
-          const basePairKeys0 = {
-            rnaMoleculeName : rnaMoleculeName0,
-            nucleotideIndex : nucleotideIndex
-          };
-          const mappedBasePairInformation = basePairsPerRnaMolecule0[nucleotideIndex];
-          const basePairKeys1 = {
-            rnaMoleculeName : mappedBasePairInformation.rnaMoleculeName,
-            nucleotideIndex : mappedBasePairInformation.nucleotideIndex
-          };
-          basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
-            basePairKeys0,
-            basePairKeys1
-          ));
+          hairpinLoopFlag = false;
+          break;
+        }
+        temporaryNucleotideData.push({
+          index : nucleotideIndex,
+          props : singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]
+        });
+      }
+      if (hairpinLoopFlag) {
+        for (const {
+          index,
+          props
+        } of temporaryNucleotideData) {
+          nucleotideKeysToRerenderPerRnaMolecule.push(index);
+          allNucleotides.push(props);
         }
       }
+      // for (let nucleotideIndex = lesserKeys.nucleotideIndex + 1; nucleotideIndex < greaterKeys.nucleotideIndex; nucleotideIndex++) {
+      //   if (nucleotideIndex in singularRnaMoleculeProps.nucleotideProps) {
+      //     nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
+      //     allNucleotides.push(singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]);
+      //   }
+      //   if (nucleotideIndex in basePairsPerRnaMolecule0) {
+      //     const basePairKeys0 = {
+      //       rnaMoleculeName : rnaMoleculeName0,
+      //       nucleotideIndex : nucleotideIndex
+      //     };
+      //     const mappedBasePairInformation = basePairsPerRnaMolecule0[nucleotideIndex];
+      //     const basePairKeys1 = {
+      //       rnaMoleculeName : mappedBasePairInformation.rnaMoleculeName,
+      //       nucleotideIndex : mappedBasePairInformation.nucleotideIndex
+      //     };
+      //     basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
+      //       basePairKeys0,
+      //       basePairKeys1
+      //     ));
+      //   }
+      // }
       nucleotideKeysToRerenderPerRnaMolecule.push(greaterKeys.nucleotideIndex);
     }
     function rerender() {
       setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
       setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
     };
-    this.dragListener = linearDrag(
-      initialDrag,
-      toBeDragged,
-      rerender
-    );
+    const boundingNucleotides = [
+      singularNucleotideProps,
+      basePairedSingularNucleotideProps
+    ];
+    this.dragListenersPerAffectHairpinNucleotidesFlag = {
+      true : linearDrag(
+        initialDrag,
+        allNucleotides,
+        rerender
+      ),
+      false : linearDrag(
+        initialDrag,
+        [
+          singularNucleotideProps,
+          basePairedSingularNucleotideProps
+        ],
+        rerender
+      )
+    };
     this.partialHeader = <>
       Nucleotide #{nucleotideIndex + basePairedSingularRnaMoleculeProps.firstNucleotideIndex} ({singularNucleotideProps.symbol})
       <br/>
@@ -188,13 +227,18 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       singularNucleotideProps.symbol,
       basePairedSingularNucleotideProps.symbol
     );
+    const color0 = singularNucleotideProps.color ?? BLACK;
+    const color1 = basePairedSingularNucleotideProps.color ?? BLACK;
     this.editMenuProps = {
       boundingVector0,
       boundingVector1,
-      positions : toBeDragged,
+      positions : allNucleotides,
       onUpdatePositions : rerender,
       orthogonalizeHelper : orthogonalizeLeft,
-      basePairType
+      basePairType,
+      initialColor : areEqual(color0, color1) ? color0 : BLACK,
+      boundingNucleotides,
+      allNucleotides
     };
     this.initialBasePairs = [{
       rnaComplexIndex,
@@ -211,8 +255,9 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     }
   }
 
-  public override drag() {
-    return this.dragListener;
+  public override drag(options : InteractionConstraint.Options) {
+    const { affectHairpinNucleotidesFlag } = options;
+    return this.dragListenersPerAffectHairpinNucleotidesFlag[`${affectHairpinNucleotidesFlag}`];
   }
 
   public override createRightClickMenu(tab : InteractionConstraint.SupportedTab) {
