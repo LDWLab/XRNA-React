@@ -28,7 +28,7 @@ export namespace ColorEditor {
     const [
       editMode,
       setEditMode
-    ] = useState(EditMode.RGBA);
+    ] = useState(EditMode.ColorWheel);
     const [
       red,
       setRed
@@ -99,23 +99,23 @@ export namespace ColorEditor {
     // Begin effects.
     useEffect(
       function() {
-        color = color ?? BLACK;
-        setRed(color.red);
-        setGreen(color.green);
-        setBlue(color.blue);
-        const _alpha = color.alpha ?? DEFAULT_ALPHA;
+        let localColor = color ?? BLACK;
+        setRed(localColor.red);
+        setGreen(localColor.green);
+        setBlue(localColor.blue);
+        const _alpha = localColor.alpha ?? DEFAULT_ALPHA;
         setAlpha(_alpha);
         setHexadecimalHelper(
-          color.red,
-          color.green,
-          color.blue,
+          localColor.red,
+          localColor.green,
+          localColor.blue,
           _alpha,
           hexadecimalEncoding
         );
         updateColorWheelHelper(
-          color.red,
-          color.green,
-          color.blue,
+          localColor.red,
+          localColor.green,
+          localColor.blue,
           _alpha
         );
       },
