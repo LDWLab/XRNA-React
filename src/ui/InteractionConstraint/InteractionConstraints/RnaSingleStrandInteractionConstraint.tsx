@@ -11,6 +11,7 @@ import { InteractionConstraint } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
+import Color, { BLACK, areEqual } from "../../../data_structures/Color";
 
 export const TWO_PI = 2 * Math.PI;
 
@@ -115,12 +116,15 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
   private readonly dragListener : DragListener;
   private readonly partialMenuHeader : JSX.Element;
   private readonly initialDisplacementAlongNormal : number;
-  private readonly updateSingleStrand : (
+  private readonly updateSingleStrandPositions : (
     orientation : RnaSingleStrandInteractionConstraintEditMenu.Orientation,
     displacementAlongNormal : number
-  ) => void
+  ) => void;
+  private readonly updateSingleStrandColors : (newColor : Color) => void;
   private readonly formattedLowerBoundingNucleotideIndex : number;
   private readonly formattedUpperBoundingNucleotideIndex : number;
+  private readonly lowerBoundingNucleotideIndex : number;
+  private readonly upperBoundingNucleotideIndex : number;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -309,7 +313,9 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       ),
       normalVector
     );
-    this.updateSingleStrand = function(
+    this.lowerBoundingNucleotideIndex = lowerBoundingNucleotideIndex;
+    this.upperBoundingNucleotideIndex = upperBoundingNucleotideIndex;
+    this.updateSingleStrandPositions = function(
       orientation,
       displacementAlongNormal
     ) {
@@ -378,6 +384,13 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         }
       }
     };
+    this.updateSingleStrandColors = function(newColor : Color) {
+      for (let nucleotideIndexI = lowerBoundingNucleotideIndex; nucleotideIndexI <= upperBoundingNucleotideIndex; nucleotideIndexI++) {
+        let singularNucleotidePropsI = singularRnaMoleculeProps.nucleotideProps[nucleotideIndexI];
+        singularNucleotidePropsI.color = newColor;
+      }
+      rerender();
+    };
     this.formattedLowerBoundingNucleotideIndex = lowerBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
     this.formattedUpperBoundingNucleotideIndex = upperBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
   }
@@ -406,11 +419,24 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     </>;
     switch (tab) {
       case Tab.EDIT : {
+        let singleColorFlag = true;
+        const candidateSingleColor = singularRnaMoleculeProps.nucleotideProps[this.lowerBoundingNucleotideIndex].color ?? BLACK;
+        for (let nucleotideIndexI = this.lowerBoundingNucleotideIndex + 1; nucleotideIndexI <= this.upperBoundingNucleotideIndex; nucleotideIndexI++) {
+          const singularNucleotidePropsI = singularRnaMoleculeProps.nucleotideProps[nucleotideIndexI];
+          if (!areEqual(
+            singularNucleotidePropsI.color ?? BLACK,
+            candidateSingleColor
+          )) {
+            singleColorFlag = false;
+          }
+        }
         return <>
           {header}
           <RnaSingleStrandInteractionConstraintEditMenu.Component
             initialDisplacementAlongNormal = {this.initialDisplacementAlongNormal}
-            updateSingleStrand = {this.updateSingleStrand}
+            initialColor = {singleColorFlag ? candidateSingleColor : BLACK}
+            updateSingleStrandPositions = {this.updateSingleStrandPositions}
+            updateSingleStrandColors = {this.updateSingleStrandColors}
           />
         </>;
       }
