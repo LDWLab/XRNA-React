@@ -3,6 +3,7 @@ import { BasePairKeysToRerender, Context, NucleotideKeysToRerender } from "../..
 import { RnaComplexProps } from "../../../../App";
 import { Vector2D } from "../../../../data_structures/Vector2D";
 import { AppSpecificOrientationEditor } from "../../editors/AppSpecificOrientationEditor";
+import { ColorsAndPositionsEditor } from "../../../../ui/InteractionConstraint/InteractionConstraints/ColorsAndPositionsEditor";
 
 export namespace EntireSceneInteractionConstraintEditMenu {
   export type Props = {
@@ -93,7 +94,7 @@ export namespace EntireSceneInteractionConstraintEditMenu {
             }
           }
         }
-        return <AppSpecificOrientationEditor.Simplified
+        return <ColorsAndPositionsEditor.Component
           boundingVector0 = {boundingVectors[0]}
           boundingVector1 = {boundingVectors[1]}
           positions = {positions}

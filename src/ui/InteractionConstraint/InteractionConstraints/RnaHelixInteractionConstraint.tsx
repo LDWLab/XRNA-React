@@ -11,11 +11,13 @@ import { AppSpecificOrientationEditor } from "../../../components/app_specific/e
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
+import { ColorsAndPositionsEditor } from "./ColorsAndPositionsEditor";
+import { BLACK, areEqual } from "../../../data_structures/Color";
 
 export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
   private readonly partialHeader : JSX.Element;
-  private readonly editMenuProps : AppSpecificOrientationEditor.SimplifiedProps;
+  private readonly editMenuProps : ColorsAndPositionsEditor.Props;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
 
   constructor(
@@ -54,7 +56,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     const rnaMoleculeName1 = originalMappedBasePairInformation.rnaMoleculeName;
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
     const singularNucleotideProps1 = singularRnaMoleculeProps1.nucleotideProps[originalMappedBasePairInformation.nucleotideIndex];
-    const toBeDragged = new Array<Nucleotide.ExternalProps>();
+    const allNucleotides = new Array<Nucleotide.ExternalProps>();
     const nucleotideKeysToRerenderPerRnaComplex : NucleotideKeysToRerenderPerRnaComplex = {
       [rnaMoleculeName0] : [],
       [rnaMoleculeName1] : []
@@ -89,7 +91,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       basePairsPerRnaMolecule0,
       rnaMoleculeName0,
       rnaMoleculeName1,
-      toBeDragged,
+      allNucleotides,
       singularRnaMoleculeProps0,
       singularRnaMoleculeProps1,
       nucleotideKeysToRerenderPerRnaMolecule0,
@@ -103,7 +105,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       basePairsPerRnaMolecule0,
       rnaMoleculeName0,
       rnaMoleculeName1,
-      toBeDragged,
+      allNucleotides,
       singularRnaMoleculeProps0,
       singularRnaMoleculeProps1,
       nucleotideKeysToRerenderPerRnaMolecule0,
@@ -118,7 +120,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
         checkExtremaForSingleStrand(
           extrema0,
           basePairsPerRnaMolecule0,
-          toBeDragged,
+          allNucleotides,
           singularRnaMoleculeProps0,
           nucleotideKeysToRerenderPerRnaMolecule0
         );
@@ -127,7 +129,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
           checkExtremaForSingleStrand(
             extrema1,
             basePairsPerRnaMolecule0,
-            toBeDragged,
+            allNucleotides,
             singularRnaMoleculeProps0,
             nucleotideKeysToRerenderPerRnaMolecule0
           );
@@ -136,7 +138,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
         checkExtremaForSingleStrand(
           extrema0,
           basePairsPerRnaMolecule0,
-          toBeDragged,
+          allNucleotides,
           singularRnaMoleculeProps0,
           nucleotideKeysToRerenderPerRnaMolecule0
         );
@@ -144,7 +146,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
         checkExtremaForSingleStrand(
           extrema1,
           basePairsPerRnaMolecule0,
-          toBeDragged,
+          allNucleotides,
           singularRnaMoleculeProps0,
           nucleotideKeysToRerenderPerRnaMolecule0
         );
@@ -162,7 +164,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
         x : singularNucleotideProps0.x,
         y : singularNucleotideProps0.y
       },
-      toBeDragged,
+      allNucleotides,
       rerender
     );
     const nucleotideRange0Text = `Nucleotides [${extrema0[0] + singularRnaMoleculeProps0.firstNucleotideIndex}, ${extrema1[0] + singularRnaMoleculeProps0.firstNucleotideIndex}]`;
@@ -244,8 +246,19 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       In RNA complex "{singularRnaComplexProps.name}"
       <br/>
     </>;
+    let singleColorFlag = true;
+    const singleColorCandidate = allNucleotides[0].color ?? BLACK;
+    for (let i = 1; i < allNucleotides.length; i++) {
+      if (!areEqual(
+        singleColorCandidate,
+        allNucleotides[i].color ?? BLACK
+      )) {
+        singleColorFlag = false;
+        break;
+      }
+    }
     this.editMenuProps = {
-      positions : toBeDragged,
+      positions : allNucleotides,
       onUpdatePositions : rerender,
       boundingVector0 : boundingNucleotide0,
       boundingVector1 : boundingNucleotide1
@@ -287,9 +300,11 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     </>;
     switch (tab) {
       case Tab.EDIT : {
-        menu = <AppSpecificOrientationEditor.Simplified
-          {...this.editMenuProps}
-        />;
+        menu = <>
+          <ColorsAndPositionsEditor.Component
+            {...this.editMenuProps}
+          />
+        </>;
         break;
       }
       case Tab.FORMAT : {

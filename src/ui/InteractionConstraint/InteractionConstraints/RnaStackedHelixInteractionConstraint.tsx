@@ -11,11 +11,12 @@ import { sign, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
 import { Extrema, InteractionConstraint, HelixData, populateToBeDraggedWithHelix } from "../InteractionConstraints";
+import { ColorsAndPositionsEditor } from "./ColorsAndPositionsEditor";
 
 export class RnaStackedHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
   private readonly partialHeader : JSX.Element;
-  private readonly editMenuProps : AppSpecificOrientationEditor.Props;
+  private readonly editMenuProps : AppSpecificOrientationEditor.SimplifiedProps;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
   private readonly rnaMoleculeName0 : string;
   private readonly rnaMoleculeName1 : string;
@@ -391,10 +392,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       <br/>
     </>;
     this.editMenuProps = {
-      initialCenter : boundingNucleotideCenter,
+      boundingVector0 : boundingNucleotide0,
+      boundingVector1 : boundingNucleotide1,
       positions : toBeDragged,
       onUpdatePositions : rerender,
-      normal : normalVector,
       initialAngle : asAngle(normalVector)
     };
     this.initialBasePairs = helixData.map(function(helixDatum) {
@@ -438,7 +439,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       case Tab.EDIT : {
         return <>
           {header}
-          <AppSpecificOrientationEditor.Component
+          <ColorsAndPositionsEditor.Component
             {...this.editMenuProps}
           />
         </>;

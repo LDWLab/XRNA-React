@@ -10,6 +10,8 @@ import { sign, subtractNumbers } from "../../../utils/Utils";
 import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { Tab } from "../../../app_data/Tab";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
+import { Nucleotide } from "../../../components/app_specific/Nucleotide";
+import Color from "../../../data_structures/Color";
 
 export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint {
   private readonly editMenuProps : RnaCycleInteractionConstraintEditMenu.Props;
@@ -17,6 +19,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     rnaMoleculeName : RnaMoleculeKey,
     nucleotideIndex : NucleotideKey
   }>;
+  private readonly cycleGraphNucleotides : Array<Nucleotide.ExternalProps>;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -180,13 +183,14 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       throw error;
     }
     this.cycleIndices = cycleGraphNodes;
-    const cycleGraphPositions = cycleGraphNodes.map(function(graphNode : GraphNode) {
+    const cycleGraphNucleotides = cycleGraphNodes.map(function(graphNode : GraphNode) {
       const {
         rnaMoleculeName,
         nucleotideIndex
       } = graphNode;
       return rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
     });
+    this.cycleGraphNucleotides = cycleGraphNucleotides;
 
     let minimumGraphNode = cycleGraphNodes[0];
     let boundingVector0ArrayIndex = 0;
@@ -199,7 +203,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       }
     }
     const mappedBasePairInformation = basePairsPerRnaComplex[minimumGraphNode.rnaMoleculeName][minimumGraphNode.nucleotideIndex];
-    const boundingVector0 = cycleGraphPositions[boundingVector0ArrayIndex];
+    const boundingVector0 = cycleGraphNucleotides[boundingVector0ArrayIndex];
     const boundingVector1 = rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName].nucleotideProps[mappedBasePairInformation.nucleotideIndex];
     const incrementedCycleGraphNode = cycleGraphNodes[(boundingVector0ArrayIndex + 1) % cycleGraphNodes.length];
     const boundingVectorsIncrementedFlag = incrementedCycleGraphNode.rnaMoleculeName === mappedBasePairInformation.rnaMoleculeName && incrementedCycleGraphNode.nucleotideIndex === mappedBasePairInformation.nucleotideIndex;
@@ -265,7 +269,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       );
     }
 
-    const initialCandidateRadii = cycleGraphPositions.map(function(cycleGraphPositionI) {
+    const initialCandidateRadii = cycleGraphNucleotides.map(function(cycleGraphPositionI) {
       return getBoundingCircle(
         boundingVector0,
         boundingVector1,
@@ -325,8 +329,8 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       const cycleGraphNodeI : GraphNode = cycleGraphNodes[i];
       const arrayIndexIncremented = (i + 1) % cycleGraphNodes.length;
       const cycleGraphNodeIncremented : GraphNode = cycleGraphNodes[arrayIndexIncremented];
-      const position = cycleGraphPositions[i];
-      const incrementedPosition = cycleGraphPositions[arrayIndexIncremented];
+      const position = cycleGraphNucleotides[i];
+      const incrementedPosition = cycleGraphNucleotides[arrayIndexIncremented];
       const midpoint = scaleUp(
         add(
           position,
@@ -465,12 +469,12 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       );
       const angleMagnitude = angleBetween(dv0, dv1);
       const initialAngle = asAngle(dv0);
-      const angleDelta = (2 * Math.PI - angleMagnitude) / (cycleGraphPositions.length - 1) * sign(crossProduct(dv1, dv0));
+      const angleDelta = (2 * Math.PI - angleMagnitude) / (cycleGraphNucleotides.length - 1) * sign(crossProduct(dv1, dv0));
       let angle = initialAngle;
       let arrayIndex = boundingVector0ArrayIndex;
-      for (let i = 0; i < cycleGraphPositions.length - 2; i++) {
+      for (let i = 0; i < cycleGraphNucleotides.length - 2; i++) {
         angle += angleDelta;
-        arrayIndex = (arrayIndex + arrayIndexIncrement + cycleGraphPositions.length) % cycleGraphPositions.length;
+        arrayIndex = (arrayIndex + arrayIndexIncrement + cycleGraphNucleotides.length) % cycleGraphNucleotides.length;
         const newPosition = add(
           center,
           toCartesian(
@@ -480,7 +484,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
             }
           )
         );
-        const cycleGraphPositionI = cycleGraphPositions[arrayIndex];
+        const cycleGraphPositionI = cycleGraphNucleotides[arrayIndex];
         cycleGraphPositionI.x = newPosition.x;
         cycleGraphPositionI.y = newPosition.y;
       }
@@ -489,8 +493,8 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           arrayIndex,
           positionsToEdit
         } = branch;
-        const positionAtArrayIndex = cycleGraphPositions[arrayIndex];
-        const positionAtArrayIndexIncremented = cycleGraphPositions[(arrayIndex + 1) % cycleGraphPositions.length];
+        const positionAtArrayIndex = cycleGraphNucleotides[arrayIndex];
+        const positionAtArrayIndexIncremented = cycleGraphNucleotides[(arrayIndex + 1) % cycleGraphNucleotides.length];
         const midpoint = scaleUp(
           add(
             positionAtArrayIndex,
@@ -525,7 +529,9 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     this.editMenuProps = {
       initialRadius,
       minimumRadius,
-      updatePositionsHelper
+      updatePositionsHelper,
+      cycleGraphNucleotides,
+      rerender
     };
   }
 
@@ -550,16 +556,13 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
         break;
       }
       case Tab.FORMAT : {
-        menu = <>
-          This interaction-constraint does not support the format menu.
-        </>;
-        break;
+        throw {
+          errorMessage : "This interaction-constraint does not support the format menu."
+        };
       }
       case Tab.ANNOTATE : {
         const regions : NucleotideRegionsAnnotateMenu.Regions = {
-          [rnaComplexIndex] : {
-
-          }
+          [rnaComplexIndex] : {}
         };
         const regionsPerRnaComplex = regions[rnaComplexIndex];
         let previousCycleIndices = {

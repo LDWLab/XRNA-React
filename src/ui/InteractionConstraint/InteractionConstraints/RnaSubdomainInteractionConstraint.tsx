@@ -11,11 +11,12 @@ import { subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
 import { InteractionConstraint, HelixData, populateToBeDraggedWithHelix, iterateOverFreeNucleotidesAndHelicesPerNucleotideRange, FilterHelicesMode } from "../InteractionConstraints";
+import { ColorsAndPositionsEditor } from "./ColorsAndPositionsEditor";
 
 export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
   private readonly partialMenuHeader : JSX.Element;
-  private readonly editMenuProps : AppSpecificOrientationEditor.Props;
+  private readonly editMenuProps : AppSpecificOrientationEditor.SimplifiedProps;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
   private readonly minimumNucleotideIndex : number;
   private readonly maximumNucleotideIndex : number;
@@ -164,10 +165,10 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       boundingNucleotideProps0
     ));
     this.editMenuProps = {
-      initialCenter : boundingNucleotideCenter,
+      boundingVector0 : boundingNucleotideProps0,
+      boundingVector1 : boundingNucleotideProps1,
       positions : toBeDragged,
       onUpdatePositions : rerender,
-      normal : normalVector,
       initialAngle : asAngle(normalVector)
     };
     this.minimumNucleotideIndex = Math.min(
@@ -217,7 +218,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
-        menu = <AppSpecificOrientationEditor.Component
+        menu = <ColorsAndPositionsEditor.Component
           {...this.editMenuProps}
         />;
         break;

@@ -10,6 +10,7 @@ import { parseInteger } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
 import { FilterHelicesMode, InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerScene } from "../InteractionConstraints";
+import { ColorsAndPositionsEditor } from "./ColorsAndPositionsEditor";
 
 export class SingleColorInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -18,6 +19,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
   private readonly approveBasePair : (basePair : BasePairsEditor.BasePair) => boolean;
   private readonly fullKeysOfNucleotidesWithColor : Array<FullKeys>;
+  private readonly basePairBetweenDifferentColorsError? : string;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -93,10 +95,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
                 singularBasePairedNucleotideProps.color ?? BLACK
               );
               if (mismatchedColorBasePairExistsFlag && tab !== Tab.ANNOTATE) {
-                const error : InteractionConstraintError = {
-                  errorMessage : "Cannot interact with pairs of differently colored base-paired nucleotides using this selection constraint."
-                };
-                throw error;
+                this.basePairBetweenDifferentColorsError = "Cannot interact with pairs of differently colored base-paired nucleotides using this selection constraint.";
               }
             }
           }
@@ -184,6 +183,11 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
   }
 
   public override drag() {
+    if (this.basePairBetweenDifferentColorsError !== undefined) {
+      throw {
+        errorMessage : this.basePairBetweenDifferentColorsError
+      };
+    }
     return this.dragListener;
   }
 
@@ -193,7 +197,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
-        menu = <AppSpecificOrientationEditor.Simplified
+        menu = <ColorsAndPositionsEditor.Component
           {...this.editMenuProps}
         />;
         break;

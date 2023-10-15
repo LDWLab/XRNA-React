@@ -5,6 +5,7 @@ import { BasePairKeysToRerender, Context, NucleotideKeysToRerender } from "../..
 import { AppSpecificOrientationEditor } from "../../editors/AppSpecificOrientationEditor";
 import { Vector2D, add } from "../../../../data_structures/Vector2D";
 import { parseInteger, subtractNumbers, subtractNumbersNegated } from "../../../../utils/Utils";
+import { ColorsAndPositionsEditor } from "../../../../ui/InteractionConstraint/InteractionConstraints/ColorsAndPositionsEditor";
 
 export namespace RnaMoleculeInteractionConstraintEditMenu {
     export type Props = {
@@ -40,7 +41,10 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
         [initialName]
       );
       // Begin memo data.
-      const orientationEditor : JSX.Element = useMemo(
+      const {
+        orientationEditorProps,
+        errorMessage
+      } = useMemo(
         function() {
           const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[initialName];
           const basePairsPerRnaMolecule = basePairsPerRnaComplex[initialName];
@@ -61,6 +65,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
           let boundingVectors : { 0 : Vector2D, 1 : Vector2D } | undefined = undefined;
           // Iterate nucleotide indices in decrementing fashion.
           nucleotideIndices.sort(subtractNumbersNegated);
+          let foundBasePairBetweenRnaMoleculesFlag = false;
           for (let nucleotideIndex of nucleotideIndices) {
             nucleotideKeysToRerenderPerRnaMolecule.unshift(nucleotideIndex);
             const singularNucleotideProps = nucleotideProps[nucleotideIndex];
@@ -72,24 +77,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
               });
               const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
               if (mappedBasePairInformation.rnaMoleculeName !== initialName) {
-                return <>
-                  Cannot re-position nucleotides of this RNA molecule, because it is base-paired to another RNA molecule.
-                  <AppSpecificOrientationEditor.Component
-                    initialCenter = {{
-                      x : 0,
-                      y : 0
-                    }}
-                    positions = {[]}
-                    onUpdatePositions = {function() {
-                      // Do nothing.
-                    }}
-                    normal = {{
-                      x : 1,
-                      y : 0
-                    }}
-                    disabledFlag = {true}
-                  />
-                </>;
+                foundBasePairBetweenRnaMoleculesFlag = true;
               }
               boundingVectors = {
                 0 : singularNucleotideProps,
@@ -116,15 +104,46 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
               )
             };
           }
-          return <AppSpecificOrientationEditor.Simplified
-            positions = {toBeDragged}
-            onUpdatePositions = {function() {
-              setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
-              setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
-            }}
-            boundingVector0 = {boundingVectors[0]}
-            boundingVector1 = {boundingVectors[1]}
-          />
+          function rerender() {
+            setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
+            setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
+          }
+          if (foundBasePairBetweenRnaMoleculesFlag) {
+            return {
+              errorMessage : "Cannot re-position nucleotides of this RNA molecule, because it is base-paired to another RNA molecule.",
+              orientationEditorProps : {
+                boundingVector0 : {
+                  x : 0,
+                  y : 0
+                },
+                boundingVector1 : {
+                  x : 1,
+                  y : 0
+                },
+                positions : toBeDragged,
+                onUpdatePositions : rerender,
+                disabledFlag : true
+              }
+            };
+          }
+          return {
+            orientationEditorProps : {
+              positions : toBeDragged,
+              onUpdatePositions : rerender,
+              boundingVector0 : boundingVectors[0],
+              boundingVector1 : boundingVectors[1]
+            },
+            errorMessage : undefined
+          };
+          // <AppSpecificOrientationEditor.Simplified
+          //   positions = {toBeDragged}
+          //   onUpdatePositions = {function() {
+          //     setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
+          //     setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
+          //   }}
+          //   boundingVector0 = {boundingVectors[0]}
+          //   boundingVector1 = {boundingVectors[1]}
+          // />
         },
         [initialName]
       );
@@ -157,7 +176,13 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
           htmlInputType = {"text"}
         />
         <br/>
-        {orientationEditor}
+        {errorMessage && <>
+          {errorMessage}
+          <br/>
+        </>}
+        <ColorsAndPositionsEditor.Component
+          {...orientationEditorProps}
+        />
       </>;
     }
   }
