@@ -4,7 +4,7 @@ import { LabelLine } from "../components/app_specific/LabelLine";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { DuplicateBasePairKeysHandler, RnaComplex, insertBasePair } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
-import { fromCssString } from "../data_structures/Color";
+import Color, { fromCssString } from "../data_structures/Color";
 import Font from "../data_structures/Font";
 
 export enum SvgPropertyXrnaType {
@@ -37,7 +37,9 @@ type TemporaryBasePair = {
   rnaMoleculeName1 : string,
   formattedNucleotideIndex0 : number,
   formattedNucleotideIndex1 : number,
-  basePairType : BasePair.Type
+  basePairType : BasePair.Type,
+  color? : Color,
+  strokeWidth? : number
 };
 
 type Cache = {
@@ -204,14 +206,27 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
             if (!isBasePairType(basePairType)) {
               throw `Unrecognized BasePair.Type "${basePairType}"`;
             }
-            const temporaryBasePairsPerRnaComplex = cache.temporaryBasePairsPerRnaComplex as Array<TemporaryBasePair>;
-            temporaryBasePairsPerRnaComplex.push({
+            const temporaryBasePair : TemporaryBasePair = {
               rnaMoleculeName0,
               formattedNucleotideIndex0 : Number.parseInt(formattedNucleotideIndex0),
               rnaMoleculeName1,
               formattedNucleotideIndex1 : Number.parseInt(formattedNucleotideIndex1),
               basePairType
-            });
+            };
+            const stroke = svgElement.getAttribute("stroke");
+            if (stroke !== null && stroke !== "none") {
+              temporaryBasePair.color = fromCssString(stroke);
+            }
+            const fill = svgElement.getAttribute("fill");
+            if (fill !== null && fill !== "none") {
+              temporaryBasePair.color = fromCssString(fill);
+            }
+            const strokeWidth = svgElement.getAttribute("stroke-width");
+            if (strokeWidth !== null) {
+              temporaryBasePair.strokeWidth = Number.parseFloat(strokeWidth);
+            }
+            const temporaryBasePairsPerRnaComplex = cache.temporaryBasePairsPerRnaComplex as Array<TemporaryBasePair>;
+            temporaryBasePairsPerRnaComplex.push(temporaryBasePair);
             break;
           }
           case SvgPropertyXrnaType.RNA_MOLECULE : {
@@ -303,6 +318,14 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
             if (singularNucleotideProps === undefined) {
               throw "cache.singularNucleotideProps should not be undefined at this point. The input SVG file is broken.";
             }
+            const fill = svgElement.getAttribute("fill");
+            if (fill !== null) {
+              labelContentProps.color = fromCssString(fill);
+            }
+            const strokeWidth = svgElement.getAttribute("stroke-width");
+            if (strokeWidth !== null) {
+              labelContentProps.strokeWidth = Number.parseFloat(strokeWidth);
+            }
             singularNucleotideProps.labelContentProps = labelContentProps;
             break;
           }
@@ -346,7 +369,9 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
           formattedNucleotideIndex0,
           rnaMoleculeName1,
           formattedNucleotideIndex1,
-          basePairType
+          basePairType,
+          color,
+          strokeWidth
         } = temporaryBasePair;
         if (!(rnaMoleculeName0 in singularRnaComplexProps.rnaMoleculeProps)) {
           throw `Missing RNA molecule with the name "${rnaMoleculeName0}"`;
@@ -372,7 +397,9 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
           nucleotideIndex1,
           DuplicateBasePairKeysHandler.THROW_ERROR,
           {
-            basePairType
+            basePairType,
+            strokeWidth,
+            color
           }
         );
       }
