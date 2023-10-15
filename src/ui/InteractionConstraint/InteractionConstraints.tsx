@@ -1,8 +1,9 @@
+import { FunctionComponent, useContext, useState } from "react";
 import { DragListener, FullKeys, RnaComplexProps } from "../../App";
 import { Tab } from "../../app_data/Tab";
 import { compareBasePairKeys, RnaComplex, selectRelevantBasePairKeys } from "../../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../../components/app_specific/RnaMolecule";
-import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaMolecule } from "../../context/Context";
+import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, Context, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaMolecule } from "../../context/Context";
 import { Vector2D } from "../../data_structures/Vector2D";
 import { AbstractInteractionConstraint } from "./AbstractInteractionConstraint";
 import { EntireSceneInteractionConstraint } from "./InteractionConstraints/EntireSceneInteractionConstraint";
@@ -588,5 +589,41 @@ export namespace InteractionConstraint {
         tab
       );
     }
+  };
+
+  function BasePairOptionsMenu(props : {}) {
+    const interactionConstraintOptions = useContext(Context.App.InteractionConstraintOptions);
+    const updateInteractionConstraintOptions = useContext(Context.App.UpdateInteractionConstraintOptions);
+    const affectHairpinNucleotidesFlag = interactionConstraintOptions.affectHairpinNucleotidesFlag;
+    return <>
+      <label>
+        Affect hairpin-loop nucleotides:&nbsp;
+        <input
+          type = "checkbox"
+          checked = {affectHairpinNucleotidesFlag}
+          onChange = {function() {
+            const newAffectHairpinNucleotidesFlag = !affectHairpinNucleotidesFlag;
+            updateInteractionConstraintOptions({
+              affectHairpinNucleotidesFlag : newAffectHairpinNucleotidesFlag
+            });
+          }}
+        />
+      </label>
+    </>;
+  }
+
+  export const DEFAULT_OPTIONS : Options = {
+    affectHairpinNucleotidesFlag : true
+  };
+
+  export type Options = {
+    affectHairpinNucleotidesFlag : boolean
+  };
+
+  export const optionsMenuRecord : Partial<Record<
+    Enum,
+    FunctionComponent<{}>
+  >> = {
+    [Enum.SINGLE_BASE_PAIR] : BasePairOptionsMenu
   };
 }

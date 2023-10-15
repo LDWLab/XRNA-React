@@ -34,7 +34,7 @@ export abstract class AbstractInteractionConstraint {
     this.setDebugVisualElements = setDebugVisualElements;
   }
 
-  abstract drag() : DragListener | undefined;
+  abstract drag(interactionConstraintOptions : InteractionConstraint.Options) : DragListener | undefined;
 
   abstract createRightClickMenu(tab : InteractionConstraint.SupportedTab) : JSX.Element;
 };
