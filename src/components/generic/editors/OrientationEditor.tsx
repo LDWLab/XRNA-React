@@ -302,24 +302,15 @@ export namespace OrientationEditor {
       boundingVector1,
       boundingVector0
     ));
-    // Begin memo data.
-    const initialCenter = useMemo(
-      function() {
-        return scaleUp(
-          add(
-            boundingVector0,
-            boundingVector1
-          ),
-          0.5
-        );
-      },
-      [
+    const center = scaleUp(
+      add(
         boundingVector0,
         boundingVector1
-      ]
+      ),
+      0.5
     );
     return <Component
-      initialCenter = {initialCenter}
+      initialCenter = {center}
       positions = {positions}
       onUpdatePositions = {onUpdatePositions}
       useDegreesFlag = {useDegreesFlag}
