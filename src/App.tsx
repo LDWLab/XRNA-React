@@ -953,6 +953,8 @@ function App() {
             InteractionConstraint.optionsMenuRecord[newInteractionConstraint] as FunctionComponent<{}>,
             {}
           ));
+        } else {
+          setRightClickMenuOptionsMenu(<></>);
         }
       }}
     >
