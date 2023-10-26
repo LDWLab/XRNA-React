@@ -26,6 +26,8 @@ import { BLACK } from './data_structures/Color';
 
 export const SVG_ELEMENT_HTML_ID = "viewport";
 
+export const TEST_SPACE_ID = "testSpace";
+
 // Begin externally-facing constants.
 export const HTML_ELEMENT_ID_DELIMITER = "|";
 
@@ -1906,6 +1908,16 @@ function App() {
                     src = {loadingGif}
                     alt = "Loading..."
                   />}
+                  <div
+                    style = {{
+                      position : "absolute",
+                      visibility : "hidden",
+                      height : "auto",
+                      width : "auto",
+                      whiteSpace : "nowrap"
+                    }}
+                    id = {TEST_SPACE_ID}
+                  ></div>
                 </div>
               </Context.BasePair.SetKeysToEdit.Provider>
             </Context.App.UpdateRnaMoleculeNameHelper.Provider>

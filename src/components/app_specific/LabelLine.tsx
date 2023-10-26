@@ -9,10 +9,14 @@ import { SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFi
 export namespace LabelLine {
   export type BodySvgRepresentation = SVGPathElement;
   export type EndpointSvgRepresentation = SVGCircleElement;
-  export type ExternalProps = {
-    points : Array<Vector2D>
+
+  export type OptionalProps = {
     color? : Color,
     strokeWidth? : number
+  };
+
+  export type ExternalProps = OptionalProps & {
+    points : Array<Vector2D>
   };
 
   export type Props = ExternalProps & {
@@ -21,8 +25,7 @@ export namespace LabelLine {
 
   type RenderData = {
     pathDAttribute : string,
-    polylinePointsAttribute : string,
-
+    polylinePointsAttribute : string
   };
 
   export function Component(props : Props) {

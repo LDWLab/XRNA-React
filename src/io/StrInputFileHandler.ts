@@ -1,8 +1,8 @@
-import { RnaComplexProps } from "../App";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { RnaComplex } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
 import { Line2D } from "../data_structures/Geometry";
+import { Vector2D } from "../data_structures/Vector2D";
 import { parseGraphicalData } from "./ParseGraphicalData";
 
 export function strInputFileHandler(inputFileContent : string) {
@@ -13,7 +13,10 @@ export function strInputFileHandler(inputFileContent : string) {
   }
   let regexMatchAll = inputFileContent.matchAll(/(text|line)\s*\{/g);
   const nucleotideProps = new Array<Nucleotide.ExternalProps>();
-  const bondLines = new Array<Line2D>();
+  const basePairLines = new Array<Line2D>();
+  // As far as I can tell, this base-pair type doesn't exist in this type of input file.
+  // However, the data structure is necessary, and might it become relevant later.
+  const basePairCenters = new Array<Vector2D>();
   for (let regexMatch of regexMatchAll) {
     let openCloseBracketBalanceIndex = 1;
     let index = regexMatch.index;
@@ -67,7 +70,7 @@ export function strInputFileHandler(inputFileContent : string) {
         if (lineRegexMatch === null) {
           throw "lineRegexMatch should never be null.";
         }
-        bondLines.push({
+        basePairLines.push({
           v0 : {
             x : Number.parseFloat(lineRegexMatch[1]),
             y : Number.parseFloat(lineRegexMatch[2])
@@ -100,7 +103,10 @@ export function strInputFileHandler(inputFileContent : string) {
   parseGraphicalData(
     rnaComplexProps,
     {
-      0 : bondLines
+      0 : basePairLines
+    },
+    {
+      0 : basePairCenters
     }
   );
   return {

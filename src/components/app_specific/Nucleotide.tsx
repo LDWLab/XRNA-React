@@ -17,6 +17,12 @@ export function getLabelContentHtmlElementId(
   return `${rnaComplexIndex}${HTML_ELEMENT_ID_DELIMITER}${rnaMoleculeName}${HTML_ELEMENT_ID_DELIMITER}${nucleotideIndex}${HTML_ELEMENT_ID_DELIMITER}LabelContent`;
 }
 
+export function getGraphicalAdjustment(rectangle : {width : number, height : number}) {
+  return {
+    x : -0.5 * rectangle.width,
+    y : -0.25 * rectangle.height
+  };
+}
 
 export namespace Nucleotide {
   export type SvgRepresentation = SVGTextElement;
@@ -107,10 +113,7 @@ export namespace Nucleotide {
     );
     const graphicalAdjustment = useMemo<Vector2D>(
       function() {
-        return {
-          x : -0.5 * textDimensions.width,
-          y : -0.25 * textDimensions.height
-        }
+        return getGraphicalAdjustment(textDimensions);
       },
       [textDimensions]
     );
