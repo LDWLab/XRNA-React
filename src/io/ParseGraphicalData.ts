@@ -3,11 +3,15 @@ import BasePair, { getBasePairType } from "../components/app_specific/BasePair";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { DuplicateBasePairKeysHandler, insertBasePair } from "../components/app_specific/RnaComplex";
 import { Line2D } from "../data_structures/Geometry";
-import { Vector2D, distanceSquared, dotProduct, magnitude, negate, normalize, subtract } from "../data_structures/Vector2D";
+import { Vector2D, add, distance, distanceSquared, dotProduct, magnitude, negate, normalize, scaleUp, subtract } from "../data_structures/Vector2D";
 import { degreesToRadians } from "../utils/Utils";
 
 const EPSILON_SQUARED = 1e-8;
 const SCALARS_TO_TRY = [1, 1.5, 2, 2.5, 3, 3.5, 4];
+const INCREASED_NUMBER_OF_NEIGHBORING_NUCLEOTIDES = {
+  line : 5,
+  center : 10
+};
 
 type Constraints = {
   minimumDistanceRatio : number,
@@ -16,9 +20,15 @@ type Constraints = {
 };
 
 const constraints : {
+  loose : Constraints,
   normal : Constraints,
   strict : Constraints
 } = {
+  // For now, some of these constraints are equal. They will be adjusted accordingly upon testing input data.
+  loose : {
+    minimumDistanceRatio : 0.8,
+    dotProductThreshold : Math.cos(degreesToRadians(170))
+  },
   normal : {
     minimumDistanceRatio : 0.8,
     dotProductThreshold : Math.cos(degreesToRadians(170))
@@ -106,74 +116,92 @@ export function parseGraphicalData(
       squaredDistance : number
     }>;
 
+    type ArrayIndices = Array<{
+      0 : number,
+      1 : number
+    }>;
+
+    type LineData = {
+      line : BasePairLine,
+      allClosestNucleotides : {
+        0 : ClosestNucleotides,
+        1 : ClosestNucleotides
+      }
+    };
+
+    type LineDataWithIndices = LineData & {
+      arrayIndices : ArrayIndices
+    };
+
+    type CenterData = {
+      center : BasePairCenter,
+      allClosestNucleotides : ClosestNucleotides
+    }
+
+    type CenterDataWithIndices = CenterData & {
+      arrayIndices : ArrayIndices
+    };
+
     type FailedBasePairs = {
       zeroCandidateBasePairs : Record<BasePair.Type | "undefined", {
-        lines : Array<{
-          line : BasePairLine
-        }>,
-        centers : Array<{
-          center : BasePairCenter
-        }>
+        lineData : Array<LineData>,
+        centerData : Array<CenterData>
       }>,
-      tooManyCandidateBasePairs : Record<BasePair.Type | "undefined", {
-        lines : Array<{
-          line : BasePairLine,
-          arrayIndices : Array<{
-            0 : number,
-            1 : number
-          }>
-        }>,
-        centers : Array<{
-          center : BasePairCenter,
-          arrayIndices : Array<{
-            0 : number,
-            1 : number
-          }>
-        }>
-      }>
+      tooManyCandidateBasePairs : {
+        lineDataWithIndices : Array<LineDataWithIndices>,
+        centerDataWithIndices : Array<CenterDataWithIndices>
+      }
     };
 
     let logFlag = false;
 
     let failedBasePairs = getInitialFailedBasePairs();
 
+    const totalDistancesRecord : Record<BasePair.Type | "undefined", {
+      minimum : number,
+      maximum : number
+    }> = {
+      [BasePair.Type.CANONICAL] : {
+        minimum : Number.POSITIVE_INFINITY,
+        maximum : Number.NEGATIVE_INFINITY
+      },
+      [BasePair.Type.MISMATCH] : {
+        minimum : Number.POSITIVE_INFINITY,
+        maximum : Number.NEGATIVE_INFINITY
+      },
+      [BasePair.Type.WOBBLE] : {
+        minimum : Number.POSITIVE_INFINITY,
+        maximum : Number.NEGATIVE_INFINITY
+      },
+      undefined : {
+        minimum : Number.POSITIVE_INFINITY,
+        maximum : Number.NEGATIVE_INFINITY
+      }
+    };
+
     function getInitialFailedBasePairs() : FailedBasePairs {
       return {
         zeroCandidateBasePairs : {
           [BasePair.Type.CANONICAL] : {
-            lines : [],
-            centers : []
-          },
-          [BasePair.Type.MISMATCH] : {
-            lines : [],
-            centers : []
+            lineData : [],
+            centerData : []
           },
           [BasePair.Type.WOBBLE] : {
-            lines : [],
-            centers : []
+            lineData : [],
+            centerData : []
+          },
+          [BasePair.Type.MISMATCH] : {
+            lineData : [],
+            centerData : []
           },
           undefined : {
-            lines : [],
-            centers : []
+            lineData : [],
+            centerData : []
           }
         },
         tooManyCandidateBasePairs : {
-          [BasePair.Type.CANONICAL] : {
-            lines : [],
-            centers : []
-          },
-          [BasePair.Type.MISMATCH] : {
-            lines : [],
-            centers : []
-          },
-          [BasePair.Type.WOBBLE] : {
-            lines : [],
-            centers : []
-          },
-          undefined : {
-            lines : [],
-            centers : []
-          }
+          lineDataWithIndices : [],
+          centerDataWithIndices : []
         }
       };
     }
@@ -205,7 +233,7 @@ export function parseGraphicalData(
         return indicesWithSquaredDistance0.squaredDistance - indicesWithSquaredDistance1.squaredDistance;
       });
       return {
-        full : indicesWithSquaredDistances,
+        all : indicesWithSquaredDistances,
         sliced : indicesWithSquaredDistances.slice(
           0,
           count
@@ -232,6 +260,19 @@ export function parseGraphicalData(
           basePairType : type
         }
       );
+
+      const distanceI = distance(
+        flattenedNucleotideProps[indices0.arrayIndex].singularNucleotideProps,
+        flattenedNucleotideProps[indices1.arrayIndex].singularNucleotideProps
+      );
+      const distanceRecord = totalDistancesRecord[type ?? "undefined"];
+      if (distanceI < distanceRecord.minimum) {
+        distanceRecord.minimum = distanceI;
+      }
+      if (distanceI > distanceRecord.maximum) {
+        distanceRecord.maximum = distanceI;
+      }
+
       delete flattenedNucleotideProps[indices0.arrayIndex];
       delete flattenedNucleotideProps[indices1.arrayIndex];
     }
@@ -259,7 +300,8 @@ export function parseGraphicalData(
     
     function attemptToCreateBasePairDefinedByLine(
       basePairLine : BasePairLine,
-      constraints : Constraints
+      constraints : Constraints,
+      numberOfNeighboringNucleotides : number
     ) {
       const {
         dotProductThreshold,
@@ -271,11 +313,12 @@ export function parseGraphicalData(
         basePairLine.v0
       ));
       const negatedBaseLineDirection = negate(baseLineDirection);
-      const closestNucleotides0 = calculateNucleotideData(
-        findClosestNucleotides(
-          basePairLine.v0,
-          3
-        ).sliced,
+      const closestNucleotides0 = findClosestNucleotides(
+        basePairLine.v0,
+        numberOfNeighboringNucleotides
+      );
+      const nucleotideData0 = calculateNucleotideData(
+        closestNucleotides0.sliced,
         basePairLine.v0
       ).filter(function({dv}) {
         return dotProduct(
@@ -283,11 +326,12 @@ export function parseGraphicalData(
           baseLineDirection
         ) / magnitude(dv) < dotProductThreshold
       });
-      const closestNucleotides1 = calculateNucleotideData(
-        findClosestNucleotides(
-          basePairLine.v1,
-          3
-        ).sliced,
+      const closestNucleotides1 = findClosestNucleotides(
+        basePairLine.v1,
+        numberOfNeighboringNucleotides
+      );
+      const nucleotideData1 = calculateNucleotideData(
+        closestNucleotides1.sliced,
         basePairLine.v1
       ).filter(function({dv}) {
         return dotProduct(
@@ -295,8 +339,8 @@ export function parseGraphicalData(
           negatedBaseLineDirection
         ) / magnitude(dv) < dotProductThreshold;
       });
-      const length0 = closestNucleotides0.length;
-      const length1 = closestNucleotides1.length;
+      const length0 = nucleotideData0.length;
+      const length1 = nucleotideData1.length;
       let filteredNucleotideData = new Array<{
         indices0 : Indices,
         indices1 : Indices,
@@ -306,12 +350,12 @@ export function parseGraphicalData(
       }>();
       const expectedBasePairType = basePairLine.basePairType;
       for (let i = 0; i < length0; i++) {
-        const nucleotideDatumI = closestNucleotides0[i];
+        const nucleotideDatumI = nucleotideData0[i];
         const indicesI = nucleotideDatumI.indices;
         const distanceI = nucleotideDatumI.distance;
         const symbolI = singularRnaComplexProps.rnaMoleculeProps[indicesI.rnaMoleculeName].nucleotideProps[indicesI.nucleotideIndex].symbol;
         for (let j = 0; j < length1; j++) {
-          const nucleotideDatumJ = closestNucleotides1[j];
+          const nucleotideDatumJ = nucleotideData1[j];
           const indicesJ = nucleotideDatumJ.indices;
           const distanceJ = nucleotideDatumJ.distance;
           const symbolJ = singularRnaComplexProps.rnaMoleculeProps[indicesJ.rnaMoleculeName].nucleotideProps[indicesJ.nucleotideIndex].symbol;
@@ -350,8 +394,12 @@ export function parseGraphicalData(
       const count = filteredNucleotideData.length;
       switch (count) {
         case 0 : {
-          failedBasePairs.zeroCandidateBasePairs[expectedBasePairType ?? "undefined"].lines.push({
-            line : basePairLine
+          failedBasePairs.zeroCandidateBasePairs[expectedBasePairType ?? "undefined"].lineData.push({
+            line : basePairLine,
+            allClosestNucleotides : {
+              0 : [],
+              1 : []
+            }
           });
           break;
         }
@@ -365,7 +413,7 @@ export function parseGraphicalData(
           break;
         }
         default : {
-          failedBasePairs.tooManyCandidateBasePairs[expectedBasePairType ?? "undefined"].lines.push({
+          failedBasePairs.tooManyCandidateBasePairs.lineDataWithIndices.push({
             line : basePairLine,
             arrayIndices : filteredNucleotideData.map(function({
               indices0,
@@ -375,7 +423,11 @@ export function parseGraphicalData(
                 0 : indices0.arrayIndex,
                 1 : indices1.arrayIndex
               }
-            })
+            }),
+            allClosestNucleotides : {
+              0 : closestNucleotides0.all,
+              1 : closestNucleotides1.all
+            }
           });
           break;
         }
@@ -387,7 +439,8 @@ export function parseGraphicalData(
 
     function attemptToCreateBasePairDefinedByCenter(
       basePairCenter : BasePairCenter,
-      constraints : Constraints
+      constraints : Constraints,
+      numberOfNeighboringNucleotides : number
     ) {
       const {
         dotProductThreshold,
@@ -395,11 +448,11 @@ export function parseGraphicalData(
       } = constraints;
       const maximumDistanceRatio = 1 / minimumDistanceRatio;
       const {
-        full,
+        all,
         sliced
       } = findClosestNucleotides(
         basePairCenter,
-        6
+        numberOfNeighboringNucleotides
       );
       const nucleotideData = calculateNucleotideData(
         sliced,
@@ -468,8 +521,9 @@ export function parseGraphicalData(
       const count = filteredNucleotideData.length;
       switch (count) {
         case 0 : {
-          failedBasePairs.zeroCandidateBasePairs[expectedBasePairType ?? "undefined"].centers.push({
-            center : basePairCenter
+          failedBasePairs.zeroCandidateBasePairs[expectedBasePairType ?? "undefined"].centerData.push({
+            center : basePairCenter,
+            allClosestNucleotides : []
           });
           break;
         }
@@ -483,7 +537,7 @@ export function parseGraphicalData(
           break;
         }
         default : {
-          failedBasePairs.tooManyCandidateBasePairs[expectedBasePairType ?? "undefined"].centers.push({
+          failedBasePairs.tooManyCandidateBasePairs.centerDataWithIndices.push({
             center : basePairCenter,
             arrayIndices : filteredNucleotideData.map(function({
               indices0,
@@ -493,7 +547,8 @@ export function parseGraphicalData(
                 0 : indices0.arrayIndex,
                 1 : indices1.arrayIndex
               }
-            })
+            }),
+            allClosestNucleotides : all
           });
           break;
         }
@@ -509,6 +564,7 @@ export function parseGraphicalData(
       [BasePair.Type.MISMATCH] : 2,
       ["undefined"] : 3
     };
+    // This order minimizes ambiguous base pairs.
     const basePairTypeHandlingOrder = Object.entries(basePairTypeHandlingOrderOrdinals).sort(function(
       typeWithOrdinal0,
       typeWithOrdinal1
@@ -554,7 +610,7 @@ export function parseGraphicalData(
         basePairsPerType.lines.push(basePairLine);
       }
     }
-    // Make a first attempt to create base pairs.
+    // Make base pairs for every unambigious base pair.
     for (const basePairType of basePairTypeHandlingOrder) {
       const {
         centers,
@@ -563,60 +619,199 @@ export function parseGraphicalData(
       for (const line of lines) {
         attemptToCreateBasePairDefinedByLine(
           line,
-          constraints.normal
+          constraints.normal,
+          3
         );
       }
       for (const center of centers) {
         attemptToCreateBasePairDefinedByCenter(
           center,
-          constraints.normal
+          constraints.normal,
+          6
         );
       }
     }
-    logFlag = true;
     let failedBasePairsWorkingCopy = structuredClone(failedBasePairs);
     failedBasePairs = getInitialFailedBasePairs();
+    const remainderLines = new Array<LineDataWithIndices>();
+    const remainderCenters = new Array<CenterDataWithIndices>();
+    const {
+      zeroCandidateBasePairs,
+      tooManyCandidateBasePairs
+    } = failedBasePairsWorkingCopy;
     // Make a second attempt to create base pairs (of failed base pairs).
-    for (const basePairType of basePairTypeHandlingOrder) {
-      // TODO: Implement support for failed base pairs with zero candidates.
-      const {
-        lines,
-        centers
-      } = failedBasePairsWorkingCopy.tooManyCandidateBasePairs[basePairType];
-      for (const line of lines) {
-        line.arrayIndices = line.arrayIndices.filter(function(arrayIndexPair : {0 : number, 1 : number}) {
-          return arrayIndexPair[0] in flattenedNucleotideProps && arrayIndexPair[1] in flattenedNucleotideProps;
-        });
-        if (line.arrayIndices.length === 1) {
+    for (const line of tooManyCandidateBasePairs.lineDataWithIndices) {
+      line.arrayIndices = line.arrayIndices.filter(function(arrayIndexPair : { 0 : number, 1 : number }) {
+        return arrayIndexPair[0] in flattenedNucleotideProps && arrayIndexPair[1] in flattenedNucleotideProps;
+      });
+      switch (line.arrayIndices.length) {
+        case 0 : {
+          zeroCandidateBasePairs[line.line.basePairType ?? "undefined"].lineData.push(line);
+          break;
+        }
+        case 1 : {
+          // Create base pairs which are now unambiguous.
           const arrayIndexPair = line.arrayIndices[0];
           createBasePair(
             flattenedNucleotideProps[arrayIndexPair[0]].indices,
             flattenedNucleotideProps[arrayIndexPair[1]].indices,
             line.line.basePairType
           );
-        } else {
-          // TODO: Implement this.
+          break;
+        }
+        default : {
+          remainderLines.push(line);
+          break;
         }
       }
-      for (const center of centers) {
-        center.arrayIndices = center.arrayIndices.filter(function(arrayIndexPair : {0 : number, 1 : number}) {
-          return arrayIndexPair[0] in flattenedNucleotideProps && arrayIndexPair[1] in flattenedNucleotideProps;
-        });
-        if (center.arrayIndices.length === 1) {
+    }
+    for (const center of tooManyCandidateBasePairs.centerDataWithIndices) {
+      center.arrayIndices = center.arrayIndices.filter(function(arrayIndexPair : {0 : number, 1 : number}) {
+        return arrayIndexPair[0] in flattenedNucleotideProps && arrayIndexPair[1] in flattenedNucleotideProps;
+      });
+      switch (center.arrayIndices.length) {
+        case 0 : {
+          zeroCandidateBasePairs[center.center.basePairType ?? "undefined"].centerData.push(center);
+          break;
+        }
+        case 1 : {
+          // Create base pairs which are now unambiguous.
           const arrayIndexPair = center.arrayIndices[0];
           createBasePair(
             flattenedNucleotideProps[arrayIndexPair[0]].indices,
             flattenedNucleotideProps[arrayIndexPair[1]].indices,
             center.center.basePairType
           );
-        } else {
-          // TODO: Implement this.
+          break;
+        }
+        default : {
+          remainderCenters.push(center);
+          break;
         }
       }
     }
+    
+    for (const basePairType of basePairTypeHandlingOrder) {
+      const {
+        centerData,
+        lineData
+      } = zeroCandidateBasePairs[basePairType];
+      for (const lineDataI of lineData) {
+        attemptToCreateBasePairDefinedByLine(
+          lineDataI.line,
+          constraints.loose,
+          INCREASED_NUMBER_OF_NEIGHBORING_NUCLEOTIDES.line
+        );
+      }
+      for (const centerDataI of centerData) {
+        attemptToCreateBasePairDefinedByCenter(
+          centerDataI.center,
+          constraints.loose,
+          INCREASED_NUMBER_OF_NEIGHBORING_NUCLEOTIDES.center
+        );
+      }
+    }
+    remainderLines.push(...failedBasePairs.tooManyCandidateBasePairs.lineDataWithIndices);
+    remainderCenters.push(...failedBasePairs.tooManyCandidateBasePairs.centerDataWithIndices);
+    const compositeData = [
+      ...remainderLines.map(function(lineData) {
+        const {
+          line,
+          arrayIndices
+        } = lineData;
+        return {
+          center : {
+            ...scaleUp(
+              add(
+                line.v0,
+                line.v1
+              ),
+              0.5
+            ),
+            basePairType : line.basePairType
+          },
+          arrayIndices
+        };
+      }),
+      ...remainderCenters
+    ];
+
+    // This sort function attempts to minimize the chances of overlapping base pairs
+    function sort(
+      object0 : { arrayIndices : ArrayIndices },
+      object1 : { arrayIndices : ArrayIndices }
+    ) {
+      return object0.arrayIndices.length - object1.arrayIndices.length;
+    }
+    compositeData.sort(sort);
+    // remainderLines.sort(sort);
+    // remainderCenters.sort(sort);
+    for (const centerData of compositeData) {
+      let {
+        center,
+        arrayIndices
+      } = centerData;
+      const distanceRecordPerType = totalDistancesRecord[center.basePairType ?? "undefined"];
+      arrayIndices = arrayIndices.filter(function(arrayIndicesI) {
+        if (!(arrayIndicesI[0] in flattenedNucleotideProps)) {
+          return false;
+        }
+        if (!(arrayIndicesI[1] in flattenedNucleotideProps)) {
+          return false;
+        }
+        const singularFlattenedNucleotideProps0 = flattenedNucleotideProps[arrayIndicesI[0]];
+        const singularFlattenedNucleotideProps1 = flattenedNucleotideProps[arrayIndicesI[1]];
+        const distanceI = distance(
+          singularFlattenedNucleotideProps0.singularNucleotideProps,
+          singularFlattenedNucleotideProps1.singularNucleotideProps
+        );
+        if (distanceI < distanceRecordPerType.minimum * 0.95) {
+          return false;
+        }
+        if (distanceI > distanceRecordPerType.maximum * 1.05) {
+          return false;
+        }
+        return true;
+      });
+      if (arrayIndices.length === 0) {
+        console.error("Base pairing failed.");
+        continue;
+      }
+      const distanceData = arrayIndices.map(function(arrayIndicesI) {
+        const singularFlattenedNucleotideProps0 = flattenedNucleotideProps[arrayIndicesI[0]];
+        const singularFlattenedNucleotideProps1 = flattenedNucleotideProps[arrayIndicesI[1]];
+        const distanceSquaredI = distanceSquared(
+          scaleUp(
+            add(
+              singularFlattenedNucleotideProps0.singularNucleotideProps,
+              singularFlattenedNucleotideProps1.singularNucleotideProps
+            ),
+            0.5
+          ),
+          center
+        );
+        return {
+          distanceSquared : distanceSquaredI,
+          indices0 : singularFlattenedNucleotideProps0.indices,
+          indices1 : singularFlattenedNucleotideProps1.indices
+        };
+      });
+      let minimizedDistanceData = distanceData[0];
+      for (let i = 1; i < distanceData.length; i++) {
+        const distanceDataI = distanceData[i];
+        if (distanceDataI.distanceSquared < minimizedDistanceData.distanceSquared) {
+          minimizedDistanceData = distanceDataI;
+        }
+      }
+      createBasePair(
+        minimizedDistanceData.indices0,
+        minimizedDistanceData.indices1,
+        center.basePairType
+      );
+    }
   }
 
-  // Invert y coordinates.
+  // Invert all y coordinates.
   for (const singularRnaComplexProps of Object.values(rnaComplexProps)) {
     for (const singularRnaMoleculeProps of Object.values(singularRnaComplexProps.rnaMoleculeProps)) {
       for (const singularNucleotideProps of Object.values(singularRnaMoleculeProps.nucleotideProps)) {
