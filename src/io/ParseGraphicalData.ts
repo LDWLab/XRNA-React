@@ -1,9 +1,11 @@
 import { NucleotideKey, RnaComplexKey, RnaComplexProps, RnaMoleculeKey } from "../App";
 import BasePair, { getBasePairType } from "../components/app_specific/BasePair";
+import { LabelLine } from "../components/app_specific/LabelLine";
+import { LabelContent } from "../components/app_specific/LabelContent";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { DuplicateBasePairKeysHandler, insertBasePair } from "../components/app_specific/RnaComplex";
-import { Line2D } from "../data_structures/Geometry";
-import { Vector2D, add, distance, distanceSquared, dotProduct, magnitude, negate, normalize, scaleUp, subtract } from "../data_structures/Vector2D";
+import { Line2D, Rectangle } from "../data_structures/Geometry";
+import { Vector2D, add, distance, distanceSquared, distanceSquaredBetweenVector2DAndLineSegment, dotProduct, magnitude, negate, normalize, scaleUp, subtract } from "../data_structures/Vector2D";
 import { degreesToRadians } from "../utils/Utils";
 
 const EPSILON_SQUARED = 1e-8;
@@ -27,7 +29,7 @@ const constraints : {
   // For now, some of these constraints are equal. They will be adjusted accordingly upon testing input data.
   loose : {
     minimumDistanceRatio : 0.8,
-    dotProductThreshold : Math.cos(degreesToRadians(170))
+    dotProductThreshold : Math.cos(degreesToRadians(160))
   },
   normal : {
     minimumDistanceRatio : 0.8,
@@ -35,7 +37,7 @@ const constraints : {
   },
   strict : {
     minimumDistanceRatio : 0.895,
-    dotProductThreshold : Math.cos(degreesToRadians(170))
+    dotProductThreshold : Math.cos(degreesToRadians(175))
   }
 };
 
@@ -60,11 +62,27 @@ export type GraphicalAdjustmentsPerRnaMolecule = Record<NucleotideKey, Graphical
 export type GraphicalAdjustmentsPerRnaComplex = Record<RnaMoleculeKey, GraphicalAdjustmentsPerRnaMolecule>;
 export type GraphicalAdjustments = Record<RnaComplexKey, GraphicalAdjustmentsPerRnaComplex>;
 
+export type LabelLine_ = Line2D & LabelLine.OptionalProps;
+export type LabelLinesPerRnaComplex = Array<LabelLine_>;
+export type LabelLines = Record<RnaComplexKey, LabelLinesPerRnaComplex>;
+
+export type LabelContent_ = {
+  labelContent : LabelContent.ExternalProps,
+  rectangle : {
+    width : number,
+    height : number
+  }
+};
+export type LabelContentsPerRnaComplex = Array<LabelContent_>;
+export type LabelContents = Record<RnaComplexKey, LabelContentsPerRnaComplex>;
+
 export function parseGraphicalData(
   rnaComplexProps : RnaComplexProps,
   basePairLines : BasePairLines,
   basePairCenters : BasePairCenters,
-  graphicalAdjustments : GraphicalAdjustments = {}
+  graphicalAdjustments : GraphicalAdjustments = {},
+  labelLines : LabelLines,
+  labelContents : LabelContents
 ) {
   type FlattenedNucleotideProps = Array<{
     indices : Indices,
@@ -81,7 +99,6 @@ export function parseGraphicalData(
     const graphicalAdjustmentsPerRnaComplex = graphicalAdjustments[rnaComplexIndex] ?? {};
     adjustedNucleotidePositions[rnaComplexIndex] = {};
     const adjustedNucleotidePositionsPerRnaComplex = adjustedNucleotidePositions[rnaComplexIndex];
-    const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
     const flattenedNucleotideProps : FlattenedNucleotideProps = [];
     for (const [rnaMoleculeName, singularRnaMoleculeProps] of Object.entries(singularRnaComplexProps.rnaMoleculeProps)) {
       adjustedNucleotidePositionsPerRnaComplex[rnaMoleculeName] = {};
@@ -107,6 +124,358 @@ export function parseGraphicalData(
           singularNucleotideProps,
           adjustedPosition
         });
+      }
+    }
+    
+    const labelLinesPerRnaComplex = labelLines[rnaComplexIndex];
+    const labelContentsPerRnaComplex = labelContents[rnaComplexIndex];
+
+    type PairedLabelDatum = {
+      vectorNearNucleotide : Vector2D,
+      vectorNearLabelContent : Vector2D,
+      labelContent : LabelContent.ExternalProps,
+      labelContentDimensions : Rectangle,
+      distanceSquared : number
+    };
+
+    function createLabel(
+      { 
+        vectorNearNucleotide,
+        vectorNearLabelContent,
+        labelContent,
+        labelContentDimensions
+      } : PairedLabelDatum,
+      arrayIndex : number
+    ) {
+      const {
+        singularNucleotideProps,
+        adjustedPosition
+      } = flattenedNucleotideProps[arrayIndex];
+      singularNucleotideProps.labelLineProps = {
+        points : [
+          subtract(
+            vectorNearNucleotide,
+            adjustedPosition
+          ),
+          subtract(
+            vectorNearLabelContent,
+            adjustedPosition
+          )
+        ]
+      };
+      labelContent.x += labelContentDimensions.width * 0.5 - adjustedPosition.x;
+      labelContent.y += -labelContentDimensions.height * 0.5 - adjustedPosition.y;
+      singularNucleotideProps.labelContentProps = labelContent;
+    }
+
+    if (labelLinesPerRnaComplex.length > 0) {
+      const pairedLabelData = new Array<PairedLabelDatum & { labelLineIndex : number }>();
+      const pairedLabelDataCandidates : Record<number, Array<PairedLabelDatum>> = {};
+      for (const { labelContent, rectangle } of labelContentsPerRnaComplex) {
+        const {
+          x,
+          y
+        } = labelContent;
+        const {
+          width,
+          height
+        } = rectangle;
+        const vectors = [
+          {
+            x,
+            y
+          },
+          {
+            x : x + width,
+            y
+          },
+          {
+            x : x + width,
+            y : y + height
+          },
+          {
+            x,
+            y : y + height
+          }
+        ];
+        const sides : Array<Line2D> = [
+          {
+            v0 : vectors[0],
+            v1 : vectors[1]
+          },
+          {
+            v0 : vectors[1],
+            v1 : vectors[2]
+          },
+          {
+            v0 : vectors[2],
+            v1 : vectors[3]
+          },
+          {
+            v0 : vectors[3],
+            v1 : vectors[0]
+          }
+        ];
+        let closestDistanceData = {
+          distanceSquared : Number.POSITIVE_INFINITY,
+          vectorNearNucleotide : labelLinesPerRnaComplex[0].v0,
+          vectorNearLabelContent : labelLinesPerRnaComplex[0].v1,
+          labelLineIndex : NaN
+        };
+        for (let labelLineIndex = 0; labelLineIndex < labelLinesPerRnaComplex.length; labelLineIndex++) {
+          const labelLine = labelLinesPerRnaComplex[labelLineIndex];
+          const {
+            v0,
+            v1
+          } = labelLine;
+          for (const { vector, otherVector } of [{ vector : v0, otherVector : v1 }, { vector : v1, otherVector : v0}]) {
+            for (const side of sides) {
+              const distanceSquared_ = distanceSquaredBetweenVector2DAndLineSegment(
+                vector,
+                side
+              );
+              if (distanceSquared_ < closestDistanceData.distanceSquared) {
+                closestDistanceData = {
+                  distanceSquared : distanceSquared_,
+                  vectorNearNucleotide : otherVector,
+                  vectorNearLabelContent : vector,
+                  labelLineIndex
+                };
+              }
+            }
+          }
+          
+        }
+        const {
+          labelLineIndex,
+          vectorNearNucleotide,
+          vectorNearLabelContent,
+          distanceSquared
+        } = closestDistanceData;
+        if (!(labelLineIndex in pairedLabelDataCandidates)) {
+          pairedLabelDataCandidates[labelLineIndex] = [];
+        }
+        pairedLabelDataCandidates[labelLineIndex].push({
+          vectorNearNucleotide,
+          vectorNearLabelContent,
+          labelContent,
+          distanceSquared,
+          labelContentDimensions : rectangle
+        });
+      }
+      for (const [labelLineIndexAsString, pairedLabelDataCandidateArray] of Object.entries(pairedLabelDataCandidates)) {
+        const labelLineIndex = Number.parseInt(labelLineIndexAsString);
+        pairedLabelDataCandidateArray.sort(function(
+          candidate0,
+          candidate1
+        ) {
+          return candidate0.distanceSquared - candidate1.distanceSquared;
+        });
+        // It is less consequential to get labels wrong.
+        // Therefore, more distant label contents will be discarded.
+        pairedLabelData.push({
+          ...pairedLabelDataCandidateArray[0],
+          labelLineIndex
+        });
+      }
+      type MultiplicityData = {
+        multiplicity : number, 
+        candidates : Array<{
+          pairedLabelDatum : PairedLabelDatum,
+          arrayIndex : number,
+          unfilteredNucleotideData : Array<NucleotideData>,
+          labelContentAsNumber? : number
+        }>
+      };
+      const nucleotideIndexDeltaMultiplicities : Record<number, MultiplicityData> = {};
+      const failedLabels = new Array<{
+        unfilteredNucleotideData : Array<NucleotideData>,
+        pairedLabelDatum : PairedLabelDatum,
+        labelContentAsNumber? : number
+      }>;
+      for (const pairedLabelDatum of pairedLabelData) {
+        const {
+          labelLineIndex,
+          labelContent,
+          distanceSquared,
+          vectorNearNucleotide,
+          vectorNearLabelContent,
+          labelContentDimensions
+        } = pairedLabelDatum;
+        const unfilteredNucleotideData = calculateNucleotideData(
+          findClosestNucleotides(
+            vectorNearNucleotide,
+            7
+          ).sliced,
+          vectorNearNucleotide
+        );
+        const filteredNucleotideData = new Array<{
+          indices : Indices,
+          distance : number
+        }>();
+        const labelLine = labelLinesPerRnaComplex[labelLineIndex];
+        const labelLineDv = normalize(subtract(
+          vectorNearLabelContent,
+          vectorNearNucleotide
+        ));
+        let labelContentAsNumber : number | undefined = undefined;
+        if (/^-?\d+$/.test(labelContent.content)) {
+          labelContentAsNumber = Number.parseInt(labelContent.content);
+        }
+        for (const nucleotideDataI of unfilteredNucleotideData) {
+          let {
+            indices,
+            dv,
+            distance
+          } = nucleotideDataI;
+          dv = normalize(dv);
+          const dotProductI = dotProduct(
+            labelLineDv,
+            dv
+          );
+          if (dotProductI >= constraints.loose.dotProductThreshold) {
+            continue;
+          }
+          filteredNucleotideData.push({
+            indices,
+            distance
+          });
+        }
+        switch (filteredNucleotideData.length) {
+          case 1 : {
+            const indices = filteredNucleotideData[0].indices;
+            if (labelContentAsNumber !== undefined) {
+              const nucleotideIndexDelta = labelContentAsNumber - indices.nucleotideIndex;
+              if (!(nucleotideIndexDelta in nucleotideIndexDeltaMultiplicities)) {
+                nucleotideIndexDeltaMultiplicities[nucleotideIndexDelta] = {
+                  multiplicity : 0,
+                  candidates : []
+                };
+              }
+              const multiplicityData = nucleotideIndexDeltaMultiplicities[nucleotideIndexDelta];
+              multiplicityData.multiplicity++;
+              multiplicityData.candidates.push({
+                pairedLabelDatum,
+                arrayIndex : indices.arrayIndex,
+                labelContentAsNumber,
+                unfilteredNucleotideData
+              });
+            }
+            break;
+          }
+          default : {
+            failedLabels.push({
+              unfilteredNucleotideData,
+              pairedLabelDatum,
+              labelContentAsNumber
+            });
+            break;
+          }
+        }
+      }
+      function createLabelWithSmallestDistance(
+        pairedLabelDatum : PairedLabelDatum,
+        unfilteredNucleotideData : Array<NucleotideData>
+      ) {
+        console.log("createLabelWithSmallestDistance()");
+        unfilteredNucleotideData.sort(function(
+          unfilteredNucleotideDatum0,
+          unfilteredNucleotideDatum1
+        ) {
+          return unfilteredNucleotideDatum0.distance - unfilteredNucleotideDatum1.distance;
+        });
+        createLabel(
+          pairedLabelDatum,
+          unfilteredNucleotideData[0].indices.arrayIndex
+        );
+      }
+      const nucleotideIndexDeltaMultiplicitiesEntries = Object.entries(nucleotideIndexDeltaMultiplicities);
+      if (nucleotideIndexDeltaMultiplicitiesEntries.length === 0) {
+        for (const { unfilteredNucleotideData, pairedLabelDatum } of failedLabels) {
+          createLabelWithSmallestDistance(
+            pairedLabelDatum,
+            unfilteredNucleotideData
+          );
+        }
+      } else {
+        let nucleotideIndexDeltasSortedByMultiplicities = nucleotideIndexDeltaMultiplicitiesEntries.map(function([
+          nucleotideIndexDeltaAsString,
+          multiplicityData
+        ]) {
+          return {
+            nucleotideIndexDelta : Number.parseInt(nucleotideIndexDeltaAsString),
+            multiplicityData
+          };
+        }).sort(function(
+          nucleotideIndexDeltaWithMultiplicity0,
+          nucleotideIndexDeltaWithMultiplicity1
+        ) {
+          return nucleotideIndexDeltaWithMultiplicity1.multiplicityData.multiplicity - nucleotideIndexDeltaWithMultiplicity0.multiplicityData.multiplicity;
+        });
+        let totalNucleotideIndexDeltasMultiplicity = 0;
+        for (const { nucleotideIndexDelta, multiplicityData } of nucleotideIndexDeltasSortedByMultiplicities) {
+          totalNucleotideIndexDeltasMultiplicity += multiplicityData.multiplicity;
+        }
+        nucleotideIndexDeltasSortedByMultiplicities = nucleotideIndexDeltasSortedByMultiplicities.filter(function({
+          nucleotideIndexDelta,
+          multiplicityData
+        }) {
+          const filterFlag = multiplicityData.multiplicity > 1 && multiplicityData.multiplicity / totalNucleotideIndexDeltasMultiplicity > 0.05;
+          if (filterFlag) {
+            for (const { pairedLabelDatum, arrayIndex } of multiplicityData.candidates) {
+              createLabel(
+                pairedLabelDatum,
+                arrayIndex
+              );
+            }
+          } else {
+            for (const {pairedLabelDatum, arrayIndex, labelContentAsNumber, unfilteredNucleotideData} of multiplicityData.candidates) {
+              failedLabels.push({
+                unfilteredNucleotideData,
+                pairedLabelDatum,
+                labelContentAsNumber
+              });
+            }
+          }
+          return filterFlag;
+        });
+        for (const failedLabel of failedLabels) {
+          const {
+            unfilteredNucleotideData,
+            pairedLabelDatum,
+            labelContentAsNumber
+          } = failedLabel;
+          if (labelContentAsNumber === undefined) {
+            createLabelWithSmallestDistance(
+              pairedLabelDatum,
+              unfilteredNucleotideData
+            );
+          } else {
+            let foundMatchingNucleotideIndexDeltaFlag = false;
+            outerLoop: for (const { nucleotideIndexDelta } of nucleotideIndexDeltasSortedByMultiplicities) {
+              for (const { indices } of unfilteredNucleotideData) {
+                const {
+                  nucleotideIndex,
+                  arrayIndex
+                } = indices;
+                if (nucleotideIndexDelta === labelContentAsNumber - nucleotideIndex) {
+                  foundMatchingNucleotideIndexDeltaFlag = true;
+                  createLabel(
+                    pairedLabelDatum,
+                    arrayIndex
+                  );
+                  break outerLoop;
+                }
+              }
+            }
+            if (!foundMatchingNucleotideIndexDeltaFlag) {
+              createLabelWithSmallestDistance(
+                pairedLabelDatum,
+                unfilteredNucleotideData
+              );
+            }
+          }
+        }
       }
     }
 
@@ -246,9 +615,6 @@ export function parseGraphicalData(
       indices1 : Indices,
       type? : BasePair.Type
     ) {
-      if (logFlag) {
-        console.log(indices0.rnaMoleculeName, indices0.nucleotideIndex, indices1.rnaMoleculeName, indices1.nucleotideIndex);
-      }
       insertBasePair(
         singularRnaComplexProps,
         indices0.rnaMoleculeName,
@@ -277,10 +643,17 @@ export function parseGraphicalData(
       delete flattenedNucleotideProps[indices1.arrayIndex];
     }
 
+    type NucleotideData = {
+      indices : Indices,
+      dv : Vector2D,
+      distance : number,
+      adjustedPosition : Vector2D
+    }
+
     function calculateNucleotideData(
       closestNucleotides : ClosestNucleotides,
       center : Vector2D
-    ) {
+    ) : Array<NucleotideData> {
       return closestNucleotides.map(function({
         indices,
         adjustedPosition,
@@ -433,7 +806,7 @@ export function parseGraphicalData(
         }
       }
       if (filteredNucleotideData.length !== 1 && logFlag) {
-        console.log(`Base-pair creation failed: ${filteredNucleotideData.length} (line; ${basePairLine.basePairType}; (${basePairLine.v0.x}, ${basePairLine.v0.y})-(${basePairLine.v1.x}, ${basePairLine.v1.y}))`, filteredNucleotideData);
+        console.error(`Base-pair creation failed: ${filteredNucleotideData.length} (line; ${basePairLine.basePairType}; (${basePairLine.v0.x}, ${basePairLine.v0.y})-(${basePairLine.v1.x}, ${basePairLine.v1.y}))`, filteredNucleotideData);
       }
     }
 
@@ -554,7 +927,7 @@ export function parseGraphicalData(
         }
       }
       if (filteredNucleotideData.length !== 1 && logFlag) {
-        console.log(`Base-pair creation failed: ${filteredNucleotideData.length} (center; ${basePairCenter.basePairType}; ${basePairCenter.x}, ${basePairCenter.y})`, filteredNucleotideData);
+        console.error(`Base-pair creation failed: ${filteredNucleotideData.length} (center; ${basePairCenter.basePairType}; ${basePairCenter.x}, ${basePairCenter.y})`, filteredNucleotideData);
       }
     }
 
@@ -736,7 +1109,7 @@ export function parseGraphicalData(
       ...remainderCenters
     ];
 
-    // This sort function attempts to minimize the chances of overlapping base pairs
+    // This sort function attempts to minimize the chances of overlapping base-pair candidates
     function sort(
       object0 : { arrayIndices : ArrayIndices },
       object1 : { arrayIndices : ArrayIndices }

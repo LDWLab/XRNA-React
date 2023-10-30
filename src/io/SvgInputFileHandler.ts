@@ -5,9 +5,10 @@ import { LabelLine } from "../components/app_specific/LabelLine";
 import { Nucleotide, getGraphicalAdjustment } from "../components/app_specific/Nucleotide";
 import { DuplicateBasePairKeysHandler, RnaComplex, insertBasePair } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
-import Color, { fromCssString } from "../data_structures/Color";
-import Font from "../data_structures/Font";
-import { BasePairCenters, BasePairCentersPerRnaComplex, BasePairLines, BasePairLinesPerRnaComplex, GraphicalAdjustments, GraphicalAdjustmentsPerRnaComplex, GraphicalAdjustmentsPerRnaMolecule, parseGraphicalData } from "./ParseGraphicalData";
+import Color, { BLACK, fromCssString } from "../data_structures/Color";
+import Font, { parseFontSize } from "../data_structures/Font";
+import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
+import { BasePairCenters, BasePairCentersPerRnaComplex, BasePairLines, BasePairLinesPerRnaComplex, GraphicalAdjustments, GraphicalAdjustmentsPerRnaComplex, GraphicalAdjustmentsPerRnaMolecule, LabelContents, LabelContentsPerRnaComplex, LabelLines, LabelLinesPerRnaComplex, parseGraphicalData } from "./ParseGraphicalData";
 
 export enum SvgPropertyXrnaType {
   SCENE = "scene",
@@ -47,9 +48,12 @@ const xrnaGtSvgIds = Object.values(XrnaGtSvgId);
 type Cache = {
   rnaComplexProps : Array<RnaComplex.ExternalProps>,
   graphicalAdjustments : GraphicalAdjustments,
+  labelLines : LabelLines,
+  labelContents : LabelContents,
   basePairLinesPerRnaComplex : BasePairLinesPerRnaComplex,
   basePairCentersPerRnaComplex : BasePairCentersPerRnaComplex,
   rnaMoleculeCount : number,
+  nucleotideCount : number,
   graphicalAdjustmentsPerRnaComplex? : GraphicalAdjustmentsPerRnaComplex,
   graphicalAdjustmentsPerRnaMolecule? : GraphicalAdjustmentsPerRnaMolecule,
   singularRnaComplexProps? : RnaComplex.ExternalProps,
@@ -59,7 +63,9 @@ type Cache = {
   parentSvgXrnaDataType? : SvgPropertyXrnaType | undefined,
   temporaryBasePairsPerRnaComplex? : Array<TemporaryBasePair>,
   complexDocumentName? : string,
-  mostRecentGroupId? : string
+  mostRecentGroupId? : string,
+  labelLinesPerRnaComplex? : LabelLinesPerRnaComplex,
+  labelContentsPerRnaComplex? : LabelContentsPerRnaComplex
 };
 
 enum SvgFileType {
@@ -80,8 +86,10 @@ export const SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1 = "data-xr
 export const SVG_PROPERTY_XRNA_BASE_PAIR_TYPE = "data-xrna_base_pair_type";
 export const SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME = "data-xrna_scene_name";
 
-const SVG_PROPERTY_GRAPHICAL_ADJUSTMENT_X = "graphical_adjustment_x";
-const SVG_PROPERTY_GRAPHICAL_ADJUSTMENT_Y = "graphical_adjustment_y";
+const SVG_PROPERTY_RECTANGLE_WIDTH = "rectangle_width";
+const SVG_PROPERTY_RECTANGLE_HEIGHT = "rectangle_height";
+
+const transformRegex = /matrix\(1\s+0\s+0\s+1\s+(-?[\d.]+)\s+(-?[\d.]+)\)/;
 
 function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgFileType) {
   const dataXrnaType = svgElement.getAttribute(SVG_PROPERTY_XRNA_TYPE);
@@ -186,6 +194,16 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
               rnaMoleculeProps : {},
               basePairs : {}
             };
+            const rnaComplexIndex = cache.rnaComplexProps.length;
+
+            const labelLinesPerRnaComplex : LabelLinesPerRnaComplex = [];
+            cache.labelLinesPerRnaComplex = labelLinesPerRnaComplex;
+            cache.labelLines[rnaComplexIndex] = labelLinesPerRnaComplex;
+
+            const labelContentsPerRnaComplex : LabelContentsPerRnaComplex = [];
+            cache.labelContentsPerRnaComplex = labelContentsPerRnaComplex;
+            cache.labelContents[rnaComplexIndex] = labelContentsPerRnaComplex;
+
             cache.rnaComplexProps.push(cache.singularRnaComplexProps);
             cache.temporaryBasePairsPerRnaComplex = [];
             break;
@@ -373,89 +391,181 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
           break;
         }
         case "text" : {
-          if (cache.mostRecentGroupId === XrnaGtSvgId.LETTERS) {
-            const requiredAttributes = {
-              id : svgElement.getAttribute("id"),
-              transform : svgElement.getAttribute("transform"),
-              textContent : svgElement.textContent,
-              graphicalAdjustmentX : svgElement.getAttribute(SVG_PROPERTY_GRAPHICAL_ADJUSTMENT_X),
-              graphicalAdjustmentY : svgElement.getAttribute(SVG_PROPERTY_GRAPHICAL_ADJUSTMENT_Y)
-            };
-            for (const [attributeName, attributeValue] of Object.entries(requiredAttributes)) {
-              if (attributeValue === null) {
-                throw `Required SVG attribute "${attributeName}" is missing.`;
+          switch (cache.mostRecentGroupId) {
+            case XrnaGtSvgId.LETTERS : {
+              const requiredAttributes = {
+                id : svgElement.getAttribute("id"),
+                transform : svgElement.getAttribute("transform"),
+                textContent : svgElement.textContent,
+                rectangleWidth : svgElement.getAttribute(SVG_PROPERTY_RECTANGLE_WIDTH),
+                rectangleHeight : svgElement.getAttribute(SVG_PROPERTY_RECTANGLE_HEIGHT)
+              };
+              for (const [attributeName, attributeValue] of Object.entries(requiredAttributes)) {
+                if (attributeValue === null) {
+                  throw `Required SVG attribute "${attributeName}" is missing.`;
+                }
               }
-            }
-            const id = requiredAttributes.id as string;
-            if (!/-?\d+/.test(id)) {
-              throw `Unrecognized nucleotide-index format "${id}"`;
-            }
-            const textContent = (requiredAttributes.textContent as string).trim();
-            if (!Nucleotide.isSymbol(textContent)) {
-              throw `Unrecognized nucleotide symbol "${textContent}"`;
-            }
-            const transform = requiredAttributes.transform as string;
-            const transformRegexMatch = transform.match(/matrix\(1\s+0\s+0\s+1\s+(-?[\d.]+)\s+(-?[\d.]+)\)/);
-            if (transformRegexMatch === null) {
-              throw `Unrecognized transform format "${transform}"`;
-            }
-            const singularNucleotideProps : Nucleotide.ExternalProps = {
-              symbol : textContent,
-              x : Number.parseFloat(transformRegexMatch[1]),
-              y : Number.parseFloat(transformRegexMatch[2])
-            };
-            const nucleotideIndex = Number.parseInt(id);
-            (cache.singularRnaMoleculeProps as RnaMolecule.ExternalProps).nucleotideProps[nucleotideIndex] = singularNucleotideProps;
-            const optionalAttributes = {
-              fill : svgElement.getAttribute("fill"),
-              fontFamily : svgElement.getAttribute("font-family"),
-              fontWeight : svgElement.getAttribute("font-weight"),
-              fontSize : svgElement.getAttribute("font-size"),
-            };
-            if (optionalAttributes.fill !== null) {
-              singularNucleotideProps.color = fromCssString(optionalAttributes.fill);
-            }
-            const font = structuredClone(Font.DEFAULT);
-            singularNucleotideProps.font = font;
-            if (optionalAttributes.fontSize !== null) {
-              const fontSizeRegexMatch = optionalAttributes.fontSize.match(/^([\d.]+)/);
-              if (fontSizeRegexMatch === null) {
-                throw `Unrecognized font-size format ${optionalAttributes.fontSize}`;
+              const id = requiredAttributes.id as string;
+              if (!/-?\d+/.test(id)) {
+                throw `Unrecognized nucleotide-index format "${id}"`;
               }
-              font.size = Number.parseFloat(fontSizeRegexMatch[1]);
+              const textContent = (requiredAttributes.textContent as string).trim();
+              if (!Nucleotide.isSymbol(textContent)) {
+                throw `Unrecognized nucleotide symbol "${textContent}"`;
+              }
+              const transform = requiredAttributes.transform as string;
+              const transformRegexMatch = transform.match(transformRegex);
+              if (transformRegexMatch === null) {
+                throw `Unrecognized transform format "${transform}"`;
+              }
+              const singularNucleotideProps : Nucleotide.ExternalProps = {
+                symbol : textContent,
+                x : Number.parseFloat(transformRegexMatch[1]),
+                y : Number.parseFloat(transformRegexMatch[2])
+              };
+              const nucleotideIndex = Number.parseInt(id);
+              (cache.singularRnaMoleculeProps as RnaMolecule.ExternalProps).nucleotideProps[nucleotideIndex] = singularNucleotideProps;
+              const optionalAttributes = {
+                fill : svgElement.getAttribute("fill"),
+                fontFamily : svgElement.getAttribute("font-family"),
+                fontWeight : svgElement.getAttribute("font-weight"),
+                fontStyle : svgElement.getAttribute("font-style"),
+                fontSize : svgElement.getAttribute("font-size")
+              };
+              if (optionalAttributes.fill !== null) {
+                singularNucleotideProps.color = fromCssString(optionalAttributes.fill);
+              }
+              const font = structuredClone(Font.DEFAULT);
+              singularNucleotideProps.font = font;
+              if (optionalAttributes.fontFamily !== null) {
+                font.family = optionalAttributes.fontFamily as string;
+              }
+              if (optionalAttributes.fontWeight !== null) {
+                font.weight = optionalAttributes.fontWeight as string;
+              }
+              if (optionalAttributes.fontStyle !== null) {
+                font.style = optionalAttributes.fontStyle as string;
+              }
+              if (optionalAttributes.fontSize !== null) {
+                font.size = parseFontSize(optionalAttributes.fontSize);
+              }
+              const graphicalAdjustment = getGraphicalAdjustment({
+                width : Number.parseFloat(requiredAttributes.rectangleWidth as string),
+                height : Number.parseFloat(requiredAttributes.rectangleHeight as string)
+              });
+              (cache.graphicalAdjustmentsPerRnaMolecule as GraphicalAdjustmentsPerRnaMolecule)[nucleotideIndex] = graphicalAdjustment;
+              break;
             }
-            (cache.graphicalAdjustmentsPerRnaMolecule as GraphicalAdjustmentsPerRnaMolecule)[nucleotideIndex] = {
-              x : Number.parseFloat(requiredAttributes.graphicalAdjustmentX as string),
-              y : Number.parseFloat(requiredAttributes.graphicalAdjustmentY as string)
-            };
+            case XrnaGtSvgId.LABELS_TEXT : {
+              const requiredAttributes = {
+                transform : svgElement.getAttribute("transform"),
+                textContent : svgElement.textContent,
+                rectangleWidth : svgElement.getAttribute(SVG_PROPERTY_RECTANGLE_WIDTH),
+                rectangleHeight : svgElement.getAttribute(SVG_PROPERTY_RECTANGLE_HEIGHT)
+              }
+              for (const [attributeName, attributeValue] of Object.entries(requiredAttributes)) {
+                if (attributeValue === null) {
+                  throw `Required SVG attribute "${attributeName}" is missing.`;
+                }
+              }
+              requiredAttributes.textContent = (requiredAttributes.textContent as string).trim();
+              const transform = requiredAttributes.transform as string;
+              const transformRegexMatch = transform.match(transformRegex);
+              if (transformRegexMatch === null) {
+                throw `Unrecognized transform format ${transform}`;
+              }
+              const optionalAttributes = {
+                fontFamily : svgElement.getAttribute("font-family"),
+                fontStyle : svgElement.getAttribute("font-style"),
+                fontWeight : svgElement.getAttribute("font-weight"),
+                fontSize : svgElement.getAttribute("font-size")
+              }
+              const font = structuredClone(Font.DEFAULT);
+              if (optionalAttributes.fontFamily !== null) {
+                font.family = optionalAttributes.fontFamily;
+              }
+              if (optionalAttributes.fontStyle !== null) {
+                font.style = optionalAttributes.fontStyle;
+              }
+              if (optionalAttributes.fontWeight !== null) {
+                font.weight = optionalAttributes.fontWeight;
+              }
+              if (optionalAttributes.fontSize !== null) {
+                font.size = parseFontSize(optionalAttributes.fontSize);
+              }
+
+              const x = Number.parseFloat(transformRegexMatch[1]);
+              const y = Number.parseFloat(transformRegexMatch[2]);
+              const width = Number.parseFloat(requiredAttributes.rectangleWidth as string);
+              const height = Number.parseFloat(requiredAttributes.rectangleHeight as string);
+              (cache.labelContentsPerRnaComplex as LabelContentsPerRnaComplex).push({
+                labelContent : {
+                  content : requiredAttributes.textContent as string,
+                  x,
+                  y,
+                  font
+                },
+                rectangle : {
+                  width,
+                  height
+                }
+              });
+            }
           }
           break;
         }
         case "line" : {
-          if (cache.mostRecentGroupId === XrnaGtSvgId.BASE_PAIR_LINES) {
-            const requiredAttributes = {
-              x1 : svgElement.getAttribute("x1"),
-              y1 : svgElement.getAttribute("y1"),
-              x2 : svgElement.getAttribute("x2"),
-              y2 : svgElement.getAttribute("y2")
-            };
-            for (const [attributeName, attributeValue] of Object.entries(requiredAttributes)) {
-              if (attributeValue === null) {
-                throw `Required SVG property ${attributeName} is missing.`;
-              }
+          const requiredAttributes = {
+            x1 : svgElement.getAttribute("x1"),
+            y1 : svgElement.getAttribute("y1"),
+            x2 : svgElement.getAttribute("x2"),
+            y2 : svgElement.getAttribute("y2")
+          };
+          for (const [attributeName, attributeValue] of Object.entries(requiredAttributes)) {
+            if (attributeValue === null) {
+              throw `Required SVG property ${attributeName} is missing.`;
             }
-            const optionalAttributes = {};
-            cache.basePairLinesPerRnaComplex.push({
-              v0 : {
-                x : Number.parseFloat(requiredAttributes.x1 as string),
-                y : Number.parseFloat(requiredAttributes.y1 as string)
-              },
-              v1 : {
-                x : Number.parseFloat(requiredAttributes.x2 as string),
-                y : Number.parseFloat(requiredAttributes.y2 as string)
-              },
-              basePairType : BasePair.Type.CANONICAL
-            });
+          }
+          const optionalAttributes = {
+            color : svgElement.getAttribute("stroke"),
+            strokeWidth : svgElement.getAttribute("stroke-width")
+          };
+          let color = BLACK;
+          if (optionalAttributes.color !== null) {
+            color = fromCssString(optionalAttributes.color);
+          }
+          let strokeWidth = DEFAULT_STROKE_WIDTH;
+          if (optionalAttributes.strokeWidth !== null) {
+            strokeWidth = Number.parseFloat(optionalAttributes.strokeWidth)
+          }
+          const v0 = {
+            x : Number.parseFloat(requiredAttributes.x1 as string),
+            y : Number.parseFloat(requiredAttributes.y1 as string)
+          }
+          const v1 = {
+            x : Number.parseFloat(requiredAttributes.x2 as string),
+            y : Number.parseFloat(requiredAttributes.y2 as string)
+          }
+          switch (cache.mostRecentGroupId) {
+            case XrnaGtSvgId.BASE_PAIR_LINES : {
+              cache.basePairLinesPerRnaComplex.push({
+                v0,
+                v1,
+                basePairType : BasePair.Type.CANONICAL,
+                color,
+                strokeWidth
+              });
+              break;
+            }
+            case XrnaGtSvgId.LABELS_LINES : {
+              (cache.labelLinesPerRnaComplex as LabelLinesPerRnaComplex).push({
+                v0,
+                v1,
+                color,
+                strokeWidth
+              });
+              break;
+            }
           }
           break;
         }
@@ -488,7 +598,175 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
       break;
     }
     case SvgFileType.UNFORMATTED : {
-      // TODO: Implement this.
+      // TODO : Test these files!
+      switch (svgElement.tagName) {
+        case "circle" : {
+          const requiredAttributes = {
+            cx : svgElement.getAttribute("cx"),
+            cy : svgElement.getAttribute("cy")
+          };
+          for (const [attributeName, attributeValue] of Object.entries(requiredAttributes)) {
+            if (attributeValue === null) {
+              throw `Required SVG attribute "${attributeName}" is missing.`;
+            }
+          }
+          const optionalAttributes = {
+            fill : svgElement.getAttribute("fill")
+          };
+          if (optionalAttributes.fill !== null) {
+            optionalAttributes.fill = optionalAttributes.fill.trim();
+          }
+          const basePairType = optionalAttributes.fill === null ? BasePair.Type.MISMATCH : BasePair.Type.WOBBLE;
+          cache.basePairCentersPerRnaComplex.push({
+            x : Number.parseFloat(requiredAttributes.cx as string),
+            y : Number.parseFloat(requiredAttributes.cy as string),
+            basePairType
+          });
+          break;
+        }
+        case "text" : {
+          const requiredAttributes = {
+            textContent : svgElement.textContent
+          };
+          const textContent = (requiredAttributes.textContent as string).trim();
+          for (const [attributeName, attributeValue] of Object.entries(requiredAttributes)) {
+            if (attributeValue === null) {
+              throw `Required SVG attribute "${attributeName}" is missing.`;
+            }
+          }
+          const optionalAttributes = {
+            transform : svgElement.getAttribute("transform"),
+            x : svgElement.getAttribute("x"),
+            y : svgElement.getAttribute("y"),
+            fontFamily : svgElement.getAttribute("font-family"),
+            fontStyle : svgElement.getAttribute("font-style"),
+            fontWeight : svgElement.getAttribute("font-weight"),
+            fontSize : svgElement.getAttribute("font-size"),
+            color : svgElement.getAttribute("fill"),
+            strokeWidth : svgElement.getAttribute("stroke-width")
+          }
+          const font = structuredClone(Font.DEFAULT);
+          if (optionalAttributes.fontFamily !== null) {
+            font.family = optionalAttributes.fontFamily;
+          }
+          if (optionalAttributes.fontStyle !== null) {
+            font.style = optionalAttributes.fontStyle;
+          }
+          if (optionalAttributes.fontWeight !== null) {
+            font.weight = optionalAttributes.fontWeight;
+          }
+          if (optionalAttributes.fontSize !== null) {
+            font.size = parseFontSize(optionalAttributes.fontSize);
+          }
+          let color = structuredClone(BLACK);
+          if (optionalAttributes.color !== null) {
+            color = fromCssString(optionalAttributes.color);
+          }
+          let x = 0;
+          let y = 0;
+          if (optionalAttributes.transform !== null) {
+            const transformRegexMatch = optionalAttributes.transform.match(transformRegex);
+            if (transformRegexMatch !== null) {
+              x = Number.parseFloat(transformRegexMatch[1]);
+              y = Number.parseFloat(transformRegexMatch[2]);
+            }
+          }
+          if (optionalAttributes.x !== null) {
+            x = Number.parseFloat(optionalAttributes.x);
+          }
+          if (optionalAttributes.y !== null) {
+            y = Number.parseFloat(optionalAttributes.y);
+          }
+          let strokeWidth = DEFAULT_STROKE_WIDTH;
+          if (optionalAttributes.strokeWidth !== null) {
+            strokeWidth = Number.parseFloat(optionalAttributes.strokeWidth);
+          }
+          if (Nucleotide.isSymbol(textContent)) {
+            const singularNucleotideProps : Nucleotide.ExternalProps = {
+              x,
+              y,
+              symbol : textContent,
+              color,
+              strokeWidth,
+              font
+            };
+            (cache.singularRnaMoleculeProps as RnaMolecule.ExternalProps).nucleotideProps[cache.nucleotideCount] = singularNucleotideProps;
+            cache.nucleotideCount++;
+          } else {
+            const width = svgElement.getAttribute(SVG_PROPERTY_RECTANGLE_WIDTH);
+            if (width === null) {
+              throw `Required SVG property "${SVG_PROPERTY_RECTANGLE_WIDTH}" is missing.`;
+            }
+            const height = svgElement.getAttribute(SVG_PROPERTY_RECTANGLE_HEIGHT);
+            if (height === null) {
+              throw `Required SVG property "${SVG_PROPERTY_RECTANGLE_HEIGHT}" is missing.`;
+            }
+            (cache.labelContentsPerRnaComplex as LabelContentsPerRnaComplex).push({
+              labelContent : {
+                x,
+                y,
+                content : textContent,
+                font,
+                color,
+                strokeWidth
+              },
+              rectangle : {
+                width : Number.parseFloat(width),
+                height : Number.parseFloat(height)
+              }
+            });
+          }
+          break;
+        }
+        case "line" : {
+          const requiredAttributes = {
+            x1 : svgElement.getAttribute("x1"),
+            y1 : svgElement.getAttribute("y1"),
+            x2 : svgElement.getAttribute("x2"),
+            y2 : svgElement.getAttribute("y2")
+          };
+          for (const [attributeName, attributeValue] of Object.entries(requiredAttributes)) {
+            if (attributeValue === null) {
+              throw `Required SVG property ${attributeName} is missing.`;
+            }
+          }
+          const optionalAttributes = {
+            color : svgElement.getAttribute("stroke"),
+            strokeWidth : svgElement.getAttribute("stroke-width")
+          };
+          let color = BLACK;
+          if (optionalAttributes.color !== null) {
+            color = fromCssString(optionalAttributes.color);
+          }
+          let strokeWidth = DEFAULT_STROKE_WIDTH;
+          if (optionalAttributes.strokeWidth !== null) {
+            strokeWidth = Number.parseFloat(optionalAttributes.strokeWidth)
+          }
+          const v0 = {
+            x : Number.parseFloat(requiredAttributes.x1 as string),
+            y : Number.parseFloat(requiredAttributes.y1 as string)
+          }
+          const v1 = {
+            x : Number.parseFloat(requiredAttributes.x2 as string),
+            y : Number.parseFloat(requiredAttributes.y2 as string)
+          }
+          // Because there is no context for SVG "line" elements (whether they are base pairs or label lines), I have no choice but to treat them as both.
+          cache.basePairLinesPerRnaComplex.push({
+            v0,
+            v1,
+            basePairType : BasePair.Type.CANONICAL,
+            color,
+            strokeWidth
+          });
+          (cache.labelLinesPerRnaComplex as LabelLinesPerRnaComplex).push({
+            v0,
+            v1,
+            color,
+            strokeWidth
+          });
+          break;
+        }
+      }
       break;
     }
     default : {
@@ -563,7 +841,10 @@ export function svgInputFileHandler(
     graphicalAdjustments : {},
     basePairLinesPerRnaComplex : [],
     basePairCentersPerRnaComplex : [],
-    rnaMoleculeCount : 0
+    rnaMoleculeCount : 0,
+    nucleotideCount : 0,
+    labelLines : {},
+    labelContents : {}
   };
   
   let svgFileType = SvgFileType.UNFORMATTED;
@@ -576,9 +857,19 @@ export function svgInputFileHandler(
       rnaMoleculeProps : {},
       basePairs : {}
     };
+    const rnaComplexIndex = rnaComplexProps.length;
     rnaComplexProps.push(singularRnaComplexProps);
     cache.singularRnaComplexProps = singularRnaComplexProps;
-    cache.graphicalAdjustments[0] = {};
+
+    const labelLinesPerRnaComplex : LabelLinesPerRnaComplex = [];
+    cache.labelLinesPerRnaComplex = labelLinesPerRnaComplex;
+    cache.labelLines[rnaComplexIndex] = labelLinesPerRnaComplex;
+
+    const labelContentsPerRnaComplex : LabelContentsPerRnaComplex = [];
+    cache.labelContentsPerRnaComplex = labelContentsPerRnaComplex;
+    cache.labelContents[rnaComplexIndex] = labelContentsPerRnaComplex;
+
+    cache.graphicalAdjustments[rnaComplexIndex] = {};
     cache.graphicalAdjustmentsPerRnaComplex = cache.graphicalAdjustments[0];
   } else {
     svgFileType = SvgFileType.UNFORMATTED;
@@ -598,6 +889,7 @@ export function svgInputFileHandler(
     const rnaMoleculeName = "RNA molecule";
     singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName] = singularRnaMoleculeProps;
     cache.singularRnaMoleculeProps = singularRnaMoleculeProps;
+
     cache.graphicalAdjustmentsPerRnaComplex[rnaMoleculeName] = {};
     cache.graphicalAdjustmentsPerRnaMolecule = cache.graphicalAdjustmentsPerRnaComplex[rnaMoleculeName];
   }
@@ -610,9 +902,8 @@ export function svgInputFileHandler(
     testSpace.innerHTML = inputFileContent;
     for (const textElement of Array.from(testSpace.querySelectorAll("text"))) {
       const rectangle = textElement.getBBox();
-      const graphicalAdjustment = getGraphicalAdjustment(rectangle);
-      textElement.setAttribute(SVG_PROPERTY_GRAPHICAL_ADJUSTMENT_X, `${graphicalAdjustment.x}`);
-      textElement.setAttribute(SVG_PROPERTY_GRAPHICAL_ADJUSTMENT_Y, `${graphicalAdjustment.y}`)
+      textElement.setAttribute(SVG_PROPERTY_RECTANGLE_WIDTH, `${rectangle.width}`);
+      textElement.setAttribute(SVG_PROPERTY_RECTANGLE_HEIGHT, `${rectangle.height}`);
     }
     inputFileContent = testSpace.innerHTML;
   }
@@ -637,7 +928,9 @@ export function svgInputFileHandler(
         {
           0 : cache.basePairCentersPerRnaComplex
         },
-        cache.graphicalAdjustments
+        cache.graphicalAdjustments,
+        cache.labelLines,
+        cache.labelContents
       );
       break;
     }
@@ -650,7 +943,9 @@ export function svgInputFileHandler(
         {
           0 : cache.basePairCentersPerRnaComplex
         },
-        cache.graphicalAdjustments
+        cache.graphicalAdjustments,
+        cache.labelLines,
+        cache.labelContents
       );
       break;
     }

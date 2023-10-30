@@ -3,7 +3,7 @@ import { RnaComplex } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
 import { Line2D } from "../data_structures/Geometry";
 import { Vector2D } from "../data_structures/Vector2D";
-import { parseGraphicalData } from "./ParseGraphicalData";
+import { LabelContents, LabelLine_, LabelLines, parseGraphicalData } from "./ParseGraphicalData";
 
 export function strInputFileHandler(inputFileContent : string) {
   let defaultFontSize = 4;
@@ -14,8 +14,18 @@ export function strInputFileHandler(inputFileContent : string) {
   let regexMatchAll = inputFileContent.matchAll(/(text|line)\s*\{/g);
   const nucleotideProps = new Array<Nucleotide.ExternalProps>();
   const basePairLines = new Array<Line2D>();
-  // As far as I can tell, this base-pair type doesn't exist in this type of input file.
-  // However, the data structure is necessary, and might it become relevant later.
+  const rnaComplexIndex = 0;
+  const complexDocumentName = "Scene";
+  const rnaComplexName = "RNA complex";
+  const rnaMoleculeName = "RNA molecule";
+  // The following data structures are necessary; later on, they might become relevant to STR parsing.
+  // As far as I can tell, they don't exist in this type of input file.
+  const labelLines : LabelLines = {
+    [rnaComplexIndex] : []
+  };
+  const labelContents : LabelContents = {
+    [rnaComplexIndex] : []
+  };
   const basePairCenters = new Array<Vector2D>();
   for (let regexMatch of regexMatchAll) {
     let openCloseBracketBalanceIndex = 1;
@@ -91,9 +101,9 @@ export function strInputFileHandler(inputFileContent : string) {
     nucleotideProps
   };
   const singularRnaComplexProps : RnaComplex.ExternalProps = {
-    name : "Unknown",
+    name : rnaComplexName,
     rnaMoleculeProps : {
-      "Unknown" : singularRnaMoleculeProps
+      [rnaMoleculeName] : singularRnaMoleculeProps
     },
     basePairs : {}
   };
@@ -103,14 +113,21 @@ export function strInputFileHandler(inputFileContent : string) {
   parseGraphicalData(
     rnaComplexProps,
     {
-      0 : basePairLines
+      [rnaComplexIndex] : basePairLines
     },
     {
-      0 : basePairCenters
-    }
+      [rnaComplexIndex] : basePairCenters
+    },
+    {
+      [rnaComplexIndex] : {
+        [rnaMoleculeName] : []
+      }
+    },
+    labelLines,
+    labelContents
   );
   return {
-    complexDocumentName : "Unknown",
+    complexDocumentName,
     rnaComplexProps
   };
 }
