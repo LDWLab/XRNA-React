@@ -16,6 +16,11 @@ export type Line2D = {
   v1 : Vector2D
 };
 
+export type Rectangle = {
+  width : number,
+  height : number
+}
+
 export function intersect2dLines(l0 : ParametricLine2D, l1 : ParametricLine2D) : number | ParametricLine2D | null {
   let _crossProduct = crossProduct(l0.direction, l1.direction);
   if (sign(_crossProduct) === 0) {
