@@ -208,13 +208,13 @@ export namespace RnaComplex {
             distancesData.distanceSum += basePairDistance;
           }
         }
-        const mismatchBasePairRadius = totalBasePairDistances / (totalBasePairsCount * 6);
+        const basePairRadius = totalBasePairDistances / (totalBasePairsCount * 12);
         return {
-          mismatch : mismatchBasePairRadius,
-          wobble: mismatchBasePairRadius * 0.5
+          mismatch : basePairRadius,
+          wobble : basePairRadius
         };
       },
-      []
+      [basePairs]
     );
     const flattenedRnaMoleculeProps = Object.entries(rnaMoleculeProps);
     // const flattenedRnaMoleculeProps = useMemo(
