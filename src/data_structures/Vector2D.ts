@@ -1,4 +1,5 @@
-import { sign } from "../utils/Utils";
+import { DEFAULT_EPSILON, sign } from "../utils/Utils";
+import { Line2D } from "./Geometry";
 
 export type Vector2D = {
   x : number,
@@ -182,4 +183,44 @@ export function projectAndRejectUsingNormalDirection(v : Vector2D, normalDirecti
 
 export function rotationDirection(dv0 : Vector2D, dv1 : Vector2D) {
   return sign(crossProduct(dv0, dv1));
+}
+
+export function distanceSquaredBetweenVector2DAndLineSegment(
+  vector : Vector2D,
+  lineSegment : Line2D,
+  epsilonSquared = DEFAULT_EPSILON * DEFAULT_EPSILON
+) {
+  const dv = subtract(
+    lineSegment.v1,
+    lineSegment.v0
+  );
+  const magnitudeSquared_ = magnitudeSquared(dv);
+  if (magnitudeSquared_ >= epsilonSquared) {
+    return distance(
+      vector,
+      lineSegment.v0
+    );
+  } else {
+    let interpolationFactor = dotProduct(
+      subtract(
+        vector,
+        lineSegment.v0
+      ),
+      dv
+    );
+    if (interpolationFactor < 0) {
+      interpolationFactor = 0;
+    } else if (interpolationFactor > 1) {
+      interpolationFactor = 1;
+    }
+    const interpolatedVector = interpolate(
+      lineSegment.v0,
+      lineSegment.v1,
+      interpolationFactor
+    );
+    return distanceSquared(
+      vector,
+      interpolatedVector
+    );
+  }
 }
