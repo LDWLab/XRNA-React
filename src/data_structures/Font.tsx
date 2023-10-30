@@ -136,6 +136,14 @@ class PartialFont {
   }
 }
 
+export function parseFontSize(fontSizeAsString : string) {
+  const fontSizeRegexMatch = fontSizeAsString.match(/^([\d.]+)/);
+  if (fontSizeRegexMatch === null) {
+    throw `Unrecognized font-size format ${fontSizeAsString}`;
+  }
+  return Number.parseFloat(fontSizeRegexMatch[1]);
+}
+
 class Font extends PartialFont {
   public size : number | string;
 
