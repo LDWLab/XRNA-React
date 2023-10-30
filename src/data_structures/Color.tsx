@@ -85,7 +85,7 @@ export function fromHexadecimal(hexadecimal : string, colorFormat : ColorFormat)
   return fromNumber(Number.parseInt(hexadecimal, 16), colorFormat);
 }
 
-export function fromNumber(_number : number, colorFormat : ColorFormat) : Color {
+export function fromNumber(_number : number, colorFormat : ColorFormat = ColorFormat.RGB) : Color {
   let splitBits = {
     // Right-most 8 bits
     0 : _number & 255,
@@ -132,23 +132,33 @@ export function toHexadecimal(
   return "0".repeat(2 * colorFormat.length - withoutPadding.length) + withoutPadding;
 }
 
-export function fromCssString(cssString : string) : Color {
-  let rgbMatch = /^rgb\((\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})\)$/.exec(cssString);
-  if (rgbMatch !== null) {
+export function fromCssString(
+  cssString : string,
+  colorFormat : ColorFormat = ColorFormat.RGB
+) : Color {
+  let match = /^rgb\((\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})\)$/.exec(cssString);
+  if (match !== null) {
     return {
-      red : Number.parseInt(rgbMatch[1]),
-      green : Number.parseInt(rgbMatch[2]),
-      blue : Number.parseInt(rgbMatch[3])
+      red : Number.parseInt(match[1]),
+      green : Number.parseInt(match[2]),
+      blue : Number.parseInt(match[3])
     };
   }
-  rgbMatch = /^rgba\((\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)([\d\.]+)\)$/.exec(cssString);
-  if (rgbMatch !== null) {
+  match = /^rgba\((\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)([\d\.]+)\)$/.exec(cssString);
+  if (match !== null) {
     return {
-      red : Number.parseInt(rgbMatch[1]),
-      green : Number.parseInt(rgbMatch[2]),
-      blue : Number.parseInt(rgbMatch[3]),
-      alpha : Number.parseFloat(rgbMatch[4]) * 255
+      red : Number.parseInt(match[1]),
+      green : Number.parseInt(match[2]),
+      blue : Number.parseInt(match[3]),
+      alpha : Number.parseFloat(match[4]) * 255
     };
+  }
+  match = /^\d+$/.exec(cssString);
+  if (match !== null) {
+    return fromNumber(
+      Number.parseInt(match[0]),
+      colorFormat
+    );
   }
   switch (cssString) {
     case "black" : {
