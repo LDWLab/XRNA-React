@@ -3,6 +3,7 @@ import { RnaComplexKey, RnaMoleculeKey, NucleotideKey, FullKeys } from "../App";
 import { RnaComplex as _RnaComplex } from "../components/app_specific/RnaComplex";
 import { Nucleotide as _Nucleotide } from "../components/app_specific/Nucleotide";
 import { LabelContent as _LabelContent } from "../components/app_specific/LabelContent";
+import { BasePair as _BasePair } from "../components/app_specific/BasePair";
 import { LabelLine as _LabelLine } from "../components/app_specific/LabelLine";
 import { DEFAULT_SETTINGS } from "../ui/Setting";
 import { InteractionConstraint } from "../ui/InteractionConstraint/InteractionConstraints";
@@ -55,11 +56,25 @@ export namespace Context {
   }
 
   export namespace BasePair {
-    export const DEFAULT_RADIUS = {
-      mismatch : 1,
-      wobble: 0.5
+    export type Radii = {
+      mismatch : number,
+      wobble : number
+    }
+    export type Distances = Record<_BasePair.Type, number>;
+    export type AllDistances = {
+      distances : Distances,
+      radii : Radii
     };
-    export const Radius = createContext(DEFAULT_RADIUS);
+    export const DEFAULT_RADII : Radii = {
+      mismatch : 1,
+      wobble: 1
+    };
+    export const DEFAULT_DISTANCES : Distances = {
+      mismatch : DEFAULT_RADII.mismatch * 12,
+      wobble : DEFAULT_RADII.wobble * 12,
+      canonical : DEFAULT_RADII.wobble * 12
+    };
+    export const Radius = createContext(DEFAULT_RADII);
     export type KeysToEditPerRnaComplexType = {
       add : Array<_RnaComplex.BasePairKeys>,
       delete : Array<_RnaComplex.BasePairKeys>
@@ -70,7 +85,14 @@ export namespace Context {
     });
     export type KeysToEdit = Record<RnaComplexKey, KeysToEditPerRnaComplexType>;
     export const SetKeysToEdit = createContext(function(keysToEdit : KeysToEdit) { /* Do nothing. */ });
-    export const SetKeysToRerender = createContext(function(basePairKeysToRerender : BasePairKeysToRerender) { /* Do nothing. */ })
+    export const SetKeysToRerender = createContext(function(basePairKeysToRerender : BasePairKeysToRerender) { /* Do nothing. */ });
+    export const UpdateAverageDistances = createContext(function(
+      rnaComplexKey : RnaComplexKey,
+      distances : AllDistances
+    ) {
+      // Do nothing.
+    });
+    export const AverageDistances = createContext<Record<RnaComplexKey, AllDistances>>({});
   };
 
   export namespace Label {

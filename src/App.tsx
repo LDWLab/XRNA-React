@@ -201,6 +201,10 @@ function App() {
     rightClickMenuOptionsMenu,
     setRightClickMenuOptionsMenu
   ] = useState(<></>);
+  const [
+    basePairAverageDistances,
+    setBasePairAverageDistances
+  ] = useState<Record<RnaComplexKey, Context.BasePair.AllDistances>>({});
   // Begin state-relevant helper functions.
   function resetViewport() {
     setSceneBounds((sceneSvgGElementReference.current as SVGGElement).getBBox());
@@ -289,6 +293,15 @@ function App() {
       }
       throw error;
     }
+  }
+  function updateBasePairAverageDistances(
+    rnaComplexKey : RnaComplexKey,
+    basePairDistances : Context.BasePair.AllDistances
+  ) {
+    setBasePairAverageDistances({
+      ...basePairAverageDistances,
+      [rnaComplexKey] : basePairDistances
+    });
   }
   const viewportDragListener : DragListener = {
     initiateDrag() {
@@ -1612,320 +1625,328 @@ function App() {
       </Collapsible.Component>
     </>
   };
-  return <Context.App.InteractionConstraintOptions.Provider
-    value = {interactionConstraintOptions}
+  return <Context.BasePair.AverageDistances.Provider
+    value = {basePairAverageDistances}
   >
-    <Context.App.UpdateInteractionConstraintOptions.Provider
-      value = {function(newInteractionConstraintOptions) {
-        setInteractionConstraintOptions({
-          ...interactionConstraintOptions,
-          ...newInteractionConstraintOptions
-        });
-      }}
+    <Context.BasePair.UpdateAverageDistances.Provider
+      value = {updateBasePairAverageDistances}
     >
-      <Context.Nucleotide.SetKeysToRerender.Provider
-        value = {setNucleotideKeysToRerender}
+      <Context.App.InteractionConstraintOptions.Provider
+        value = {interactionConstraintOptions}
       >
-        <Context.BasePair.SetKeysToRerender.Provider
-          value = {setBasePairKeysToRerender}
+        <Context.App.UpdateInteractionConstraintOptions.Provider
+          value = {function(newInteractionConstraintOptions) {
+            setInteractionConstraintOptions({
+              ...interactionConstraintOptions,
+              ...newInteractionConstraintOptions
+            });
+          }}
         >
-          <Context.App.Settings.Provider
-            value = {settingsRecord}
+          <Context.Nucleotide.SetKeysToRerender.Provider
+            value = {setNucleotideKeysToRerender}
           >
-            <Context.App.UpdateRnaMoleculeNameHelper.Provider
-              value = {function(
-                rnaComplexIndex,
-                oldRnaMoleculeName,
-                newRnaMoleculeName
-              ) {
-                const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-                const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
-
-                for (let rnaMoleculeName of Object.keys(singularRnaComplexProps.rnaMoleculeProps)) {
-                  if (!(rnaMoleculeName in basePairsPerRnaComplex)) {
-                    continue;
-                  }
-                  let basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
-                  for (let mappedBasePairInformation of Object.values(basePairsPerRnaMolecule)) {
-                    if (mappedBasePairInformation.rnaMoleculeName === oldRnaMoleculeName) {
-                      mappedBasePairInformation.rnaMoleculeName = newRnaMoleculeName;
-                    }
-                  }
-                }
-
-                singularRnaComplexProps.rnaMoleculeProps[newRnaMoleculeName] = singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
-                delete singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
-
-                const basePairsPerRnaMolecule = basePairsPerRnaComplex[oldRnaMoleculeName];
-                delete basePairsPerRnaComplex[oldRnaMoleculeName];
-                basePairsPerRnaComplex[newRnaMoleculeName] = basePairsPerRnaMolecule;
-
-                setNucleotideKeysToRerender({
-                  [rnaComplexIndex] : {}
-                });
-              }}
+            <Context.BasePair.SetKeysToRerender.Provider
+              value = {setBasePairKeysToRerender}
             >
-              <Context.BasePair.SetKeysToEdit.Provider
-                value = {setBasePairKeysToEdit}
+              <Context.App.Settings.Provider
+                value = {settingsRecord}
               >
-                <div
-                  onKeyDown = {onKeyDown}
-                  ref = {parentDivResizeDetector.ref}
-                  style = {{
-                    position : "absolute",
-                    display : "block",
-                    width : "100%",
-                    height : "100%",
-                    overflow : "hidden"
+                <Context.App.UpdateRnaMoleculeNameHelper.Provider
+                  value = {function(
+                    rnaComplexIndex,
+                    oldRnaMoleculeName,
+                    newRnaMoleculeName
+                  ) {
+                    const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+                    const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+
+                    for (let rnaMoleculeName of Object.keys(singularRnaComplexProps.rnaMoleculeProps)) {
+                      if (!(rnaMoleculeName in basePairsPerRnaComplex)) {
+                        continue;
+                      }
+                      let basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
+                      for (let mappedBasePairInformation of Object.values(basePairsPerRnaMolecule)) {
+                        if (mappedBasePairInformation.rnaMoleculeName === oldRnaMoleculeName) {
+                          mappedBasePairInformation.rnaMoleculeName = newRnaMoleculeName;
+                        }
+                      }
+                    }
+
+                    singularRnaComplexProps.rnaMoleculeProps[newRnaMoleculeName] = singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
+                    delete singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
+
+                    const basePairsPerRnaMolecule = basePairsPerRnaComplex[oldRnaMoleculeName];
+                    delete basePairsPerRnaComplex[oldRnaMoleculeName];
+                    basePairsPerRnaComplex[newRnaMoleculeName] = basePairsPerRnaMolecule;
+
+                    setNucleotideKeysToRerender({
+                      [rnaComplexIndex] : {}
+                    });
                   }}
                 >
-                  {/* Tools div */}
-                  <div
-                    ref = {toolsDivResizeDetector.ref}
-                    style = {{
-                      position : "absolute",
-                      width : "100%",
-                      height : "auto",
-                      resize : "vertical",
-                      overflow : "hidden",
-                      display : "block",
-                      borderBottom : "1px solid black"
-                    }}
+                  <Context.BasePair.SetKeysToEdit.Provider
+                    value = {setBasePairKeysToEdit}
                   >
-                    {/* Left tools div */}
                     <div
+                      onKeyDown = {onKeyDown}
+                      ref = {parentDivResizeDetector.ref}
                       style = {{
-                        width : "50%",
+                        position : "absolute",
+                        display : "block",
+                        width : "100%",
                         height : "100%",
-                        display : "inline-block",
-                        overflowY : "auto",
-                        verticalAlign : "top"
+                        overflow : "hidden"
                       }}
                     >
-                      {tabs.map(function(tabI : Tab) {
-                        const color = tab === tabI ? "#add8e6" : "#ccc";
-                        return <button
-                          style = {{
-                            border : `1px solid ${color}`,
-                            backgroundColor : color
-                          }}
-                          key = {tabI}
-                          onClick = {function() {
-                            setTab(tabI);
-                          }}
-                        >
-                          {tabI}
-                        </button>
-                      })}
-                      <br/>
-                      {tabs.map(function(tabI : Tab) {
-                        return <div
-                          key = {tabI}
-                          style = {{
-                            display : tab === tabI ? "block" : "none"
-                          }}
-                        >
-                          {tabRenderRecord[tabI]}
-                        </div>;
-                      })}
-                    </div>
-                    {/* Right tools div */}
-                    <div
-                      style = {{
-                        width : "50%",
-                        height : "100%",
-                        display : "inline-block",
-                        overflowY : "auto",
-                        verticalAlign : "top"
-                      }}
-                    >
-                      <Context.App.ComplexDocumentName.Provider
-                        value = {complexDocumentName}
+                      {/* Tools div */}
+                      <div
+                        ref = {toolsDivResizeDetector.ref}
+                        style = {{
+                          position : "absolute",
+                          width : "100%",
+                          height : "auto",
+                          resize : "vertical",
+                          overflow : "hidden",
+                          display : "block",
+                          borderBottom : "1px solid black"
+                        }}
                       >
-                        <Context.App.SetComplexDocumentName.Provider
-                          value = {setComplexDocumentName}
+                        {/* Left tools div */}
+                        <div
+                          style = {{
+                            width : "50%",
+                            height : "100%",
+                            display : "inline-block",
+                            overflowY : "auto",
+                            verticalAlign : "top"
+                          }}
                         >
-                          <Context.OrientationEditor.ResetDataTrigger.Provider
-                            value = {resetOrientationDataTrigger}
+                          {tabs.map(function(tabI : Tab) {
+                            const color = tab === tabI ? "#add8e6" : "#ccc";
+                            return <button
+                              style = {{
+                                border : `1px solid ${color}`,
+                                backgroundColor : color
+                              }}
+                              key = {tabI}
+                              onClick = {function() {
+                                setTab(tabI);
+                              }}
+                            >
+                              {tabI}
+                            </button>
+                          })}
+                          <br/>
+                          {tabs.map(function(tabI : Tab) {
+                            return <div
+                              key = {tabI}
+                              style = {{
+                                display : tab === tabI ? "block" : "none"
+                              }}
+                            >
+                              {tabRenderRecord[tabI]}
+                            </div>;
+                          })}
+                        </div>
+                        {/* Right tools div */}
+                        <div
+                          style = {{
+                            width : "50%",
+                            height : "100%",
+                            display : "inline-block",
+                            overflowY : "auto",
+                            verticalAlign : "top"
+                          }}
+                        >
+                          <Context.App.ComplexDocumentName.Provider
+                            value = {complexDocumentName}
                           >
-                            {rightClickMenuContent}
-                          </Context.OrientationEditor.ResetDataTrigger.Provider>
-                        </Context.App.SetComplexDocumentName.Provider>
-                      </Context.App.ComplexDocumentName.Provider>
-                    </div>
-                    {sceneState === SceneState.NO_DATA && <>
-                      <br/>
-                      <b
+                            <Context.App.SetComplexDocumentName.Provider
+                              value = {setComplexDocumentName}
+                            >
+                              <Context.OrientationEditor.ResetDataTrigger.Provider
+                                value = {resetOrientationDataTrigger}
+                              >
+                                {rightClickMenuContent}
+                              </Context.OrientationEditor.ResetDataTrigger.Provider>
+                            </Context.App.SetComplexDocumentName.Provider>
+                          </Context.App.ComplexDocumentName.Provider>
+                        </div>
+                        {sceneState === SceneState.NO_DATA && <>
+                          <br/>
+                          <b
+                            style = {{
+                              color : "red"
+                            }}
+                          >
+                            No data to display.
+                          </b>
+                        </>}
+                        {sceneState === SceneState.DATA_LOADING_FAILED && <>
+                          <br/>
+                          <b
+                            style = {{
+                              color : "red"
+                            }}
+                          >
+                            Parsing the provided input file failed.&nbsp;{dataLoadingFailedErrorMessage ? dataLoadingFailedErrorMessage : "Try another file, or report a bug."}
+                          </b>
+                          &nbsp;
+                          <a
+                            href = "https://github.com/LDWLab/XRNA-React/issues"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Report a bug
+                          </a>
+                        </>}
+                      </div>
+                      <svg
+                        id = {SVG_ELEMENT_HTML_ID}
                         style = {{
-                          color : "red"
+                          top : (toolsDivResizeDetector.height ?? 0) + DIV_BUFFER_HEIGHT,
+                          left : 0,
+                          position : "absolute"
                         }}
-                      >
-                        No data to display.
-                      </b>
-                    </>}
-                    {sceneState === SceneState.DATA_LOADING_FAILED && <>
-                      <br/>
-                      <b
-                        style = {{
-                          color : "red"
-                        }}
-                      >
-                        Parsing the provided input file failed.&nbsp;{dataLoadingFailedErrorMessage ? dataLoadingFailedErrorMessage : "Try another file, or report a bug."}
-                      </b>
-                      &nbsp;
-                      <a
-                        href = "https://github.com/LDWLab/XRNA-React/issues"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Report a bug
-                      </a>
-                    </>}
-                  </div>
-                  <svg
-                    id = {SVG_ELEMENT_HTML_ID}
-                    style = {{
-                      top : (toolsDivResizeDetector.height ?? 0) + DIV_BUFFER_HEIGHT,
-                      left : 0,
-                      position : "absolute"
-                    }}
-                    xmlns = "http://www.w3.org/2000/svg"
-                    viewBox = {`0 0 ${parentDivResizeDetector.width ?? 0} ${svgHeight}`}
-                    tabIndex = {0}
-                    onMouseDown = {function(e) {
-                      switch (e.button) {
-                        case MouseButtonIndices.Left : {
-                          setOriginOfDrag({
-                            x : e.clientX,
-                            y : e.clientY
-                          });
-                          break;
-                        }
-                      }
-                    }}
-                    onMouseMove = {function(e) {
-                      if (dragListener !== null) {
-                        const translation = subtract(
-                          {
-                            x : e.clientX,
-                            y : e.clientY
-                          },
-                          originOfDrag
-                        );
-                        translation.y = -translation.y;
-                        dragListener.continueDrag(add(
-                          dragCache,
-                          scaleDown(
-                            translation,
-                            viewportScale * sceneBoundsScaleMin
-                          )
-                        ));
-                      }
-                      e.preventDefault();
-                    }}
-                    onMouseUp = {function(e) {
-                      if (dragListener !== null) {
-                        if (dragListener.terminateDrag !== undefined) {
-                          dragListener.terminateDrag();
-                        }
-                        setDragListener(null);
-                      }
-                    }}
-                    onMouseLeave = {function() {
-                      setDragListener(null);
-                    }}
-                    onContextMenu = {function(event) {
-                      event.preventDefault();
-                    }}
-                    onWheel = {function(e) {
-                      // Apparently, the sign of <event.deltaY> needs to be negated in order to support intuitive scrolling...
-                      let newScaleExponent = viewportScaleExponent - sign(e.deltaY);
-                      let newScale = Math.pow(SCALE_BASE, newScaleExponent);
-                      setViewportScale(newScale);
-                      setViewportScaleExponent(newScaleExponent);
-                      let uiVector = {
-                        x : e.clientX,
-                        y : e.clientY - (toolsDivResizeDetector.height ?? 0) - DIV_BUFFER_HEIGHT
-                      };
-                      let reciprocal = totalScale.negativeScale;
-                      let inputVector = {
-                        x : uiVector.x * reciprocal + sceneBounds.x - viewportTranslateX,
-                        y : uiVector.y * reciprocal - sceneBounds.y + viewportTranslateY - sceneBounds.height
-                      };
-                      reciprocal = 1 / (newScale * sceneBoundsScaleMin);
-                      let newOriginDeltaX = uiVector.x * reciprocal - inputVector.x + sceneBounds.x;
-                      let newOriginDeltaY = -(uiVector.y * reciprocal - inputVector.y - sceneBounds.y - sceneBounds.height);
-                      setViewportTranslateX(newOriginDeltaX);
-                      setViewportTranslateY(newOriginDeltaY);
-                    }}
-                  >
-                    <rect
-                      width = "100%"
-                      height = "100%"
-                      fill = "white"
-                      onMouseDown = {function(e) {
-                        switch (e.button) {
-                          case MouseButtonIndices.Left : {
-                            setDragListener(viewportDragListener);
-                            break;
+                        xmlns = "http://www.w3.org/2000/svg"
+                        viewBox = {`0 0 ${parentDivResizeDetector.width ?? 0} ${svgHeight}`}
+                        tabIndex = {0}
+                        onMouseDown = {function(e) {
+                          switch (e.button) {
+                            case MouseButtonIndices.Left : {
+                              setOriginOfDrag({
+                                x : e.clientX,
+                                y : e.clientY
+                              });
+                              break;
+                            }
                           }
-                        }
-                      }}
-                    />
-                    <g
-                      style = {{
-                        visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
-                      }}
-                      transform = {totalScale.asTransform + " scale(1, -1) " + transformTranslate}
-                    >
-                      {debugVisualElements}
-                      {renderedRnaComplexes}
-                    </g>
-                    <rect
-                      x = {0}
-                      y = {svgHeight - mouseOverTextDimensions.height - 2}
-                      width = {mouseOverTextDimensions.width}
-                      height = {mouseOverTextDimensions.height}
-                      fill = "black"
-                    />
-                    <text
-                      fill = "white"
-                      x = {0}
-                      y = {svgHeight - mouseOverTextDimensions.height * 0.25 - 2}
-                      ref = {mouseOverTextSvgTextElementReference}
-                      fontFamily = "dialog"
-                      fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
-                    >
-                      {mouseOverText}
-                    </text>
-                  </svg>
-                  {sceneState === SceneState.DATA_IS_LOADING && <img
-                    style = {{
-                      top : ((toolsDivResizeDetector.height ?? 0) + (parentDivResizeDetector.height ?? 0)) * 0.5 - 100,
-                      left : (parentDivResizeDetector.width ?? 0) * 0.5 - 50,
-                      position : "absolute"
-                    }}
-                    src = {loadingGif}
-                    alt = "Loading..."
-                  />}
-                  <div
-                    style = {{
-                      position : "absolute",
-                      visibility : "hidden",
-                      height : "auto",
-                      width : "auto",
-                      whiteSpace : "nowrap"
-                    }}
-                    id = {TEST_SPACE_ID}
-                  ></div>
-                </div>
-              </Context.BasePair.SetKeysToEdit.Provider>
-            </Context.App.UpdateRnaMoleculeNameHelper.Provider>
-          </Context.App.Settings.Provider>
-        </Context.BasePair.SetKeysToRerender.Provider>
-      </Context.Nucleotide.SetKeysToRerender.Provider>
-    </Context.App.UpdateInteractionConstraintOptions.Provider>
-  </Context.App.InteractionConstraintOptions.Provider>;
+                        }}
+                        onMouseMove = {function(e) {
+                          if (dragListener !== null) {
+                            const translation = subtract(
+                              {
+                                x : e.clientX,
+                                y : e.clientY
+                              },
+                              originOfDrag
+                            );
+                            translation.y = -translation.y;
+                            dragListener.continueDrag(add(
+                              dragCache,
+                              scaleDown(
+                                translation,
+                                viewportScale * sceneBoundsScaleMin
+                              )
+                            ));
+                          }
+                          e.preventDefault();
+                        }}
+                        onMouseUp = {function(e) {
+                          if (dragListener !== null) {
+                            if (dragListener.terminateDrag !== undefined) {
+                              dragListener.terminateDrag();
+                            }
+                            setDragListener(null);
+                          }
+                        }}
+                        onMouseLeave = {function() {
+                          setDragListener(null);
+                        }}
+                        onContextMenu = {function(event) {
+                          event.preventDefault();
+                        }}
+                        onWheel = {function(e) {
+                          // Apparently, the sign of <event.deltaY> needs to be negated in order to support intuitive scrolling...
+                          let newScaleExponent = viewportScaleExponent - sign(e.deltaY);
+                          let newScale = Math.pow(SCALE_BASE, newScaleExponent);
+                          setViewportScale(newScale);
+                          setViewportScaleExponent(newScaleExponent);
+                          let uiVector = {
+                            x : e.clientX,
+                            y : e.clientY - (toolsDivResizeDetector.height ?? 0) - DIV_BUFFER_HEIGHT
+                          };
+                          let reciprocal = totalScale.negativeScale;
+                          let inputVector = {
+                            x : uiVector.x * reciprocal + sceneBounds.x - viewportTranslateX,
+                            y : uiVector.y * reciprocal - sceneBounds.y + viewportTranslateY - sceneBounds.height
+                          };
+                          reciprocal = 1 / (newScale * sceneBoundsScaleMin);
+                          let newOriginDeltaX = uiVector.x * reciprocal - inputVector.x + sceneBounds.x;
+                          let newOriginDeltaY = -(uiVector.y * reciprocal - inputVector.y - sceneBounds.y - sceneBounds.height);
+                          setViewportTranslateX(newOriginDeltaX);
+                          setViewportTranslateY(newOriginDeltaY);
+                        }}
+                      >
+                        <rect
+                          width = "100%"
+                          height = "100%"
+                          fill = "white"
+                          onMouseDown = {function(e) {
+                            switch (e.button) {
+                              case MouseButtonIndices.Left : {
+                                setDragListener(viewportDragListener);
+                                break;
+                              }
+                            }
+                          }}
+                        />
+                        <g
+                          style = {{
+                            visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
+                          }}
+                          transform = {totalScale.asTransform + " scale(1, -1) " + transformTranslate}
+                        >
+                          {debugVisualElements}
+                          {renderedRnaComplexes}
+                        </g>
+                        <rect
+                          x = {0}
+                          y = {svgHeight - mouseOverTextDimensions.height - 2}
+                          width = {mouseOverTextDimensions.width}
+                          height = {mouseOverTextDimensions.height}
+                          fill = "black"
+                        />
+                        <text
+                          fill = "white"
+                          x = {0}
+                          y = {svgHeight - mouseOverTextDimensions.height * 0.25 - 2}
+                          ref = {mouseOverTextSvgTextElementReference}
+                          fontFamily = "dialog"
+                          fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
+                        >
+                          {mouseOverText}
+                        </text>
+                      </svg>
+                      {sceneState === SceneState.DATA_IS_LOADING && <img
+                        style = {{
+                          top : ((toolsDivResizeDetector.height ?? 0) + (parentDivResizeDetector.height ?? 0)) * 0.5 - 100,
+                          left : (parentDivResizeDetector.width ?? 0) * 0.5 - 50,
+                          position : "absolute"
+                        }}
+                        src = {loadingGif}
+                        alt = "Loading..."
+                      />}
+                      <div
+                        style = {{
+                          position : "absolute",
+                          visibility : "hidden",
+                          height : "auto",
+                          width : "auto",
+                          whiteSpace : "nowrap"
+                        }}
+                        id = {TEST_SPACE_ID}
+                      ></div>
+                    </div>
+                  </Context.BasePair.SetKeysToEdit.Provider>
+                </Context.App.UpdateRnaMoleculeNameHelper.Provider>
+              </Context.App.Settings.Provider>
+            </Context.BasePair.SetKeysToRerender.Provider>
+          </Context.Nucleotide.SetKeysToRerender.Provider>
+        </Context.App.UpdateInteractionConstraintOptions.Provider>
+      </Context.App.InteractionConstraintOptions.Provider>
+    </Context.BasePair.UpdateAverageDistances.Provider>
+  </Context.BasePair.AverageDistances.Provider> ;
 }
 
 export default App;

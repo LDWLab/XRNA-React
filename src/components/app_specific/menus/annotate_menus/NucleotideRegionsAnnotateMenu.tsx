@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { NucleotideKey, RnaComplexKey, RnaComplexProps, RnaMoleculeKey } from "../../../../App";
 import InputWithValidator from "../../../generic/InputWithValidator";
-import { NucleotideKeysToRerender } from "../../../../context/Context";
+import { Context, NucleotideKeysToRerender } from "../../../../context/Context";
 import { asAngle, crossProduct, magnitude, normalize, orthogonalizeLeft, orthogonalizeRight, scaleUp, subtract, toNormalCartesian } from "../../../../data_structures/Vector2D";
 import { Nucleotide } from "../../Nucleotide";
 import { sign, subtractNumbers } from "../../../../utils/Utils";
 import { Collapsible } from "../../../generic/Collapsible";
+import BasePair from "../../BasePair";
 
 export namespace NucleotideRegionsAnnotateMenu {
   export type Region = {
@@ -54,6 +55,8 @@ export namespace NucleotideRegionsAnnotateMenu {
       rnaComplexProps,
       setNucleotideKeysToRerender
     } = props;
+    // Begin context data.
+    const averageDistancesFromContext = useContext(Context.BasePair.AverageDistances);
     // Begin state data.
     const [
       affectLabelLineFlag,
@@ -202,7 +205,6 @@ export namespace NucleotideRegionsAnnotateMenu {
                         ]
                       };
                     }
-                    console.log("affectLabelContentFlag", affectLabelContentFlag);
                     if (
                       affectLabelContentFlag && (
                         singularNucleotideProps.labelContentProps === undefined ||
@@ -219,7 +221,6 @@ export namespace NucleotideRegionsAnnotateMenu {
                         ),
                         content : `${nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndexDelta}`
                       }
-                      console.log("content", `${nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndexDelta}`);
                     }
                     break;
                   }
@@ -273,6 +274,15 @@ export namespace NucleotideRegionsAnnotateMenu {
           const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
           averageDistances[rnaComplexIndex] = {};
           const averageDistancesPerRnaComplex = averageDistances[rnaComplexIndex];
+          const averageDistancesPerRnaComplexFromContext = averageDistancesFromContext[rnaComplexIndex];
+          let averageDistanceFromContext = Context.BasePair.DEFAULT_DISTANCES.canonical;
+          for (const basePairType of BasePair.types) {
+            const candidateDistance = averageDistancesPerRnaComplexFromContext.distances[basePairType];
+            // This occurs when there are 0 base pairs of <basePairType> in the RNA complex.
+            if (candidateDistance !== Number.POSITIVE_INFINITY) {
+              averageDistanceFromContext = candidateDistance;
+            }
+          }
 
           rightOrthogonalizationFlagRecord[rnaComplexIndex] = {};
           const rightOrthogonalizationFlagRecordPerRnaComplex = rightOrthogonalizationFlagRecord[rnaComplexIndex];
@@ -280,10 +290,11 @@ export namespace NucleotideRegionsAnnotateMenu {
           const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
           const rnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps;
           for (const rnaMoleculeName in rnaMoleculeProps) {
+            // By default, set these distance equal to 
             averageDistancesPerRnaComplex[rnaMoleculeName] = {
-              labelPoint0Distance : 2.5,
-              labelPoint1Distance : 7.5,
-              labelContentDistance : 10
+              labelPoint0Distance : averageDistanceFromContext * 0.25,
+              labelPoint1Distance : averageDistanceFromContext * 0.75,
+              labelContentDistance : averageDistanceFromContext
             };
             const averageDistancesPerRnaMolecule = averageDistancesPerRnaComplex[rnaMoleculeName];
 

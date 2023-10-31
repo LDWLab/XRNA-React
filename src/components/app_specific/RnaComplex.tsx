@@ -163,6 +163,8 @@ export namespace RnaComplex {
     // Begin context data.
     const index = useContext(Context.RnaComplex.Index);
     const basePairDataToEditPerRnaComplex = useContext(Context.BasePair.DataToEditPerRnaComplex);
+    const basePairAverageRadii = useContext(Context.BasePair.AverageDistances);
+    const updateBasePairAverageRadii = useContext(Context.BasePair.UpdateAverageDistances);
     // Begin state data.
     // const [
     //   flattenedBasePairProps,
@@ -173,49 +175,6 @@ export namespace RnaComplex {
       setEditedFlattenedBasePairProps
     ] = useState<Array<SingularFlattenedBasePairProps>>([]);
     // Begin memo data.
-    const basePairRadius = useMemo(
-      function() {
-        let averageDistancesData : Record<BasePair.Type, { count : number, distanceSum : number }> = {
-          [BasePair.Type.CANONICAL] : {
-            count : 0,
-            distanceSum : 0
-          },
-          [BasePair.Type.MISMATCH] : {
-            count : 0,
-            distanceSum : 0
-          },
-          [BasePair.Type.WOBBLE] : {
-            count : 0,
-            distanceSum : 0
-          }
-        };
-        let totalBasePairsCount = 0;
-        let totalBasePairDistances = 0;
-        for (let [rnaMoleculeName, basePairsPerRnaMolecule] of Object.entries(basePairs)) {
-          for (let [nucleotideIndexAsString, basePair] of Object.entries(basePairsPerRnaMolecule)) {
-            let nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
-            let nucleotideProps = rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
-            let basePairNucleotideProps = rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex];
-            let basePairDistance = distance(
-              nucleotideProps,
-              basePairNucleotideProps
-            );
-            totalBasePairDistances += basePairDistance;
-            totalBasePairsCount++;
-
-            let distancesData = averageDistancesData[basePair.basePairType ?? getBasePairType(nucleotideProps.symbol, basePairNucleotideProps.symbol)];
-            distancesData.count++;
-            distancesData.distanceSum += basePairDistance;
-          }
-        }
-        const basePairRadius = totalBasePairDistances / (totalBasePairsCount * 12);
-        return {
-          mismatch : basePairRadius,
-          wobble : basePairRadius
-        };
-      },
-      [basePairs]
-    );
     const flattenedRnaMoleculeProps = Object.entries(rnaMoleculeProps);
     // const flattenedRnaMoleculeProps = useMemo(
     //   function() {
@@ -347,6 +306,63 @@ export namespace RnaComplex {
         basePairDataToEditPerRnaComplex
       ]
     );
+    useEffect(
+      function() {
+        let averageDistancesData : Record<BasePair.Type, { count : number, distanceSum : number }> = {
+          [BasePair.Type.CANONICAL] : {
+            count : 0,
+            distanceSum : 0
+          },
+          [BasePair.Type.MISMATCH] : {
+            count : 0,
+            distanceSum : 0
+          },
+          [BasePair.Type.WOBBLE] : {
+            count : 0,
+            distanceSum : 0
+          }
+        };
+        let totalBasePairsCount = 0;
+        let totalBasePairDistances = 0;
+        for (let [rnaMoleculeName, basePairsPerRnaMolecule] of Object.entries(basePairs)) {
+          for (let [nucleotideIndexAsString, basePair] of Object.entries(basePairsPerRnaMolecule)) {
+            let nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+            let nucleotideProps = rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
+            let basePairNucleotideProps = rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex];
+            let basePairDistance = distance(
+              nucleotideProps,
+              basePairNucleotideProps
+            );
+            totalBasePairDistances += basePairDistance;
+            totalBasePairsCount++;
+
+            let distancesData = averageDistancesData[basePair.basePairType ?? getBasePairType(nucleotideProps.symbol, basePairNucleotideProps.symbol)];
+            distancesData.count++;
+            distancesData.distanceSum += basePairDistance;
+          }
+        }
+        const basePairRadius = totalBasePairDistances / (totalBasePairsCount * 12);
+        updateBasePairAverageRadii(
+          index,
+          {
+            radii : {
+              mismatch : basePairRadius,
+              wobble : basePairRadius
+            },
+            distances : {
+              mismatch : averageDistancesData.mismatch.distanceSum / averageDistancesData.mismatch.count,
+              wobble : averageDistancesData.wobble.distanceSum / averageDistancesData.wobble.count,
+              canonical : averageDistancesData.canonical.distanceSum / averageDistancesData.canonical.count
+            }
+          }
+        );
+      },
+      [
+        index,
+        basePairs
+      ]
+    );
+    const radii = index in basePairAverageRadii ? basePairAverageRadii[index].radii : Context.BasePair.DEFAULT_RADII;
     return <g
       {...{
         [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.RNA_COMPLEX,
@@ -359,7 +375,7 @@ export namespace RnaComplex {
         <>
           <g>
             <Context.BasePair.Radius.Provider
-              value = {basePairRadius}
+              value = {radii}
             >
               <Scaffolding.Component<BasePairKeys, BasePair.Props>
                 sortedProps = {editedFlattenedBasePairProps}

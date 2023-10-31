@@ -36,7 +36,7 @@ export function isBasePairType(candidateBasePair : string) : candidateBasePair i
   return (BasePair.types as string[]).includes(candidateBasePair);
 }
 
-namespace BasePair {
+export namespace BasePair {
   export enum Type {
     CANONICAL = "canonical",
     WOBBLE = "wobble",
