@@ -124,7 +124,10 @@ export namespace NucleotideRegionsAnnotateMenu {
         };
       }
     }
-    function performAnnotationAction(annotationAction : AnnotationAction) {
+    function performAnnotationAction(
+      annotationAction : AnnotationAction,
+      localNucleotideIndexIncrement = nucleotideIndexIncrement
+    ) {
       const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
       for (const rnaComplexIndexAsString in regions) {
         const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
@@ -172,7 +175,7 @@ export namespace NucleotideRegionsAnnotateMenu {
 
             const nucleotideIndexDelta = startingNucleotideOverridingIndexForLabelsPerRegion - startingNucleotideIndexPerRegion;
             
-            for (let nucleotideIndex = startingNucleotideIndexPerRegion; nucleotideIndex <= maximumNucleotideIndexInclusive; nucleotideIndex += nucleotideIndexIncrement) {
+            for (let nucleotideIndex = startingNucleotideIndexPerRegion; nucleotideIndex <= maximumNucleotideIndexInclusive; nucleotideIndex += localNucleotideIndexIncrement) {
               if (!(nucleotideIndex in nucleotideProps)) {
                 continue;
               }
@@ -498,7 +501,10 @@ export namespace NucleotideRegionsAnnotateMenu {
       <br/>
       <button
         onClick = {function(e) {
-          performAnnotationAction(AnnotationAction.DELETE);
+          performAnnotationAction(
+            AnnotationAction.DELETE,
+            1
+          );
         }}
       >
         Delete annotations
