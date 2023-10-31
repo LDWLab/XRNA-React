@@ -320,34 +320,6 @@ export namespace ColorEditor {
         </label>
       </>,
       [EditMode.ColorWheel] : <>
-        <Wheel
-          color = {hsva}
-          onChange = {function(color) {
-            setHsva({
-              ...hsva,
-              ...color.hsva
-            });
-            const newColor = {
-              red : color.rgba.r,
-              green : color.rgba.g,
-              blue : color.rgba.b,
-              alpha
-            };
-            setColorHelper(newColor);
-            setRed(newColor.red);
-            setGreen(newColor.green);
-            setBlue(newColor.blue);
-            setAlpha(newColor.alpha);
-            setHexadecimalHelper(
-              newColor.red,
-              newColor.green,
-              newColor.blue,
-              newColor.alpha,
-              hexadecimalEncoding
-            );
-          }}
-        />
-        <br/>
         <ShadeSlider
           hsva = {hsva}
           onChange = {function(newShade) {
@@ -377,6 +349,34 @@ export namespace ColorEditor {
             );
           }}
           width = "50%"
+        />
+        <br/>
+        <Wheel
+          color = {hsva}
+          onChange = {function(color) {
+            setHsva({
+              ...hsva,
+              ...color.hsva
+            });
+            const newColor = {
+              red : color.rgba.r,
+              green : color.rgba.g,
+              blue : color.rgba.b,
+              alpha
+            };
+            setColorHelper(newColor);
+            setRed(newColor.red);
+            setGreen(newColor.green);
+            setBlue(newColor.blue);
+            setAlpha(newColor.alpha);
+            setHexadecimalHelper(
+              newColor.red,
+              newColor.green,
+              newColor.blue,
+              newColor.alpha,
+              hexadecimalEncoding
+            );
+          }}
         />
       </>
     };
