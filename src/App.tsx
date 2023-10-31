@@ -213,7 +213,7 @@ function App() {
     setViewportScaleExponent(0);
     setViewportScale(1);
   }
-  function onKeyDown (event : React.KeyboardEvent<Element>) {
+  function onKeyDown(event : React.KeyboardEvent<Element>) {
     switch (event.key) {
       case "s" : {
         if (event.ctrlKey) {
@@ -687,7 +687,7 @@ function App() {
                   alert(error.errorMessage);
                 } else {
                   throw error;
-                  // console.log(error);
+                  // console.error(error);
                 }
                 return;
               }
@@ -1700,6 +1700,7 @@ function App() {
                     >
                       {/* Tools div */}
                       <div
+                        tabIndex = {0}
                         ref = {toolsDivResizeDetector.ref}
                         style = {{
                           position : "absolute",
@@ -1810,7 +1811,7 @@ function App() {
                         }}
                         xmlns = "http://www.w3.org/2000/svg"
                         viewBox = {`0 0 ${parentDivResizeDetector.width ?? 0} ${svgHeight}`}
-                        tabIndex = {0}
+                        tabIndex = {1}
                         onMouseDown = {function(e) {
                           switch (e.button) {
                             case MouseButtonIndices.Left : {

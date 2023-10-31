@@ -377,7 +377,6 @@ export function parseGraphicalData(
         pairedLabelDatum : PairedLabelDatum,
         unfilteredNucleotideData : Array<NucleotideData>
       ) {
-        console.log("createLabelWithSmallestDistance()");
         unfilteredNucleotideData.sort(function(
           unfilteredNucleotideDatum0,
           unfilteredNucleotideDatum1
