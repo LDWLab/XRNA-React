@@ -97,6 +97,8 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
         ];
         let labelContentProps = singularNucleotideProps.labelContentProps;
         if (labelContentProps !== undefined) {
+          labelContentProps.x -= singularNucleotideProps.x;
+          labelContentProps.y -= singularNucleotideProps.y;
           handleFontCss(labelContentProps.font ?? Font.DEFAULT);
           labelContentCssClasses[nucleotideIndex] = [
             "text-" + toCSS(labelContentProps.color ?? BLACK),

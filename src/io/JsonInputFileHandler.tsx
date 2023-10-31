@@ -248,13 +248,8 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
               });
             }
             nucleotideProps.labelContentProps = {
-              ...subtract(
-                {
-                  x : Number.parseFloat(label.labelContent.x),
-                  y : Number.parseFloat(label.labelContent.y)
-                },
-                nucleotideProps
-              ),
+              x : Number.parseFloat(label.labelContent.x),
+              y : Number.parseFloat(label.labelContent.y),
               content : label.labelContent.label,
               font,
               color,
