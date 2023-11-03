@@ -243,28 +243,28 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     let getCenterFromRadius : (radius : number) => Vector2D;
     const dx = x1 - x0;
     if (areEqual(dx, 0)) {
-      const denominatorReciprocal = 1 / (y1 - y0); // = 1 / dx;
-      const z = (x0 - x1) * denominatorReciprocal;// (y0 - y1) * denominatorReciprocal;
+      const denominatorReciprocal = 1 / (y1 - y0);
+      const z = (x0 - x1) * denominatorReciprocal;
       const w = (x1 * x1 - x0Squared + y1 * y1 - y0Squared) * denominatorReciprocal * 0.5;
       const a = (1 + z * z);
       const twoAReciprocal = 1 / (2 * a);
       const fourA = 4 * a;
-      const b = 2 * (-x0 + z * (-y0 + w)); // 2 * (-y0 + z * (-x0 + w));
+      const b = 2 * (-x0 + z * (-y0 + w));
       const negativeB = -b;
       const bSquared = b * b;
-      const cPlusRadiusSquared = x0Squared + y0Squared + w * (w - 2 * y0); // x0Squared + y0Squared + w * w - 2 * x0 * w;
-      const dxReciprocal = 1 / normal.x; // const dyReciprocal = 1 / normal.y;
+      const cPlusRadiusSquared = x0Squared + y0Squared + w * (w - 2 * y0);
+      const dxReciprocal = 1 / normal.x;
       
       getCenterFromRadius = function(radius : number) {
         const c = cPlusRadiusSquared - radius * radius;
         // Assume that radius is sufficiently large. This ensures a non-negative discriminant.
         // This is enforced by the minimumRadius variable.
-        const centerXCandidate = (negativeB + Math.sqrt(bSquared - fourA * c)) * twoAReciprocal; // const centerYCandidate = (negativeB + Math.sqrt(bSquared - fourA * c)) * twoAReciprocal;
+        const centerXCandidate = (negativeB + Math.sqrt(bSquared - fourA * c)) * twoAReciprocal;
         // x = xMidpoint + dx * t
         // x - xMidpoint = dx * t
         // t = (x - xMidpoint) / dx
         // abs() ensures that t is positive. This selects a single center from the two candidate centers.
-        const t = Math.abs((centerXCandidate - boundingVectorsMidpoint.x) * dxReciprocal); // Math.abs((centerYCandidate - boundingVectorsMidpoint.y) * dyReciprocal);
+        const t = Math.abs((centerXCandidate - boundingVectorsMidpoint.x) * dxReciprocal);
         return add(
           boundingVectorsMidpoint,
           scaleUp(
@@ -283,7 +283,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       const b = 2 * (-y0 + z * (-x0 + w));
       const negativeB = -b;
       const bSquared = b * b;
-      const cPlusRadiusSquared = x0Squared + y0Squared + w * (w - 2 * x0); // x0Squared + y0Squared + w * w - 2 * x0 * w;
+      const cPlusRadiusSquared = x0Squared + y0Squared + w * (w - 2 * x0);
       const dyReciprocal = 1 / normal.y;
       
       getCenterFromRadius = function(radius : number) {
@@ -584,18 +584,34 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           ),
           0.5
         );
-        for (let positionToEdit of positionsToEdit) {
-          const {
-            position,
-            polarWithAngleSubtracted
-          } = positionToEdit;
+        if (positionsToEdit.length === 0) {
+          continue;
+        }
+        const newPositionData = positionsToEdit.map(function({
+          position,
+          polarWithAngleSubtracted
+        }) {
           const polar = {
             ...polarWithAngleSubtracted
           };
           polar.angle += newAngle;
-          const newPosition = add(
+          return {
+            position,
+            dv : toCartesian(polar)
+          };
+        });
+        const negatePositionsFlag = dotProduct(
+          subtract(
             midpoint,
-            toCartesian(polar)
+            center
+          ),
+          newPositionData[0].dv
+        ) < 0;
+        const addOrSubtract = negatePositionsFlag ? subtract : add;
+        for (let { position, dv } of newPositionData) {
+          const newPosition = addOrSubtract(
+            midpoint,
+            dv 
           );
           position.x = newPosition.x;
           position.y = newPosition.y;
