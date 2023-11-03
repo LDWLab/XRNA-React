@@ -4,7 +4,7 @@ import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../conte
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { InteractionConstraint } from "../InteractionConstraints";
 import { RnaCycleInteractionConstraintEditMenu } from "./RnaCycleInteractionConstraintEditMenu";
-import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, negate, orthogonalizeLeft, scaleUp, subtract, toCartesian, toPolar } from "../../../data_structures/Vector2D";
+import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, negate, normalize, orthogonalizeLeft, scaleUp, subtract, toCartesian, toPolar } from "../../../data_structures/Vector2D";
 import { getBoundingCircle } from "../../../data_structures/Geometry";
 import { DEFAULT_EPSILON, areEqual, sign, subtractNumbers } from "../../../utils/Utils";
 import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
@@ -357,7 +357,8 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     };
     const branches = new Array<{
       arrayIndex : number,
-      positionsToEdit : Array<PositionToEdit>
+      positionsToEdit : Array<PositionToEdit>,
+      originalBasePairDistanceOverTwo : number
     }>();
     for (let i = 0; i < cycleGraphNodes.length; i++) {
       if (i === boundingVector0ArrayIndex || i === boundingVector1ArrayIndex) {
@@ -394,6 +395,10 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       const normalAngle = asAngle(normal);
       if (cycleGraphNodeI.rnaMoleculeName !== cycleGraphNodeIncremented.rnaMoleculeName || Math.abs(cycleGraphNodeI.nucleotideIndex - cycleGraphNodeIncremented.nucleotideIndex) !== 1) {
         // A base pair exists between these two graph nodes.
+        const originalBasePairDistanceOverTwo = 0.5 * distance(
+          position,
+          incrementedPosition
+        );
         const rnaMoleculeName0 = cycleGraphNodeI.rnaMoleculeName;
         const rnaMoleculeName1 = cycleGraphNodeIncremented.rnaMoleculeName;
         const initialNucleotideIndex0 = cycleGraphNodeI.nucleotideIndex;
@@ -479,7 +484,8 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
         }
         branches.push({
           arrayIndex : i,
-          positionsToEdit
+          positionsToEdit,
+          originalBasePairDistanceOverTwo
         });
       }
     }
@@ -528,11 +534,12 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       for (let branch of branches) {
         const {
           arrayIndex,
-          positionsToEdit
+          positionsToEdit,
+          originalBasePairDistanceOverTwo
         } = branch;
         const positionAtArrayIndex = cycleGraphNucleotides[arrayIndex];
         const positionAtArrayIndexIncremented = cycleGraphNucleotides[(arrayIndex + 1) % cycleGraphNucleotides.length];
-        const midpoint = scaleUp(
+        let midpoint = scaleUp(
           add(
             positionAtArrayIndex,
             positionAtArrayIndexIncremented
@@ -543,6 +550,40 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           midpoint,
           center
         ));
+        const ratio = originalBasePairDistanceOverTwo / newRadius;
+        const choordCenter = add(
+          toCartesian({
+            angle : newAngle,
+            radius : newRadius * Math.sqrt(1 - ratio * ratio)
+          }),
+          center
+        );
+        const dv = scaleUp(
+          normalize(subtract(
+            positionAtArrayIndex,
+            midpoint
+          )),
+          originalBasePairDistanceOverTwo
+        );
+        const newPositionAtArrayIndex = add(
+          choordCenter,
+          dv
+        );
+        const newPositionAtArrayIndexIncremented = subtract(
+          choordCenter,
+          dv
+        );
+        positionAtArrayIndex.x = newPositionAtArrayIndex.x;
+        positionAtArrayIndex.y = newPositionAtArrayIndex.y;
+        positionAtArrayIndexIncremented.x = newPositionAtArrayIndexIncremented.x;
+        positionAtArrayIndexIncremented.y = newPositionAtArrayIndexIncremented.y;
+        midpoint = scaleUp(
+          add(
+            newPositionAtArrayIndex,
+            newPositionAtArrayIndexIncremented
+          ),
+          0.5
+        );
         for (let positionToEdit of positionsToEdit) {
           const {
             position,
