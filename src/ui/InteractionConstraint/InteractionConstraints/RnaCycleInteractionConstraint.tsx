@@ -6,7 +6,7 @@ import { InteractionConstraint } from "../InteractionConstraints";
 import { RnaCycleInteractionConstraintEditMenu } from "./RnaCycleInteractionConstraintEditMenu";
 import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, negate, orthogonalizeLeft, scaleUp, subtract, toCartesian, toPolar } from "../../../data_structures/Vector2D";
 import { getBoundingCircle } from "../../../data_structures/Geometry";
-import { sign, subtractNumbers } from "../../../utils/Utils";
+import { DEFAULT_EPSILON, areEqual, sign, subtractNumbers } from "../../../utils/Utils";
 import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { Tab } from "../../../app_data/Tab";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
@@ -14,6 +14,7 @@ import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import Color from "../../../data_structures/Color";
 
 export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint {
+  private readonly rnaCycleBoundsText : string;
   private readonly editMenuProps : RnaCycleInteractionConstraintEditMenu.Props;
   private readonly cycleIndices : Array<{
     rnaMoleculeName : RnaMoleculeKey,
@@ -210,7 +211,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const arrayIndexIncrement = boundingVectorsIncrementedFlag ? -1 : 1;
     const boundingVector1ArrayIndex = (boundingVector0ArrayIndex - arrayIndexIncrement + cycleGraphNodes.length) % cycleGraphNodes.length;
 
-    const minimumRadius = distance(boundingVector0, boundingVector1) * 0.5;
+    const minimumRadius = distance(boundingVector0, boundingVector1) * 0.5 + DEFAULT_EPSILON;
     if (minimumRadius === 0) {
       const error : InteractionConstraintError = {
         errorMessage : "Cannot determine repositioning data for this cycle, because its anchoring vector positions are exactly equal."
@@ -236,37 +237,73 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const y0 = boundingVector0.y;
     const x1 = boundingVector1.x;
     const y1 = boundingVector1.y;
-    const denominatorReciprocal = 1 / (x1 - x0);
-    const z = (y0 - y1) * denominatorReciprocal;
     const x0Squared = x0 * x0;
     const y0Squared = y0 * y0;
-    const w = (x1 * x1 - x0Squared + y1 * y1 - y0Squared) * denominatorReciprocal * 0.5;
-    const a = (1 + z * z);
-    const twoAReciprocal = 1 / (2 * a);
-    const fourA = 4 * a;
-    const b = 2 * (-y0 + z * (-x0 + w));
-    const negativeB = -b;
-    const bSquared = b * b;
-    const cPlusRadiusSquared = x0Squared + y0Squared + w * w - 2 * x0 * w;
-    const dyReciprocal = 1 / normal.y;
 
-    function getCenterFromRadius(radius : number) {
-      const c = cPlusRadiusSquared - radius * radius;
-      // Assume that radius is sufficiently large. This ensures a non-negative discriminant.
-      // This is enforced by the minimumRadius variable.
-      const centerYCandidate = (negativeB + Math.sqrt(bSquared - fourA * c)) * twoAReciprocal;
-      // y = yMidpoint + dy * t
-      // y - yMidpoint = dy * t
-      // t = (y - yMidpoint) / dy
-      // abs() ensures that t is positive. This selects a single center from the two candidate centers.
-      const t = Math.abs((centerYCandidate - boundingVectorsMidpoint.y) * dyReciprocal);
-      return add(
-        boundingVectorsMidpoint,
-        scaleUp(
-          normal,
-          t
-        )
-      );
+    let getCenterFromRadius : (radius : number) => Vector2D;
+    const dx = x1 - x0;
+    if (areEqual(dx, 0)) {
+      const denominatorReciprocal = 1 / (y1 - y0); // = 1 / dx;
+      const z = (x0 - x1) * denominatorReciprocal;// (y0 - y1) * denominatorReciprocal;
+      const w = (x1 * x1 - x0Squared + y1 * y1 - y0Squared) * denominatorReciprocal * 0.5;
+      const a = (1 + z * z);
+      const twoAReciprocal = 1 / (2 * a);
+      const fourA = 4 * a;
+      const b = 2 * (-x0 + z * (-y0 + w)); // 2 * (-y0 + z * (-x0 + w));
+      const negativeB = -b;
+      const bSquared = b * b;
+      const cPlusRadiusSquared = x0Squared + y0Squared + w * (w - 2 * y0); // x0Squared + y0Squared + w * w - 2 * x0 * w;
+      const dxReciprocal = 1 / normal.x; // const dyReciprocal = 1 / normal.y;
+      
+      getCenterFromRadius = function(radius : number) {
+        const c = cPlusRadiusSquared - radius * radius;
+        // Assume that radius is sufficiently large. This ensures a non-negative discriminant.
+        // This is enforced by the minimumRadius variable.
+        const centerXCandidate = (negativeB + Math.sqrt(bSquared - fourA * c)) * twoAReciprocal; // const centerYCandidate = (negativeB + Math.sqrt(bSquared - fourA * c)) * twoAReciprocal;
+        // x = xMidpoint + dx * t
+        // x - xMidpoint = dx * t
+        // t = (x - xMidpoint) / dx
+        // abs() ensures that t is positive. This selects a single center from the two candidate centers.
+        const t = Math.abs((centerXCandidate - boundingVectorsMidpoint.x) * dxReciprocal); // Math.abs((centerYCandidate - boundingVectorsMidpoint.y) * dyReciprocal);
+        return add(
+          boundingVectorsMidpoint,
+          scaleUp(
+            normal,
+            t
+          )
+        );
+      }
+    } else {
+      const denominatorReciprocal = 1 / dx;
+      const z = (y0 - y1) * denominatorReciprocal;
+      const w = (x1 * x1 - x0Squared + y1 * y1 - y0Squared) * denominatorReciprocal * 0.5;
+      const a = (1 + z * z);
+      const twoAReciprocal = 1 / (2 * a);
+      const fourA = 4 * a;
+      const b = 2 * (-y0 + z * (-x0 + w));
+      const negativeB = -b;
+      const bSquared = b * b;
+      const cPlusRadiusSquared = x0Squared + y0Squared + w * (w - 2 * x0); // x0Squared + y0Squared + w * w - 2 * x0 * w;
+      const dyReciprocal = 1 / normal.y;
+      
+      getCenterFromRadius = function(radius : number) {
+        const c = cPlusRadiusSquared - radius * radius;
+        // Assume that radius is sufficiently large. This ensures a non-negative discriminant.
+        // This is enforced by the minimumRadius variable.
+        const centerYCandidate = (negativeB + Math.sqrt(bSquared - fourA * c)) * twoAReciprocal;
+        // y = yMidpoint + dy * t
+        // y - yMidpoint = dy * t
+        // t = (y - yMidpoint) / dy
+        // abs() ensures that t is positive. This selects a single center from the two candidate centers.
+        const t = Math.abs((centerYCandidate - boundingVectorsMidpoint.y) * dyReciprocal);
+        return add(
+          boundingVectorsMidpoint,
+          scaleUp(
+            normal,
+            t
+          )
+        );
+      }
     }
 
     const initialCandidateRadii = cycleGraphNucleotides.map(function(cycleGraphPositionI) {
@@ -526,6 +563,13 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       rerender();
     }
 
+    const nucleotideIndices0 = cycleGraphNodes[boundingVector0ArrayIndex];
+    const rnaMoleculeName0 = nucleotideIndices0.rnaMoleculeName;
+    const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+    const nucleotideIndices1 = cycleGraphNodes[boundingVector1ArrayIndex];
+    const rnaMoleculeName1 = nucleotideIndices1.rnaMoleculeName;
+    const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+    this.rnaCycleBoundsText = `RNA cycle anchored by nucleotide #${nucleotideIndices0.nucleotideIndex + singularRnaMoleculeProps0.firstNucleotideIndex} in RNA molecule "${rnaMoleculeName0}" and nucleotide #${nucleotideIndices1.nucleotideIndex + singularRnaMoleculeProps1.firstNucleotideIndex} in RNA molecule "${rnaMoleculeName1}"`;
     this.editMenuProps = {
       initialRadius,
       minimumRadius,
@@ -611,7 +655,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     }
     return <>
       <b>
-        {tab} RNA cycle:
+        {tab} {this.rnaCycleBoundsText}:
       </b>
       <br/>
       {menu}
