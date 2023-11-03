@@ -8,8 +8,8 @@ namespace InputWithValidator {
     setValue : (newValue : T) => void,
     style? : CSSProperties,
     step? : string | number
-    min? : string | number,
-    max? : string | number,
+    min? : number,
+    max? : number,
     disabledFlag? : boolean | undefined
   };
 
@@ -120,7 +120,22 @@ namespace InputWithValidator {
   export function Number(props : CoreProps<number>) {
     return <Component<number>
       valueToString = {numberToFormattedStringHelper}
-      stringToValue = {parseFloatReturnUndefinedOnFail}
+      stringToValue = {function(valueAsString : string) {
+        const toValueAttempt = parseFloatReturnUndefinedOnFail(valueAsString);
+        if (toValueAttempt !== undefined) {
+          if (props.min !== undefined && toValueAttempt < props.min) {
+            return {
+              errorMessage : "Input value is less than the minimum."
+            };
+          }
+          if (props.max !== undefined && toValueAttempt > props.max) {
+            return {
+              errorMessage : "Input value is greater than the maximum."
+            }
+          }
+        }
+        return toValueAttempt;
+      }}
       htmlInputType = "number"
       {...props}
     />
@@ -131,7 +146,22 @@ namespace InputWithValidator {
       valueToString = {function(n : number) {
         return n.toString();
       }}
-      stringToValue = {parseIntReturnUndefinedOnFail}
+      stringToValue = {function(valueAsString : string) {
+        const toValueAttempt = parseIntReturnUndefinedOnFail(valueAsString);
+        if (toValueAttempt !== undefined) {
+          if (props.min !== undefined && toValueAttempt < props.min) {
+            return {
+              errorMessage : "Input value is less than the minimum."
+            };
+          }
+          if (props.max !== undefined && toValueAttempt > props.max) {
+            return {
+              errorMessage : "Input value is greater than the maximum."
+            }
+          }
+        }
+        return toValueAttempt;
+      }}
       htmlInputType = "number"
       {...props}
     />
@@ -151,13 +181,24 @@ namespace InputWithValidator {
           return numberToFormattedStringHelper(formattedValue);
         }}
         stringToValue = {function(valueAsString : string) {
-          let parsedUnformattedValue = parseFloatReturnUndefinedOnFail(valueAsString);
-          if (parsedUnformattedValue === undefined) {
+          let toValueAttempt = parseFloatReturnUndefinedOnFail(valueAsString);
+          if (toValueAttempt === undefined) {
             return undefined;
+          } else {
+            if (props.min !== undefined && toValueAttempt < props.min) {
+              return {
+                errorMessage : "Input value is less than the minimum."
+              };
+            }
+            if (props.max !== undefined && toValueAttempt > props.max) {
+              return {
+                errorMessage : "Input value is greater than the maximum."
+              }
+            }
           }
-          return props.useDegreesFlag ? degreesToRadians(parsedUnformattedValue) : parsedUnformattedValue;
+          return props.useDegreesFlag ? degreesToRadians(toValueAttempt) : toValueAttempt;
         }}
-        htmlInputType= "number"
+        htmlInputType = "number"
         step = {step}
         {...props}
       />
