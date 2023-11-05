@@ -1,7 +1,7 @@
 import { RnaComplexProps } from "../App";
 import BasePair, { getBasePairType } from "../components/app_specific/BasePair";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
-import { RnaComplex } from "../components/app_specific/RnaComplex";
+import { RnaComplex, isRelevantBasePairKeySetInPair } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
 import Color, { toCSS, BLACK } from "../data_structures/Color";
 import Font from "../data_structures/Font";
@@ -19,11 +19,11 @@ type CssClassForJson = {
   name : string
 };
 
-type BasePairTypeForJson = "canonical" | "wobble" | "mismatch";
-
 type BasePairForJson = {
-  basePairType : BasePairTypeForJson,
+  basePairType : BasePair.Type,
   classes : Array<string>,
+  rnaMoleculeName1 : string,
+  rnaMoleculeName2 : string,
   residueIndex1 : number,
   residueIndex2 : number
 };
@@ -123,42 +123,30 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
     rnaComplexes : flattenedRnaComplexProps.map((singularRnaComplexProps : RnaComplex.ExternalProps) => {
       const flattenedRnaMoleculeProps = Object.entries(singularRnaComplexProps.rnaMoleculeProps);
       const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+      const outputBasePairs = new Array<BasePairForJson>();
       return {
         name : singularRnaComplexProps.name,
         rnaMolecules : flattenedRnaMoleculeProps.map(function([
           rnaMoleculeName,
           singularRnaMoleculeProps
         ]) {
-          const outputBasePairs = new Array<BasePairForJson>();
           const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
           const flattenedBasePairsPerRnaMolecule = Object.entries(basePairsPerRnaMolecule);
-          flattenedBasePairsPerRnaMolecule.map(function([
-            nucleotideIndexAsString,
-            mappedBasePairInformation
-          ]) {
+          for (const [nucleotideIndexAsString, mappedBasePairInformation] of flattenedBasePairsPerRnaMolecule) {
             const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
-            const inputBasePairType = mappedBasePairInformation.basePairType ?? getBasePairType(
+            if (!isRelevantBasePairKeySetInPair(
+              {
+                rnaMoleculeName,
+                nucleotideIndex
+              },
+              mappedBasePairInformation
+            )) {
+              continue;
+            }
+            const basePairType = mappedBasePairInformation.basePairType ?? getBasePairType(
               singularRnaMoleculeProps.nucleotideProps[nucleotideIndex].symbol,
               singularRnaComplexProps.rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName].nucleotideProps[mappedBasePairInformation.nucleotideIndex].symbol
             );
-            let outputBasePairType : BasePairTypeForJson;
-            switch (inputBasePairType) {
-              case BasePair.Type.CANONICAL : {
-                outputBasePairType = "canonical";
-                break;
-              }
-              case BasePair.Type.MISMATCH : {
-                outputBasePairType = "mismatch";
-                break;
-              }
-              case BasePair.Type.WOBBLE : {
-                outputBasePairType = "wobble";
-                break;
-              }
-              default : {
-                throw `Unrecognized basepair type: "${mappedBasePairInformation.basePairType}".`;
-              }
-            }
             handleStrokeCss({
               strokeWidth : mappedBasePairInformation.strokeWidth ?? DEFAULT_STROKE_WIDTH,
               stroke : mappedBasePairInformation.color ?? BLACK
@@ -166,14 +154,15 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
             basePairsCssClasses[nucleotideIndex] = [
               strokeCssClassName
             ];
-            let basePair : BasePairForJson = {
-              basePairType: outputBasePairType,
+            outputBasePairs.push({
+              basePairType,
               classes : basePairsCssClasses[nucleotideIndex],
+              rnaMoleculeName1 : rnaMoleculeName,
+              rnaMoleculeName2 : mappedBasePairInformation.rnaMoleculeName,
               residueIndex1 : singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndex,
               residueIndex2 : singularRnaMoleculeProps.firstNucleotideIndex + mappedBasePairInformation.nucleotideIndex
-            };
-            outputBasePairs.push(basePair);
-          });
+            });
+          };
           let labels = new Array<LabelForJson>();
           const flattenedNucleotideProps = Object.entries(singularRnaMoleculeProps.nucleotideProps).map(function([
             nucleotideIndexAsString,
@@ -213,7 +202,6 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
           });
           return {
             name : rnaMoleculeName,
-            basePairs: outputBasePairs,
             labels,
             sequence : flattenedNucleotideProps.map(function({
               nucleotideIndex,
@@ -228,8 +216,9 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
               };
             })
           };
-        })
+        }),
+        basePairs : outputBasePairs
       };
-    })
+    }),
   });
 }

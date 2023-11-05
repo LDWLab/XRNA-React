@@ -1,4 +1,4 @@
-import BasePair from "../components/app_specific/BasePair";
+import BasePair, { isBasePairType } from "../components/app_specific/BasePair";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { RnaComplex, insertBasePair, DuplicateBasePairKeysHandler } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
@@ -19,7 +19,7 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
     }
     const cssClasses = parsedJson.classes as Array<any>;
     rnaComplexProps = (parsedJson.rnaComplexes as Array<any>).map((inputRnaComplex : any, inputRnaComplexIndex : number) => {
-      if (!("name" in inputRnaComplex) || !("rnaMolecules" in inputRnaComplex)) {
+      if (!("name" in inputRnaComplex) || !("rnaMolecules" in inputRnaComplex)|| !("basePairs" in inputRnaComplex)) {
         throw "Input rnaComplex elements of input Json should have \"name\" and \"rnaMolecules\" variables."
       }
       const singularRnaComplexProps : RnaComplex.ExternalProps = {
@@ -30,7 +30,7 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
       singularRnaComplexProps.name = inputRnaComplex.name;
       singularRnaComplexProps.rnaMoleculeProps = {};
       (inputRnaComplex.rnaMolecules as Array<any>).forEach((inputRnaMolecule : any) => {
-        if (!("name" in inputRnaMolecule) || !("basePairs" in inputRnaMolecule) || !("labels" in inputRnaMolecule) || !("sequence" in inputRnaMolecule)) {
+        if (!("name" in inputRnaMolecule) || !("labels" in inputRnaMolecule) || !("sequence" in inputRnaMolecule)) {
           throw "Input rnaMolecule elements of input Json should have \"name\", \"sequence\", \"basePairs\", \"labels\" variables."
         }
         let singularRnaMoleculeProps : RnaMolecule.ExternalProps = {
@@ -348,11 +348,33 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
             };
           }
         });
+        return singularRnaMoleculeProps;
+      });
+      (inputRnaComplex.basePairs as Array<any>).forEach(basePair => {
+        if (!("basePairType" in basePair) || !("residueIndex1" in basePair) || !("residueIndex2" in basePair) || !("rnaMoleculeName1" in basePair) || !("rnaMoleculeName2" in basePair)) {
+          throw "Input basePairs elements of input Json should have \"basePairType\", \"residueIndex1\" and \"residueIndex2\" variables."
+        }
+        let basePairType : BasePair.Type | undefined = undefined;
+        if (basePair.basePairType === null) {
+          basePairType = undefined;
+        } else if (typeof basePair.basePairType === "string") {
+          if (isBasePairType(basePair.basePairType)) {
+            basePairType = basePair.basePairType;
+          } else {
+            throw `Unrecognized base-pair type "${basePairType}".`;
+          }
+        } else {
+          throw `Unrecognized base-pair type "${basePairType}".`;
+        }
+        const rnaMoleculeName1 = basePair.rnaMoleculeName1;
+        const rnaMoleculeName2 = basePair.rnaMoleculeName2;
+        let residueIndex1 = Number.parseInt(basePair.residueIndex1) - singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1].firstNucleotideIndex;
+        let residueIndex2 = Number.parseInt(basePair.residueIndex2) - singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName2].firstNucleotideIndex;
         const parsedClassesForBasePairs = {
           strokeWidth : DEFAULT_STROKE_WIDTH,
           stroke : structuredClone(BLACK)
         };
-        const classesForBasePairs = inputRnaMolecule.classesForBasePairs;
+        const classesForBasePairs = inputRnaComplex.classesForBasePairs;
         if (classesForBasePairs !== undefined) {
           if (!Array.isArray(classesForBasePairs)) {
             throw "RNA-molecule \"classesForBasePairs\" variable should be an array.";
@@ -382,78 +404,48 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
             }
           });
         }
-        (inputRnaMolecule.basePairs as Array<any>).forEach(basePair => {
-          if (!("basePairType" in basePair) || !("residueIndex1" in basePair) || !("residueIndex2" in basePair)) {
-            throw "Input basePairs elements of input Json should have \"basePairType\", \"residueIndex1\" and \"residueIndex2\" variables."
+        let strokeWidth = parsedClassesForBasePairs.strokeWidth;
+        let color = structuredClone(parsedClassesForBasePairs.stroke);
+        const classes = basePair.classes;
+        if (classes !== undefined) {
+          if (!Array.isArray(classes)) {
+            throw "Base-pair \"classes\" variable should be an array.";
           }
-          let basePairType : BasePair.Type | null | undefined = undefined;
-          switch (basePair.basePairType) {
-            case null : {
-              basePairType = undefined;
-              break;
-            }
-            case "canonical" : {
-              basePairType = BasePair.Type.CANONICAL;
-              break;
-            }
-            case "wobble" : {
-              basePairType = BasePair.Type.WOBBLE;
-              break;
-            }
-            case "mismatch" : {
-              basePairType = BasePair.Type.MISMATCH;
-              break;
-            }
-            default : {
-              throw "Unrecognized base-pair type.";
-            }
-          }
-          let residueIndex1 = Number.parseInt(basePair.residueIndex1) - singularRnaMoleculeProps.firstNucleotideIndex;
-          let residueIndex2 = Number.parseInt(basePair.residueIndex2) - singularRnaMoleculeProps.firstNucleotideIndex;
-          let strokeWidth = parsedClassesForBasePairs.strokeWidth;
-          let color = structuredClone(parsedClassesForBasePairs.stroke);
-          const classes = basePair.classes;
-          if (classes !== undefined) {
-            if (!Array.isArray(classes)) {
-              throw "Base-pair \"classes\" variable should be an array.";
-            }
-            (classes as Array<string>).forEach(className => {
-              let cssClass = cssClasses.find(cssClass => cssClass.name === className);
-              if (cssClass !== undefined) {
-                Object.entries(cssClass).forEach(cssClassData => {
-                  switch (cssClassData[0]) {
-                    case "stroke-width" : {
-                      strokeWidth = Number.parseFloat(cssClassData[1] as string);
-                      break;
-                    }
-                    case "stroke" : {
-                      color = fromCssString(cssClassData[1] as string);
-                      break;
-                    }
-                    case "color" : {
-                      color = fromCssString(cssClassData[1] as string);
-                      break;
-                    }
+          (classes as Array<string>).forEach(className => {
+            let cssClass = cssClasses.find(cssClass => cssClass.name === className);
+            if (cssClass !== undefined) {
+              Object.entries(cssClass).forEach(cssClassData => {
+                switch (cssClassData[0]) {
+                  case "stroke-width" : {
+                    strokeWidth = Number.parseFloat(cssClassData[1] as string);
+                    break;
                   }
-                });
-              }
-            });
-          }
-          insertBasePair(
-            singularRnaComplexProps,
-            rnaMoleculeName,
-            residueIndex1,
-            rnaMoleculeName,
-            residueIndex2,
-            DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
-            {
-              color,
-              strokeWidth,
-              basePairType
+                  case "stroke" : {
+                    color = fromCssString(cssClassData[1] as string);
+                    break;
+                  }
+                  case "color" : {
+                    color = fromCssString(cssClassData[1] as string);
+                    break;
+                  }
+                }
+              });
             }
-          );
-        });
-        return singularRnaMoleculeProps;
+          });
+        }
+        insertBasePair(
+          singularRnaComplexProps,
+          rnaMoleculeName1,
+          residueIndex1,
+          rnaMoleculeName2,
+          residueIndex2,
+          DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
+          {
+            color,
+            strokeWidth,
+            basePairType
+          }
+        );
       });
       return singularRnaComplexProps;
     });
