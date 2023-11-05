@@ -354,7 +354,7 @@ export namespace BasePairsEditor {
                       break;
                     }
                     default : {
-                      throw `Unrecognized base-pair type "${basePairType}".`
+                      distance = canonicalBasePairDistance;
                     }
                   }
                 } else {
@@ -693,9 +693,16 @@ export namespace BasePairsEditor {
               line : string,
               lineIndex : number
             ) {
-              const stringsSeparatedByWhitespace = line.split(/\s+/).filter(function(_string) {
-                return _string.length > 0;
+              const match = line.match(/^(-?\d+)\s+(-?\d+)\s+(\d+)(?:\s+("[^"]*"))?(?:\s+("[^"]*"))?(?:\s+("[^"]*"))?(?:\s+("[^"]*"))?$/);
+              if (match === null) {
+                throw `line #${lineIndex + 1} had an unrecognized format.`;
+              }
+              const stringsSeparatedByWhitespace = match.slice(1).filter(function(_string) {
+                return _string !== undefined && _string.length > 0;
               });
+              // const stringsSeparatedByWhitespace = line.split(/\s+/).filter(function(_string) {
+              //   return _string.length > 0;
+              // });
               // Format: nucleotideIndex0 nucleotideIndex1 length rnaMoleculeName0? rnaMoleculeName1? rnaComplexName?
               if (stringsSeparatedByWhitespace.length < 3) {
                 throw `Too few arguments were found in line #${lineIndex + 1}`;
@@ -737,7 +744,7 @@ export namespace BasePairsEditor {
               let rnaComplexIndex : number;
               if (stringsSeparatedByWhitespace.length < 6) {
                 if (defaultRnaComplexIndex === undefined) {
-                  throw `No RNA-complex name was provided in line #${lineIndex + 1}.`;
+                  throw `No name was provided for the RNA complex in line #${lineIndex + 1}.`;
                 }
                 rnaComplexIndex = defaultRnaComplexIndex;
               } else {
@@ -746,33 +753,33 @@ export namespace BasePairsEditor {
                   return rnaComplexName === rnaComplexNameI;
                 });
                 if (rnaComplexIndex === -1) {
-                  throw `The provided RNA complex name #1 in line #${lineIndex + 1} does not match any existing RNA complex's name.`;
+                  throw `The provided RNA complex name in line #${lineIndex + 1} does not match any existing RNA complex's name.`;
                 }
               }
               const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
               let rnaMoleculeName0 : string;
               if (stringsSeparatedByWhitespace.length < 4) {
                 if (defaultRnaMoleculeName0 === undefined) {
-                  throw `No RNA-molecule #1 name was provided in line #${lineIndex + 1}.`;
+                  throw `No name was provided for RNA-molecule #1 in line #${lineIndex + 1}.`;
                 }
                 rnaMoleculeName0 = defaultRnaMoleculeName0;
               } else {
                 rnaMoleculeName0 = getFormattedName(stringsSeparatedByWhitespace[3]);
               }
               if (!(rnaMoleculeName0 in singularRnaComplexProps.rnaMoleculeProps)) {
-                throw `The provided RNA molecule #1 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
+                throw `The name provided for RNA molecule #1 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
               }
               let rnaMoleculeName1 : string;
               if (stringsSeparatedByWhitespace.length < 5) {
                 if (defaultRnaMoleculeName1 === undefined) {
-                  throw `no RNA-molecule #2 name was provided in line #${lineIndex + 1}.`;
+                  throw `No name was provided for RNA-molecule #2 in line #${lineIndex + 1}.`;
                 }
                 rnaMoleculeName1 = defaultRnaMoleculeName1;
               } else {
                 rnaMoleculeName1 = getFormattedName(stringsSeparatedByWhitespace[4]);
               }
               if (!(rnaMoleculeName1 in singularRnaComplexProps.rnaMoleculeProps)) {
-                throw `The provided RNA molecule name #2 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
+                throw `The name provided for RNA molecule #2 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
               }
               const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
               const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
@@ -794,7 +801,7 @@ export namespace BasePairsEditor {
                   return typeI.toLocaleLowerCase() === type;
                 });
                 if (type === undefined) {
-                  throw `The provided base-pair type in line #${lineIndex + 1} was not recognized.`;
+                  throw `The provided base-pair type "${type}" in line #${lineIndex + 1} was not recognized.`;
                 }
               }
               return {

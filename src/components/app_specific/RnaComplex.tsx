@@ -308,20 +308,13 @@ export namespace RnaComplex {
     );
     useEffect(
       function() {
-        let averageDistancesData : Record<BasePair.Type, { count : number, distanceSum : number }> = {
-          [BasePair.Type.CANONICAL] : {
+        let averageDistancesData = {} as Record<BasePair.Type, { count : number, distanceSum : number }>;
+        for (const basePairType of BasePair.types) {
+          averageDistancesData[basePairType] = {
             count : 0,
             distanceSum : 0
-          },
-          [BasePair.Type.MISMATCH] : {
-            count : 0,
-            distanceSum : 0
-          },
-          [BasePair.Type.WOBBLE] : {
-            count : 0,
-            distanceSum : 0
-          }
-        };
+          };
+        }
         let totalBasePairsCount = 0;
         let totalBasePairDistances = 0;
         for (let [rnaMoleculeName, basePairsPerRnaMolecule] of Object.entries(basePairs)) {
@@ -342,18 +335,16 @@ export namespace RnaComplex {
           }
         }
         const basePairRadius = totalBasePairDistances / (totalBasePairsCount * 12);
+        const distances = {} as Record<BasePair.Type, number>;
+        for (const basePairType of BasePair.types) {
+          const averageDistancesDataI = averageDistancesData[basePairType];
+          distances[basePairType] = averageDistancesDataI.distanceSum / averageDistancesDataI.count;
+        }
         updateBasePairAverageRadii(
           index,
           {
-            radii : {
-              mismatch : basePairRadius,
-              wobble : basePairRadius
-            },
-            distances : {
-              mismatch : averageDistancesData.mismatch.distanceSum / averageDistancesData.mismatch.count,
-              wobble : averageDistancesData.wobble.distanceSum / averageDistancesData.wobble.count,
-              canonical : averageDistancesData.canonical.distanceSum / averageDistancesData.canonical.count
-            }
+            radius : basePairRadius,
+            distances
           }
         );
       },
@@ -362,7 +353,7 @@ export namespace RnaComplex {
         basePairs
       ]
     );
-    const radii = index in basePairAverageRadii ? basePairAverageRadii[index].radii : Context.BasePair.DEFAULT_RADII;
+    const radii = index in basePairAverageRadii ? basePairAverageRadii[index].radius : Context.BasePair.DEFAULT_RADIUS;
     return <g
       {...{
         [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.RNA_COMPLEX,

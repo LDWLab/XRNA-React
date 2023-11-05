@@ -56,25 +56,18 @@ export namespace Context {
   }
 
   export namespace BasePair {
-    export type Radii = {
-      mismatch : number,
-      wobble : number
-    }
     export type Distances = Record<_BasePair.Type, number>;
     export type AllDistances = {
       distances : Distances,
-      radii : Radii
+      radius : number
     };
-    export const DEFAULT_RADII : Radii = {
-      mismatch : 1,
-      wobble: 1
-    };
-    export const DEFAULT_DISTANCES : Distances = {
-      mismatch : DEFAULT_RADII.mismatch * 12,
-      wobble : DEFAULT_RADII.wobble * 12,
-      canonical : DEFAULT_RADII.wobble * 12
-    };
-    export const Radius = createContext(DEFAULT_RADII);
+    export const DEFAULT_RADIUS = 1;
+
+    export const DEFAULT_DISTANCES = {} as Distances;
+    for (const basePairType of _BasePair.types) {
+      DEFAULT_DISTANCES[basePairType] = DEFAULT_RADIUS * 12;
+    }
+    export const Radius = createContext(DEFAULT_RADIUS);
     export type KeysToEditPerRnaComplexType = {
       add : Array<_RnaComplex.BasePairKeys>,
       delete : Array<_RnaComplex.BasePairKeys>

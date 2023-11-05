@@ -7,6 +7,7 @@ import { DuplicateBasePairKeysHandler, insertBasePair } from "../components/app_
 import { Line2D, Rectangle } from "../data_structures/Geometry";
 import { Vector2D, add, distance, distanceSquared, distanceSquaredBetweenVector2DAndLineSegment, dotProduct, magnitude, negate, normalize, scaleUp, subtract } from "../data_structures/Vector2D";
 import { degreesToRadians } from "../utils/Utils";
+import Color from "../data_structures/Color";
 
 const EPSILON_SQUARED = 1e-8;
 const SCALARS_TO_TRY = [1, 1.5, 2, 2.5, 3, 3.5, 4];
@@ -49,11 +50,17 @@ type Indices = {
   arrayIndex : number
 };
 
-export type BasePairLine = Line2D & BasePair.CoreProps;
+export type BasePairCoreProps = {
+  basePairType? : BasePair.CanonicalType,
+  color? : Color,
+  strokeWidth? : number
+};
+
+export type BasePairLine = Line2D & BasePairCoreProps;
 export type BasePairLinesPerRnaComplex = Array<BasePairLine>;
 export type BasePairLines = Record<RnaComplexKey, BasePairLinesPerRnaComplex>;
 
-export type BasePairCenter = Vector2D & BasePair.CoreProps;
+export type BasePairCenter = Vector2D & BasePairCoreProps;
 export type BasePairCentersPerRnaComplex = Array<BasePairCenter>;
 export type BasePairCenters = Record<RnaComplexKey, BasePairCentersPerRnaComplex>;
 
@@ -84,6 +91,7 @@ export function parseGraphicalData(
   labelLines : LabelLines,
   labelContents : LabelContents
 ) {
+  const allKeys = ["undefined", ...BasePair.canonicalTypes] as Array<BasePair.CanonicalType | "undefined">;
   type FlattenedNucleotideProps = Array<{
     indices : Indices,
     singularNucleotideProps : Nucleotide.ExternalProps,
@@ -510,11 +518,13 @@ export function parseGraphicalData(
       arrayIndices : ArrayIndices
     };
 
+    type ZeroCandidateBasePairs = Record<BasePair.CanonicalType | "undefined", {
+      lineData : Array<LineData>,
+      centerData : Array<CenterData>
+    }>;
+
     type FailedBasePairs = {
-      zeroCandidateBasePairs : Record<BasePair.Type | "undefined", {
-        lineData : Array<LineData>,
-        centerData : Array<CenterData>
-      }>,
+      zeroCandidateBasePairs : ZeroCandidateBasePairs,
       tooManyCandidateBasePairs : {
         lineDataWithIndices : Array<LineDataWithIndices>,
         centerDataWithIndices : Array<CenterDataWithIndices>
@@ -525,48 +535,27 @@ export function parseGraphicalData(
 
     let failedBasePairs = getInitialFailedBasePairs();
 
-    const totalDistancesRecord : Record<BasePair.Type | "undefined", {
+    const totalDistancesRecord = {} as Record<BasePair.CanonicalType | "undefined", {
       minimum : number,
       maximum : number
-    }> = {
-      [BasePair.Type.CANONICAL] : {
+    }>;
+    for (const basePairTypeOrUndefined of allKeys) {
+      totalDistancesRecord[basePairTypeOrUndefined] = {
         minimum : Number.POSITIVE_INFINITY,
         maximum : Number.NEGATIVE_INFINITY
-      },
-      [BasePair.Type.MISMATCH] : {
-        minimum : Number.POSITIVE_INFINITY,
-        maximum : Number.NEGATIVE_INFINITY
-      },
-      [BasePair.Type.WOBBLE] : {
-        minimum : Number.POSITIVE_INFINITY,
-        maximum : Number.NEGATIVE_INFINITY
-      },
-      undefined : {
-        minimum : Number.POSITIVE_INFINITY,
-        maximum : Number.NEGATIVE_INFINITY
-      }
-    };
+      };
+    }
 
     function getInitialFailedBasePairs() : FailedBasePairs {
+      const zeroCandidateBasePairs = {} as ZeroCandidateBasePairs;
+      for (const basePairTypeOrUndefined of allKeys) {
+        zeroCandidateBasePairs[basePairTypeOrUndefined] = {
+          lineData : [],
+          centerData : []
+        };
+      }
       return {
-        zeroCandidateBasePairs : {
-          [BasePair.Type.CANONICAL] : {
-            lineData : [],
-            centerData : []
-          },
-          [BasePair.Type.WOBBLE] : {
-            lineData : [],
-            centerData : []
-          },
-          [BasePair.Type.MISMATCH] : {
-            lineData : [],
-            centerData : []
-          },
-          undefined : {
-            lineData : [],
-            centerData : []
-          }
-        },
+        zeroCandidateBasePairs,
         tooManyCandidateBasePairs : {
           lineDataWithIndices : [],
           centerDataWithIndices : []
@@ -612,7 +601,7 @@ export function parseGraphicalData(
     function createBasePair(
       indices0 : Indices,
       indices1 : Indices,
-      type? : BasePair.Type
+      type? : BasePair.CanonicalType
     ) {
       insertBasePair(
         singularRnaComplexProps,
@@ -718,7 +707,7 @@ export function parseGraphicalData(
         indices1 : Indices,
         totalDistance : number,
         distanceRatio : number,
-        type : BasePair.Type
+        type : BasePair.CanonicalType
       }>();
       const expectedBasePairType = basePairLine.basePairType;
       for (let i = 0; i < length0; i++) {
@@ -836,7 +825,7 @@ export function parseGraphicalData(
         dotProduct : number,
         totalDistance : number,
         distanceRatio : number,
-        type : BasePair.Type
+        type : BasePair.CanonicalType
       }>();
       const length = nucleotideData.length;
       const expectedBasePairType = basePairCenter.basePairType;
@@ -930,7 +919,7 @@ export function parseGraphicalData(
       }
     }
 
-    const basePairTypeHandlingOrderOrdinals : Record<BasePair.Type | "undefined", number> = {
+    const basePairTypeHandlingOrderOrdinals : Record<BasePair.CanonicalType | "undefined", number> = {
       [BasePair.Type.WOBBLE] : 0,
       [BasePair.Type.CANONICAL] : 1,
       [BasePair.Type.MISMATCH] : 2,
@@ -943,10 +932,10 @@ export function parseGraphicalData(
     ) {
       return typeWithOrdinal0[1] - typeWithOrdinal1[1];
     }).map(function([type, ordinal]) {
-      return type as BasePair.Type | "undefined";
+      return type as BasePair.CanonicalType | "undefined";
     });
 
-    const typedBasePairs : Record<BasePair.Type | "undefined", {
+    const typedBasePairs : Record<BasePair.CanonicalType | "undefined", {
       lines : Array<BasePairLine>,
       centers : Array<BasePairCenter>
     }> = {
