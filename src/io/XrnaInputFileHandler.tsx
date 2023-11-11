@@ -257,7 +257,7 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
                 referencedNucleotideIndicesStart = referencedNucleotideIndicesEnd;
                 referencedNucleotideIndicesEnd = swapHelper;
               }
-              for (let i = referencedNucleotideIndicesStart; i < referencedNucleotideIndicesEnd; i++) {
+              for (let i = referencedNucleotideIndicesStart; i <= referencedNucleotideIndicesEnd; i++) {
                 referencedNucleotideIndices.push(i);
               }
             }
@@ -275,7 +275,7 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
           }
           if (fontSize !== null) {
             if (nucleotideProps.font === undefined) {
-              nucleotideProps.font = Font.DEFAULT;
+              nucleotideProps.font = structuredClone(Font.DEFAULT) as Font;
             }
             nucleotideProps.font.size = fontSize;
           }
