@@ -281,9 +281,10 @@ export namespace NucleotideRegionsAnnotateMenu {
           let averageDistanceFromContext = Context.BasePair.DEFAULT_DISTANCES.canonical;
           for (const basePairType of BasePair.types) {
             const candidateDistance = averageDistancesPerRnaComplexFromContext.distances[basePairType];
-            // This occurs when there are 0 base pairs of <basePairType> in the RNA complex.
-            if (candidateDistance !== Number.POSITIVE_INFINITY) {
+            if (candidateDistance !== Number.POSITIVE_INFINITY && !Number.isNaN(candidateDistance)) {
+              // This occurs when there are > 0 base pairs of <basePairType> in the RNA complex.
               averageDistanceFromContext = candidateDistance;
+              break;
             }
           }
 
@@ -293,7 +294,6 @@ export namespace NucleotideRegionsAnnotateMenu {
           const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
           const rnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps;
           for (const rnaMoleculeName in rnaMoleculeProps) {
-            // By default, set these distance equal to 
             averageDistancesPerRnaComplex[rnaMoleculeName] = {
               labelPoint0Distance : averageDistanceFromContext * 0.25,
               labelPoint1Distance : averageDistanceFromContext * 0.75,
