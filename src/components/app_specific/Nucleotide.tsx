@@ -95,7 +95,7 @@ export namespace Nucleotide {
     // Begin memo data.
     const font = useMemo(
       function() {
-        return props.font ?? Font.DEFAULT
+        return props.font ?? structuredClone(Font.DEFAULT)
       },
       [props.font]
     );
@@ -122,7 +122,10 @@ export namespace Nucleotide {
       function() {
         setTextDimensions((symbolReference.current as SVGTextElement).getBBox());
       },
-      []
+      [
+        symbol,
+        font
+      ]
     );
     return <g
       {...{
