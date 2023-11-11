@@ -6,6 +6,8 @@ import { DEFAULT_FORMATTED_NUMBER_DECIMAL_DIGITS_COUNT } from "../../../../utils
 import InputWithValidator from "../../../generic/InputWithValidator";
 import { ColorEditor } from "../../../generic/editors/ColorEditor";
 import { BLACK } from "../../../../data_structures/Color";
+import { FontEditor } from "../../../generic/editors/FontEditor";
+import Font from "../../../../data_structures/Font";
 
 export namespace SingleNucleotideInteractionConstraintEditMenu {
   export type Props = {
@@ -65,6 +67,10 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       color,
       setColor
     ] = useState(singularNucleotideProps.color ?? BLACK);
+    const [
+      font,
+      setFont
+    ] = useState(singularNucleotideProps.font ?? Font.DEFAULT);
     // Begin memo data.
     const previousNucleotidePosition : Vector2D | undefined = useMemo(
       function() {
@@ -130,6 +136,12 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       },
       [singularNucleotideProps.color]
     );
+    useEffect(
+      function() {
+        setFont(singularNucleotideProps.font ?? Font.DEFAULT);
+      },
+      [singularNucleotideProps.font]
+    );
     return <>
       {previousNucleotideDistanceJsx}
       {nextNucleotideDistanceJsx}
@@ -184,6 +196,14 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
         setColorHelper = {function(newColor) {
           singularNucleotideProps.color = newColor;
           setColor(newColor);
+          triggerRerender();
+        }}
+      />
+      <FontEditor.Component
+        {...font}
+        setFont = {function(newFont) {
+          singularNucleotideProps.font = newFont;
+          setFont(newFont);
           triggerRerender();
         }}
       />

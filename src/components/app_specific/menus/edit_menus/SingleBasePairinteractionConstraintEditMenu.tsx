@@ -5,11 +5,14 @@ import Color, { BLACK } from "../../../../data_structures/Color";
 import { ColorEditor } from "../../../generic/editors/ColorEditor";
 import { Nucleotide } from "../../Nucleotide";
 import { Context } from "../../../../context/Context";
+import Font from "../../../../data_structures/Font";
+import { FontEditor } from "../../../generic/editors/FontEditor";
 
 export namespace SingleBasePairInteractionConstraintEditMenu {
   export type Props = AppSpecificOrientationEditor.SimplifiedProps & {
     basePairType : BasePair.Type,
     initialColor : Color,
+    initialFont : Font,
     boundingNucleotides : Array<Nucleotide.ExternalProps>,
     allNucleotides : Array<Nucleotide.ExternalProps>
   };
@@ -17,6 +20,7 @@ export namespace SingleBasePairInteractionConstraintEditMenu {
   export function Component(props : Props) {
     const {
       initialColor,
+      initialFont,
       onUpdatePositions,
       boundingNucleotides,
       allNucleotides
@@ -30,7 +34,11 @@ export namespace SingleBasePairInteractionConstraintEditMenu {
     const [
       color,
       setColor
-    ] = useState(BLACK);
+    ] = useState(initialColor ?? BLACK);
+    const [
+      font,
+      setFont
+    ] = useState(initialFont ?? Font.DEFAULT);
     // Begin memo data.
     const nucleotidesToAffect = useMemo(
       function() {
@@ -41,9 +49,15 @@ export namespace SingleBasePairInteractionConstraintEditMenu {
     // Begin effects.
     useEffect(
       function() {
-        setColor(color);
+        setColor(initialColor);
       },
       [initialColor]
+    );
+    useEffect(
+      function() {
+        setFont(font);
+      },
+      [initialFont]
     );
     return <>
       Base-pair type: {props.basePairType.toLocaleLowerCase()}
@@ -60,6 +74,16 @@ export namespace SingleBasePairInteractionConstraintEditMenu {
           }
           onUpdatePositions();
           setColor(newColor);
+        }}
+      />
+      <FontEditor.Component
+        {...font}
+        setFont = {function(newFont : Font) {
+          for (const nucleotide of nucleotidesToAffect) {
+            nucleotide.font = newFont;
+          }
+          onUpdatePositions();
+          setFont(newFont);
         }}
       />
     </>;

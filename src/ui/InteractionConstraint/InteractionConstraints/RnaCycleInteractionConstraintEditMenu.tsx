@@ -3,6 +3,8 @@ import InputWithValidator from "../../../components/generic/InputWithValidator";
 import { ColorEditor } from "../../../components/generic/editors/ColorEditor";
 import Color, { BLACK, areEqual } from "../../../data_structures/Color";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
+import { FontEditor } from "../../../components/generic/editors/FontEditor";
+import Font from "../../../data_structures/Font";
 
 export namespace RnaCycleInteractionConstraintEditMenu {
   export type Props = {
@@ -30,6 +32,10 @@ export namespace RnaCycleInteractionConstraintEditMenu {
       color,
       setColor
     ] = useState(structuredClone(BLACK));
+    const [
+      font,
+      setFont
+    ] = useState(structuredClone(Font.DEFAULT));
     // Begin effects.
     useEffect(
       function() {
@@ -77,6 +83,16 @@ export namespace RnaCycleInteractionConstraintEditMenu {
           setColor(newColor);
           for (const singularNucleotideProps of cycleGraphNucleotides) {
             singularNucleotideProps.color = newColor;
+          }
+          rerender();
+        }}
+      />
+      <FontEditor.Component
+        {...font}
+        setFont = {function(newFont) {
+          setFont(newFont);
+          for (const singularNucleotideProps of cycleGraphNucleotides) {
+            singularNucleotideProps.font = newFont;
           }
           rerender();
         }}

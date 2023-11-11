@@ -162,6 +162,15 @@ class Font extends PartialFont {
   public static override fromFontId(fontId : number, size : number = Font.DEFAULT_SIZE) {
     return Font.fromPartialFont(PartialFont.fromFontId(fontId), size);
   }
+
+  public static areEqual(font0 : Font, font1 : Font) {
+    return (
+      font0.family === font1.family &&
+      font0.style === font1.style &&
+      font0.weight === font1.weight &&
+      font0.size === font1.size
+    )
+  }
 }
 
 export default Font;

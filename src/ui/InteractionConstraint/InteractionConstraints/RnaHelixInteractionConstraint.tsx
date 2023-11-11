@@ -11,13 +11,13 @@ import { AppSpecificOrientationEditor } from "../../../components/app_specific/e
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
-import { ColorsAndPositionsEditor } from "./ColorsAndPositionsEditor";
+import { AllInOneEditor } from "./AllInOneEditor";
 import { BLACK, areEqual } from "../../../data_structures/Color";
 
 export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
   private readonly partialHeader : JSX.Element;
-  private readonly editMenuProps : ColorsAndPositionsEditor.Props;
+  private readonly editMenuProps : AllInOneEditor.Props;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
 
   constructor(
@@ -301,7 +301,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     switch (tab) {
       case Tab.EDIT : {
         menu = <>
-          <ColorsAndPositionsEditor.Component
+          <AllInOneEditor.Component
             {...this.editMenuProps}
           />
         </>;

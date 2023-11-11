@@ -3,7 +3,7 @@ import { RnaComplex } from "../../RnaComplex";
 import { AppSpecificOrientationEditor } from "../../editors/AppSpecificOrientationEditor";
 import { Vector2D } from "../../../../data_structures/Vector2D";
 import { subtractNumbersNegated } from "../../../../utils/Utils";
-import { ColorsAndPositionsEditor } from "../../../../ui/InteractionConstraint/InteractionConstraints/ColorsAndPositionsEditor";
+import { AllInOneEditor } from "../../../../ui/InteractionConstraint/InteractionConstraints/AllInOneEditor";
 
 export namespace RnaComplexInteractionConstraintEditMenu {
   export type Props = {
@@ -67,7 +67,7 @@ export namespace RnaComplexInteractionConstraintEditMenu {
           }
         }
 
-        return <ColorsAndPositionsEditor.Component
+        return <AllInOneEditor.Component
           boundingVector0 = {boundingVectors[0]}
           boundingVector1 = {boundingVectors[1]}
           positions = {positions}

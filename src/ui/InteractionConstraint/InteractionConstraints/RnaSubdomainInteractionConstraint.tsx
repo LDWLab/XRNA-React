@@ -11,7 +11,7 @@ import { subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
 import { InteractionConstraint, HelixData, populateToBeDraggedWithHelix, iterateOverFreeNucleotidesAndHelicesPerNucleotideRange, FilterHelicesMode } from "../InteractionConstraints";
-import { ColorsAndPositionsEditor } from "./ColorsAndPositionsEditor";
+import { AllInOneEditor } from "./AllInOneEditor";
 
 export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -218,7 +218,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
-        menu = <ColorsAndPositionsEditor.Component
+        menu = <AllInOneEditor.Component
           {...this.editMenuProps}
         />;
         break;

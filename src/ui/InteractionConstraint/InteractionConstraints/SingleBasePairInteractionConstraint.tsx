@@ -12,6 +12,7 @@ import { BasePairsEditor } from "../../../components/app_specific/editors/BasePa
 import { min } from "../../../utils/Utils";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import { BLACK, areEqual } from "../../../data_structures/Color";
+import Font from "../../../data_structures/Font";
 
 export class SingleBasePairInteractionConstraint extends AbstractInteractionConstraint {
   private dragListenersPerAffectHairpinNucleotidesFlag : {
@@ -229,6 +230,10 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     );
     const color0 = singularNucleotideProps.color ?? BLACK;
     const color1 = basePairedSingularNucleotideProps.color ?? BLACK;
+
+    const font0 = singularNucleotideProps.font ?? Font.DEFAULT;
+    const font1 = basePairedSingularNucleotideProps.font ?? Font.DEFAULT;
+
     this.editMenuProps = {
       boundingVector0,
       boundingVector1,
@@ -237,6 +242,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       orthogonalizeHelper : orthogonalizeLeft,
       basePairType,
       initialColor : areEqual(color0, color1) ? color0 : BLACK,
+      initialFont : Font.areEqual(font0, font1) ? font0 : Font.DEFAULT,
       boundingNucleotides,
       allNucleotides
     };

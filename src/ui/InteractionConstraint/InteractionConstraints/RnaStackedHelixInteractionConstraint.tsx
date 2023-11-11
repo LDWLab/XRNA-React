@@ -11,7 +11,7 @@ import { sign, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
 import { Extrema, InteractionConstraint, HelixData, populateToBeDraggedWithHelix } from "../InteractionConstraints";
-import { ColorsAndPositionsEditor } from "./ColorsAndPositionsEditor";
+import { AllInOneEditor } from "./AllInOneEditor";
 
 export class RnaStackedHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -439,7 +439,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       case Tab.EDIT : {
         return <>
           {header}
-          <ColorsAndPositionsEditor.Component
+          <AllInOneEditor.Component
             {...this.editMenuProps}
           />
         </>;

@@ -2,13 +2,17 @@ import { useEffect, useState } from "react";
 import InputWithValidator from "../../../generic/InputWithValidator";
 import { ColorEditor } from "../../../generic/editors/ColorEditor";
 import Color, { BLACK } from "../../../../data_structures/Color";
+import { FontEditor } from "../../../generic/editors/FontEditor";
+import Font from "../../../../data_structures/Font";
 
 export namespace RnaSingleStrandInteractionConstraintEditMenu {
   export type Props = {
     initialDisplacementAlongNormal : number,
     updateSingleStrandPositions : (orientation : Orientation, displacementAlongNormal : number) => void,
     updateSingleStrandColors : (newColor : Color) => void,
-    initialColor : Color
+    updateSingleStrandFonts : (newFont : Font) => void,
+    initialColor : Color,
+    initialFont : Font
   };
 
   export enum Orientation {
@@ -22,7 +26,9 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
       initialDisplacementAlongNormal,
       updateSingleStrandPositions,
       updateSingleStrandColors,
-      initialColor
+      updateSingleStrandFonts,
+      initialColor,
+      initialFont
     } = props;
     // Begin state data.
     const [
@@ -37,6 +43,10 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
       color,
       setColor
     ] = useState(initialColor);
+    const [
+      font,
+      setFont
+    ] = useState(initialFont);
     // Begin effects
     useEffect(
       function() {
@@ -59,6 +69,12 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
         setColor(initialColor);
       },
       [initialColor]
+    );
+    useEffect(
+      function() {
+        setFont(initialFont);
+      },
+      [initialFont]
     );
     return <>
       <b>
@@ -123,6 +139,13 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
         setColorHelper = {function(newColor) {
           updateSingleStrandColors(newColor);
           setColor(newColor);
+        }}
+      />
+      <FontEditor.Component
+        {...font}
+        setFont = {function(newFont) {
+          setFont(newFont);
+          updateSingleStrandFonts(newFont);
         }}
       />
     </>;

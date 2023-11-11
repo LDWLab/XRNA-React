@@ -5,7 +5,7 @@ import { BasePairKeysToRerender, Context, NucleotideKeysToRerender } from "../..
 import { AppSpecificOrientationEditor } from "../../editors/AppSpecificOrientationEditor";
 import { Vector2D, add } from "../../../../data_structures/Vector2D";
 import { parseInteger, subtractNumbers, subtractNumbersNegated } from "../../../../utils/Utils";
-import { ColorsAndPositionsEditor } from "../../../../ui/InteractionConstraint/InteractionConstraints/ColorsAndPositionsEditor";
+import { AllInOneEditor } from "../../../../ui/InteractionConstraint/InteractionConstraints/AllInOneEditor";
 
 export namespace RnaMoleculeInteractionConstraintEditMenu {
     export type Props = {
@@ -180,7 +180,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
           {errorMessage}
           <br/>
         </>}
-        <ColorsAndPositionsEditor.Component
+        <AllInOneEditor.Component
           {...orientationEditorProps}
         />
       </>;

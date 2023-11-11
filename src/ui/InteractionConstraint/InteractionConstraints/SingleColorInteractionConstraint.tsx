@@ -10,7 +10,7 @@ import { parseInteger } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
 import { FilterHelicesMode, InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerScene } from "../InteractionConstraints";
-import { ColorsAndPositionsEditor } from "./ColorsAndPositionsEditor";
+import { AllInOneEditor } from "./AllInOneEditor";
 
 export class SingleColorInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -197,7 +197,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
-        menu = <ColorsAndPositionsEditor.Component
+        menu = <AllInOneEditor.Component
           {...this.editMenuProps}
         />;
         break;
