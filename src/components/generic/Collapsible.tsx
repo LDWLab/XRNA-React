@@ -39,7 +39,9 @@ export namespace Collapsible {
             width : "50%"
           }}
         >
-          {title}
+          <b>
+            {title}
+          </b>
         </span>
         <span
           style = {{
