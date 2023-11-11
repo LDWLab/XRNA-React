@@ -13,19 +13,21 @@ namespace InputWithValidator {
     disabledFlag? : boolean | undefined
   };
 
-  export type AngleProps<T> = CoreProps<T> & {
+  export type NonCoreProps<T> = {
+    valueToString : (value : T) => string,
+    stringToValue : (valueAsString : string) => T | undefined | Error,
+    htmlInputType? : HTMLInputTypeAttribute
+  };
+
+  export type PropsForBuiltIns<T> = CoreProps<T> & Partial<NonCoreProps<T>>;
+
+  export type AngleProps<T> = PropsForBuiltIns<T> & {
     useDegreesFlag : boolean,
     step? : string | number
   };
 
   export type Error = {
     errorMessage : string
-  };
-
-  export type NonCoreProps<T> = {
-    valueToString : (value : T) => string,
-    stringToValue : (valueAsString : string) => T | undefined | Error,
-    htmlInputType? : HTMLInputTypeAttribute
   };
 
   export type Props<T> = CoreProps<T> & NonCoreProps<T>;
@@ -95,11 +97,13 @@ namespace InputWithValidator {
         switch (getType(toValueAttempt)) {
           case StringToValueReturnType.VALUE : {
             props.setValue(toValueAttempt as T);
+            setErrorMessage(undefined);
             setValueAsTextValidityFlag(true);
             break;
           }
           case StringToValueReturnType.UNDEFINED : {
             setValueAsTextValidityFlag(false);
+            setErrorMessage(undefined);
             break;
           }
           case StringToValueReturnType.ERROR : {
@@ -117,10 +121,11 @@ namespace InputWithValidator {
     />;
   }
 
-  export function Number(props : CoreProps<number>) {
+  export function Number(props : PropsForBuiltIns<number>) {
     return <Component<number>
-      valueToString = {numberToFormattedStringHelper}
-      stringToValue = {function(valueAsString : string) {
+      style = {props.style}
+      valueToString = {props.valueToString ?? numberToFormattedStringHelper}
+      stringToValue = {props.stringToValue ?? function(valueAsString : string) {
         const toValueAttempt = parseFloatReturnUndefinedOnFail(valueAsString);
         if (toValueAttempt !== undefined) {
           if (props.min !== undefined && toValueAttempt < props.min) {
@@ -136,17 +141,18 @@ namespace InputWithValidator {
         }
         return toValueAttempt;
       }}
-      htmlInputType = "number"
+      htmlInputType = {props.htmlInputType ?? "number"}
       {...props}
     />
   }
 
-  export function Integer(props : CoreProps<number>) {
+  export function Integer(props : PropsForBuiltIns<number>) {
     return <Component<number>
-      valueToString = {function(n : number) {
+      style = {props.style}
+      valueToString = {props.valueToString ?? function(n : number) {
         return n.toString();
       }}
-      stringToValue = {function(valueAsString : string) {
+      stringToValue = {props.stringToValue ?? function(valueAsString : string) {
         const toValueAttempt = parseIntReturnUndefinedOnFail(valueAsString);
         if (toValueAttempt !== undefined) {
           if (props.min !== undefined && toValueAttempt < props.min) {
@@ -162,7 +168,7 @@ namespace InputWithValidator {
         }
         return toValueAttempt;
       }}
-      htmlInputType = "number"
+      htmlInputType = {props.htmlInputType ?? "number"}
       {...props}
     />
   }
@@ -176,11 +182,12 @@ namespace InputWithValidator {
     );
     return <>
       <Component<number>
-        valueToString = {function(value : number) {
+        style = {props.style}
+        valueToString = {props.valueToString ?? function(value : number) {
           let formattedValue = props.useDegreesFlag ? radiansToDegrees(value) : value;
           return numberToFormattedStringHelper(formattedValue);
         }}
-        stringToValue = {function(valueAsString : string) {
+        stringToValue = {props.stringToValue ?? function(valueAsString : string) {
           let toValueAttempt = parseFloatReturnUndefinedOnFail(valueAsString);
           if (toValueAttempt === undefined) {
             return undefined;
@@ -198,7 +205,7 @@ namespace InputWithValidator {
           }
           return props.useDegreesFlag ? degreesToRadians(toValueAttempt) : toValueAttempt;
         }}
-        htmlInputType = "number"
+        htmlInputType = {props.htmlInputType ?? "number"}
         step = {step}
         {...props}
       />
