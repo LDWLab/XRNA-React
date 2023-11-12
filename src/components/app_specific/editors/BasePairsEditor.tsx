@@ -1,5 +1,5 @@
 import { FunctionComponent, createElement, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { RnaComplexProps, TOOLS_DIV_BACKGROUND_COLOR } from "../../../App";
+import { RnaComplexKey, RnaComplexProps, TOOLS_DIV_BACKGROUND_COLOR } from "../../../App";
 import { Context, NucleotideKeysToRerender } from "../../../context/Context";
 import { DuplicateBasePairKeysHandler, RnaComplex, compareBasePairKeys, insertBasePair } from "../RnaComplex";
 import { default as _BasePair, getBasePairType } from  "../BasePair";
@@ -70,6 +70,7 @@ export namespace BasePairsEditor {
     const setNucleotideKeysToRerender = useContext(Context.Nucleotide.SetKeysToRerender);
     const setBasePairKeysToEdit = useContext(Context.BasePair.SetKeysToEdit);
     const settingsRecord = useContext(Context.App.Settings);
+    const averageDistances = useContext(Context.BasePair.AverageDistances);
     // Begin state data.
     const [
       editorType,
@@ -425,6 +426,32 @@ export namespace BasePairsEditor {
     // Begin effects.
     useEffect(
       function() {
+        const averageOfAverageDistances = {} as Record<_BasePair.Type, number>;
+        for (const basePairType of _BasePair.types) {
+          let distanceSum = 0;
+          let distanceCount = 0;
+          for (const { distances } of Object.values(averageDistances)) {
+            const averageDistancePerRnaComplexPerBasePairType = distances[basePairType];
+            if (!Number.isNaN(averageDistancePerRnaComplexPerBasePairType)) {
+              distanceSum += averageDistancePerRnaComplexPerBasePairType;
+              distanceCount++;
+            }
+          }
+          averageOfAverageDistances[basePairType] = distanceSum / distanceCount;
+        }
+        const averageOfAverageCanonicalDistances = averageOfAverageDistances[_BasePair.Type.CANONICAL];
+        const averageOfAverageMismatchDistances = averageOfAverageDistances[_BasePair.Type.MISMATCH];
+        const averageOfAverageWobbleDistances = averageOfAverageDistances[_BasePair.Type.WOBBLE];
+        let helixDistanceSum = 0;
+        let helixDistanceCount = 0;
+        for (const { helixDistance } of Object.values(averageDistances)) {
+          if (!Number.isNaN(helixDistance)) {
+            helixDistanceSum += helixDistance;
+            helixDistanceCount++;
+          }
+        }
+        const averageOfAverageHelixDistance = helixDistanceSum / helixDistanceCount;
+
         const initialEditorType = settingsRecord[Setting.BASE_PAIRS_EDITOR_TYPE] as EditorType;
         const initialRepositionNucleotidesFlag = settingsRecord[Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] as boolean;
         const initialCanonicalBasePairDistance = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
@@ -435,12 +462,14 @@ export namespace BasePairsEditor {
         setEditorType(initialEditorType);
         setRepositionNucleotidesAlongBasePairAxisFlag(initialRepositionNucleotidesFlag);
         setRepositionNucleotidesAlongHelixAxisFlag(initialRepositionNucleotidesFlag);
-        setCanonicalBasePairDistance(initialCanonicalBasePairDistance);
-        setMismatchBasePairDistance(initialMismatchBasePairDistance);
-        setWobbleBasePairDistance(initialWobbleBasePairDistance);
-        setDistanceBetweenContiguousBasePairs(initialDistanceBetweenContiguousBasePairs);
+        setCanonicalBasePairDistance(Number.isNaN(initialCanonicalBasePairDistance) ? Number.isNaN(averageOfAverageCanonicalDistances) ? 1 : averageOfAverageCanonicalDistances : initialCanonicalBasePairDistance);
+        setMismatchBasePairDistance(Number.isNaN(initialMismatchBasePairDistance) ? Number.isNaN(averageOfAverageMismatchDistances) ? 1 : averageOfAverageMismatchDistances : initialMismatchBasePairDistance);
+        setWobbleBasePairDistance(Number.isNaN(initialWobbleBasePairDistance) ? Number.isNaN(averageOfAverageWobbleDistances) ? 1 : averageOfAverageWobbleDistances : initialWobbleBasePairDistance);
+        setDistanceBetweenContiguousBasePairs(Number.isNaN(initialDistanceBetweenContiguousBasePairs) ? Number.isNaN(averageOfAverageHelixDistance) ? 1 : averageOfAverageHelixDistance : initialDistanceBetweenContiguousBasePairs);
       },
-      []
+      [
+        averageDistances
+      ]
     );
     useEffect(
       function() {
