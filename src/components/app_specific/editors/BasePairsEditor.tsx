@@ -61,7 +61,7 @@ export namespace BasePairsEditor {
     const {
       rnaComplexProps,
       approveBasePairs,
-      initialBasePairs,
+      initialBasePairs : _initialBasePairs,
       defaultRnaComplexIndex,
       defaultRnaMoleculeName0,
       defaultRnaMoleculeName1
@@ -74,7 +74,7 @@ export namespace BasePairsEditor {
     const [
       editorType,
       setEditorType
-    ] = useState<EditorType>(EditorType.TABLE_BASED);
+    ] = useState<EditorType>(settingsRecord[Setting.BASE_PAIRS_EDITOR_TYPE] as EditorType);
     const [
       overrideConflictingBasePairsFlag,
       setOverrideConflictingBasePairsFlag
@@ -106,7 +106,7 @@ export namespace BasePairsEditor {
     const [
       basePairs,
       _setBasePairs
-    ] = useState(initialBasePairs === undefined ? [] : initialBasePairs.filter(function(singularInitialBasePair) {
+    ] = useState(_initialBasePairs === undefined ? [] : _initialBasePairs.filter(function(singularInitialBasePair) {
       return (
         singularInitialBasePair.rnaComplexIndex !== undefined &&
         singularInitialBasePair.rnaMoleculeName0 !== undefined &&
@@ -116,6 +116,10 @@ export namespace BasePairsEditor {
         singularInitialBasePair.length !== undefined
       );
     }) as Array<BasePair>);
+    const [
+      initialBasePairs,
+      setInitialBasePairs
+    ] = useState(_initialBasePairs);
     // Begin reference data.
     const basePairsReference = useRef<Array<BasePair>>();
     basePairsReference.current = basePairs;
@@ -437,6 +441,12 @@ export namespace BasePairsEditor {
         setDistanceBetweenContiguousBasePairs(initialDistanceBetweenContiguousBasePairs);
       },
       []
+    );
+    useEffect(
+      function() {
+        setInitialBasePairs(structuredClone(basePairs));
+      },
+      [editorType]
     );
     // Begin render.
     return <>
