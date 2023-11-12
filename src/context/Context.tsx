@@ -59,7 +59,8 @@ export namespace Context {
     export type Distances = Record<_BasePair.Type, number>;
     export type AllDistances = {
       distances : Distances,
-      radius : number
+      radius : number,
+      helixDistance : number
     };
     export const DEFAULT_RADIUS = 1;
 

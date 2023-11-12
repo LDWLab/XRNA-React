@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { RnaMoleculeKey, NucleotideKey } from "../../App";
 import { BasePairKeysToRerenderPerRnaComplex, Context, NucleotideKeysToRerenderPerRnaComplex } from "../../context/Context";
-import { distance } from "../../data_structures/Vector2D";
+import { Vector2D, add, distance, scaleUp } from "../../data_structures/Vector2D";
 import Scaffolding from "../generic/Scaffolding";
 import BasePair, { getBasePairType } from "./BasePair";
 import { RnaMolecule } from "./RnaMolecule";
@@ -164,7 +164,7 @@ export namespace RnaComplex {
     const index = useContext(Context.RnaComplex.Index);
     const basePairDataToEditPerRnaComplex = useContext(Context.BasePair.DataToEditPerRnaComplex);
     const basePairAverageRadii = useContext(Context.BasePair.AverageDistances);
-    const updateBasePairAverageRadii = useContext(Context.BasePair.UpdateAverageDistances);
+    const updateBasePairAverageDistances = useContext(Context.BasePair.UpdateAverageDistances);
     // Begin state data.
     // const [
     //   flattenedBasePairProps,
@@ -334,17 +334,79 @@ export namespace RnaComplex {
             distancesData.distanceSum += basePairDistance;
           }
         }
+        let helixStepDistanceSum = 0;
+        let helixStepCount = 0;
+        type Pair = { 0 : BasePairKeys, 1 : BasePairKeys, center : Vector2D };
+        let previousPair : Pair = {
+          0 : {
+            nucleotideIndex : NaN,
+            rnaMoleculeName : ""
+          },
+          1 : {
+            nucleotideIndex : NaN,
+            rnaMoleculeName : ""
+          },
+          center : {
+            x : NaN,
+            y : NaN
+          }
+        }
+        for (const [rnaMoleculeName, basePairsPerRnaMolecule] of Object.entries(basePairs)) {
+          const sortedBasePairsPerRnaMolecule = Object.entries(basePairsPerRnaMolecule).map(function([
+            nucleotideIndexAsString,
+            basePair
+          ]) {
+            const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+            return {
+              nucleotideIndex,
+              basePair
+            };
+          });
+          const singularRnaMoleculeProps0 = rnaMoleculeProps[rnaMoleculeName];
+          for (const { nucleotideIndex, basePair } of sortedBasePairsPerRnaMolecule) {
+            const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex];
+            const singularNucleotideProps1 = rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex];
+            const pair = {
+              0 : {
+                nucleotideIndex,
+                rnaMoleculeName
+              },
+              1 : basePair,
+              center : scaleUp(
+                add(
+                  singularNucleotideProps0,
+                  singularNucleotideProps1
+                ),
+                0.5
+              )
+            };
+            if ((
+              pair[0].rnaMoleculeName === previousPair[0].rnaMoleculeName &&
+              pair[1].rnaMoleculeName === previousPair[1].rnaMoleculeName &&
+              Math.abs(pair[0].nucleotideIndex - previousPair[0].nucleotideIndex) <= 1 &&
+              Math.abs(pair[1].nucleotideIndex - previousPair[1].nucleotideIndex) <= 1
+            )) {
+              helixStepDistanceSum += distance(
+                pair.center,
+                previousPair.center
+              );
+              helixStepCount++;
+            }
+            previousPair = pair;
+          }
+        }
         const basePairRadius = totalBasePairDistances / (totalBasePairsCount * 12);
         const distances = {} as Record<BasePair.Type, number>;
         for (const basePairType of BasePair.types) {
           const averageDistancesDataI = averageDistancesData[basePairType];
           distances[basePairType] = averageDistancesDataI.distanceSum / averageDistancesDataI.count;
         }
-        updateBasePairAverageRadii(
+        updateBasePairAverageDistances(
           index,
           {
             radius : basePairRadius,
-            distances
+            distances,
+            helixDistance : helixStepDistanceSum / helixStepCount
           }
         );
       },

@@ -6,6 +6,7 @@ export enum Setting {
   RESET_VIEWPORT_AFTER_FILE_UPLOAD = "reset_viewport_after_file_upload",
   USE_DEGREES = "use_degrees",
   REPOSITION_NUCLEOTIDES_WHEN_FORMATTING = "reposition_nucleotides_when_formatting",
+  AUTOMATICALLY_REPOSITION_ANNOTATIONS = "automatically_reposition_annotations",
   BASE_PAIRS_EDITOR_TYPE = "base_pairs_editor_type",
   CANONICAL_BASE_PAIR_DISTANCE = "canonical_base_pair_distance",
   WOBBLE_BASE_PAIR_DISTANCE = "wobble_base_pair_distance",
@@ -21,6 +22,7 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "Reset viewport after file upload",
   [Setting.USE_DEGREES] : "Use degrees",
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : "Reposition nucleotides when formatting",
+  [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "Reposition annotations when their parent nucleotides are repositioned",
   [Setting.BASE_PAIRS_EDITOR_TYPE] : "Format-tab base-pairs editor type",
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "Canonical base-pair distance",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "Wobble base-pair distance",
@@ -34,6 +36,7 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "Reset the viewport translation and scale after parsing an input file",
   [Setting.USE_DEGREES] : "Use degrees (instead of radians) when editing angles",
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : "Reposition nucleotides when formatting",
+  [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "Reposition annotations when their parent nucleotides are repositioned",
   [Setting.BASE_PAIRS_EDITOR_TYPE] : "Type of the base-pairs editor within the format menu",
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "The default distance between base pairs which are \"canonical.\" (i.e. Watson-Crick). Applied when formatting base pairs",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "The default distance between base pairs which are \"wobble.\" Applied when formatting base pairs",
@@ -47,6 +50,7 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairs
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "boolean",
   [Setting.USE_DEGREES] : "boolean",
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : "boolean",
+  [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "boolean",
   [Setting.BASE_PAIRS_EDITOR_TYPE] : "BasePairsEditorType",
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "number",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "number",
@@ -56,18 +60,16 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairs
 
 export type SettingValue = boolean | number | BasePairsEditor.EditorType;
 
-const DEFAULT_CANONICAL_BASE_PAIR_DISTANCE = 16;
-const DEFAULT_NON_CANONICAL_BASE_PAIR_DISTANCE = 21;
-
 export const DEFAULT_SETTINGS : Record<Setting, SettingValue> = {
   [Setting.SYNC_FILE_NAME] : true,
   [Setting.SYNC_FILE_EXTENSION] : true,
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : true,
   [Setting.USE_DEGREES] : true,
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : true,
-  [Setting.BASE_PAIRS_EDITOR_TYPE] : BasePairsEditor.EditorType.TEXT_BASED,
-  [Setting.CANONICAL_BASE_PAIR_DISTANCE] : DEFAULT_CANONICAL_BASE_PAIR_DISTANCE,
-  [Setting.WOBBLE_BASE_PAIR_DISTANCE] : DEFAULT_NON_CANONICAL_BASE_PAIR_DISTANCE,
-  [Setting.MISMATCH_BASE_PAIR_DISTANCE] : DEFAULT_NON_CANONICAL_BASE_PAIR_DISTANCE,
-  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : 6
+  [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : true,
+  [Setting.BASE_PAIRS_EDITOR_TYPE] : BasePairsEditor.EditorType.TABLE_BASED,
+  [Setting.CANONICAL_BASE_PAIR_DISTANCE] : NaN,
+  [Setting.WOBBLE_BASE_PAIR_DISTANCE] : NaN,
+  [Setting.MISMATCH_BASE_PAIR_DISTANCE] : NaN,
+  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : NaN
 };

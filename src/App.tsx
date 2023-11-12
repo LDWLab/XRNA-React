@@ -23,6 +23,10 @@ import { fileExtensionDescriptions } from './io/FileExtension';
 import loadingGif from './images/loading.svg';
 import { SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from './io/SvgInputFileHandler';
 import { BLACK } from './data_structures/Color';
+import Font from './data_structures/Font';
+import { Property } from 'csstype';
+
+export const TOOLS_DIV_BACKGROUND_COLOR = "white";
 
 export const SVG_ELEMENT_HTML_ID = "viewport";
 
@@ -114,7 +118,7 @@ function App() {
   ] = useState(DEFAULT_SETTINGS);
   const [
     rightClickMenuContent,
-    setRightClickMenuContent
+    _setRightClickMenuContent
   ] = useState(<></>);
   const [
     nucleotideKeysToRerender,
@@ -205,6 +209,10 @@ function App() {
     basePairAverageDistances,
     setBasePairAverageDistances
   ] = useState<Record<RnaComplexKey, Context.BasePair.AllDistances>>({});
+  const [
+    toolsDivResizeAttribute,
+    setToolsDivResizeAttribute
+  ] = useState<Property.Resize | undefined>("vertical");
   // Begin state-relevant helper functions.
   function resetViewport() {
     setSceneBounds((sceneSvgGElementReference.current as SVGGElement).getBBox());
@@ -302,6 +310,13 @@ function App() {
       ...basePairAverageDistances,
       [rnaComplexKey] : basePairDistances
     });
+  }
+  function setRightClickMenuContent(
+    rightClickMenuContent : JSX.Element,
+    newToolsDivResizeAttribute : Property.Resize | undefined = "vertical"
+  ) {
+    _setRightClickMenuContent(rightClickMenuContent);
+    // setToolsDivResizeAttribute(newToolsDivResizeAttribute);
   }
   const viewportDragListener : DragListener = {
     initiateDrag() {
@@ -1706,7 +1721,7 @@ function App() {
                           position : "absolute",
                           width : "100%",
                           height : "auto",
-                          resize : "vertical",
+                          resize : toolsDivResizeAttribute,
                           overflow : "hidden",
                           display : "block",
                           borderBottom : "1px solid black"
