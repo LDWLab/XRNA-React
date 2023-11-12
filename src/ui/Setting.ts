@@ -22,7 +22,7 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "Reset viewport after file upload",
   [Setting.USE_DEGREES] : "Use degrees",
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : "Reposition nucleotides when formatting",
-  [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "Reposition annotations when their parent nucleotides are repositioned",
+  [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "Reposition annotations when editing",
   [Setting.BASE_PAIRS_EDITOR_TYPE] : "Format-tab base-pairs editor type",
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "Canonical base-pair distance",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "Wobble base-pair distance",

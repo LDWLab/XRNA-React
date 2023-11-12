@@ -1,16 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import InputWithValidator from "../../../components/generic/InputWithValidator";
 import { ColorEditor } from "../../../components/generic/editors/ColorEditor";
 import Color, { BLACK, areEqual } from "../../../data_structures/Color";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { FontEditor } from "../../../components/generic/editors/FontEditor";
 import Font from "../../../data_structures/Font";
+import { Context } from "../../../context/Context";
+import { Setting } from "../../Setting";
 
 export namespace RnaCycleInteractionConstraintEditMenu {
   export type Props = {
     initialRadius : number,
     minimumRadius : number,
-    updatePositionsHelper : (newRadius : number) => void,
+    updatePositionsHelper : (
+      newRadius : number,
+      repositionAnnotationsFlag : boolean
+    ) => void,
     cycleGraphNucleotides : Array<Nucleotide.ExternalProps>,
     rerender : () => void
   };
@@ -23,6 +28,9 @@ export namespace RnaCycleInteractionConstraintEditMenu {
       cycleGraphNucleotides,
       rerender
     } = props;
+    // Begin context data.
+    const settingsRecord = useContext(Context.App.Settings);
+    const repositionAnnotationsFlag = settingsRecord[Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] as boolean;
     // Begin state data.
     const [
       radius,
@@ -60,7 +68,10 @@ export namespace RnaCycleInteractionConstraintEditMenu {
     return <>
       <button
         onClick = {function() {
-          updatePositionsHelper(radius);
+          updatePositionsHelper(
+            radius,
+            repositionAnnotationsFlag
+          );
         }}
       >
         Normalize
@@ -72,7 +83,10 @@ export namespace RnaCycleInteractionConstraintEditMenu {
           value = {radius}
           setValue = {function(newRadius : number) {
             setRadius(newRadius);
-            updatePositionsHelper(newRadius);
+            updatePositionsHelper(
+              newRadius,
+              repositionAnnotationsFlag
+            );
           }}
           min = {minimumRadius}
         />

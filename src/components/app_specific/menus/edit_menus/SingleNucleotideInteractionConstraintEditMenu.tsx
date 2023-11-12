@@ -22,6 +22,7 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       fullKeys,
       triggerRerender
     } = props;
+    // Begin memo data.
     const {
       rnaComplexIndex,
       rnaMoleculeName,

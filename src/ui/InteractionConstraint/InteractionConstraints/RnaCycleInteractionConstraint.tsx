@@ -4,7 +4,7 @@ import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../conte
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { InteractionConstraint } from "../InteractionConstraints";
 import { RnaCycleInteractionConstraintEditMenu } from "./RnaCycleInteractionConstraintEditMenu";
-import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, negate, normalize, orthogonalizeLeft, scaleUp, subtract, toCartesian, toPolar } from "../../../data_structures/Vector2D";
+import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, magnitude, negate, normalize, orthogonalizeLeft, scaleUp, subtract, toCartesian, toNormalCartesian, toPolar } from "../../../data_structures/Vector2D";
 import { getBoundingCircle } from "../../../data_structures/Geometry";
 import { DEFAULT_EPSILON, areEqual, sign, subtractNumbers } from "../../../utils/Utils";
 import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
@@ -352,8 +352,15 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       }
     }
     type PositionToEdit = {
-      position : Vector2D,
-      polarWithAngleSubtracted : PolarVector2D
+      singularNucleotideProps : Nucleotide.ExternalProps,
+      polarWithAngleSubtracted : PolarVector2D,
+      annotationData? : {
+        subtractedAnnotationAngle : number,
+        positionsWithMagnitudes : Array<{
+          position : Vector2D,
+          magnitude : number
+        }>
+      }
     };
     const branches = new Array<{
       arrayIndex : number,
@@ -425,15 +432,41 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           if (rnaMoleculeName0 === rnaMoleculeName1 && nucleotideIndex0 === initialNucleotideIndex1) {
             break;
           }
-          const position = nucleotideProps0[nucleotideIndex0];
+          const singularNucleotideProps = nucleotideProps0[nucleotideIndex0];
           const polar = toPolar(subtract(
-            position,
+            singularNucleotideProps,
             midpoint
           ));
           polar.angle -= normalAngle;
+          let subtractedAnnotationAngle : number | undefined = undefined;
+          const positionsWithMagnitudes = new Array<{position : Vector2D, magnitude : number}>();
+          if (singularNucleotideProps.labelContentProps !== undefined) {
+            subtractedAnnotationAngle = asAngle(singularNucleotideProps.labelContentProps);
+            positionsWithMagnitudes.push({
+              position : singularNucleotideProps.labelContentProps,
+              magnitude : magnitude(singularNucleotideProps.labelContentProps)
+            });
+          }
+          if (singularNucleotideProps.labelLineProps !== undefined) {{
+            const points = singularNucleotideProps.labelLineProps.points;
+            subtractedAnnotationAngle = asAngle(points[0]);
+            positionsWithMagnitudes.push(...points.map(function(point) {
+              return {
+                position : point,
+                magnitude : magnitude(point)
+              };
+            }));
+          }}
+          if (subtractedAnnotationAngle !== undefined) {
+            subtractedAnnotationAngle -= normalAngle;
+          }
           positionsToEdit.push({
-            position,
-            polarWithAngleSubtracted : polar
+            singularNucleotideProps,
+            polarWithAngleSubtracted : polar,
+            annotationData : subtractedAnnotationAngle === undefined ? undefined : {
+              subtractedAnnotationAngle,
+              positionsWithMagnitudes
+            }
           });
           nucleotideKeysToRerenderPerRnaMolecule0.push(nucleotideIndex0);
           if (nucleotideIndex0 in basePairsPerRnaMolecule0) {
@@ -456,15 +489,41 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           if (rnaMoleculeName0 === rnaMoleculeName1 && nucleotideIndex1 === initialNucleotideIndex0) {
             break;
           }
-          const position = nucleotideProps1[nucleotideIndex1];
+          const singularNucleotideProps = nucleotideProps1[nucleotideIndex1];
           const polar = toPolar(subtract(
-            position,
+            singularNucleotideProps,
             midpoint
           ));
           polar.angle -= normalAngle;
+          let subtractedAnnotationAngle : number | undefined = undefined;
+          const positionsWithMagnitudes = new Array<{position : Vector2D, magnitude : number}>();
+          if (singularNucleotideProps.labelContentProps !== undefined) {
+            subtractedAnnotationAngle = asAngle(singularNucleotideProps.labelContentProps);
+            positionsWithMagnitudes.push({
+              position : singularNucleotideProps.labelContentProps,
+              magnitude : magnitude(singularNucleotideProps.labelContentProps)
+            });
+          }
+          if (singularNucleotideProps.labelLineProps !== undefined) {{
+            const points = singularNucleotideProps.labelLineProps.points;
+            subtractedAnnotationAngle = asAngle(points[0]);
+            positionsWithMagnitudes.push(...points.map(function(point) {
+              return {
+                position : point,
+                magnitude : magnitude(point)
+              };
+            }));
+          }}
+          if (subtractedAnnotationAngle !== undefined) {
+            subtractedAnnotationAngle -= normalAngle;
+          }
           positionsToEdit.push({
-            position,
-            polarWithAngleSubtracted : polar
+            singularNucleotideProps,
+            polarWithAngleSubtracted : polar,
+            annotationData : subtractedAnnotationAngle === undefined ? undefined : {
+              subtractedAnnotationAngle,
+              positionsWithMagnitudes
+            }
           });
           nucleotideKeysToRerenderPerRnaMolecule1.push(nucleotideIndex1);
           if (nucleotideIndex1 in basePairsPerRnaMolecule1) {
@@ -499,7 +558,10 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       setBasePairKeysToRerender(structuredClone(basePairKeysToRerender))
     }
 
-    function updatePositionsHelper(newRadius : number) {
+    function updatePositionsHelper(
+      newRadius : number,
+      repositionAnnotationsFlag : boolean
+    ) {
       const center = getCenterFromRadius(newRadius);
 
       const dv0 = subtract(
@@ -515,6 +577,10 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       const angleDelta = (2 * Math.PI - angleMagnitude) / (cycleGraphNucleotides.length - 1) * sign(crossProduct(dv1, dv0));
       let angle = initialAngle;
       let arrayIndex = boundingVector0ArrayIndex;
+      const cycleData = new Array<{
+        angle : number,
+        singularNucleotideProps : Nucleotide.ExternalProps
+      }>();
       for (let i = 0; i < cycleGraphNucleotides.length - 2; i++) {
         angle += angleDelta;
         arrayIndex = (arrayIndex + arrayIndexIncrement + cycleGraphNucleotides.length) % cycleGraphNucleotides.length;
@@ -528,8 +594,34 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           )
         );
         const cycleGraphPositionI = cycleGraphNucleotides[arrayIndex];
+        cycleData.push({
+          angle,
+          singularNucleotideProps : cycleGraphPositionI
+        });
         cycleGraphPositionI.x = newPosition.x;
         cycleGraphPositionI.y = newPosition.y;
+      }
+      if (repositionAnnotationsFlag) {
+        for (const { angle, singularNucleotideProps } of cycleData) {
+          const direction = toNormalCartesian(angle);
+          const positions = [];
+          if (singularNucleotideProps.labelContentProps !== undefined) {
+            positions.push(singularNucleotideProps.labelContentProps);
+          }
+          if (singularNucleotideProps.labelLineProps !== undefined) {
+            // This causes the LabelLine.Component to be re-rendered properly.
+            singularNucleotideProps.labelLineProps.points = [...singularNucleotideProps.labelLineProps.points];
+            positions.push(...singularNucleotideProps.labelLineProps.points);
+          }
+          for (const position of positions) {
+            const newPosition = scaleUp(
+              direction,
+              magnitude(position)
+            );
+            position.x = newPosition.x;
+            position.y = newPosition.y;
+          }
+        }
       }
       for (let branch of branches) {
         const {
@@ -588,7 +680,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           continue;
         }
         const newPositionData = positionsToEdit.map(function({
-          position,
+          singularNucleotideProps,
           polarWithAngleSubtracted
         }) {
           const polar = {
@@ -596,7 +688,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           };
           polar.angle += newAngle;
           return {
-            position,
+            singularNucleotideProps,
             dv : toCartesian(polar)
           };
         });
@@ -608,13 +700,34 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           newPositionData[0].dv
         ) < 0;
         const addOrSubtract = negatePositionsFlag ? subtract : add;
-        for (let { position, dv } of newPositionData) {
+        for (let { singularNucleotideProps, dv } of newPositionData) {
           const newPosition = addOrSubtract(
             midpoint,
             dv 
           );
-          position.x = newPosition.x;
-          position.y = newPosition.y;
+          singularNucleotideProps.x = newPosition.x;
+          singularNucleotideProps.y = newPosition.y;
+        }
+        if (repositionAnnotationsFlag) {
+          for (const { singularNucleotideProps, annotationData } of positionsToEdit) {
+            if (annotationData !== undefined) {
+              let newAnnotationAngle = negatePositionsFlag ? newAngle - annotationData.subtractedAnnotationAngle : newAngle + annotationData.subtractedAnnotationAngle;
+              if (singularNucleotideProps.labelLineProps !== undefined) {
+                // This causes the LabelLine.Component to re-render properly.
+                singularNucleotideProps.labelLineProps.points = [...singularNucleotideProps.labelLineProps.points];
+              }
+
+              const direction = toNormalCartesian(newAnnotationAngle);
+              for (const { position, magnitude } of annotationData.positionsWithMagnitudes) {
+                const newPosition = scaleUp(
+                  direction,
+                  magnitude
+                );
+                position.x = newPosition.x;
+                position.y = newPosition.y;
+              }
+            }
+          }
         }
       }
       rerender();

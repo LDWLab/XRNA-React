@@ -1,14 +1,20 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import InputWithValidator from "../../../generic/InputWithValidator";
 import { ColorEditor } from "../../../generic/editors/ColorEditor";
 import Color, { BLACK } from "../../../../data_structures/Color";
 import { FontEditor } from "../../../generic/editors/FontEditor";
 import Font from "../../../../data_structures/Font";
+import { Context } from "../../../../context/Context";
+import { Setting } from "../../../../ui/Setting";
 
 export namespace RnaSingleStrandInteractionConstraintEditMenu {
   export type Props = {
     initialDisplacementAlongNormal : number,
-    updateSingleStrandPositions : (orientation : Orientation, displacementAlongNormal : number) => void,
+    updateSingleStrandPositions : (
+      orientation : Orientation,
+      displacementAlongNormal : number,
+      repositionAnnotationsFlag : boolean
+    ) => void,
     updateSingleStrandColors : (newColor : Color) => void,
     updateSingleStrandFonts : (newFont : Font) => void,
     initialColor : Color,
@@ -30,6 +36,9 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
       initialColor,
       initialFont
     } = props;
+    // Begin context data.
+    const settingsRecord = useContext(Context.App.Settings);
+    const repositionAnnotationsFlag = settingsRecord[Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] as boolean;
     // Begin state data.
     const [
       orientation,
@@ -61,7 +70,8 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
       _setOrientation(newOrientation);
       updateSingleStrandPositions(
         newOrientation,
-        displacementAlongNormal
+        displacementAlongNormal,
+        repositionAnnotationsFlag
       );
     }
     useEffect(
@@ -129,7 +139,8 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
             setDisplacementAlongNormal(newDisplacementAlongNormal);
             updateSingleStrandPositions(
               orientation as Orientation,
-              newDisplacementAlongNormal
+              newDisplacementAlongNormal,
+              repositionAnnotationsFlag
             );
           }}
         />

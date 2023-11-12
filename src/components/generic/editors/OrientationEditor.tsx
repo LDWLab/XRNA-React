@@ -12,7 +12,8 @@ export namespace OrientationEditor {
     normal : Vector2D,
     initialAngle? : number | undefined,
     initialScale? : number | undefined,
-    disabledFlag? : boolean | undefined
+    disabledFlag? : boolean | undefined,
+    relativePositions? : Array<Vector2D>
   };
 
   export function Component(props : Props) {
@@ -24,7 +25,8 @@ export namespace OrientationEditor {
       normal,
       initialAngle,
       initialScale,
-      disabledFlag
+      disabledFlag,
+      relativePositions
     } = props;
     // Begin context data.
     const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
@@ -62,6 +64,12 @@ export namespace OrientationEditor {
         positions
       ]
     );
+    const polarCoordinatesOfRelativeCoordinates = useMemo(
+      function() {
+        return (relativePositions ?? []).map(toPolar);
+      },
+      [relativePositions]
+    );
     const disabledFlagNullCoalesced = useMemo(
       function() {
         return disabledFlag ?? false
@@ -96,59 +104,75 @@ export namespace OrientationEditor {
       scale : number,
       flipPositions : boolean
     ) {
-      const center = {
-        x : centerX,
-        y : centerY
-      };
       const angleDelta = angle - initialAngleNullCoalesced;
       const totalScale = scale * initialScaleNullCoalescedReciprocal;
-      for (let i = 0; i < positions.length; i++) {
-        let positionI = positions[i];
-        let polarCoordinateI = {
-          ...polarCoordinates[i]
-        };
-        polarCoordinateI.angle += angleDelta;
-        polarCoordinateI.radius *= totalScale;
-        let cartesianI = add(
-          toCartesian(polarCoordinateI),
-          center
-        );
-        positionI.x = cartesianI.x;
-        positionI.y = cartesianI.y;
+      const metaArray = [
+        { 
+          cartesian : positions,
+          polar : polarCoordinates,
+          cartesianCenter : {
+            x : centerX,
+            y : centerY
+          }
+        }
+      ];
+      if (relativePositions !== undefined) {
+        metaArray.push({
+          cartesian : relativePositions,
+          polar : polarCoordinatesOfRelativeCoordinates,
+          cartesianCenter : {
+            x : 0,
+            y : 0
+          }
+        });
       }
-      if (flipPositions) {
-        // rotate(x) = R(theta) * x
-
-        // = [cos(theta) -sin(theta)] * [x]
-        //   [sin(theta)  cos(theta)]   [y]
-
-        // = [x * cos(theta) - y * sin(theta)]
-        //   [x * sin(theta) + y * cos(theta)]
-        const cos = Math.cos(angleDelta);
-        const sin = Math.sin(angleDelta);
-        const rotatedNormal : Vector2D = {
-          x : normal.x * cos - normal.y * sin,
-          y : normal.x * sin + normal.y * cos
-        };
-        for (let i = 0; i < positions.length; i++) {
-          // This position has already been rotated.
-          let positionI = positions[i];
-          let projectionAndRejection = projectAndReject(
-            subtract(
-              positionI,
-              center
-            ),
-            rotatedNormal
+      for (const { cartesian, polar, cartesianCenter } of metaArray) {
+        for (let i = 0; i < cartesian.length; i++) {
+          let cartesianI = cartesian[i];
+          let polarI = structuredClone(polar[i]);
+          polarI.angle += angleDelta;
+          polarI.radius *= totalScale;
+          let recenteredCartesianI = add(
+            toCartesian(polarI),
+            cartesianCenter
           );
-          let flippedPositionI = add(
-            subtract(
-              projectionAndRejection.projection,
-              projectionAndRejection.rejection
-            ),
-            center
-          );
-          positionI.x = flippedPositionI.x;
-          positionI.y = flippedPositionI.y;
+          cartesianI.x = recenteredCartesianI.x;
+          cartesianI.y = recenteredCartesianI.y;
+        }
+        if (flipPositions) {
+          // rotate(x) = R(theta) * x
+
+          // = [cos(theta) -sin(theta)] * [x]
+          //   [sin(theta)  cos(theta)]   [y]
+
+          // = [x * cos(theta) - y * sin(theta)]
+          //   [x * sin(theta) + y * cos(theta)]
+          const cos = Math.cos(angleDelta);
+          const sin = Math.sin(angleDelta);
+          const rotatedNormal : Vector2D = {
+            x : normal.x * cos - normal.y * sin,
+            y : normal.x * sin + normal.y * cos
+          };
+          for (let i = 0; i < cartesian.length; i++) {
+            // This position has already been rotated.
+            let cartesianI = cartesian[i];
+            let projectionAndRejection = projectAndReject(
+              subtract(
+                cartesianI,
+                cartesianCenter
+              ),
+              rotatedNormal
+            );
+            let flippedPositionI = add(
+              subtract(
+                projectionAndRejection.projection,
+                projectionAndRejection.rejection
+              ),
+              cartesianCenter
+            );
+            cartesianI.x = flippedPositionI.x;
+            cartesianI.y = flippedPositionI.y;
+          }
         }
       }
       onUpdatePositions();
@@ -283,7 +307,8 @@ export namespace OrientationEditor {
     orthogonalizeHelper? : ((v : Vector2D) => Vector2D) | undefined,
     initialAngle? : number | undefined,
     initialScale? : number | undefined,
-    disabledFlag? : boolean | undefined
+    disabledFlag? : boolean | undefined,
+    relativePositions? : Array<Vector2D>
   };
 
   export function Simplified(props : SimplifiedProps) {
@@ -296,7 +321,8 @@ export namespace OrientationEditor {
       orthogonalizeHelper,
       initialAngle,
       initialScale,
-      disabledFlag
+      disabledFlag,
+      relativePositions
     } = props;
     const normal = (orthogonalizeHelper ?? orthogonalizeLeft)(subtract(
       boundingVector1,
@@ -321,6 +347,7 @@ export namespace OrientationEditor {
         boundingVector1
       )}
       disabledFlag = {disabledFlag}
+      relativePositions = {relativePositions}
     />
   }
 }

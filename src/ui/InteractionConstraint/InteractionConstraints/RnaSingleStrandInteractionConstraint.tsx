@@ -1,7 +1,7 @@
 import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
 import { BasePairKeysToRerender, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
 import { Circle, getBoundingCircle } from "../../../data_structures/Geometry";
-import { Vector2D, add, toCartesian, crossProduct, subtract, asAngle, scaleDown, normalize, scaleUp, dotProduct, orthogonalizeRight, distance } from "../../../data_structures/Vector2D";
+import { Vector2D, add, toCartesian, crossProduct, subtract, asAngle, scaleDown, normalize, scaleUp, dotProduct, orthogonalizeRight, distance, toNormalCartesian, magnitude } from "../../../data_structures/Vector2D";
 import { sign } from "../../../utils/Utils";
 import { interpolationDrag, linearDrag } from "../CommonDragListeners";
 import { AbstractInteractionConstraint, basePairedNucleotideError } from "../AbstractInteractionConstraint";
@@ -30,7 +30,9 @@ function repositionNucleotidesHelper(
 ) {
   let angleDelta = repositioningData.angleTraversal / (upperBoundingNucleotideArrayIndex - lowerBoundingNucleotideArrayIndex);
   let angle = repositioningData.beginningAngle + angleDelta;
+  const angles = new Array<number>();
   toBeDragged.forEach((toBeDraggedI : Vector2D) => {
+    angles.push(angle);
     const newPosition = add(
       repositioningData.boundingCircle.center,
       toCartesian({
@@ -42,6 +44,7 @@ function repositionNucleotidesHelper(
     toBeDraggedI.y = newPosition.y;
     angle += angleDelta;
   });
+  return angles;
 }
 
 function calculateRepositioningData(
@@ -119,7 +122,8 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
   private readonly initialDisplacementAlongNormal : number;
   private readonly updateSingleStrandPositions : (
     orientation : RnaSingleStrandInteractionConstraintEditMenu.Orientation,
-    displacementAlongNormal : number
+    displacementAlongNormal : number,
+    repositionAnnotationsFlag : boolean
   ) => void;
   private readonly updateSingleStrandColors : (newColor : Color) => void;
   private readonly updateSingleStrandFonts : (newFont : Font) => void;
@@ -319,7 +323,8 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     this.upperBoundingNucleotideIndex = upperBoundingNucleotideIndex;
     this.updateSingleStrandPositions = function(
       orientation,
-      displacementAlongNormal
+      displacementAlongNormal,
+      repositionAnnotationsFlag
     ) {
       function handleAngularOrientation(clockwiseFlag : boolean) {
         const center = add(
@@ -333,7 +338,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
           center,
           lowerBoundingNucleotidePosition
         );
-        repositionNucleotidesHelper(
+        const angles = repositionNucleotidesHelper(
           {
             ...getBeginningAngleAndAngleTraversalHelper(
               center,
@@ -352,6 +357,30 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
           upperBoundingNucleotideIndex,
           toBeDragged
         );
+        if (repositionAnnotationsFlag) {
+          for (let i = 0; i < toBeDragged.length; i++) {
+            const singularNucleotideProps = toBeDragged[i];
+            const angle = angles[i];
+            const direction = toNormalCartesian(angle);
+            const positions = [];
+            if (singularNucleotideProps.labelContentProps !== undefined) {
+              positions.push(singularNucleotideProps.labelContentProps);
+            }
+            if (singularNucleotideProps.labelLineProps !== undefined) {
+              // This causes the LabelLine.Component to be re-rendered properly.
+              singularNucleotideProps.labelLineProps.points = [...singularNucleotideProps.labelLineProps.points];
+              positions.push(...singularNucleotideProps.labelLineProps.points);
+            }
+            for (const position of positions) {
+              const newPosition = scaleUp(
+                direction,
+                magnitude(position)
+              );
+              position.x = newPosition.x;
+              position.y = newPosition.y;
+            }
+          }
+        }
         rerender();
       }
       switch (orientation) {
