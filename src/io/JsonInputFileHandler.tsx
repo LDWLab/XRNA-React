@@ -8,7 +8,7 @@ import { Vector2D, subtract } from "../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
 import { ParsedInputFile, InputFileReader } from "./InputUI";
 
-export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : ParsedInputFile {
+export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
     if (!("classes" in parsedJson) || !("rnaComplexes" in parsedJson)) {
       throw "Input Json should have \"classes\" and \"rnaComplexes\" variables.";
     }
@@ -20,7 +20,7 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
     const cssClasses = parsedJson.classes as Array<any>;
     rnaComplexProps = (parsedJson.rnaComplexes as Array<any>).map((inputRnaComplex : any, inputRnaComplexIndex : number) => {
       if (!("name" in inputRnaComplex) || !("rnaMolecules" in inputRnaComplex)|| !("basePairs" in inputRnaComplex)) {
-        throw "Input rnaComplex elements of input Json should have \"name\" and \"rnaMolecules\" variables."
+        throw "Input rnaComplex elements of input Json should have \"name\", \"rnaMolecules\" and \"basePairs\" variables."
       }
       const singularRnaComplexProps : RnaComplex.ExternalProps = {
         name : "",
@@ -449,33 +449,13 @@ export function jsonObjectHandler(parsedJson : any, invertYAxis = true) : Parsed
       });
       return singularRnaComplexProps;
     });
-    if (invertYAxis) {
-      rnaComplexProps.forEach((singularRnaComplexProps : RnaComplex.ExternalProps) => {
-        Object.values(singularRnaComplexProps.rnaMoleculeProps).forEach((singularRnaMoleculeProps : RnaMolecule.ExternalProps) => {
-          Object.values(singularRnaMoleculeProps.nucleotideProps).forEach((singularNucleotideProps : Nucleotide.ExternalProps) => {
-            singularNucleotideProps.y *= -1;
-            if (singularNucleotideProps.labelLineProps !== undefined) {
-              for (let i = 0; i < singularNucleotideProps.labelLineProps.points.length; i++) {
-                singularNucleotideProps.labelLineProps.points[i].y *= -1;
-              }
-            }
-            if (singularNucleotideProps.labelContentProps !== undefined) {
-              singularNucleotideProps.labelContentProps.y *= -1;
-            }
-          });
-        });
-      });
-    }
     const output : ParsedInputFile = {
       rnaComplexProps,
       complexDocumentName
     };
     return output;
-  };
+};
   
-  export const jsonInputFileHandler : InputFileReader = function(inputFileContent : string) {
-    return jsonObjectHandler(
-      JSON.parse(inputFileContent),
-      false
-    );
-  };
+export const jsonInputFileHandler : InputFileReader = function(inputFileContent : string) {
+  return jsonObjectHandler(JSON.parse(inputFileContent));
+};
