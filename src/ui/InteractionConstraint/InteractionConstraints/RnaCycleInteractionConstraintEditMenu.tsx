@@ -17,7 +17,8 @@ export namespace RnaCycleInteractionConstraintEditMenu {
       repositionAnnotationsFlag : boolean
     ) => void,
     cycleGraphNucleotides : Array<Nucleotide.ExternalProps>,
-    rerender : () => void
+    rerender : () => void,
+    getRadius : () => number
   };
 
   export function Component(props : Props) {
@@ -26,9 +27,11 @@ export namespace RnaCycleInteractionConstraintEditMenu {
       minimumRadius,
       updatePositionsHelper,
       cycleGraphNucleotides,
-      rerender
+      rerender,
+      getRadius
     } = props;
     // Begin context data.
+    const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
     const settingsRecord = useContext(Context.App.Settings);
     const repositionAnnotationsFlag = settingsRecord[Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] as boolean;
     // Begin state data.
@@ -47,9 +50,9 @@ export namespace RnaCycleInteractionConstraintEditMenu {
     // Begin effects.
     useEffect(
       function() {
-        setRadius(initialRadius);
+        setRadius(getRadius());
       },
-      [initialRadius]
+      [resetDataTrigger]
     );
     useEffect(
       function() {

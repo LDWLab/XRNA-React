@@ -107,16 +107,7 @@ export namespace BasePairsEditor {
     const [
       basePairs,
       _setBasePairs
-    ] = useState(_initialBasePairs === undefined ? [] : _initialBasePairs.filter(function(singularInitialBasePair) {
-      return (
-        singularInitialBasePair.rnaComplexIndex !== undefined &&
-        singularInitialBasePair.rnaMoleculeName0 !== undefined &&
-        singularInitialBasePair.rnaMoleculeName1 !== undefined &&
-        singularInitialBasePair.nucleotideIndex0 !== undefined &&
-        singularInitialBasePair.nucleotideIndex1 !== undefined &&
-        singularInitialBasePair.length !== undefined
-      );
-    }) as Array<BasePair>);
+    ] = useState<Array<BasePair>>([]);
     const [
       initialBasePairs,
       setInitialBasePairs
@@ -219,7 +210,8 @@ export namespace BasePairsEditor {
       function() {
         return function(
           newBasePairs : Array<BasePair>,
-          avoidRepositioningIndicesSet : Set<number> = new Set<number>()
+          avoidRepositioningIndicesSet : Set<number> = new Set<number>(),
+          overridingRepositionNucleotidesFlag? : boolean
         ) {
           const repositionNucleotidesAlongBasePairAxisFlag = repositionNucleotidesAlongBasePairAxisFlagReference.current as boolean;
           const repositionNucleotidesAlongHelixAxisFlag = repositionNucleotidesAlongHelixAxisFlagReference.current as boolean;
@@ -244,7 +236,7 @@ export namespace BasePairsEditor {
               "add"
             );
           }
-          const repositionNucleotidesFlag = repositionNucleotidesAlongBasePairAxisFlag || repositionNucleotidesAlongHelixAxisFlag;
+          const repositionNucleotidesFlag = overridingRepositionNucleotidesFlag ?? (repositionNucleotidesAlongBasePairAxisFlag || repositionNucleotidesAlongHelixAxisFlag);
           if (repositionNucleotidesFlag) {
             const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
             const nucleotidePropSets = newBasePairs.filter(function(basePair, index) {
@@ -342,7 +334,8 @@ export namespace BasePairsEditor {
                 const singularNucleotideProps0 = nucleotidePropsWithIndicesI[0];
                 const singularNucleotideProps1 = nucleotidePropsWithIndicesI[1];
                 const basePairType = nucleotidePropsWithIndicesI.basePairType;
-                let center = scaleUp(add(
+                let center = scaleUp(
+                  add(
                     singularNucleotideProps0,
                     singularNucleotideProps1
                   ),
@@ -370,6 +363,7 @@ export namespace BasePairsEditor {
                     }
                     default : {
                       distance = canonicalBasePairDistance;
+                      break;
                     }
                   }
                 } else {
@@ -467,15 +461,29 @@ export namespace BasePairsEditor {
         setWobbleBasePairDistance(Number.isNaN(initialWobbleBasePairDistance) ? Number.isNaN(averageOfAverageWobbleDistances) ? 1 : averageOfAverageWobbleDistances : initialWobbleBasePairDistance);
         setDistanceBetweenContiguousBasePairs(Number.isNaN(initialDistanceBetweenContiguousBasePairs) ? Number.isNaN(averageOfAverageHelixDistance) ? 1 : averageOfAverageHelixDistance : initialDistanceBetweenContiguousBasePairs);
       },
-      [
-        averageDistances
-      ]
+      [averageDistances]
     );
     useEffect(
       function() {
         setInitialBasePairs(structuredClone(basePairs));
       },
       [editorType]
+    );
+    useEffect(
+      function() {
+        setInitialBasePairs(_initialBasePairs);
+        _setBasePairs(_initialBasePairs === undefined ? [] : _initialBasePairs.filter(function(singularInitialBasePair) {
+          return (
+            singularInitialBasePair.rnaComplexIndex !== undefined &&
+            singularInitialBasePair.rnaMoleculeName0 !== undefined &&
+            singularInitialBasePair.rnaMoleculeName1 !== undefined &&
+            singularInitialBasePair.nucleotideIndex0 !== undefined &&
+            singularInitialBasePair.nucleotideIndex1 !== undefined &&
+            singularInitialBasePair.length !== undefined
+          );
+        }) as Array<BasePair>);
+      },
+      [_initialBasePairs]
     );
     // Begin render.
     return <>
@@ -678,7 +686,8 @@ export namespace BasePairsEditor {
           rnaMoleculeName1,
           nucleotideIndex0,
           nucleotideIndex1,
-          length
+          length,
+          type
         }) {
           const elements : Array<any> = [
             nucleotideIndex0 ?? "#",
@@ -704,6 +713,9 @@ export namespace BasePairsEditor {
              "\"" + (rnaMoleculeName1 ?? "") + "\"",
              "\"" + rnaComplexProps[rnaComplexIndex].name + "\""
             );
+            if (type !== undefined) {
+              elements.push(`"${type}"`);
+            }
           }
           return elements.join(" ");
         }).join("\n");

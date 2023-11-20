@@ -200,8 +200,10 @@ export namespace OrientationEditor {
     useEffect(
       function() {
         setFlipPositionsFlag(false);
-        setAngle(initialAngleNullCoalesced)
+        setAngle(initialAngleNullCoalesced);
         setScale(initialScaleNullCoalesced);
+        setCenterX(initialCenter.x);
+        setCenterY(initialCenter.y);
       },
       [resetDataTrigger]
     );
@@ -324,16 +326,38 @@ export namespace OrientationEditor {
       disabledFlag,
       relativePositions
     } = props;
-    const normal = (orthogonalizeHelper ?? orthogonalizeLeft)(subtract(
-      boundingVector1,
-      boundingVector0
-    ));
-    const center = scaleUp(
-      add(
+    // Begin context data.
+    const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
+    // Begin memo data.
+    const normal = useMemo(
+      function() {
+        return (orthogonalizeHelper ?? orthogonalizeLeft)(subtract(
+          boundingVector1,
+          boundingVector0
+        ));
+      },
+      [
+        orthogonalizeHelper,
         boundingVector0,
-        boundingVector1
-      ),
-      0.5
+        boundingVector1,
+        resetDataTrigger
+      ]
+    );
+    const center = useMemo(
+      function() {
+        return scaleUp(
+          add(
+            boundingVector0,
+            boundingVector1
+          ),
+          0.5
+        );
+      },
+      [
+        boundingVector0,
+        boundingVector1,
+        resetDataTrigger
+      ]
     );
     return <Component
       initialCenter = {center}

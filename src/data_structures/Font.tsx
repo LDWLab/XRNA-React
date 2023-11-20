@@ -134,6 +134,17 @@ class PartialFont {
             return 20;
     }
   }
+
+  public static areEqual(
+    partialFont0 : PartialFont,
+    partialFont1 : PartialFont
+  ) {
+    return (
+      partialFont0.family === partialFont1.family &&
+      partialFont0.weight === partialFont1.weight &&
+      partialFont0.style === partialFont1.style
+    );
+  }
 }
 
 export function parseFontSize(fontSizeAsString : string) {

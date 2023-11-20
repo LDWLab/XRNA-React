@@ -7,6 +7,8 @@ import { BasePair as _BasePair } from "../components/app_specific/BasePair";
 import { LabelLine as _LabelLine } from "../components/app_specific/LabelLine";
 import { DEFAULT_SETTINGS } from "../ui/Setting";
 import { InteractionConstraint } from "../ui/InteractionConstraint/InteractionConstraints";
+import Font from "../data_structures/Font";
+import Color, { BLACK } from "../data_structures/Color";
 
 export type NucleotideKeysToRerenderPerRnaMolecule = Array<NucleotideKey>;
 export type NucleotideKeysToRerenderPerRnaComplex = Record<RnaMoleculeKey, NucleotideKeysToRerenderPerRnaMolecule>;
@@ -92,9 +94,19 @@ export namespace Context {
   export namespace Label {
     export namespace Content {
       export const OnMouseDownHelper = createContext(function(
-      e : React.MouseEvent<_LabelContent.SvgRepresentation>,
-      fullKeys : FullKeys
+        e : React.MouseEvent<_LabelContent.SvgRepresentation>,
+        fullKeys : FullKeys
       ) { /* Do nothing. */ });
+      export type Style = {
+        font : Font,
+        color : Color
+      };
+      export const DefaultStyles = createContext<Record<RnaComplexKey, Record<RnaMoleculeKey, Style>>>({});
+      export const UpdateDefaultStyle = createContext(function(
+        rnaComplexKey : RnaComplexKey,
+        rnaMoleculeKey : RnaMoleculeKey,
+        defaultStyle : Style
+      ) { /* Do nothing. */});
     }
     
     export namespace Line {

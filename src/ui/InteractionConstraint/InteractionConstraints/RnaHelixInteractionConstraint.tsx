@@ -17,7 +17,7 @@ import { BLACK, areEqual } from "../../../data_structures/Color";
 export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
   private readonly partialHeader : JSX.Element;
-  private readonly editMenuProps : AllInOneEditor.Props;
+  private readonly editMenuProps : AllInOneEditor.SimplifiedProps;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
 
   constructor(
@@ -270,16 +270,16 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     //   normal : normalVector,
     //   initialAngle : asAngle(normalVector)
     // };
-    this.initialBasePairs = [
-      {
-        rnaComplexIndex,
-        rnaMoleculeName0,
-        rnaMoleculeName1,
-        nucleotideIndex0 : Math.min(extrema0[0], extrema1[0]) + singularRnaMoleculeProps0.firstNucleotideIndex,
-        nucleotideIndex1 : Math.max(extrema0[1], extrema1[1]) + singularRnaMoleculeProps1.firstNucleotideIndex,
-        length : extrema1[0] - extrema0[0] + 1,
-      }
-    ];
+    const initialBasePair : BasePairsEditor.BasePair = {
+      rnaComplexIndex,
+      rnaMoleculeName0,
+      rnaMoleculeName1,
+      nucleotideIndex0 : Math.min(extrema0[0], extrema1[0]) + singularRnaMoleculeProps0.firstNucleotideIndex,
+      nucleotideIndex1 : Math.max(extrema0[1], extrema1[1]) + singularRnaMoleculeProps1.firstNucleotideIndex,
+      length : extrema1[0] - extrema0[0] + 1,
+    };
+    this.initialBasePairs = [initialBasePair];
+    this.addFullIndicesPerHelices(initialBasePair);
   }
 
   public override drag() {
@@ -301,7 +301,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     switch (tab) {
       case Tab.EDIT : {
         menu = <>
-          <AllInOneEditor.Component
+          <AllInOneEditor.Simplified
             {...this.editMenuProps}
           />
         </>;

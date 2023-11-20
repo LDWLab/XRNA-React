@@ -25,14 +25,17 @@ export function subtract(v0 : Vector2D, v1 : Vector2D) : Vector2D {
   };
 }
 
-export function negate(v : Vector2D) : Vector2D {
-  return scaleUp(v, -1);
+export function negate({ x, y } : Vector2D) : Vector2D {
+  return {
+    x : -x,
+    y : -y
+  };
 }
 
-export function scaleUp(v : Vector2D, scalar : number) : Vector2D {
+export function scaleUp({ x, y } : Vector2D, scalar : number) : Vector2D {
   return {
-    x : v.x * scalar,
-    y : v.y * scalar
+    x : x * scalar,
+    y : y * scalar
   };
 }
 
@@ -44,19 +47,19 @@ export function normalize(v : Vector2D) {
   return scaleDown(v, magnitude(v));
 }
 
-export function orthogonalizeRight(v : Vector2D) {
+export function orthogonalizeRight({x, y} : Vector2D) {
   // Equivalent to a 90-degree turn right.
   return {
-    x : v.y, 
-    y : -v.x
+    x : y, 
+    y : -x
   };
 }
 
-export function orthogonalizeLeft(v : Vector2D) {
+export function orthogonalizeLeft({x, y} : Vector2D) {
   // Equivalent to a 90-degree turn left.
   return {
-    x : -v.y, 
-    y : v.x
+    x : -y, 
+    y : x
   };
 }
 
@@ -70,10 +73,10 @@ export function interpolate(v0 : Vector2D, v1 : Vector2D, interpolationFactor : 
   };
 }
 
-export function magnitudeSquared(v : Vector2D) : number {
+export function magnitudeSquared({ x, y } : Vector2D) : number {
   return (
-    v.x * v.x +
-    v.y * v.y
+    x * x +
+    y * y
   );
 }
 
@@ -110,8 +113,8 @@ export function crossProduct(v0 : Vector2D, v1 : Vector2D) {
   );
 }
 
-export function asAngle(v : Vector2D) : number {
-  return Math.atan2(v.y, v.x);
+export function asAngle({ x, y } : Vector2D) : number {
+  return Math.atan2(y, x);
 }
 
 export function toNormalCartesian(angle : number) {

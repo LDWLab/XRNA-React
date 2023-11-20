@@ -31,3 +31,11 @@ export const inputFileReadersRecord : Record<InputFileExtension, InputFileReader
   [InputFileExtension.str] : strInputFileHandler,
   [InputFileExtension.svg] : svgInputFileHandler
 }
+
+export const defaultInvertYAxisFlagRecord : Record<InputFileExtension, boolean> = {
+  [InputFileExtension.xrna] : false,
+  [InputFileExtension.xml] : false,
+  [InputFileExtension.json] : true,
+  [InputFileExtension.str] : false,
+  [InputFileExtension.svg] : false,
+};

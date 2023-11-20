@@ -40,6 +40,8 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       throw basePairedNucleotideError;
     }
     this.singularNucleotideProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
+
+    this.addFullIndices(fullKeys);
   }
 
   public override drag() {

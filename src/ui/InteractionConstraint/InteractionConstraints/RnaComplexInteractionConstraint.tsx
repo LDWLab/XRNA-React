@@ -1,5 +1,6 @@
 import { DragListener, FullKeys, RnaComplexProps } from "../../../App";
 import { Tab } from "../../../app_data/Tab";
+import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import { RnaComplexInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/RnaComplexInteractionConstraintEditMenu";
@@ -53,6 +54,11 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
       const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
       const nucleotideIndices = Object.keys(singularRnaMoleculeProps.nucleotideProps).map(parseInteger);
       for (let nucleotideIndex of nucleotideIndices) {
+        this.addFullIndices({
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        });
         const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
         toBeDragged.push(singularNucleotideProps);
         nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
@@ -64,6 +70,7 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
         }
       }
     }
+    basePairKeysToRerenderPerRnaComplex.sort(compareBasePairKeys);
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
     function rerender() {

@@ -9,7 +9,6 @@ import { Setting } from "../../../../ui/Setting";
 
 export namespace RnaSingleStrandInteractionConstraintEditMenu {
   export type Props = {
-    initialDisplacementAlongNormal : number,
     updateSingleStrandPositions : (
       orientation : Orientation,
       displacementAlongNormal : number,
@@ -18,7 +17,9 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
     updateSingleStrandColors : (newColor : Color) => void,
     updateSingleStrandFonts : (newFont : Font) => void,
     initialColor : Color,
-    initialFont : Font
+    initialFont : Font,
+    getDisplacementAlongNormal : () => number,
+    getOrientation : () => Orientation
   };
 
   export enum Orientation {
@@ -29,25 +30,27 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
 
   export function Component(props : Props) {
     const {
-      initialDisplacementAlongNormal,
       updateSingleStrandPositions,
       updateSingleStrandColors,
       updateSingleStrandFonts,
       initialColor,
-      initialFont
+      initialFont,
+      getDisplacementAlongNormal,
+      getOrientation
     } = props;
     // Begin context data.
+    const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
     const settingsRecord = useContext(Context.App.Settings);
     const repositionAnnotationsFlag = settingsRecord[Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] as boolean;
     // Begin state data.
     const [
       orientation,
       _setOrientation
-    ] = useState<Orientation | undefined>(undefined);
+    ] = useState<Orientation>(getOrientation());
     const [
       displacementAlongNormal,
       setDisplacementAlongNormal
-    ] = useState(initialDisplacementAlongNormal);
+    ] = useState(getDisplacementAlongNormal());
     const [
       color,
       setColor
@@ -59,9 +62,10 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
     // Begin effects
     useEffect(
       function() {
-        setDisplacementAlongNormal(initialDisplacementAlongNormal);
+        setDisplacementAlongNormal(getDisplacementAlongNormal());
+        _setOrientation(getOrientation());
       },
-      [initialDisplacementAlongNormal]
+      [resetDataTrigger]
     );
     const radioButtonName = "orientation";
     function setOrientation(
@@ -97,9 +101,10 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
           type = "radio"
           value = "clockwise"
           name = {radioButtonName}
-          onClick = {function() {
+          onChange = {function() {
             setOrientation(Orientation.CLOCKWISE);
           }}
+          checked = {orientation === Orientation.CLOCKWISE}
         />
       </label>
       <br/>
@@ -109,9 +114,10 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
           type = "radio"
           value = "straight"
           name = {radioButtonName}
-          onClick = {function() {
+          onChange = {function() {
             setOrientation(Orientation.STRAIGHT);
           }}
+          checked = {orientation === Orientation.STRAIGHT}
         />
       </label>
       <br/>
@@ -121,9 +127,10 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
           type = "radio"
           value = "counterclockwise"
           name = {radioButtonName}
-          onClick = {function() {
+          onChange = {function() {
             setOrientation(Orientation.COUNTERCLOCKWISE);
           }}
+          checked = {orientation === Orientation.COUNTERCLOCKWISE}
         />
       </label>
       <br/>
@@ -138,7 +145,7 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
           setValue = {function(newDisplacementAlongNormal) {
             setDisplacementAlongNormal(newDisplacementAlongNormal);
             updateSingleStrandPositions(
-              orientation as Orientation,
+              orientation,
               newDisplacementAlongNormal,
               repositionAnnotationsFlag
             );

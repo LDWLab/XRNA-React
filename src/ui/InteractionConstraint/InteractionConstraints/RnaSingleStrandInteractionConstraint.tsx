@@ -26,13 +26,17 @@ function repositionNucleotidesHelper(
   repositioningData : RepositioningData,
   lowerBoundingNucleotideArrayIndex : number,
   upperBoundingNucleotideArrayIndex : number,
-  toBeDragged : Array<Vector2D>
+  toBeDragged : Array<Nucleotide.ExternalProps>,
+  repositionAnnotationsFlag : boolean
 ) {
   let angleDelta = repositioningData.angleTraversal / (upperBoundingNucleotideArrayIndex - lowerBoundingNucleotideArrayIndex);
   let angle = repositioningData.beginningAngle + angleDelta;
-  const angles = new Array<number>();
-  toBeDragged.forEach((toBeDraggedI : Vector2D) => {
-    angles.push(angle);
+  const annotationRepositioningData = new Array<{angle : number, singularNucleotideProps : Nucleotide.ExternalProps}>();
+  for (const singularNucleotideProps of toBeDragged) {
+    annotationRepositioningData.push({
+      angle,
+      singularNucleotideProps
+    });
     const newPosition = add(
       repositioningData.boundingCircle.center,
       toCartesian({
@@ -40,11 +44,32 @@ function repositionNucleotidesHelper(
         radius : repositioningData.boundingCircle.radius
       })
     );
-    toBeDraggedI.x = newPosition.x;
-    toBeDraggedI.y = newPosition.y;
+    singularNucleotideProps.x = newPosition.x;
+    singularNucleotideProps.y = newPosition.y;
     angle += angleDelta;
-  });
-  return angles;
+  };
+  if (repositionAnnotationsFlag) {
+    for (const { singularNucleotideProps, angle } of annotationRepositioningData) {
+      const direction = toNormalCartesian(angle);
+      const positions = [];
+      if (singularNucleotideProps.labelContentProps !== undefined) {
+        positions.push(singularNucleotideProps.labelContentProps);
+      }
+      if (singularNucleotideProps.labelLineProps !== undefined) {
+        // This causes the LabelLine.Component to be re-rendered properly.
+        singularNucleotideProps.labelLineProps.points = [...singularNucleotideProps.labelLineProps.points];
+        positions.push(...singularNucleotideProps.labelLineProps.points);
+      }
+      for (const position of positions) {
+        const newPosition = scaleUp(
+          direction,
+          magnitude(position)
+        );
+        position.x = newPosition.x;
+        position.y = newPosition.y;
+      }
+    }
+  }
 }
 
 function calculateRepositioningData(
@@ -119,7 +144,8 @@ function flipAngleTraversalHelper(angleTraversal : number) {
 export class RnaSingleStrandInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
   private readonly partialMenuHeader : JSX.Element;
-  private readonly initialDisplacementAlongNormal : number;
+  private readonly getDisplacementAlongNormal : () => number;
+  private readonly getOrientation : () => RnaSingleStrandInteractionConstraintEditMenu.Orientation;
   private readonly updateSingleStrandPositions : (
     orientation : RnaSingleStrandInteractionConstraintEditMenu.Orientation,
     displacementAlongNormal : number,
@@ -185,6 +211,11 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         break;
       }
       nucleotideKeysToRerenderPerRnaMolecule.unshift(decremented);
+      this.addFullIndices({
+        rnaComplexIndex,
+        rnaMoleculeName,
+        nucleotideIndex : decremented
+      });
       toBeDragged.unshift(singularNucleotideProps);
     }
     let indexWithinToBeDragged = toBeDragged.length;
@@ -210,6 +241,11 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         break;
       }
       nucleotideKeysToRerenderPerRnaMolecule.push(incremented);
+      this.addFullIndices({
+        rnaComplexIndex,
+        rnaMoleculeName,
+        nucleotideIndex : incremented
+      });
       toBeDragged.push(singularNucleotideProps);
     }
     function rerender() {
@@ -248,7 +284,10 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         initiateDrag() {
           return initialDrag;
         },
-        continueDrag(totalDrag : Vector2D) {
+        continueDrag(
+          totalDrag : Vector2D,
+          repositionAnnotationsFlag : boolean
+        ) {
           const repositioningData = calculateRepositioningData(
             totalDrag,
             lowerBoundingNucleotidePosition,
@@ -265,7 +304,8 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
             repositioningData,
             lowerBoundingNucleotideIndex,
             upperBoundingNucleotideIndex,
-            toBeDragged
+            toBeDragged,
+            repositionAnnotationsFlag
           );
           rerender();
         }
@@ -279,25 +319,6 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       In RNA complex "{singularRnaComplexProps.name}"
       <br/>
     </>;
-    let averageCircleCenter = {
-      x : 0,
-      y : 0
-    };
-    for (let toBeDraggedI of toBeDragged) {
-      let circleCenterI = getBoundingCircle(
-        toBeDraggedI,
-        lowerBoundingNucleotidePosition,
-        upperBoundingNucleotidePosition
-      );
-      averageCircleCenter = add(
-        averageCircleCenter,
-        circleCenterI.center
-      );
-    }
-    averageCircleCenter = scaleDown(
-      averageCircleCenter,
-      toBeDragged.length
-    );
     const boundingNucleotidePositionDelta = subtract(
       upperBoundingNucleotidePosition,
       lowerBoundingNucleotidePosition
@@ -312,13 +333,53 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     const normalVector = normalize(
       orthogonalizeRight(boundingNucleotidePositionDelta)
     );
-    this.initialDisplacementAlongNormal = dotProduct(
-      subtract(
-        averageCircleCenter,
-        boundingNucleotidePositionCenter
-      ),
-      normalVector
-    );
+    this.getDisplacementAlongNormal = function() {
+      let circleCenterSum = {
+        x : 0,
+        y : 0
+      };
+      for (let toBeDraggedI of toBeDragged) {
+        let circleCenterI = getBoundingCircle(
+          toBeDraggedI,
+          lowerBoundingNucleotidePosition,
+          upperBoundingNucleotidePosition
+        );
+        circleCenterSum = add(
+          circleCenterSum,
+          circleCenterI.center
+        );
+      }
+      const averageCircleCenter = scaleDown(
+        circleCenterSum,
+        toBeDragged.length
+      );
+      return dotProduct(
+        subtract(
+          averageCircleCenter,
+          boundingNucleotidePositionCenter
+        ),
+        normalVector);
+    };
+    this.getOrientation = function() {
+      const crossProductSign = sign(crossProduct(
+        subtract(
+          toBeDragged[0],
+          boundingNucleotidePositionCenter
+        ),
+        boundingNucleotidePositionDelta
+      ));
+      switch (crossProductSign) {
+        case 0 : {
+          return RnaSingleStrandInteractionConstraintEditMenu.Orientation.STRAIGHT;
+        }
+        case -1 : {
+          return RnaSingleStrandInteractionConstraintEditMenu.Orientation.CLOCKWISE;
+        }
+        case 1 : {
+          return RnaSingleStrandInteractionConstraintEditMenu.Orientation.COUNTERCLOCKWISE;
+        }
+      }
+    }
     this.lowerBoundingNucleotideIndex = lowerBoundingNucleotideIndex;
     this.upperBoundingNucleotideIndex = upperBoundingNucleotideIndex;
     this.updateSingleStrandPositions = function(
@@ -338,7 +399,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
           center,
           lowerBoundingNucleotidePosition
         );
-        const angles = repositionNucleotidesHelper(
+        repositionNucleotidesHelper(
           {
             ...getBeginningAngleAndAngleTraversalHelper(
               center,
@@ -355,32 +416,9 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
           },
           lowerBoundingNucleotideIndex,
           upperBoundingNucleotideIndex,
-          toBeDragged
+          toBeDragged,
+          repositionAnnotationsFlag
         );
-        if (repositionAnnotationsFlag) {
-          for (let i = 0; i < toBeDragged.length; i++) {
-            const singularNucleotideProps = toBeDragged[i];
-            const angle = angles[i];
-            const direction = toNormalCartesian(angle);
-            const positions = [];
-            if (singularNucleotideProps.labelContentProps !== undefined) {
-              positions.push(singularNucleotideProps.labelContentProps);
-            }
-            if (singularNucleotideProps.labelLineProps !== undefined) {
-              // This causes the LabelLine.Component to be re-rendered properly.
-              singularNucleotideProps.labelLineProps.points = [...singularNucleotideProps.labelLineProps.points];
-              positions.push(...singularNucleotideProps.labelLineProps.points);
-            }
-            for (const position of positions) {
-              const newPosition = scaleUp(
-                direction,
-                magnitude(position)
-              );
-              position.x = newPosition.x;
-              position.y = newPosition.y;
-            }
-          }
-        }
         rerender();
       }
       switch (orientation) {
@@ -480,12 +518,13 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         return <>
           {header}
           <RnaSingleStrandInteractionConstraintEditMenu.Component
-            initialDisplacementAlongNormal = {this.initialDisplacementAlongNormal}
             initialColor = {singleColorFlag ? candidateSingleColor : BLACK}
             initialFont = {singleFontFlag ? candidateSingleFont : Font.DEFAULT}
             updateSingleStrandPositions = {this.updateSingleStrandPositions}
             updateSingleStrandColors = {this.updateSingleStrandColors}
             updateSingleStrandFonts = {this.updateSingleStrandFonts}
+            getDisplacementAlongNormal = {this.getDisplacementAlongNormal}
+            getOrientation = {this.getOrientation}
           />
         </>;
       }

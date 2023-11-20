@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { FullKeys, RnaComplexProps } from "../../../../App";
 import { LabelContent } from "../../LabelContent";
 import Font from "../../../../data_structures/Font";
@@ -7,6 +7,7 @@ import { ColorEditor } from "../../../generic/editors/ColorEditor";
 import Color from "../../../../data_structures/Color";
 import InputWithValidator from "../../../generic/InputWithValidator";
 import { Collapsible } from "../../../generic/Collapsible";
+import { Context } from "../../../../context/Context";
 
 export namespace LabelContentEditMenu {
   export type Props = {
@@ -21,6 +22,8 @@ export namespace LabelContentEditMenu {
       rnaComplexProps,
       triggerRerender,
     } = props;
+    // Begin context data.
+    const _triggerRerender = useContext(Context.OrientationEditor.ResetDataTrigger);
     // Begin memo data.
     const {
       rnaComplexIndex,
@@ -119,6 +122,13 @@ export namespace LabelContentEditMenu {
         setFamily(font.family);
       },
       [labelContentProps]
+    );
+    useEffect(
+      function() {
+        setX(labelContentProps.x);
+        setY(labelContentProps.y);
+      },
+      [_triggerRerender]
     );
     return <>
       <b>

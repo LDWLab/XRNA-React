@@ -259,6 +259,13 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       rnaMoleculeName : rnaMoleculeName1,
       nucleotideIndex : nucleotideIndex1
     }
+    this.addFullIndices(
+      fullKeys,
+      {
+        rnaComplexIndex,
+        ...mappedBasePair
+      }
+    );
   }
 
   public override drag(options : InteractionConstraint.Options) {

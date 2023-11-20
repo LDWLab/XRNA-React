@@ -84,7 +84,8 @@ export namespace BasePair {
   export type CoreProps = {
     basePairType? : BasePair.Type,
     color? : Color,
-    strokeWidth? : number
+    strokeWidth? : number,
+    points? : Array<Vector2D>
   };
 
   export type ExternalProps = {
@@ -106,7 +107,7 @@ export namespace BasePair {
     mappedBasePair : FinalizedMappedBasePair
   };
 
-  export type SimplifiedProps = Omit<Required<CoreProps>, "color"> & {
+  export type SimplifiedProps = Omit<CoreProps & Required<Pick<CoreProps, "basePairType" | "strokeWidth">>, "color"> & {
     position0 : Vector2D,
     position1 : Vector2D,
     svgPropertiesForXrna : object,
@@ -319,10 +320,7 @@ export namespace BasePair {
       unitDv,
       1.5 * basePairRadius
     );
-    const orthogonalDv = scaleUp(
-      orthogonalize(unitDv),
-      basePairRadius
-    );
+    const orthogonalDv = orthogonalize(basePairRadiusDv);
     const circleCenter = subtract(
       center,
       scaledUpDv
@@ -347,14 +345,24 @@ export namespace BasePair {
       squareCenter,
       basePairRadiusDv
     );
-    const decrementedPosition = subtract(
-      pointOnLineForSquare0,
-      orthogonalDv
-    );
-    const incrementedPosition = add(
-      pointOnLineForSquare1,
-      orthogonalDv
-    );
+    const pointsForSquare = [
+      subtract(
+        pointOnLineForSquare0,
+        orthogonalDv
+      ),
+      add(
+        pointOnLineForSquare0,
+        orthogonalDv
+      ),
+      add(
+        pointOnLineForSquare1,
+        orthogonalDv
+      ),
+      subtract(
+        pointOnLineForSquare1,
+        orthogonalDv
+      )
+    ];
     const elements = new Array<JSX.Element>();
     if (dotProduct(
       subtract(
@@ -400,7 +408,7 @@ export namespace BasePair {
       />,
       <path
         key = {3}
-        d = {`M ${decrementedPosition.x} ${decrementedPosition.y} L ${decrementedPosition.x} ${incrementedPosition.y} L ${incrementedPosition.x} ${incrementedPosition.y} L ${incrementedPosition.x} ${decrementedPosition.y} Z`}
+        d = {`M ${pointsForSquare[0].x} ${pointsForSquare[0].y} L ${pointsForSquare[1].x} ${pointsForSquare[1].y} L ${pointsForSquare[2].x} ${pointsForSquare[2].y} L ${pointsForSquare[3].x} ${pointsForSquare[3].y} Z`}
         stroke = {stroke}
         fill = {fill}
         pointerEvents = "none"
@@ -427,7 +435,7 @@ export namespace BasePair {
         y1 = {pointOnLineForSquare1.y}
         x2 = {interpolatedPosition1.x}
         y2 = {interpolatedPosition1.y}
-        />);
+      />);
     }
     return <g
       {...svgPropertiesForXrna}
@@ -642,14 +650,24 @@ export namespace BasePair {
       center,
       dv
     );
-    const decrementedPosition = subtract(
-      interpolatedPositionNearCenter0,
-      orthogonalDv
-    );
-    const incrementedPosition = add(
-      interpolatedPositionNearCenter1,
-      orthogonalDv
-    );
+    const pointsForSquare = [
+      subtract(
+        interpolatedPositionNearCenter0,
+        orthogonalDv
+      ),
+      add(
+        interpolatedPositionNearCenter0,
+        orthogonalDv
+      ),
+      add(
+        interpolatedPositionNearCenter1,
+        orthogonalDv
+      ),
+      subtract(
+        interpolatedPositionNearCenter1,
+        orthogonalDv
+      )
+    ];
     const elements = new Array<JSX.Element>();
     if (dotProduct(
       subtract(
@@ -674,7 +692,7 @@ export namespace BasePair {
     }
     elements.push(<path
       key = {1}
-      d = {`M ${decrementedPosition.x} ${decrementedPosition.y} L ${decrementedPosition.x} ${incrementedPosition.y} L ${incrementedPosition.x} ${incrementedPosition.y} L ${incrementedPosition.x} ${decrementedPosition.y} Z`}
+      d = {`M ${pointsForSquare[0].x} ${pointsForSquare[0].y} L ${pointsForSquare[1].x} ${pointsForSquare[1].y} L ${pointsForSquare[2].x} ${pointsForSquare[2].y} L ${pointsForSquare[3].x} ${pointsForSquare[3].y} Z`}
       stroke = {stroke}
       fill = {fill}
       pointerEvents = "none"
@@ -778,14 +796,24 @@ export namespace BasePair {
       center,
       dv
     );
-    const decrementedPosition = subtract(
-      pointOnLineForSquare0,
-      orthogonalDv
-    );
-    const incrementedPosition = add(
-      pointOnLineForSquare1,
-      orthogonalDv
-    );
+    const pointsForSquare = [
+      subtract(
+        pointOnLineForSquare0,
+        orthogonalDv
+      ),
+      add(
+        pointOnLineForSquare0,
+        orthogonalDv
+      ),
+      add(
+        pointOnLineForSquare1,
+        orthogonalDv
+      ),
+      subtract(
+        pointOnLineForSquare1,
+        orthogonalDv
+      )
+    ];
     const orthogonalPoint0 = add(
       pointOnLineForTriangle0,
       orthogonalDv
@@ -819,7 +847,7 @@ export namespace BasePair {
     elements.push(
       <path
         key = {1}
-        d = {`M ${decrementedPosition.x} ${decrementedPosition.y} L ${decrementedPosition.x} ${incrementedPosition.y} L ${incrementedPosition.x} ${incrementedPosition.y} L ${incrementedPosition.x} ${decrementedPosition.y} Z`}
+        d = {`M ${pointsForSquare[0].x} ${pointsForSquare[0].y} L ${pointsForSquare[1].x} ${pointsForSquare[1].y} L ${pointsForSquare[2].x} ${pointsForSquare[2].y} L ${pointsForSquare[3].x} ${pointsForSquare[3].y} Z`}
         stroke = {stroke}
         fill = {fill}
         pointerEvents = "none"
@@ -1047,9 +1075,28 @@ export namespace BasePair {
       rnaMoleculeName1,
       formattedNucleotideIndex1
     } = props;
-    const basePairType = mappedBasePair.basePairType;
-    const color = mappedBasePair.color ?? BLACK;
+    const colorAsString = toCSS(mappedBasePair.color ?? BLACK);
     const strokeWidth = mappedBasePair.strokeWidth ?? DEFAULT_STROKE_WIDTH;
+    if (mappedBasePair.points !== undefined) {
+      const points = mappedBasePair.points.map(function(point) {
+        const {
+          x,
+          y
+        } = add(
+          point,
+          position0
+        );
+        return `${x},${y}`;
+      }).join(" ");
+      return <polyline
+        stroke = {colorAsString}
+        strokeWidth = {strokeWidth}
+        pointerEvents = "none"
+        points = {points}
+        fill = "none"
+      />;
+    }
+    const basePairType = mappedBasePair.basePairType;
     const svgPropertiesForXrna = {
       [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.BASE_PAIR,
       [SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0] : rnaMoleculeName0,
@@ -1066,7 +1113,7 @@ export namespace BasePair {
         basePairType,
         strokeWidth,
         svgPropertiesForXrna,
-        ...componentStrokeAndFillRecord[basePairType](toCSS(color))
+        ...componentStrokeAndFillRecord[basePairType](colorAsString)
       }
     );
   }

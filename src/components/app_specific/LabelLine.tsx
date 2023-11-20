@@ -73,8 +73,8 @@ export namespace LabelLine {
       }
       setRenderData({
         pathDAttribute : paths.join(" "),
-        polylinePointsAttribute : points.map(function(point) {
-          return `${point.x},${point.y}`;
+        polylinePointsAttribute : points.map(function({x, y}) {
+          return `${x},${y}`;
         }).join(" ")
       });
     }
@@ -105,6 +105,7 @@ export namespace LabelLine {
         pointerEvents = "none"
         stroke = {toCSS(color)}
         strokeWidth = {strokeWidth}
+        fill = "none"
       />
       {points.map(function(
         point,

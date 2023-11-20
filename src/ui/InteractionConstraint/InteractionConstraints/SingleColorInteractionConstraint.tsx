@@ -14,7 +14,7 @@ import { AllInOneEditor } from "./AllInOneEditor";
 
 export class SingleColorInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
-  private readonly editMenuProps : AppSpecificOrientationEditor.SimplifiedProps;
+  private readonly editMenuProps : AppSpecificOrientationEditor.Props;
   private readonly color : Color;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
   private readonly approveBasePair : (basePair : BasePairsEditor.BasePair) => boolean;
@@ -68,6 +68,11 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
         const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
         const nucleotideIndices = Object.keys(singularRnaMoleculeProps.nucleotideProps).map(parseInteger);
         for (let nucleotideIndex of nucleotideIndices) {
+          this.addFullIndices({
+            rnaComplexIndex,
+            rnaMoleculeName,
+            nucleotideIndex
+          });
           const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
           const nucleotideColor = singularNucleotideProps.color ?? BLACK;
           if (areEqual(
@@ -112,20 +117,11 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
       rerender
     );
     this.editMenuProps = {
-      boundingVector0 : add(
-        singularNucleotideProps,
-        {
-          x : -1,
-          y : 0
-        }
-      ),
-      boundingVector1 : add(
-        singularNucleotideProps,
-        {
-          x : 1,
-          y : 0
-        }
-      ),
+      initialCenter : singularNucleotideProps,
+      normal : {
+        x : 1,
+        y : 0
+      },
       positions : toBeDragged,
       onUpdatePositions : rerender
     };
@@ -183,11 +179,6 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
   }
 
   public override drag() {
-    if (this.basePairBetweenDifferentColorsError !== undefined) {
-      throw {
-        errorMessage : this.basePairBetweenDifferentColorsError
-      };
-    }
     return this.dragListener;
   }
 

@@ -180,7 +180,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
           {errorMessage}
           <br/>
         </>}
-        <AllInOneEditor.Component
+        <AllInOneEditor.Simplified
           {...orientationEditorProps}
         />
       </>;

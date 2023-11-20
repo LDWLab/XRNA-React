@@ -21,7 +21,7 @@ export function insertBasePair(
   rnaMoleculeName1 : string,
   nucleotideIndex1 : number,
   duplicateBasePairKeysHandler = DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
-  optionalBasePairParameters : Pick<RnaComplex.MappedBasePair, "basePairType" | "color" | "strokeWidth"> = {}
+  optionalBasePairParameters : Pick<RnaComplex.MappedBasePair, "basePairType" | "color" | "strokeWidth" | "points"> = {}
 ) {
   const { basePairs } = singularRnaComplexProps;
   const duplicateBasePairKeys = new Array<RnaComplex.BasePairKeys>();
@@ -226,6 +226,15 @@ export namespace RnaComplex {
               });
             }
           });
+        });
+        flattenedBasePairProps.sort(function(
+          singularFlattenedBasePairProps0,
+          singularFlattenedBasePairProps1
+        ) {
+          return compareBasePairKeys(
+            singularFlattenedBasePairProps0.scaffoldingKey,
+            singularFlattenedBasePairProps1.scaffoldingKey
+          );
         });
         return flattenedBasePairProps;
       },

@@ -47,8 +47,8 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularNucleotideProps0 = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
     const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
-    if (!(rnaMoleculeName0 in basePairsPerRnaComplex)) {
-      throw nonBasePairedNucleotideError
+    if (!(rnaMoleculeName0 in basePairsPerRnaComplex) || !(nucleotideIndex in basePairsPerRnaComplex[rnaMoleculeName0])) {
+      throw nonBasePairedNucleotideError;
     }
     const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName0];
     const originalMappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
@@ -190,7 +190,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       this.maximumNucleotideIndex,
       FilterHelicesMode.COMPARE_NUCLEOTIDE_INDICES 
     );
-    this.initialBasePairs = helixData.helixData.map(function(helixDatum) {
+    const initialBasePairs : Array<BasePairsEditor.BasePair> = helixData.helixData.map(function(helixDatum) {
       return {
         rnaComplexIndex,
         rnaMoleculeName0 : rnaMoleculeName,
@@ -200,6 +200,8 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
         length : Math.abs(helixDatum.start[0] - helixDatum.stop[0]) + 1
       };
     });
+    this.addFullIndicesPerHelices(...initialBasePairs);
+    this.initialBasePairs = initialBasePairs;
   }
 
   public override drag() {
@@ -218,7 +220,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
-        menu = <AllInOneEditor.Component
+        menu = <AllInOneEditor.Simplified
           {...this.editMenuProps}
         />;
         break;
@@ -292,113 +294,3 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     </>;
   }
 }
-// import { RnaComplexProps, FullKeys } from "../../../App";
-// import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
-// import { Vector2D } from "../../../data_structures/Vector2D";
-// import { AbstractInteractionConstraint } from "../AbstractInteractionConstraint";
-// import { linearDrag } from "../CommonDragListeners";
-// import { InteractionConstraint, populateToBeDraggedWithHelix } from "../InteractionConstraints";
-
-// export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstraint {
-//   constructor(
-//     rnaComplexProps : RnaComplexProps,
-//     fullKeys : FullKeys,
-//     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
-//     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
-//     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void
-//   ) {
-//     super(
-//       rnaComplexProps,
-//       fullKeys,
-//       setNucleotideKeysToRerender,
-//       setBasePairKeysToRerender,
-//       setDebugVisualElements
-//     );
-//   }
-
-//   public override drag() {
-//     const {
-//       rnaComplexIndex,
-//       rnaMoleculeName,
-//       nucleotideIndex
-//     } = this.fullKeys;
-//     const rnaMoleculeName0 = rnaMoleculeName;
-//     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
-//     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
-//     const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex];
-//     const noBasePairErrorMessage = `Cannot interact with a non-basepaired nucleotide using interaction constraint "${InteractionConstraint.Enum.RNA_SUB_DOMAIN}"`;
-//     const basePairs = singularRnaComplexProps.basePairs;
-//     if (!(rnaMoleculeName0 in basePairs)) {
-//       return noBasePairErrorMessage;
-//     }
-//     const basePairsPerRnaMolecule = basePairs[rnaMoleculeName0];
-//     if (!(nucleotideIndex in basePairsPerRnaMolecule)) {
-//       return noBasePairErrorMessage;
-//     }
-//     const originalMappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
-//     const rnaMoleculeName1 = originalMappedBasePairInformation.rnaMoleculeName;
-//     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
-//     const basePairsPerRnaMolecule1 = basePairs[rnaMoleculeName1];
-//     const toBeDragged = new Array<Vector2D>();
-//     const nucleotideKeysToRerender : NucleotideKeysToRerender = {
-//       [rnaComplexIndex] : {
-//         [rnaMoleculeName0] : [],
-//         [rnaMoleculeName1] : []
-//       }
-//     };
-//     const nucleotideKeysToRerenderPerRnaComplex = nucleotideKeysToRerender[rnaComplexIndex];
-//     const nucleotideKeysToRerenderPerRnaMolecule0 = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName0];
-//     const nucleotideKeysToRerenderPerRnaMolecule1 = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName1];
-//     const basePairKeysToRerender : BasePairKeysToRerender = {
-//       [rnaComplexIndex] : []
-//     }
-//     const basePairKeysToRerenderPerRnaComplex = basePairKeysToRerender[rnaComplexIndex];
-//     const extrema0 = populateToBeDraggedWithHelix(
-//       -1,
-//       nucleotideIndex,
-//       originalMappedBasePairInformation.nucleotideIndex,
-//       basePairsPerRnaMolecule,
-//       rnaMoleculeName0,
-//       rnaMoleculeName1,
-//       toBeDragged,
-//       singularRnaMoleculeProps0,
-//       singularRnaMoleculeProps1,
-//       nucleotideKeysToRerenderPerRnaMolecule0,
-//       nucleotideKeysToRerenderPerRnaMolecule1,
-//       basePairKeysToRerenderPerRnaComplex
-//     );
-//     const extrema1 = populateToBeDraggedWithHelix(
-//       1,
-//       nucleotideIndex,
-//       originalMappedBasePairInformation.nucleotideIndex,
-//       basePairsPerRnaMolecule,
-//       rnaMoleculeName0,
-//       rnaMoleculeName1,
-//       toBeDragged,
-//       singularRnaMoleculeProps0,
-//       singularRnaMoleculeProps1,
-//       nucleotideKeysToRerenderPerRnaMolecule0,
-//       nucleotideKeysToRerenderPerRnaMolecule1,
-//       basePairKeysToRerenderPerRnaComplex
-//     );
-//     const setNucleotideKeysToRerender = this.setNucleotideKeysToRerender;
-//     const setBasePairKeysToRerender = this.setBasePairKeysToRerender;
-//     return linearDrag(
-//       {
-//         x : singularNucleotideProps0.x,
-//         y : singularNucleotideProps0.y
-//       },
-//       toBeDragged,
-//       function() {
-//         setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
-//       },
-//       function() {
-//         setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
-//       }
-//     );
-//   }
-
-//   public override createRightClickMenu(tab : InteractionConstraint.SupportedTab) {
-//     return "Not yet implemented";
-//   }
-// }

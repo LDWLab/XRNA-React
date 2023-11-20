@@ -373,6 +373,10 @@ export namespace InteractionConstraint {
     [Tab.ANNOTATE] : Tab.ANNOTATE
   };
 
+  export function isSupportedTab(tab : Tab) : tab is SupportedTab {
+    return tab in supportedTabs;
+  }
+
   export enum Enum {
     SINGLE_NUCLEOTIDE = "Single nucleotide",
     SINGLE_BASE_PAIR = "Single basepair",

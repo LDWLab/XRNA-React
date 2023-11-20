@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { FullKeys, RnaComplexProps } from "../../../../App";
 import { LabelLine } from "../../LabelLine";
 import { asAngle, magnitude, negate, orthogonalize } from "../../../../data_structures/Vector2D";
@@ -6,6 +6,7 @@ import InputWithValidator from "../../../generic/InputWithValidator";
 import { ColorEditor } from "../../../generic/editors/ColorEditor";
 import { Color } from "../../../../data_structures/Color";
 import { AppSpecificOrientationEditor } from "../../editors/AppSpecificOrientationEditor";
+import { Context } from "../../../../context/Context";
 
 export namespace LabelLineEditMenu {
   export type Props = {
@@ -19,14 +20,15 @@ export namespace LabelLineEditMenu {
       fullKeys,
       rnaComplexProps
     } = props;
-    const _triggerRerender = props.triggerRerender;
     function triggerRerender(recalculateRenderDataFlag : boolean) {
       if (recalculateRenderDataFlag) {
         // Trigger re-calculation of renderData belonging to the LabelLine.Component.
         labelLineProps.points = [...labelLineProps.points];
       }
-      _triggerRerender();
+      props.triggerRerender();
     }
+    // Begin context data.
+    const _triggerRerender = useContext(Context.OrientationEditor.ResetDataTrigger);
     // Begin state data.
     const [
       pointIndex,
@@ -103,7 +105,10 @@ export namespace LabelLineEditMenu {
           points
         }
       },
-      [fullKeys]
+      [
+        fullKeys,
+        _triggerRerender
+      ]
     );
     const point = useMemo(
       function() {
@@ -115,11 +120,11 @@ export namespace LabelLineEditMenu {
         points
       ]
     );
+    // Begin effects.
     useEffect(
       updateOrientationEditorProps,
       [fullKeys]
     );
-    // Begin effects.
     useEffect(
       function() {
         setX(point.x);
@@ -134,6 +139,14 @@ export namespace LabelLineEditMenu {
         }
       },
       [fullKeys]
+    );
+    useEffect(
+      function() {
+        setX(point.x);
+        setY(point.y);
+        updateOrientationEditorProps();
+      },
+      [_triggerRerender]
     );
     return <>
       <b>

@@ -67,7 +67,7 @@ export namespace RnaComplexInteractionConstraintEditMenu {
           }
         }
 
-        return <AllInOneEditor.Component
+        return <AllInOneEditor.Simplified
           boundingVector0 = {boundingVectors[0]}
           boundingVector1 = {boundingVectors[1]}
           positions = {positions}

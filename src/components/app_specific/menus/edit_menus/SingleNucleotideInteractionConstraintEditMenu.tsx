@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { RnaComplexProps, FullKeys } from "../../../../App";
 import { Nucleotide } from "../../Nucleotide";
 import { Vector2D, distance } from "../../../../data_structures/Vector2D";
@@ -8,6 +8,7 @@ import { ColorEditor } from "../../../generic/editors/ColorEditor";
 import { BLACK } from "../../../../data_structures/Color";
 import { FontEditor } from "../../../generic/editors/FontEditor";
 import Font from "../../../../data_structures/Font";
+import { Context } from "../../../../context/Context";
 
 export namespace SingleNucleotideInteractionConstraintEditMenu {
   export type Props = {
@@ -22,6 +23,8 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       fullKeys,
       triggerRerender
     } = props;
+    // Begin context data.
+    const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
     // Begin memo data.
     const {
       rnaComplexIndex,
@@ -77,13 +80,13 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       function() {
         return (nucleotideIndex - 1) in singularRnaMoleculeProps.nucleotideProps ? singularRnaMoleculeProps.nucleotideProps[nucleotideIndex - 1] : undefined;
       },
-      [fullKeys]
+      [nucleotideIndex]
     );
     const nextNucleotidePosition : Vector2D | undefined = useMemo(
       function() {
         return (nucleotideIndex + 1) in singularRnaMoleculeProps.nucleotideProps ? singularRnaMoleculeProps.nucleotideProps[nucleotideIndex + 1] : undefined
       },
-      [fullKeys]
+      [nucleotideIndex]
     );
     const previousNucleotideDistanceJsx = useMemo(
       function() {
@@ -129,7 +132,10 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
         setX(singularNucleotideProps.x);
         setY(singularNucleotideProps.y);
       },
-      [fullKeys]
+      [
+        fullKeys,
+        resetDataTrigger
+      ]
     );
     useEffect(
       function() {

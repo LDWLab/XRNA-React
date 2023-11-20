@@ -398,7 +398,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       onUpdatePositions : rerender,
       initialAngle : asAngle(normalVector)
     };
-    this.initialBasePairs = helixData.map(function(helixDatum) {
+    const initialBasePairs : Array<BasePairsEditor.BasePair> = helixData.map(function(helixDatum) {
       const nucleotideIndex1Start = helixDatum.start[1];
       const nucleotideIndex1Stop = helixDatum.stop[1];
       const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
@@ -413,6 +413,8 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         length : Math.abs(nucleotideIndex1Start - nucleotideIndex1Stop) + 1
       };
     });
+    this.addFullIndicesPerHelices(...initialBasePairs);
+    this.initialBasePairs = initialBasePairs;
     this.rnaMoleculeName0 = rnaMoleculeName0;
     this.rnaMoleculeName1 = rnaMoleculeName1;
   }
@@ -439,7 +441,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       case Tab.EDIT : {
         return <>
           {header}
-          <AllInOneEditor.Component
+          <AllInOneEditor.Simplified
             {...this.editMenuProps}
           />
         </>;

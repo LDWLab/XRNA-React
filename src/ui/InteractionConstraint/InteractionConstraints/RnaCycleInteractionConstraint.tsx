@@ -6,12 +6,14 @@ import { InteractionConstraint } from "../InteractionConstraints";
 import { RnaCycleInteractionConstraintEditMenu } from "./RnaCycleInteractionConstraintEditMenu";
 import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, magnitude, negate, normalize, orthogonalizeLeft, scaleUp, subtract, toCartesian, toNormalCartesian, toPolar } from "../../../data_structures/Vector2D";
 import { getBoundingCircle } from "../../../data_structures/Geometry";
-import { DEFAULT_EPSILON, areEqual, sign, subtractNumbers } from "../../../utils/Utils";
+import { areEqual, sign, subtractNumbers } from "../../../utils/Utils";
 import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { Tab } from "../../../app_data/Tab";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import Color from "../../../data_structures/Color";
+
+const EPSILON = 0.01;
 
 export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint {
   private readonly rnaCycleBoundsText : string;
@@ -20,7 +22,14 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     rnaMoleculeName : RnaMoleculeKey,
     nucleotideIndex : NucleotideKey
   }>;
-  private readonly cycleGraphNucleotides : Array<Nucleotide.ExternalProps>;
+  private readonly initialDrag : Vector2D;
+  private readonly boundingVector0 : Vector2D;
+  private readonly boundingVector1 : Vector2D;
+  private readonly updatePositionsHelper : (
+    newRadius : number,
+    repositionAnnotationsFlag : boolean
+  ) => void;
+  private readonly minimumRadius : number;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -45,6 +54,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+    this.initialDrag = structuredClone(singularNucleotideProps);
 
     const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
     const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
@@ -189,9 +199,16 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
         rnaMoleculeName,
         nucleotideIndex
       } = graphNode;
+      
       return rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
     });
-    this.cycleGraphNucleotides = cycleGraphNucleotides;
+    for (const { rnaMoleculeName, nucleotideIndex } of cycleGraphNodes) {
+      this.addFullIndices({
+        rnaComplexIndex,
+        rnaMoleculeName,
+        nucleotideIndex
+      });
+    }
 
     let minimumGraphNode = cycleGraphNodes[0];
     let boundingVector0ArrayIndex = 0;
@@ -206,12 +223,15 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const mappedBasePairInformation = basePairsPerRnaComplex[minimumGraphNode.rnaMoleculeName][minimumGraphNode.nucleotideIndex];
     const boundingVector0 = cycleGraphNucleotides[boundingVector0ArrayIndex];
     const boundingVector1 = rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName].nucleotideProps[mappedBasePairInformation.nucleotideIndex];
+    this.boundingVector0 = boundingVector0;
+    this.boundingVector1 = boundingVector1;
     const incrementedCycleGraphNode = cycleGraphNodes[(boundingVector0ArrayIndex + 1) % cycleGraphNodes.length];
     const boundingVectorsIncrementedFlag = incrementedCycleGraphNode.rnaMoleculeName === mappedBasePairInformation.rnaMoleculeName && incrementedCycleGraphNode.nucleotideIndex === mappedBasePairInformation.nucleotideIndex;
     const arrayIndexIncrement = boundingVectorsIncrementedFlag ? -1 : 1;
     const boundingVector1ArrayIndex = (boundingVector0ArrayIndex - arrayIndexIncrement + cycleGraphNodes.length) % cycleGraphNodes.length;
 
-    const minimumRadius = distance(boundingVector0, boundingVector1) * 0.5 + DEFAULT_EPSILON;
+    const minimumRadius = distance(boundingVector0, boundingVector1) * 0.5 + EPSILON;
+    this.minimumRadius = minimumRadius;
     if (minimumRadius === 0) {
       const error : InteractionConstraintError = {
         errorMessage : "Cannot determine repositioning data for this cycle, because its anchoring vector positions are exactly equal."
@@ -326,6 +346,16 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
         0
       ) / initialCandidateRadii.length
     );
+    function getRadius() {
+      return Math.max(
+        getBoundingCircle(
+          cycleGraphNucleotides[0],
+          boundingVector0,
+          boundingVector1
+        ).radius,
+        minimumRadius
+      );
+    }
     const initialCenter = getCenterFromRadius(initialRadius);
 
     const nucleotideKeysToRerender : NucleotideKeysToRerender = {
@@ -558,7 +588,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       setBasePairKeysToRerender(structuredClone(basePairKeysToRerender))
     }
 
-    function updatePositionsHelper(
+    this.updatePositionsHelper = function(
       newRadius : number,
       repositionAnnotationsFlag : boolean
     ) {
@@ -743,17 +773,40 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     this.editMenuProps = {
       initialRadius,
       minimumRadius,
-      updatePositionsHelper,
+      updatePositionsHelper : this.updatePositionsHelper,
       cycleGraphNucleotides,
-      rerender
+      rerender,
+      getRadius
     };
   }
 
   public override drag() : DragListener {
-    const error : InteractionConstraintError = {
-      errorMessage : "This interaction constraint does not support dragging."
+    const initialDrag = this.initialDrag;
+    const updatePositionsHelper = this.updatePositionsHelper;
+    const boundingVector0 = this.boundingVector0;
+    const boundingVector1 = this.boundingVector1;
+    const minimumRadius = this.minimumRadius;
+    return {
+      initiateDrag() {
+        return initialDrag;
+      },
+      continueDrag(
+        totalDrag,
+        repositionAnnotationsFlag
+      ) {
+        updatePositionsHelper(
+          Math.max(
+            getBoundingCircle(
+              boundingVector0,
+              boundingVector1,
+              totalDrag
+            ).radius,
+            minimumRadius
+          ),
+          repositionAnnotationsFlag
+        );
+      },
     };
-    throw error;
   }
 
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
