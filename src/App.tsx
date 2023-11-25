@@ -6,7 +6,7 @@ import { compareBasePairKeys, RnaComplex } from './components/app_specific/RnaCo
 import { OutputFileExtension, outputFileExtensions, outputFileWritersMap } from './io/OutputUI';
 import { SCALE_BASE, ONE_OVER_LOG_OF_SCALE_BASE, MouseButtonIndices } from './utils/Constants';
 import { inputFileExtensions, InputFileExtension, inputFileReadersRecord, ParsedInputFile, defaultInvertYAxisFlagRecord } from './io/InputUI';
-import { DEFAULT_SETTINGS, Setting, settings, settingsLongDescriptionsMap, settingsShortDescriptionsMap, settingsTypeMap, SettingValue } from './ui/Setting';
+import { DEFAULT_SETTINGS, Setting, settings, settingsLongDescriptionsMap, SettingsRecord, settingsShortDescriptionsMap, settingsTypeMap, SettingValue } from './ui/Setting';
 import InputWithValidator from './components/generic/InputWithValidator';
 import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, Context, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaComplex } from './context/Context';
 import { isEmpty, sign, subtractNumbers } from './utils/Utils';
@@ -23,14 +23,18 @@ import { fileExtensionDescriptions } from './io/FileExtension';
 import loadingGif from './images/loading.svg';
 import { SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from './io/SvgInputFileHandler';
 import { BLACK } from './data_structures/Color';
-import Font from './data_structures/Font';
-import { Property } from 'csstype';
 import { RnaMolecule } from './components/app_specific/RnaMolecule';
+import { Rectangle } from './data_structures/Geometry';
+
+const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
+const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
+const viewportScalePowPrecalculation : Record<number, number> = {};
+for (let viewportScaleExponent = VIEWPORT_SCALE_EXPONENT_MINIMUM; viewportScaleExponent <= VIEWPORT_SCALE_EXPONENT_MAXIMUM; viewportScaleExponent++) {
+  viewportScalePowPrecalculation[viewportScaleExponent] = Math.pow(SCALE_BASE, viewportScaleExponent);
+}
 
 export const TOOLS_DIV_BACKGROUND_COLOR = "white";
-
 export const SVG_ELEMENT_HTML_ID = "viewport";
-
 export const TEST_SPACE_ID = "testSpace";
 
 // Begin externally-facing constants.
@@ -62,18 +66,18 @@ enum SceneState {
   DATA_IS_LOADED = "Data is loaded",
   DATA_LOADING_FAILED = "Data loading failed"
 }
+// Begin app-specific constants.
+const DIV_BUFFER_HEIGHT = 2;
+const MOUSE_OVER_TEXT_FONT_SIZE = 20;
+const UPLOAD_BUTTON_TEXT = "Upload";
+const DOWNLOAD_ROW_TEXT = "Output File";
+const DOWNLOAD_BUTTON_TEXT = "Download";
+const TRANSLATION_TEXT = "Translation";
+const SCALE_TEXT = "Scale";
+const INTERACTION_CONSTRAINT_TEXT = "Constraint";
+const XRNA_SETTINGS_FILE_NAME = "xrna_settings";
 
 function App() {
-  // Begin app-specific constants.
-  const DIV_BUFFER_HEIGHT = 2;
-  const MOUSE_OVER_TEXT_FONT_SIZE = 20;
-  const UPLOAD_BUTTON_TEXT = "Upload";
-  const DOWNLOAD_ROW_TEXT = "Output File";
-  const DOWNLOAD_BUTTON_TEXT = "Download";
-  const TRANSLATION_TEXT = "Translation";
-  const SCALE_TEXT = "Scale";
-  const INTERACTION_CONSTRAINT_TEXT = "Constraint";
-  const XRNA_SETTINGS_FILE_NAME = "xrna_settings";
   // Begin state data.
   const [
     complexDocumentName,
@@ -84,21 +88,31 @@ function App() {
     setRnaComplexProps
   ] = useState<RnaComplexProps>({});
   const [
+    flattenedRnaComplexPropsLength,
+    setFlattenedRnaComplexPropsLength
+  ] = useState<number>(0);
+  const [
     inputFileNameAndExtension,
     setInputFileNameAndExtension
   ] = useState("");
   const [
     outputFileName,
     setOutputFileName
-  ] = useState("");
+  ] = useState<string>("");
   const [
     outputFileExtension,
     setOutputFileExtension
   ] = useState<OutputFileExtension | undefined>(undefined);
+  type SceneBounds = {
+    x : number,
+    y : number,
+    width : number,
+    height : number
+  };
   const [
     sceneBounds,
     setSceneBounds
-  ] = useState({
+  ] = useState<SceneBounds>({
     x : 0,
     y : 0,
     width : 1,
@@ -120,7 +134,7 @@ function App() {
   const [
     settingsRecord,
     setSettingsRecord
-  ] = useState(DEFAULT_SETTINGS);
+  ] = useState<SettingsRecord>(DEFAULT_SETTINGS);
   const [
     rightClickMenuContent,
     _setRightClickMenuContent
@@ -174,10 +188,6 @@ function App() {
     setResetOrientationDataTrigger
   ] = useState(false);
   const [
-    resetRightClickMenuDataTrigger,
-    setResetRightClickMenuDataTrigger
-  ] = useState(false);
-  const [
     downloadButtonErrorMessage,
     setDownloadButtonErrorMessage
   ] = useState<string>("");
@@ -193,14 +203,16 @@ function App() {
     rightClickMenuOptionsMenu,
     setRightClickMenuOptionsMenu
   ] = useState(<></>);
+  type BasePairAverageDistances = Record<RnaComplexKey, Context.BasePair.AllDistances>;
   const [
     basePairAverageDistances,
     setBasePairAverageDistances
-  ] = useState<Record<RnaComplexKey, Context.BasePair.AllDistances>>({});
+  ] = useState<BasePairAverageDistances>({});
+  type LabelContentStyles = Record<RnaComplexKey, Record<RnaMoleculeKey, Context.Label.Content.Style>>;
   const [
     labelContentDefaultStyles,
     setLabelContentDefaultStyles
-  ] = useState<Record<RnaComplexKey, Record<RnaMoleculeKey, Context.Label.Content.Style>>>({});
+  ] = useState<LabelContentStyles>({});
   const [
     rightClickMenuAffectedNucleotideIndices,
     setRightClickMenuAffectedNucleotideIndices
@@ -236,44 +248,6 @@ function App() {
     setToolsDivHeightAttribute
   ] = useState<ToolsDivHeightAttribute>("auto");
   // Begin state-relevant helper functions.
-  function resetViewport() {
-    setSceneBounds((sceneSvgGElementReference.current as SVGGElement).getBBox());
-    setViewportTranslateX(0);
-    setViewportTranslateY(0);
-    setViewportScaleExponent(0);
-    setViewportScale(1);
-  }
-  function onKeyDown(event : React.KeyboardEvent<Element>) {
-    switch (event.key) {
-      case "s" : {
-        if (event.ctrlKey) {
-          event.preventDefault();
-          if (outputFileName === "") {
-            alert("A name for the output file was not provided.");
-          } else if (outputFileExtension === undefined) {
-            alert("An extension for the output file was not selected.");
-          } else {
-            (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement).click();
-          }
-        }
-        break;
-      }
-      case "o" : {
-        if (event.ctrlKey) {
-          event.preventDefault();
-          (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
-        }
-        break;
-      }
-      case "0" : {
-        if (event.ctrlKey) {
-          event.preventDefault();
-          resetViewport();
-        }
-        break;
-      }
-    }
-  }
   function setDragListener(
     dragListener : DragListener | null,
     newDragListenerAffectedNucleotideIndices : FullKeysRecord
@@ -283,104 +257,6 @@ function App() {
     }
     _setDragListener(dragListener);
     setDragListenerAffectedNucleotideIndices(newDragListenerAffectedNucleotideIndices);
-  }
-  function parseInputFileContent(
-    inputFileContent : string,
-    inputFileExtension : InputFileExtension,
-    invertYAxisFlag? : boolean 
-  ) {
-    try {
-      const parsedInput = inputFileReadersRecord[inputFileExtension](inputFileContent);
-      const rnaComplexNames = new Set<string>();
-      for (const singularRnaComplexProps of Object.values(parsedInput.rnaComplexProps)) {
-        const { name } = singularRnaComplexProps;
-        if (rnaComplexNames.has(name)) {
-          throw `RNA complexes must have distinct names.`;
-        }
-        rnaComplexNames.add(name);
-  
-        for (const singularRnaMoleculeProps of Object.values(singularRnaComplexProps.rnaMoleculeProps)) {
-          for (const singularNucleotideProps of Object.values(singularRnaMoleculeProps.nucleotideProps)) {
-            if (singularNucleotideProps.color === undefined) {
-              singularNucleotideProps.color = structuredClone(BLACK);
-            }
-            if (singularNucleotideProps.labelContentProps !== undefined) {
-              const labelContentProps = singularNucleotideProps.labelContentProps;
-              if (labelContentProps.color === undefined) {
-                labelContentProps.color = structuredClone(BLACK);
-              }
-            }
-            if (singularNucleotideProps.labelLineProps !== undefined) {
-              const labelLineProps = singularNucleotideProps.labelLineProps;
-              if (labelLineProps.color === undefined) {
-                labelLineProps.color = structuredClone(BLACK);
-              }
-            }
-          }
-        }
-      }
-      if (invertYAxisFlag === undefined) {
-        invertYAxisFlag = defaultInvertYAxisFlagRecord[inputFileExtension];
-      }
-      if (invertYAxisFlag) {
-        for (const singularRnaComplexProps of parsedInput.rnaComplexProps) {
-          Object.values(singularRnaComplexProps.rnaMoleculeProps).forEach((singularRnaMoleculeProps : RnaMolecule.ExternalProps) => {
-            Object.values(singularRnaMoleculeProps.nucleotideProps).forEach((singularNucleotideProps : Nucleotide.ExternalProps) => {
-              singularNucleotideProps.y *= -1;
-              if (singularNucleotideProps.labelLineProps !== undefined) {
-                for (let i = 0; i < singularNucleotideProps.labelLineProps.points.length; i++) {
-                  singularNucleotideProps.labelLineProps.points[i].y *= -1;
-                }
-              }
-              if (singularNucleotideProps.labelContentProps !== undefined) {
-                singularNucleotideProps.labelContentProps.y *= -1;
-              }
-            });
-          });
-        }
-      }
-      setRnaComplexProps(parsedInput.rnaComplexProps);
-      setComplexDocumentName(parsedInput.complexDocumentName);
-    } catch (error) {
-      setSceneState(SceneState.DATA_LOADING_FAILED);
-      if (typeof error === "string") {
-        setDataLoadingFailedErrorMessage(error);
-      }
-      throw error;
-    }
-  }
-  function updateBasePairAverageDistances(
-    rnaComplexKey : RnaComplexKey,
-    basePairDistances : Context.BasePair.AllDistances
-  ) {
-    setBasePairAverageDistances({
-      ...basePairAverageDistances,
-      [rnaComplexKey] : basePairDistances
-    });
-  }
-  function updateLabelContentDefaultStyles(
-    rnaComplexKey : RnaComplexKey,
-    rnaMoleculeKey : RnaMoleculeKey,
-    defaultStyle : Partial<Context.Label.Content.Style>
-  ) {
-    const newLabelContentDefaultStyles = structuredClone(labelContentDefaultStyles);
-    if (!(rnaComplexKey in newLabelContentDefaultStyles)) {
-      newLabelContentDefaultStyles[rnaComplexKey] = {};
-    }
-    const newLabelContentDefaultStylesPerRnaComplex = newLabelContentDefaultStyles[rnaComplexKey];
-    newLabelContentDefaultStylesPerRnaComplex[rnaMoleculeKey] = {
-      ...newLabelContentDefaultStylesPerRnaComplex[rnaMoleculeKey],
-      ...defaultStyle
-    };
-    setLabelContentDefaultStyles(newLabelContentDefaultStyles);
-  }
-  function setRightClickMenuContent(
-    rightClickMenuContent : JSX.Element,
-    rightClickMenuAffectedNucleotides : FullKeysRecord
-  ) {
-    _setRightClickMenuContent(rightClickMenuContent);
-
-    setRightClickMenuAffectedNucleotideIndices(rightClickMenuAffectedNucleotides);
   }
   const viewportDragListener : DragListener = {
     initiateDrag() {
@@ -395,7 +271,6 @@ function App() {
     }
   };
   // Begin reference data.
-  const uploadInputFileHtmlInputReference = createRef<HTMLInputElement>();
   const downloadOutputFileHtmlButtonReference = createRef<HTMLButtonElement>();
   const downloadOutputFileHtmlAnchorReference = createRef<HTMLAnchorElement>();
   const downloadSampleInputFileHtmlAnchorReference = createRef<HTMLAnchorElement>();
@@ -404,10 +279,10 @@ function App() {
   const mouseOverTextSvgTextElementReference = createRef<SVGTextElement>();
   const parentDivResizeDetector = useResizeDetector();
   const toolsDivResizeDetector = useResizeDetector();
+  const interactionConstraintReference = useRef<InteractionConstraint.Enum | undefined>(interactionConstraint);
+  interactionConstraintReference.current = interactionConstraint;
   const tabReference = useRef<Tab>();
   tabReference.current = tab;
-  const interactionConstraintReference = useRef<InteractionConstraint.Enum | undefined>();
-  interactionConstraintReference.current = interactionConstraint;
   const viewportTranslateXReference = useRef<number>(NaN);
   viewportTranslateXReference.current = viewportTranslateX;
   const viewportTranslateYReference = useRef<number>(NaN);
@@ -417,10 +292,53 @@ function App() {
   const sceneSvgGElementReference = useRef<SVGGElement>();
   const interactionConstraintOptionsReference = useRef<InteractionConstraint.Options>();
   interactionConstraintOptionsReference.current = interactionConstraintOptions;
+  const basePairAverageDistancesReference = useRef<BasePairAverageDistances>();
+  basePairAverageDistancesReference.current = basePairAverageDistances;
+  const labelContentDefaultStylesReference = useRef<LabelContentStyles>();
+  labelContentDefaultStylesReference.current = labelContentDefaultStyles;
+  const dragListenerReference = useRef<DragListener | null>();
+  dragListenerReference.current = dragListener;
+  const originOfDragReference = useRef<Vector2D>();
+  originOfDragReference.current = originOfDrag;
+  const dragCacheReference = useRef<Vector2D>();
+  dragCacheReference.current = dragCache;
+  const sceneBoundsScaleMinReference = useRef<number>();
+  const viewportScaleReference = useRef<number>();
+  viewportScaleReference.current = viewportScale;
+  const repositionAnnotationsFlagReference = useRef<boolean>();
+  const triggerRightClickMenuFlagReference = useRef<boolean>();
+  const viewportScaleExponentReference = useRef<number>();
+  viewportScaleExponentReference.current = viewportScaleExponent;
+  const toolsDivResizeDetectorHeightReference = useRef<number | undefined>();
+  toolsDivResizeDetectorHeightReference.current = toolsDivResizeDetector.height;
+  type TotalScale = {
+    positiveScale : number,
+    negativeScale : number,
+    asTransform : string
+  };
+  const totalScaleReference = useRef<TotalScale>();
+  const sceneBoundsReference = useRef<SceneBounds>();
+  sceneBoundsReference.current = sceneBounds;
+  const resetOrientationDataTriggerReference = useRef<boolean>();
+  resetOrientationDataTriggerReference.current = resetOrientationDataTrigger;
+  const rightClickMenuOptionsMenuReference = useRef<JSX.Element>();
+  rightClickMenuOptionsMenuReference.current = rightClickMenuOptionsMenu;
+  const settingsRecordReference = useRef<SettingsRecord>();
+  settingsRecordReference.current = settingsRecord;
+  const tabInstructionsRecordReference = useRef<Record<Tab, JSX.Element>>();
+  const outputFileNameReference = useRef<string>();
+  outputFileNameReference.current = outputFileName;
+  const outputFileExtensionReference = useRef<OutputFileExtension | undefined>();
+  outputFileExtensionReference.current = outputFileExtension;
+  const downloadButtonErrorMessageReference = useRef<string>();
+  downloadButtonErrorMessageReference.current = downloadButtonErrorMessage;
+  const uploadInputFileHtmlInputReference = useRef<HTMLInputElement>();
   // Begin memo data.
   const flattenedRnaComplexProps = useMemo(
     function() {
-      return Object.entries(rnaComplexProps);
+      const flattenedRnaComplexProps = Object.entries(rnaComplexProps);
+      setFlattenedRnaComplexPropsLength(flattenedRnaComplexProps.length);
+      return flattenedRnaComplexProps;
     },
     [rnaComplexProps]
   );
@@ -455,6 +373,7 @@ function App() {
       sceneDimensionsReciprocals
     ]
   );
+  sceneBoundsScaleMinReference.current = sceneBoundsScaleMin;
   const transformTranslate = useMemo(
     function() {
       return `translate(${-sceneBounds.x + viewportTranslateX}, ${-(sceneBounds.y + sceneBounds.height) + viewportTranslateY})`;
@@ -465,7 +384,7 @@ function App() {
       viewportTranslateY
     ]
   );
-  const totalScale = useMemo(
+  const totalScale : TotalScale = useMemo(
     function() {
       const positiveScale = viewportScale * sceneBoundsScaleMin;
       return {
@@ -479,6 +398,7 @@ function App() {
       sceneBoundsScaleMin
     ]
   );
+  totalScaleReference.current = totalScale;
   const labelContentOnMouseDownHelper = useMemo(
     function() {
       return function(
@@ -745,20 +665,27 @@ function App() {
   );
   const conditionallySetStroke = useMemo(
     function() {
-      return function(setStroke : (stroke : string) => void) {
+      return function(
+        stroke : string,
+        setStroke : (stroke : string) => void
+      ) {
+        let newStroke = stroke;
         switch (tabReference.current) {
           case Tab.EDIT : {
-            setStroke("red");
+            newStroke = "red";
             break;
           }
           case Tab.FORMAT : {
-            setStroke("blue");
+            newStroke = "blue";
             break;
           }
           case Tab.ANNOTATE : {
-            setStroke("orange");
+            newStroke = "orange";
             break;
           }
+        }
+        if (stroke !== newStroke) {
+          setStroke(newStroke);
         }
       };
     },
@@ -778,7 +705,7 @@ function App() {
             let newDragListener : DragListener = viewportDragListener;
             if (tab === Tab.EDIT) {
               const interactionConstraint = interactionConstraintReference.current;
-              if (interactionConstraint === undefined) {
+              if (interactionConstraint === undefined || !InteractionConstraint.isEnum(interactionConstraint)) {
                 alert("Select an interaction constraint first!");
                 return;
               }
@@ -814,7 +741,7 @@ function App() {
           case MouseButtonIndices.Right : {
             if (InteractionConstraint.isSupportedTab(tab)) {
               const interactionConstraint = interactionConstraintReference.current;
-              if (interactionConstraint === undefined) {
+              if (interactionConstraint === undefined || !InteractionConstraint.isEnum(interactionConstraint)) {
                 alert("Select an interaction constraint first!");
                 return;
               }
@@ -886,6 +813,62 @@ function App() {
     },
     []
   );
+  const updateBasePairAverageDistances = useMemo(
+    function() {
+      return function(
+        rnaComplexKey : RnaComplexKey,
+        basePairDistances : Context.BasePair.AllDistances
+      ) {
+        const basePairAverageDistances = basePairAverageDistancesReference.current;
+        setBasePairAverageDistances({
+          ...basePairAverageDistances,
+          [rnaComplexKey] : basePairDistances
+        });
+      }
+    },
+    []
+  );
+  const updateLabelContentDefaultStyles = useMemo(
+    function () {
+      return function(
+        rnaComplexKey : RnaComplexKey,
+        rnaMoleculeKey : RnaMoleculeKey,
+        defaultStyle : Partial<Context.Label.Content.Style>
+      ) {
+        const labelContentDefaultStyles = labelContentDefaultStylesReference.current as LabelContentStyles;
+        const newLabelContentDefaultStyles = structuredClone(labelContentDefaultStyles);
+        if (!(rnaComplexKey in newLabelContentDefaultStyles)) {
+          newLabelContentDefaultStyles[rnaComplexKey] = {};
+        }
+        const newLabelContentDefaultStylesPerRnaComplex = newLabelContentDefaultStyles[rnaComplexKey];
+        newLabelContentDefaultStylesPerRnaComplex[rnaMoleculeKey] = {
+          ...newLabelContentDefaultStylesPerRnaComplex[rnaMoleculeKey],
+          ...defaultStyle
+        };
+        setLabelContentDefaultStyles(newLabelContentDefaultStyles);
+      }
+    },
+    []
+  );
+  const updateInteractionConstraintOptions = useMemo(
+    function() {
+      return function(newInteractionConstraintOptions : Partial<InteractionConstraint.Options>) {
+        setInteractionConstraintOptions({
+          ...interactionConstraintOptionsReference.current as InteractionConstraint.Options,
+          ...newInteractionConstraintOptions
+        });
+      }
+    },
+    []
+  );
+  function setRightClickMenuContent(
+    rightClickMenuContent : JSX.Element,
+    rightClickMenuAffectedNucleotides : FullKeysRecord
+  ) {
+    _setRightClickMenuContent(rightClickMenuContent);
+
+    setRightClickMenuAffectedNucleotideIndices(rightClickMenuAffectedNucleotides);
+  }
   const renderedRnaComplexes = useMemo(
     function() {
       return <Context.App.SetMouseOverText.Provider
@@ -981,25 +964,1027 @@ function App() {
       dragListenerAffectedNucleotideIndices
     ]
   );
+  triggerRightClickMenuFlagReference.current = triggerRightClickMenuFlag;
   const repositionAnnotationsFlag = useMemo(
     function() {
       return settingsRecord[Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] as boolean;
     },
     [settingsRecord]
   );
-  function parseJson(url : string) {
-    let promise = fetch(url, {
-      method : "GET"
-    });
-    promise.then(data => {
-      data.text().then(dataAsText => {
-        parseInputFileContent(
-          dataAsText,
-          InputFileExtension.json
-        );
-      });
-    });
-  }
+  repositionAnnotationsFlagReference.current = repositionAnnotationsFlag;
+  const resetViewport = useMemo(
+    function() {
+      return function() {
+        setSceneBounds((sceneSvgGElementReference.current as SVGGElement).getBBox());
+        setViewportTranslateX(0);
+        setViewportTranslateY(0);
+        setViewportScaleExponent(0);
+        setViewportScale(1);
+      }
+    },
+    []
+  );
+  const parseInputFileContent = useMemo(
+    function() {
+      return function (
+        inputFileContent : string,
+        inputFileExtension : InputFileExtension,
+        invertYAxisFlag? : boolean 
+      ) {
+        try {
+          const parsedInput = inputFileReadersRecord[inputFileExtension](inputFileContent);
+          const rnaComplexNames = new Set<string>();
+          for (const singularRnaComplexProps of Object.values(parsedInput.rnaComplexProps)) {
+            const {
+              name,
+              basePairs
+            } = singularRnaComplexProps;
+            if (rnaComplexNames.has(name)) {
+              throw `RNA complexes must have distinct names.`;
+            }
+            rnaComplexNames.add(name);
+      
+            for (const [rnaMoleculeName, singularRnaMoleculeProps] of Object.entries(singularRnaComplexProps.rnaMoleculeProps)) {
+              if (!(rnaMoleculeName in basePairs)) {
+                basePairs[rnaMoleculeName] = {};
+              }
+              for (const singularNucleotideProps of Object.values(singularRnaMoleculeProps.nucleotideProps)) {
+                if (singularNucleotideProps.color === undefined) {
+                  singularNucleotideProps.color = structuredClone(BLACK);
+                }
+                if (singularNucleotideProps.labelContentProps !== undefined) {
+                  const labelContentProps = singularNucleotideProps.labelContentProps;
+                  if (labelContentProps.color === undefined) {
+                    labelContentProps.color = structuredClone(BLACK);
+                  }
+                }
+                if (singularNucleotideProps.labelLineProps !== undefined) {
+                  const labelLineProps = singularNucleotideProps.labelLineProps;
+                  if (labelLineProps.color === undefined) {
+                    labelLineProps.color = structuredClone(BLACK);
+                  }
+                }
+              }
+            }
+          }
+          if (invertYAxisFlag === undefined) {
+            invertYAxisFlag = defaultInvertYAxisFlagRecord[inputFileExtension];
+          }
+          if (invertYAxisFlag) {
+            for (const singularRnaComplexProps of parsedInput.rnaComplexProps) {
+              Object.values(singularRnaComplexProps.rnaMoleculeProps).forEach((singularRnaMoleculeProps : RnaMolecule.ExternalProps) => {
+                Object.values(singularRnaMoleculeProps.nucleotideProps).forEach((singularNucleotideProps : Nucleotide.ExternalProps) => {
+                  singularNucleotideProps.y *= -1;
+                  if (singularNucleotideProps.labelLineProps !== undefined) {
+                    for (let i = 0; i < singularNucleotideProps.labelLineProps.points.length; i++) {
+                      singularNucleotideProps.labelLineProps.points[i].y *= -1;
+                    }
+                  }
+                  if (singularNucleotideProps.labelContentProps !== undefined) {
+                    singularNucleotideProps.labelContentProps.y *= -1;
+                  }
+                });
+              });
+            }
+          }
+          setRnaComplexProps(parsedInput.rnaComplexProps);
+          setComplexDocumentName(parsedInput.complexDocumentName);
+        } catch (error) {
+          setSceneState(SceneState.DATA_LOADING_FAILED);
+          if (typeof error === "string") {
+            setDataLoadingFailedErrorMessage(error);
+          }
+          throw error;
+        }
+      };
+    },
+    []
+  );
+  const parseJson = useMemo(
+    function() {
+      return function(url : string) {
+        let promise = fetch(url, {
+          method : "GET"
+        });
+        promise.then(data => {
+          data.text().then(dataAsText => {
+            parseInputFileContent(
+              dataAsText,
+              InputFileExtension.json
+            );
+          });
+        });
+      }
+    },
+    []
+  );
+  const interactionConstraintSelectHtmlElement = useMemo(
+    function() {
+      const interactionConstraint = interactionConstraintReference.current as InteractionConstraint.Enum | undefined;
+      return <>
+        {INTERACTION_CONSTRAINT_TEXT}:&nbsp;
+        <select
+          value = {interactionConstraint}
+          // value = {interactionConstraintReference.current}
+          onChange = {function(e) {
+            const newInteractionConstraint = e.target.value as InteractionConstraint.Enum;
+            setInteractionConstraint(newInteractionConstraint);
+            if (newInteractionConstraint in InteractionConstraint.optionsMenuRecord) {
+              setRightClickMenuOptionsMenu(createElement(
+                InteractionConstraint.optionsMenuRecord[newInteractionConstraint] as FunctionComponent<{}>,
+                {}
+              ));
+            } else {
+              setRightClickMenuOptionsMenu(<></>);
+            }
+          }}
+        >
+          <option
+            style = {{
+              display : "none"
+            }}
+            value = {undefined}
+          >
+            Select an interaction constraint.
+          </option>
+          {InteractionConstraint.all.map(function(interactionConstraint : InteractionConstraint.Enum) {
+            return (<option
+              key = {interactionConstraint}
+              value = {interactionConstraint}
+            >
+              {interactionConstraint}
+            </option>);
+          })}
+        </select>
+        <br/>
+      </>;
+    },
+    [
+      interactionConstraint,
+      interactionConstraintOptions
+    ]
+  );
+  const tabInstructionsRecord : Record<Tab, JSX.Element> = useMemo(
+    function() {
+      return {
+        [Tab.INPUT_OUTPUT] : <>
+          Here, you can:
+          <br/>
+          <ul
+            style = {{
+              margin : 0
+            }}
+          >
+            <li>
+              Upload input files
+            </li>
+            <li>
+              Download output files
+            </li>
+          </ul>
+          Together, these processes enable conversion between file formats.
+          <Collapsible.Component
+            title = "How to upload input files"
+          >
+            <ol
+              style = {{
+                margin : 0
+              }}
+            >
+              <li>
+                Click the "{UPLOAD_BUTTON_TEXT}" button.
+              </li>
+              <li>
+                Select one of the following supported input-file formats:
+                <ul
+                  style = {{
+                    margin : 0
+                  }}
+                >
+                  {inputFileExtensions.map(function(
+                    inputFileExtension,
+                    index
+                  ) {
+                    return <Fragment
+                      key = {index}
+                    >
+                      <li>
+                        .{inputFileExtension} - {fileExtensionDescriptions[inputFileExtension]}
+                      </li>
+                    </Fragment>
+                  })}
+                </ul>
+              </li>
+              <li>
+                Upload the file.
+              </li>
+            </ol>
+          </Collapsible.Component>
+          <Collapsible.Component
+            title = "How to download output files"
+          >
+            Within the "{DOWNLOAD_ROW_TEXT}" row:
+            <ol
+              style = {{
+                margin : 0
+              }}
+            >
+              <li>
+                Provide an output-file name.
+              </li>
+              <li>
+                Select one of the following supported output-file formats:
+                <ul
+                  style = {{
+                    margin : 0
+                  }}
+                >
+                  {outputFileExtensions.map(function(
+                    outputFileExtension,
+                    index
+                  ) {
+                    return <Fragment
+                      key = {index}
+                    >
+                      <li>
+                        .{outputFileExtension} - {fileExtensionDescriptions[outputFileExtension]}
+                      </li>
+                    </Fragment>
+                  })}
+                </ul>
+              </li>
+              <li>
+                Click the "{DOWNLOAD_BUTTON_TEXT}" button
+              </li>
+            </ol>
+          </Collapsible.Component>
+        </>,
+        [Tab.VIEWPORT] : <>
+          Here, you can manipulate the viewport with precision.
+          <br/>
+          To clarify, the viewport is the main component of XRNA. Within it, interactive RNA diagrms are displayed.
+          <Collapsible.Component
+            title = {TRANSLATION_TEXT}
+          >
+            {`"${TRANSLATION_TEXT}" refers to the 2D displacement of the entire viewport. It is synchronized with click-and-drag within the viewport.`}
+            <ul
+              style = {{
+                margin : 0
+              }}
+            >
+              <li>
+                x: The horizontal displacement. Rightward displacement is positive; leftward is negative.
+              </li>
+              <li>
+                y: The vertical displacement. Upward displacement is positive; downward is negative.
+              </li>
+            </ul>
+          </Collapsible.Component>
+          <Collapsible.Component
+            title = {SCALE_TEXT}
+          >
+            <ul
+              style = {{
+                margin : 0
+              }}
+            >
+              <li>
+                "{SCALE_TEXT}" refers to the "in-and-out zoom" of the entire viewport. It is synchronized with the mousewheel within the viewport.
+              </li>
+              <li>
+                Scrolling up with the mouse wheel increases zoom; this means zooming in. Scrolling down does the opposite.
+              </li>
+            </ul>
+          </Collapsible.Component>
+        </>,
+        [Tab.EDIT] : <>
+          Here, you can edit nucleotide data which has been uploaded and is displayed within the viewport.
+          <ol
+            style = {{
+              margin : 0
+            }}
+          >
+            <li>
+              Select a constraint. This selects the set of tools which you will use to edit data.
+            </li>
+            <li>
+              Navigate within the viewport to the portion of the scene you plan to edit.
+            </li>
+            <li>
+              Next, do one of the following:
+              <ul
+                style = {{
+                  margin : 0
+                }}
+              >
+                <li>
+                  Left-click on a nucleotide. Drag it to change relevant nucleotide data, according to the behavior of the constraint.
+                </li>
+                <li>
+                  Right-click on a nucleotide. This will populate a right-hand menu, which will allow you precisely edit data.
+                </li>
+              </ul>
+              <Collapsible.Component
+                title = "Notes"
+              >
+                <ul>
+                  <li>
+                    Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
+                  </li>
+                  <li>
+                    Other constraints have more restrictive usage requirements.
+                  </li>
+                  <li>
+                    Annotations may be edited in the same exact way as nucleotides / nucleotide regions (described above).
+                  </li>
+                  <li>
+                    Annotations are not present in some input files, but they can be added within the "{Tab.ANNOTATE}" tab.
+                  </li>
+                </ul>
+              </Collapsible.Component>
+            </li>
+          </ol>
+        </>,
+        [Tab.FORMAT] : <>
+          Here, you can add, delete, or edit base pairs.
+          <ol
+            style = {{
+              margin : 0
+            }}
+          >
+            <li>
+              Select a constraint. This selects the set of tools which you will use to format base-pair data.
+            </li>
+            <li>
+              Navigate within the viewport to the portion of the scene you plan to edit.
+            </li>
+            <li>
+              Right-click on a nucleotide. This will populate a right-hand menu, which will allow you to format base-pair data.
+            </li>
+          </ol>
+          <Collapsible.Component
+            title = "Notes"
+          >
+            <ul
+              style = {{
+                margin : 0
+              }}
+            >
+              <li>
+                Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
+              </li>
+              <li>
+                Other constraints have more restrictive usage requirements.
+              </li>
+            </ul>
+          </Collapsible.Component>
+        </>,
+        [Tab.ANNOTATE] : <>
+          Here, you can add, delete, or edit annotations.
+          <br/>
+          Annotations include:
+          <ul
+            style = {{
+              margin : 0
+            }}
+          >
+            <li>Label content</li>
+            <li>label lines</li>
+          </ul>
+           <b>
+            This tab is not yet implemented.
+          </b>
+        </>,
+        [Tab.SETTINGS] : <>
+          Here, you can change settings which regulate how XRNA behaves.
+          <br/>
+          Support for saving your settings is implemented by the pair of upload/download buttons. 
+          <br/>
+          Store the "{XRNA_SETTINGS_FILE_NAME}" file somewhere you will remember for later use.
+        </>,
+        // Show nothing.
+        [Tab.ABOUT] : <></>
+      };
+    },
+    []
+  );
+  tabInstructionsRecordReference.current = tabInstructionsRecord;
+  const onMouseMove = useMemo(
+    function() {
+      return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        const dragListener = dragListenerReference.current as DragListener | null;
+        if (dragListener !== null) {
+          const originOfDrag = originOfDragReference.current as Vector2D;
+          const dragCache = dragCacheReference.current as Vector2D;
+          const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
+          const viewportScale = viewportScaleReference.current as number;
+          const repositionAnnotationsFlag = repositionAnnotationsFlagReference.current as boolean;
+          const triggerRightClickMenuFlag = triggerRightClickMenuFlagReference.current as boolean;
+          const resetOrientationDataTrigger = resetOrientationDataTriggerReference.current as boolean;
+          const translation = subtract(
+            {
+              x : e.clientX,
+              y : e.clientY
+            },
+            originOfDrag
+          );
+          translation.y = -translation.y;
+          dragListener.continueDrag(
+            add(
+              dragCache,
+              scaleDown(
+                translation,
+                viewportScale * sceneBoundsScaleMin
+              )
+            ),
+            repositionAnnotationsFlag
+          );
+          if (triggerRightClickMenuFlag) {
+            setResetOrientationDataTrigger(!resetOrientationDataTrigger);
+          }
+        }
+        e.preventDefault();
+      }
+    },
+    []
+  );
+  const onMouseDown = useMemo(
+    function() {
+      return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        switch (e.button) {
+          case MouseButtonIndices.Left : {
+            setOriginOfDrag({
+              x : e.clientX,
+              y : e.clientY
+            });
+            break;
+          }
+        }
+      };
+    },
+    []
+  );
+  const onMouseUp = useMemo(
+    function() {
+      return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        const dragListener = dragListenerReference.current as DragListener | null;
+        if (dragListener !== null) {
+          if (dragListener.terminateDrag !== undefined) {
+            dragListener.terminateDrag();
+          }
+          setDragListener(
+            null,
+            {}
+          );
+        }
+      };
+    },
+    []
+  );
+  const onWheel = useMemo(
+    function() {
+      return function(e : React.WheelEvent<SVGSVGElement>) {
+        const viewportScaleExponent = viewportScaleExponentReference.current as number;
+        const toolsDivResizeDetectorHeight = toolsDivResizeDetectorHeightReference.current ?? 0;
+        const totalScale = totalScaleReference.current as TotalScale;
+        const sceneBounds = sceneBoundsReference.current as SceneBounds;
+        const viewportTranslateX = viewportTranslateXReference.current as number;
+        const viewportTranslateY = viewportTranslateYReference.current as number;
+        const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
+
+        // Apparently, the sign of <event.deltaY> needs to be negated in order to support intuitive scrolling...
+        let newScaleExponent = viewportScaleExponent - sign(e.deltaY);
+        let newScale = newScaleExponent in viewportScalePowPrecalculation ? viewportScalePowPrecalculation[newScaleExponent] : Math.pow(SCALE_BASE, newScaleExponent);
+        setViewportScale(newScale);
+        setViewportScaleExponent(newScaleExponent);
+        let uiVector = {
+          x : e.clientX,
+          y : e.clientY - toolsDivResizeDetectorHeight - DIV_BUFFER_HEIGHT
+        };
+        let reciprocal = totalScale.negativeScale;
+        let inputVector = {
+          x : uiVector.x * reciprocal + sceneBounds.x - viewportTranslateX,
+          y : uiVector.y * reciprocal - sceneBounds.y + viewportTranslateY - sceneBounds.height
+        };
+        reciprocal = 1 / (newScale * sceneBoundsScaleMin);
+        let newOriginDeltaX = uiVector.x * reciprocal - inputVector.x + sceneBounds.x;
+        let newOriginDeltaY = -(uiVector.y * reciprocal - inputVector.y - sceneBounds.y - sceneBounds.height);
+        setViewportTranslateX(newOriginDeltaX);
+        setViewportTranslateY(newOriginDeltaY);
+      };
+    },
+    []
+  );
+  const uploadInputFileUI = useMemo(
+    function() {
+      const settingsRecord = settingsRecordReference.current as SettingsRecord;
+      return <label>
+        Input File:&nbsp;
+        <input
+          ref = {function(x) {
+            if (x !== null) {
+              uploadInputFileHtmlInputReference.current = x;
+            }
+          }}
+          style = {{
+            display : "none"
+          }}
+          type = "file"
+          accept = {inputFileExtensions.map(function(inputFileExtension : InputFileExtension) {
+            return "." + inputFileExtension;
+          }).join(",")}
+          onChange = {function(e) {
+            let files = e.target.files;
+            if (files === null || files.length === 0) {
+              return;
+            }
+            setSceneState(SceneState.DATA_IS_LOADING);
+            let file = files[0];
+            let inputFileNameAndExtension = file.name;
+            setInputFileNameAndExtension(inputFileNameAndExtension);
+            let regexMatch = /^(.*)\.(.+)$/.exec(inputFileNameAndExtension) as RegExpExecArray;
+            let fileName = regexMatch[1];
+            let fileExtension = regexMatch[2];
+            if (settingsRecord[Setting.SYNC_FILE_NAME]) {
+              setOutputFileName(fileName);
+            }
+            if (settingsRecord[Setting.SYNC_FILE_EXTENSION] && (fileExtension in outputFileWritersMap)) {
+              setOutputFileExtension(fileExtension as OutputFileExtension);
+            }
+            let reader = new FileReader();
+            reader.addEventListener("load", function(event) {
+              // Read the content of the settings file.
+              parseInputFileContent(
+                (event.target as FileReader).result as string,
+                fileExtension.toLocaleLowerCase() as InputFileExtension
+              );
+            });
+            reader.readAsText(files[0] as File);
+          }}
+          onClick = {function(e) {
+            e.currentTarget.value = "";
+          }}
+        />
+      </label>;
+    },
+    [settingsRecord]
+  );
+  const tabRenderRecord = useMemo(
+    function() {
+      const viewportTranslateX = viewportTranslateXReference.current as number;
+      const viewportTranslateY = viewportTranslateYReference.current as number;
+      const viewportScaleExponent = viewportScaleExponentReference.current as number;
+      const viewportScale = viewportScaleReference.current as number;
+      const rightClickMenuOptionsMenu = rightClickMenuOptionsMenuReference.current as JSX.Element;
+      const settingsRecord = settingsRecordReference.current as SettingsRecord;
+      const tabInstructionsRecord = tabInstructionsRecordReference.current as Record<Tab, JSX.Element>;
+      const outputFileExtension = outputFileExtensionReference.current as string;
+      
+      const tabRenderRecord : Record<Tab, JSX.Element> = {
+        [Tab.INPUT_OUTPUT] : <>
+          {uploadInputFileUI}
+          <button
+            onClick = {function(e) {
+              (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
+            }}
+          >
+            {UPLOAD_BUTTON_TEXT}
+          </button>
+          <em>
+            {inputFileNameAndExtension}
+          </em>
+          <br/>
+          <label>
+            {DOWNLOAD_ROW_TEXT}:&nbsp;
+            <input
+              type = "text"
+              placeholder = "output_file_name"
+              value = {outputFileName}
+              onChange = {function(e) {
+                setOutputFileName(e.target.value);
+              }}
+            />
+          </label>
+          <select
+            value = {outputFileExtension}
+            onChange = {function(e) {
+              setOutputFileExtension(e.target.value as OutputFileExtension);
+            }}
+          >
+            <option
+              style = {{
+                display : "none"
+              }}
+              value = {""}
+            >
+              .file_extension
+            </option>
+            {outputFileExtensions.map(function(outputFileExtension : OutputFileExtension, index : number) {
+              return <option
+                key = {index}
+                value = {outputFileExtension}
+              >
+                .{outputFileExtension}
+              </option>;
+            })}
+          </select>
+          <button
+            ref = {downloadOutputFileHtmlButtonReference}
+            onClick = {function() {
+              const downloadAnchor = downloadOutputFileHtmlAnchorReference.current as HTMLAnchorElement;
+              downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(outputFileWritersMap[outputFileExtension as OutputFileExtension](
+                rnaComplexProps,
+                complexDocumentName
+              ))}`;
+              downloadAnchor.click();
+            }}
+            disabled = {downloadButtonErrorMessage !== ""}
+            title = {downloadButtonErrorMessage}
+          >
+            {DOWNLOAD_BUTTON_TEXT}
+          </button>
+          <a
+            ref = {downloadOutputFileHtmlAnchorReference}
+            style = {{
+              display : "none"
+            }}
+            download = {`${outputFileName}.${outputFileExtension}`}
+          />
+        </>,
+        [Tab.VIEWPORT] : <>
+          <b>
+            {TRANSLATION_TEXT}:
+          </b>
+          <br/>
+          <label>
+            x:&nbsp;
+            <InputWithValidator.Number
+              value = {viewportTranslateX}
+              setValue = {setViewportTranslateX}
+              disabledFlag = {flattenedRnaComplexPropsLength === 0}
+            />
+          </label>
+          <br/>
+          <label>
+            y:&nbsp;
+            <InputWithValidator.Number
+              value = {viewportTranslateY}
+              setValue = {setViewportTranslateY}
+              disabledFlag = {flattenedRnaComplexPropsLength === 0}
+            />
+          </label>
+          <br/>
+          <b>
+            {SCALE_TEXT}:&nbsp;
+          </b>
+          <br/>
+          <input
+            type = "range"
+            value = {viewportScaleExponent}
+            onChange = {function(e) {
+              const newScaleExponent = Number.parseInt(e.target.value);
+              setViewportScaleExponent(newScaleExponent);
+              setViewportScale(viewportScalePowPrecalculation[newScaleExponent]);
+            }}
+            min = {VIEWPORT_SCALE_EXPONENT_MINIMUM}
+            max = {VIEWPORT_SCALE_EXPONENT_MAXIMUM}
+            disabled = {flattenedRnaComplexPropsLength === 0}
+          />
+          <InputWithValidator.Number
+            value = {viewportScale}
+            setValue = {function(newViewportScale : number) {
+              setViewportScale(newViewportScale);
+              // scale = SCALE_BASE ^ scaleExponent
+              // log(scale) = log(SCALE_BASE ^ scaleExponent)
+              // log(scale) = scaleExponent * log(SCALE_BASE)
+              // log(scale) / log(SCALE_BASE) = scaleExponent
+              if (newViewportScale > 0) {
+                setViewportScaleExponent(Math.log(newViewportScale) * ONE_OVER_LOG_OF_SCALE_BASE);
+              }
+            }}
+            disabledFlag = {flattenedRnaComplexPropsLength === 0}
+          />
+          <br/>
+          <button
+            onClick = {resetViewport}
+            disabled = {flattenedRnaComplexPropsLength === 0}
+          >
+            Reset
+          </button>
+        </>,
+        [Tab.EDIT] : <>
+          {interactionConstraintSelectHtmlElement}
+          {rightClickMenuOptionsMenu}
+        </>,
+        [Tab.FORMAT] : <>
+          {interactionConstraintSelectHtmlElement}
+          {rightClickMenuOptionsMenu}
+        </>,
+        [Tab.ANNOTATE] : <>
+          {interactionConstraintSelectHtmlElement}
+          {rightClickMenuOptionsMenu}
+        </>,
+        [Tab.SETTINGS] : <>
+          <button
+            onClick = {function() {
+              (settingsFileUploadHtmlInputReference.current as HTMLInputElement).click();
+            }}
+          >
+            Upload
+          </button>
+          <input
+            style = {{
+              display : "none"
+            }}
+            ref = {settingsFileUploadHtmlInputReference}
+            type = "file"
+            accept = ".json"
+            onChange = {function(e) {
+              let files = e.target.files;
+              if (files === null || files.length === 0) {
+                return;
+              }
+              let reader = new FileReader();
+              reader.addEventListener("load", function(event) {
+                // Read the content of the settings file.
+                let settingsJson = JSON.parse((event.target as FileReader).result as string);
+                let keys = Object.keys(settingsJson);
+                let formatCheckPassedFlag = true;
+                for (let key of keys) {
+                  if (!(settings as Array<string>).includes(key) || (typeof settingsJson[key] !== settingsTypeMap[key as Setting])) {
+                    alert("Parsing the uploaded settings file failed. The content of that file is unrecognized.");
+                    formatCheckPassedFlag = false;
+                    break;
+                  }
+                }
+                if (formatCheckPassedFlag) {
+                  let updatedSettings : Partial<SettingsRecord> = {};
+                  for (let key of keys) {
+                    updatedSettings[key as Setting] = settingsJson[key];
+                  }
+                  setSettingsRecord({
+                    ...settingsRecord,
+                    ...updatedSettings
+                  });
+                }
+              });
+              reader.readAsText(files[0] as File);
+            }}
+          />
+          <button
+            onClick = {function() {
+              let settingsFileDownloadHtmlAnchor = settingsFileDownloadHtmlAnchorReference.current as HTMLAnchorElement;
+              let settingsObject : Partial<SettingsRecord> = {};
+              for (let key of settings) {
+                settingsObject[key] = settingsRecord[key];
+              }
+              settingsFileDownloadHtmlAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(JSON.stringify(settingsObject))}`;
+              settingsFileDownloadHtmlAnchor.click();
+            }}
+          >
+            Download
+          </button>
+          <a
+            ref = {settingsFileDownloadHtmlAnchorReference}
+            style = {{
+              display : "none"
+            }}
+            download = {`${XRNA_SETTINGS_FILE_NAME}.json`}
+          />
+          <br/>
+          {settings.map(function(setting : Setting, index : number) {
+            let input : JSX.Element = <></>;
+            switch (settingsTypeMap[setting]) {
+              case "boolean" : {
+                input = <input
+                  type = "checkbox"
+                  checked = {settingsRecord[setting] as boolean}
+                  onChange = {function() {
+                    setSettingsRecord({
+                      ...settingsRecord,
+                      [setting] : !settingsRecord[setting]
+                    });
+                  }}
+                />;
+                break;
+              }
+              case "number" : {
+                input = <InputWithValidator.Number
+                  value = {settingsRecord[setting] as number}
+                  setValue = {function(newValue : number) {
+                    setSettingsRecord({
+                      ...settingsRecord,
+                      [setting] : newValue
+                    });
+                  }}
+                />;
+                break;
+              }
+              case "BasePairsEditorType" : {
+                input = <BasePairsEditor.EditorTypeSelector.Component
+                  editorType = {settingsRecord[setting] as BasePairsEditor.EditorType}
+                  onChange = {function(newEditorType : BasePairsEditor.EditorType) {
+                    setSettingsRecord({
+                      ...settingsRecord,
+                      [setting] : newEditorType
+                    });
+                  }}
+                />;
+                break;
+              }
+              default : {
+                throw "Unhandled switch case.";
+              }
+            }
+            return <Fragment
+              key = {index}
+            >
+              <label
+                title = {settingsLongDescriptionsMap[setting]}
+              >
+                {settingsShortDescriptionsMap[setting]}:&nbsp;
+                {input}
+              </label>
+              <br/>
+            </Fragment>;
+          })}
+        </>,
+        [Tab.ABOUT] : <>
+          <Collapsible.Component
+            title = "Getting Started"
+          >
+            <ol
+              style = {{
+                margin : 0
+              }}
+            >
+              <li>
+                <label>
+                  To begin working with XRNA, you need an input file:&nbsp;
+                  <button
+                    onClick = {function() {
+                      const downloadAnchor = downloadSampleInputFileHtmlAnchorReference.current as HTMLAnchorElement;
+                      downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(SAMPLE_XRNA_FILE)}`;
+                      downloadAnchor.click();
+                    }}
+                  >Download</button>
+                  <a
+                    style = {{
+                      display : "none"
+                    }}
+                    ref = {downloadSampleInputFileHtmlAnchorReference}
+                    download = "example.xrna"
+                  />
+                </label>
+              </li>
+              <li>
+                Now that you have an input file, navigate to the "{Tab.INPUT_OUTPUT}" tab to upload it. It should take just a few seconds for the program to import its data.
+                <br/>
+              </li>
+              <li>
+                Once the data is imported, you can continue work in several different ways:
+                <ul>
+                  <li>Download its data to a different file</li>
+                  <li>Edit its data (e.g. positions)</li>
+                  <li>Add/remove/edit base base pairs</li>
+                  <li>Add/remove annotations</li>
+                  <li>Open a different input file.</li>
+                </ul>
+                For explanation of these, read the relevant section of the "{Tab.ABOUT}" tab.
+              </li>
+            </ol>
+          </Collapsible.Component>
+          {tabs.map(function(tabI) {
+            let content = <></>;
+            if (tabI !== Tab.ABOUT) {
+              content = <Collapsible.Component
+                title = {`The ${tabI} tab`}
+              >
+                {tabInstructionsRecord[tabI]}
+              </Collapsible.Component>;
+            }
+            return <Fragment
+              key = {tabI}
+            >
+              {content}
+            </Fragment>;
+          })}
+          <Collapsible.Component
+            title = "How to cite XRNA"
+          >
+            This version of XRNA (written in JavaScript) is currently unpublished. Once it becomes published, citation instructions will replace this text block.
+          </Collapsible.Component>
+          <Collapsible.Component
+            title = "Contact us"
+          >
+            <a
+              href = "https://www.linkedin.com/in/caedenmeade/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Message the developer
+            </a>
+            <br/>
+            <a
+              href = "https://github.com/LDWLab/XRNA-React/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Report a bug
+            </a>
+          </Collapsible.Component>
+        </>
+      };
+      return tabRenderRecord;
+    },
+    [
+      outputFileName,
+      outputFileExtension,
+      downloadButtonErrorMessage,
+      uploadInputFileUI,
+      interactionConstraintSelectHtmlElement,
+      viewportTranslateX,
+      viewportTranslateY,
+      viewportScaleExponent,
+      viewportScale,
+      flattenedRnaComplexPropsLength
+    ]
+  );
+  const renderedTabs = useMemo(
+    function() {
+      const tab = tabReference.current as Tab;
+      return <>
+        {tabs.map(function(tabI : Tab) {
+          const color = tab === tabI ? "#add8e6" : "#ccc";
+          return <button
+            style = {{
+              border : `1px solid ${color}`,
+              backgroundColor : color
+            }}
+            key = {tabI}
+            onClick = {function() {
+              setTab(tabI);
+            }}
+          >
+            {tabI}
+          </button>
+        })}
+        <br/>
+        {tabs.map(function(tabI : Tab) {
+          return <div
+            key = {tabI}
+            style = {{
+              display : tab === tabI ? "block" : "none"
+            }}
+          >
+            {tabRenderRecord[tabI]}
+          </div>;
+        })}
+      </>;
+    },
+    [
+      tab,
+      tabRenderRecord
+    ]
+  );
+  const onKeyDown = useMemo(
+    function() {
+      return function(event : React.KeyboardEvent<Element>) {
+        switch (event.key) {
+          case "s" : {
+            if (event.ctrlKey) {
+              event.preventDefault();
+              if (downloadButtonErrorMessage == "") {
+                (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement).click();
+              } else {
+                alert(downloadButtonErrorMessage);
+              }
+            }
+            break;
+          }
+          case "o" : {
+            if (event.ctrlKey) {
+              event.preventDefault();
+              (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
+            }
+            break;
+          }
+          case "0" : {
+            if (event.ctrlKey) {
+              event.preventDefault();
+              resetViewport();
+            }
+            break;
+          }
+        }
+      }
+    },
+    [
+      uploadInputFileHtmlInputReference.current,
+      downloadOutputFileHtmlButtonReference.current,
+      downloadButtonErrorMessage
+    ]
+  );
   // Begin effects.
   useEffect(
     function() {
@@ -1149,7 +2134,6 @@ function App() {
         }
         basePairKeysToRerenderPerRnaComplex.sort(compareBasePairKeys);
       }
-      // setNucleotideKeysToRerender(nucleotideKeysToRerender);
       setBasePairKeysToRerender(basePairKeysToRerender);
     },
     [basePairKeysToEdit]
@@ -1191,676 +2175,6 @@ function App() {
     },
     [rightClickMenuContent]
   );
-  // Begin render data.
-  const interactionConstraintSelectHtmlElement = <>
-    {INTERACTION_CONSTRAINT_TEXT}:&nbsp;
-    <select
-      value = {interactionConstraint}
-      onChange = {function(e) {
-        const newInteractionConstraint = e.target.value as InteractionConstraint.Enum;
-        setInteractionConstraint(newInteractionConstraint);
-        if (newInteractionConstraint in InteractionConstraint.optionsMenuRecord) {
-          setRightClickMenuOptionsMenu(createElement(
-            InteractionConstraint.optionsMenuRecord[newInteractionConstraint] as FunctionComponent<{}>,
-            {}
-          ));
-        } else {
-          setRightClickMenuOptionsMenu(<></>);
-        }
-      }}
-    >
-      <option
-        style = {{
-          display : "none"
-        }}
-        value = {undefined}
-      >
-        Select an interaction constraint.
-      </option>
-      {InteractionConstraint.all.map(function(interactionConstraint : InteractionConstraint.Enum) {
-        return (<option
-          key = {interactionConstraint}
-          value = {interactionConstraint}
-        >
-          {interactionConstraint}
-        </option>);
-      })}
-    </select>
-    <br/>
-  </>;
-  const tabInstructionsRecord : Record<Tab, JSX.Element> = {
-    [Tab.INPUT_OUTPUT] : <>
-      Here, you can:
-      <br/>
-      <ul
-        style = {{
-          margin : 0
-        }}
-      >
-        <li>
-          Upload input files
-        </li>
-        <li>
-          Download output files
-        </li>
-      </ul>
-      Together, these processes enable conversion between file formats.
-      <Collapsible.Component
-        title = "How to upload input files"
-      >
-        <ol
-          style = {{
-            margin : 0
-          }}
-        >
-          <li>
-            Click the "{UPLOAD_BUTTON_TEXT}" button.
-          </li>
-          <li>
-            Select one of the following supported input-file formats:
-            <ul
-              style = {{
-                margin : 0
-              }}
-            >
-              {inputFileExtensions.map(function(
-                inputFileExtension,
-                index
-              ) {
-                return <Fragment
-                  key = {index}
-                >
-                  <li>
-                    .{inputFileExtension} - {fileExtensionDescriptions[inputFileExtension]}
-                  </li>
-                </Fragment>
-              })}
-            </ul>
-          </li>
-          <li>
-            Upload the file.
-          </li>
-        </ol>
-      </Collapsible.Component>
-      <Collapsible.Component
-        title = "How to download output files"
-      >
-        Within the "{DOWNLOAD_ROW_TEXT}" row:
-        <ol
-          style = {{
-            margin : 0
-          }}
-        >
-          <li>
-            Provide an output-file name.
-          </li>
-          <li>
-            Select one of the following supported output-file formats:
-            <ul
-              style = {{
-                margin : 0
-              }}
-            >
-              {outputFileExtensions.map(function(
-                outputFileExtension,
-                index
-              ) {
-                return <Fragment
-                  key = {index}
-                >
-                  <li>
-                    .{outputFileExtension} - {fileExtensionDescriptions[outputFileExtension]}
-                  </li>
-                </Fragment>
-              })}
-            </ul>
-          </li>
-          <li>
-            Click the "{DOWNLOAD_BUTTON_TEXT}" button
-          </li>
-        </ol>
-      </Collapsible.Component>
-    </>,
-    [Tab.VIEWPORT] : <>
-      Here, you can manipulate the viewport with precision.
-      <br/>
-      To clarify, the viewport is the main component of XRNA. Within it, interactive RNA diagrms are displayed.
-      <Collapsible.Component
-        title = {TRANSLATION_TEXT}
-      >
-        {`"${TRANSLATION_TEXT}" refers to the 2D displacement of the entire viewport. It is synchronized with click-and-drag within the viewport.`}
-        <ul
-          style = {{
-            margin : 0
-          }}
-        >
-          <li>
-            x: The horizontal displacement. Rightward displacement is positive; leftward is negative.
-          </li>
-          <li>
-            y: The vertical displacement. Upward displacement is positive; downward is negative.
-          </li>
-        </ul>
-      </Collapsible.Component>
-      <Collapsible.Component
-        title = {SCALE_TEXT}
-      >
-        <ul
-          style = {{
-            margin : 0
-          }}
-        >
-          <li>
-            "{SCALE_TEXT}" refers to the "in-and-out zoom" of the entire viewport. It is synchronized with the mousewheel within the viewport.
-          </li>
-          <li>
-            Scrolling up with the mouse wheel increases zoom; this means zooming in. Scrolling down does the opposite.
-          </li>
-        </ul>
-      </Collapsible.Component>
-    </>,
-    [Tab.EDIT] : <>
-      Here, you can edit nucleotide data which has been uploaded and is displayed within the viewport.
-      <ol
-        style = {{
-          margin : 0
-        }}
-      >
-        <li>
-          Select a constraint. This selects the set of tools which you will use to edit data.
-        </li>
-        <li>
-          Navigate within the viewport to the portion of the scene you plan to edit.
-        </li>
-        <li>
-          Next, do one of the following:
-          <ul
-            style = {{
-              margin : 0
-            }}
-          >
-            <li>
-              Left-click on a nucleotide. Drag it to change relevant nucleotide data, according to the behavior of the constraint.
-            </li>
-            <li>
-              Right-click on a nucleotide. This will populate a right-hand menu, which will allow you precisely edit data.
-            </li>
-          </ul>
-          <Collapsible.Component
-            title = "Notes"
-          >
-            <ul>
-              <li>
-                Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
-              </li>
-              <li>
-                Other constraints have more restrictive usage requirements.
-              </li>
-              <li>
-                Annotations may be edited in the same exact way as nucleotides / nucleotide regions (described above).
-              </li>
-              <li>
-                Annotations are not present in some input files, but they can be added within the "{Tab.ANNOTATE}" tab.
-              </li>
-            </ul>
-          </Collapsible.Component>
-        </li>
-      </ol>
-    </>,
-    [Tab.FORMAT] : <>
-      Here, you can add, delete, or edit base pairs.
-      <ol
-        style = {{
-          margin : 0
-        }}
-      >
-        <li>
-          Select a constraint. This selects the set of tools which you will use to format base-pair data.
-        </li>
-        <li>
-          Navigate within the viewport to the portion of the scene you plan to edit.
-        </li>
-        <li>
-          Right-click on a nucleotide. This will populate a right-hand menu, which will allow you to format base-pair data.
-        </li>
-      </ol>
-      <Collapsible.Component
-        title = "Notes"
-      >
-        <ul
-          style = {{
-            margin : 0
-          }}
-        >
-          <li>
-            Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
-          </li>
-          <li>
-            Other constraints have more restrictive usage requirements.
-          </li>
-        </ul>
-      </Collapsible.Component>
-    </>,
-    [Tab.ANNOTATE] : <>
-      Here, you can add, delete, or edit annotations.
-      <br/>
-      Annotations include:
-      <ul
-        style = {{
-          margin : 0
-        }}
-      >
-        <li>Label content</li>
-        <li>label lines</li>
-      </ul>
-       <b>
-        This tab is not yet implemented.
-      </b>
-    </>,
-    [Tab.SETTINGS] : <>
-      Here, you can change settings which regulate how XRNA behaves.
-      <br/>
-      Support for saving your settings is implemented by the pair of upload/download buttons. 
-      <br/>
-      Store the "{XRNA_SETTINGS_FILE_NAME}" file somewhere you will remember for later use.
-    </>,
-    // Show nothing.
-    [Tab.ABOUT] : <></>
-  };
-  const tabRenderRecord : Record<Tab, JSX.Element> = {
-    [Tab.INPUT_OUTPUT] : <>
-      <label>
-        Input File:&nbsp;
-        <input
-          ref = {uploadInputFileHtmlInputReference}
-          style = {{
-            display : "none"
-          }}
-          type = "file"
-          accept = {inputFileExtensions.map(function(inputFileExtension : InputFileExtension) {
-            return "." + inputFileExtension;
-          }).join(",")}
-          onChange = {function(e) {
-            let files = e.target.files;
-            if (files === null || files.length === 0) {
-              return;
-            }
-            setSceneState(SceneState.DATA_IS_LOADING);
-            let file = files[0];
-            let inputFileNameAndExtension = file.name;
-            setInputFileNameAndExtension(inputFileNameAndExtension);
-            let regexMatch = /^(.*)\.(.+)$/.exec(inputFileNameAndExtension) as RegExpExecArray;
-            let fileName = regexMatch[1];
-            let fileExtension = regexMatch[2];
-            if (settingsRecord[Setting.SYNC_FILE_NAME]) {
-              setOutputFileName(fileName);
-            }
-            if (settingsRecord[Setting.SYNC_FILE_EXTENSION] && (fileExtension in outputFileWritersMap)) {
-              setOutputFileExtension(fileExtension as OutputFileExtension);
-            }
-            let reader = new FileReader();
-            reader.addEventListener("load", function(event) {
-              // Read the content of the settings file.
-              parseInputFileContent(
-                (event.target as FileReader).result as string,
-                fileExtension.toLocaleLowerCase() as InputFileExtension
-              );
-            });
-            reader.readAsText(files[0] as File);
-          }}
-          onClick = {function(e) {
-            e.currentTarget.value = "";
-          }}
-        />
-      </label>
-      <button
-        onClick = {function() {
-          (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
-        }}
-      >
-        {UPLOAD_BUTTON_TEXT}
-      </button>
-      <em>
-        {inputFileNameAndExtension}
-      </em>
-      <br/>
-      <label>
-        {DOWNLOAD_ROW_TEXT}:&nbsp;
-        <input
-          type = "text"
-          placeholder = "output_file_name"
-          value = {outputFileName}
-          onChange = {function(e) {
-            setOutputFileName(e.target.value);
-          }}
-        />
-      </label>
-      <select
-        value = {outputFileExtension}
-        onChange = {function(e) {
-          setOutputFileExtension(e.target.value as OutputFileExtension);
-        }}
-      >
-        <option
-          style = {{
-            display : "none"
-          }}
-          value = {""}
-        >
-          .file_extension
-        </option>
-        {outputFileExtensions.map(function(outputFileExtension : OutputFileExtension, index : number) {
-          return <option
-            key = {index}
-            value = {outputFileExtension}
-          >
-            .{outputFileExtension}
-          </option>;
-        })}
-      </select>
-      <button
-        ref = {downloadOutputFileHtmlButtonReference}
-        onClick = {function() {
-          const downloadAnchor = downloadOutputFileHtmlAnchorReference.current as HTMLAnchorElement;
-          downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(outputFileWritersMap[outputFileExtension as OutputFileExtension](
-            rnaComplexProps,
-            complexDocumentName
-          ))}`;
-          downloadAnchor.click();
-        }}
-        disabled = {downloadButtonErrorMessage !== ""}
-        title = {downloadButtonErrorMessage}
-      >
-        {DOWNLOAD_BUTTON_TEXT}
-      </button>
-      <a
-        ref = {downloadOutputFileHtmlAnchorReference}
-        style = {{
-          display : "none"
-        }}
-        download = {`${outputFileName}.${outputFileExtension}`}
-      />
-    </>,
-    [Tab.VIEWPORT] : <>
-      <b>
-        {TRANSLATION_TEXT}:
-      </b>
-      <br/>
-      <label>
-        x:&nbsp;
-        <InputWithValidator.Number
-          value = {viewportTranslateX}
-          setValue = {setViewportTranslateX}
-        />
-      </label>
-      <br/>
-      <label>
-        y:&nbsp;
-        <InputWithValidator.Number
-          value = {viewportTranslateY}
-          setValue = {setViewportTranslateY}
-        />
-      </label>
-      <br/>
-      <b>
-        {SCALE_TEXT}:&nbsp;
-      </b>
-      <br/>
-      <input
-        type = "range"
-        value = {viewportScaleExponent}
-        onChange = {function(e) {
-          const newScaleExponent = Number.parseInt(e.target.value);
-          setViewportScaleExponent(newScaleExponent);
-          setViewportScale(Math.pow(SCALE_BASE, newScaleExponent));
-        }}
-        min = {-50}
-        max = {50}
-      />
-      <InputWithValidator.Number
-        value = {viewportScale}
-        setValue = {function(newViewportScale : number) {
-          setViewportScale(newViewportScale);
-          // scale = SCALE_BASE ^ scaleExponent
-          // log(scale) = log(SCALE_BASE ^ scaleExponent)
-          // log(scale) = scaleExponent * log(SCALE_BASE)
-          // log(scale) / log(SCALE_BASE) = scaleExponent
-          if (newViewportScale > 0) {
-            setViewportScaleExponent(Math.log(newViewportScale) * ONE_OVER_LOG_OF_SCALE_BASE);
-          }
-        }}
-      />
-      <br/>
-      <button
-        onClick = {resetViewport}
-      >
-        Reset
-      </button>
-    </>,
-    [Tab.EDIT] : <>
-      {interactionConstraintSelectHtmlElement}
-
-      {rightClickMenuOptionsMenu}
-    </>,
-    [Tab.FORMAT] : <>
-      {interactionConstraintSelectHtmlElement}
-      {rightClickMenuOptionsMenu}
-    </>,
-    [Tab.ANNOTATE] : <>
-      {interactionConstraintSelectHtmlElement}
-      {rightClickMenuOptionsMenu}
-    </>,
-    [Tab.SETTINGS] : <>
-      <button
-        onClick = {function() {
-          (settingsFileUploadHtmlInputReference.current as HTMLInputElement).click();
-        }}
-      >
-        Upload
-      </button>
-      <input
-        style = {{
-          display : "none"
-        }}
-        ref = {settingsFileUploadHtmlInputReference}
-        type = "file"
-        accept = ".json"
-        onChange = {function(e) {
-          let files = e.target.files;
-          if (files === null || files.length === 0) {
-            return;
-          }
-          let reader = new FileReader();
-          reader.addEventListener("load", function(event) {
-            // Read the content of the settings file.
-            let settingsJson = JSON.parse((event.target as FileReader).result as string);
-            let keys = Object.keys(settingsJson);
-            let formatCheckPassedFlag = true;
-            for (let key of keys) {
-              if (!(settings as Array<string>).includes(key) || (typeof settingsJson[key] !== settingsTypeMap[key as Setting])) {
-                alert("Parsing the uploaded settings file failed. The content of that file is unrecognized.");
-                formatCheckPassedFlag = false;
-                break;
-              }
-            }
-            if (formatCheckPassedFlag) {
-              let updatedSettings : Partial<Record<Setting, SettingValue>> = {};
-              for (let key of keys) {
-                updatedSettings[key as Setting] = settingsJson[key];
-              }
-              setSettingsRecord({
-                ...settingsRecord,
-                ...updatedSettings
-              });
-            }
-          });
-          reader.readAsText(files[0] as File);
-        }}
-      />
-      <button
-        onClick = {function() {
-          let settingsFileDownloadHtmlAnchor = settingsFileDownloadHtmlAnchorReference.current as HTMLAnchorElement;
-          let settingsObject : Partial<Record<Setting, SettingValue>> = {};
-          for (let key of settings) {
-            settingsObject[key] = settingsRecord[key];
-          }
-          settingsFileDownloadHtmlAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(JSON.stringify(settingsObject))}`;
-          settingsFileDownloadHtmlAnchor.click();
-        }}
-      >
-        Download
-      </button>
-      <a
-        ref = {settingsFileDownloadHtmlAnchorReference}
-        style = {{
-          display : "none"
-        }}
-        download = {`${XRNA_SETTINGS_FILE_NAME}.json`}
-      />
-      <br/>
-      {settings.map(function(setting : Setting, index : number) {
-        let input : JSX.Element = <></>;
-        switch (settingsTypeMap[setting]) {
-          case "boolean" : {
-            input = <input
-              type = "checkbox"
-              checked = {settingsRecord[setting] as boolean}
-              onChange = {function() {
-                setSettingsRecord({
-                  ...settingsRecord,
-                  [setting] : !settingsRecord[setting]
-                });
-              }}
-            />;
-            break;
-          }
-          case "number" : {
-            input = <InputWithValidator.Number
-              value = {settingsRecord[setting] as number}
-              setValue = {function(newValue : number) {
-                setSettingsRecord({
-                  ...settingsRecord,
-                  [setting] : newValue
-                });
-              }}
-            />;
-            break;
-          }
-          case "BasePairsEditorType" : {
-            input = <BasePairsEditor.EditorTypeSelector.Component
-              editorType = {settingsRecord[setting] as BasePairsEditor.EditorType}
-              onChange = {function(newEditorType : BasePairsEditor.EditorType) {
-                setSettingsRecord({
-                  ...settingsRecord,
-                  [setting] : newEditorType
-                });
-              }}
-            />;
-            break;
-          }
-          default : {
-            throw "Unhandled switch case.";
-          }
-        }
-        return <Fragment
-          key = {index}
-        >
-          <label
-            title = {settingsLongDescriptionsMap[setting]}
-          >
-            {settingsShortDescriptionsMap[setting]}:&nbsp;
-            {input}
-          </label>
-          <br/>
-        </Fragment>;
-      })}
-    </>,
-    [Tab.ABOUT] : <>
-      <Collapsible.Component
-        title = "Getting Started"
-      >
-        <ol
-          style = {{
-            margin : 0
-          }}
-        >
-          <li>
-            <label>
-              To begin working with XRNA, you need an input file:&nbsp;
-              <button
-                onClick = {function() {
-                  const downloadAnchor = downloadSampleInputFileHtmlAnchorReference.current as HTMLAnchorElement;
-                  downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(SAMPLE_XRNA_FILE)}`;
-                  downloadAnchor.click();
-                }}
-              >Download</button>
-              <a
-                style = {{
-                  display : "none"
-                }}
-                ref = {downloadSampleInputFileHtmlAnchorReference}
-                download = "example.xrna"
-              />
-            </label>
-          </li>
-          <li>
-            Now that you have an input file, navigate to the "{Tab.INPUT_OUTPUT}" tab to upload it. It should take just a few seconds for the program to import its data.
-            <br/>
-          </li>
-          <li>
-            Once the data is imported, you can continue work in several different ways:
-            <ul>
-              <li>Download its data to a different file</li>
-              <li>Edit its data (e.g. positions)</li>
-              <li>Add/remove/edit base base pairs</li>
-              <li>Add/remove annotations</li>
-              <li>Open a different input file.</li>
-            </ul>
-            For explanation of these, read the relevant section of the "{Tab.ABOUT}" tab.
-          </li>
-        </ol>
-      </Collapsible.Component>
-      {tabs.map(function(tabI) {
-        let content = <></>;
-        if (tabI !== Tab.ABOUT) {
-          content = <Collapsible.Component
-            title = {`The ${tabI} tab`}
-          >
-            {tabInstructionsRecord[tabI]}
-          </Collapsible.Component>;
-        }
-        return <Fragment
-          key = {tabI}
-        >
-          {content}
-        </Fragment>;
-      })}
-      <Collapsible.Component
-        title = "How to cite XRNA"
-      >
-        This version of XRNA (written in JavaScript) is currently unpublished. Once it becomes published, citation instructions will replace this text block.
-      </Collapsible.Component>
-      <Collapsible.Component
-        title = "Contact us"
-      >
-        <a
-          href = "https://www.linkedin.com/in/caedenmeade/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Message the developer
-        </a>
-        <br/>
-        <a
-          href = "https://github.com/LDWLab/XRNA-React/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Report a bug
-        </a>
-      </Collapsible.Component>
-    </>
-  };
   return <Context.BasePair.AverageDistances.Provider
     value = {basePairAverageDistances}
   >
@@ -1877,12 +2191,7 @@ function App() {
             value = {interactionConstraintOptions}
           >
             <Context.App.UpdateInteractionConstraintOptions.Provider
-              value = {function(newInteractionConstraintOptions) {
-                setInteractionConstraintOptions({
-                  ...interactionConstraintOptions,
-                  ...newInteractionConstraintOptions
-                });
-              }}
+              value = {updateInteractionConstraintOptions}
             >
               <Context.Nucleotide.SetKeysToRerender.Provider
                 value = {setNucleotideKeysToRerender}
@@ -1934,32 +2243,7 @@ function App() {
                                 verticalAlign : "top"
                               }}
                             >
-                              {tabs.map(function(tabI : Tab) {
-                                const color = tab === tabI ? "#add8e6" : "#ccc";
-                                return <button
-                                  style = {{
-                                    border : `1px solid ${color}`,
-                                    backgroundColor : color
-                                  }}
-                                  key = {tabI}
-                                  onClick = {function() {
-                                    setTab(tabI);
-                                  }}
-                                >
-                                  {tabI}
-                                </button>
-                              })}
-                              <br/>
-                              {tabs.map(function(tabI : Tab) {
-                                return <div
-                                  key = {tabI}
-                                  style = {{
-                                    display : tab === tabI ? "block" : "none"
-                                  }}
-                                >
-                                  {tabRenderRecord[tabI]}
-                                </div>;
-                              })}
+                              {renderedTabs}
                               {sceneState === SceneState.NO_DATA && <>
                                 <b
                                   style = {{
@@ -2024,55 +2308,9 @@ function App() {
                             xmlns = "http://www.w3.org/2000/svg"
                             viewBox = {`0 0 ${parentDivResizeDetector.width ?? 0} ${svgHeight}`}
                             tabIndex = {1}
-                            onMouseDown = {function(e) {
-                              switch (e.button) {
-                                case MouseButtonIndices.Left : {
-                                  setOriginOfDrag({
-                                    x : e.clientX,
-                                    y : e.clientY
-                                  });
-                                  break;
-                                }
-                              }
-                            }}
-                            onMouseMove = {function(e) {
-                              if (dragListener !== null) {
-                                const translation = subtract(
-                                  {
-                                    x : e.clientX,
-                                    y : e.clientY
-                                  },
-                                  originOfDrag
-                                );
-                                translation.y = -translation.y;
-                                dragListener.continueDrag(
-                                  add(
-                                    dragCache,
-                                    scaleDown(
-                                      translation,
-                                      viewportScale * sceneBoundsScaleMin
-                                    )
-                                  ),
-                                  repositionAnnotationsFlag
-                                );
-                                if (triggerRightClickMenuFlag) {
-                                  setResetRightClickMenuDataTrigger(!resetRightClickMenuDataTrigger);
-                                  setResetOrientationDataTrigger(!resetOrientationDataTrigger);
-                                }
-                              }
-                              e.preventDefault();
-                            }}
-                            onMouseUp = {function(e) {
-                              if (dragListener !== null) {
-                                if (dragListener.terminateDrag !== undefined) {
-                                  dragListener.terminateDrag();
-                                }
-                                setDragListener(
-                                  null,
-                                  {}
-                                );
-                              }
-                            }}
+                            onMouseDown = {onMouseDown}
+                            onMouseMove = {onMouseMove}
+                            onMouseUp = {onMouseUp}
                             onMouseLeave = {function() {
                               setDragListener(
                                 null,
@@ -2082,27 +2320,7 @@ function App() {
                             onContextMenu = {function(event) {
                               event.preventDefault();
                             }}
-                            onWheel = {function(e) {
-                              // Apparently, the sign of <event.deltaY> needs to be negated in order to support intuitive scrolling...
-                              let newScaleExponent = viewportScaleExponent - sign(e.deltaY);
-                              let newScale = Math.pow(SCALE_BASE, newScaleExponent);
-                              setViewportScale(newScale);
-                              setViewportScaleExponent(newScaleExponent);
-                              let uiVector = {
-                                x : e.clientX,
-                                y : e.clientY - (toolsDivResizeDetector.height ?? 0) - DIV_BUFFER_HEIGHT
-                              };
-                              let reciprocal = totalScale.negativeScale;
-                              let inputVector = {
-                                x : uiVector.x * reciprocal + sceneBounds.x - viewportTranslateX,
-                                y : uiVector.y * reciprocal - sceneBounds.y + viewportTranslateY - sceneBounds.height
-                              };
-                              reciprocal = 1 / (newScale * sceneBoundsScaleMin);
-                              let newOriginDeltaX = uiVector.x * reciprocal - inputVector.x + sceneBounds.x;
-                              let newOriginDeltaY = -(uiVector.y * reciprocal - inputVector.y - sceneBounds.y - sceneBounds.height);
-                              setViewportTranslateX(newOriginDeltaX);
-                              setViewportTranslateY(newOriginDeltaY);
-                            }}
+                            onWheel = {onWheel}
                           >
                             <rect
                               width = "100%"
@@ -2165,7 +2383,7 @@ function App() {
                               whiteSpace : "nowrap"
                             }}
                             id = {TEST_SPACE_ID}
-                          ></div>
+                          />
                         </div>
                       </Context.BasePair.SetKeysToEdit.Provider>
                     </Context.App.UpdateRnaMoleculeNameHelper.Provider>
