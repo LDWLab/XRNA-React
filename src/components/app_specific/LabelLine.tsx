@@ -131,11 +131,13 @@ export namespace LabelLine {
             );
           }}
           onMouseOver = {function() {
-            conditionallySetStroke(function(newStroke : string) {
-              setPointStrokes({
-                ...pointStrokes,
-                [pointIndex] : newStroke
-              });
+            conditionallySetStroke(
+              pointStrokes[pointIndex],
+              function(newStroke : string) {
+                setPointStrokes({
+                  ...pointStrokes,
+                  [pointIndex] : newStroke
+                });
             });
           }}
           onMouseLeave = {function() {
@@ -162,7 +164,10 @@ export namespace LabelLine {
           e.preventDefault();
         }}
         onMouseOver = {function(e) {
-          conditionallySetStroke(setBodyStroke);
+          conditionallySetStroke(
+            bodyStroke,
+            setBodyStroke
+          );
         }}
         onMouseLeave = {function() {
           setBodyStroke("none");

@@ -95,18 +95,18 @@ export function fromNumber(_number : number, colorFormat : ColorFormat = ColorFo
     3 : (_number >>> 24) & 255
   };
   let byteMap = byteMaps[colorFormat];
-  let fromHexadecimal : Color = {
+  let fromNumber : Color = {
     red : splitBits[byteMap.red],
     green : splitBits[byteMap.green],
     blue : splitBits[byteMap.blue]
   };
   if (byteMap.alpha !== undefined) {
-    fromHexadecimal = {
-      ...fromHexadecimal,
+    fromNumber = {
+      ...fromNumber,
       alpha : splitBits[byteMap.alpha]
     };
   }
-  return fromHexadecimal;
+  return fromNumber;
 }
 
 export function toNumber(color : Color, colorFormat : ColorFormat) : number {
@@ -132,9 +132,16 @@ export function toHexadecimal(
   return "0".repeat(2 * colorFormat.length - withoutPadding.length) + withoutPadding;
 }
 
+export enum HandleUndefined {
+  THROW_ERROR = "throw error",
+  RETURN_BLACK = "return black",
+  RETURN_TRANSPARENT = "return transparent"
+};
+
 export function fromCssString(
   cssString : string,
-  colorFormat : ColorFormat = ColorFormat.RGB
+  colorFormat : ColorFormat = ColorFormat.RGB,
+  handleUndefined : HandleUndefined = HandleUndefined.RETURN_BLACK
 ) : Color {
   let match = /^rgb\((\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})\)$/.exec(cssString);
   if (match !== null) {
@@ -159,6 +166,34 @@ export function fromCssString(
       Number.parseInt(match[0]),
       colorFormat
     );
+  }
+  match = /^#[abcdefABCDEF\d]+$/.exec(cssString);
+  if (match !== null) {
+    return fromHexadecimal(
+      cssString,
+      colorFormat
+    );
+  }
+  if (cssString === "undefined") {
+    switch (handleUndefined) {
+      case HandleUndefined.RETURN_BLACK : {
+        return BLACK;
+      }
+      case HandleUndefined.RETURN_TRANSPARENT : {
+        return {
+          red : 0,
+          green : 0,
+          blue : 0,
+          alpha : 0
+        };
+      }
+      case HandleUndefined.THROW_ERROR : {
+        throw `Unsupported color literal "${cssString}"`;
+      }
+      default : {
+        throw "Unhandled switch case";
+      }
+    }
   }
   switch (cssString) {
     case "black" : {

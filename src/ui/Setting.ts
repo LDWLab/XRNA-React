@@ -60,7 +60,9 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairs
 
 export type SettingValue = boolean | number | BasePairsEditor.EditorType;
 
-export const DEFAULT_SETTINGS : Record<Setting, SettingValue> = {
+export type SettingsRecord = Record<Setting, SettingValue>;
+
+export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.SYNC_FILE_NAME] : true,
   [Setting.SYNC_FILE_EXTENSION] : true,
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : true,

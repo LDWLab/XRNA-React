@@ -62,13 +62,14 @@ export namespace Nucleotide {
       y,
       symbol,
       labelContentProps,
-      labelLineProps
+      labelLineProps,
+      scaffoldingKey
     } = props;
     // Begin context data.
     const rnaComplexIndex = useContext(Context.RnaComplex.Index);
     const rnaComplexName = useContext(Context.RnaComplex.Name);
     const rnaMoleculeName = useContext(Context.RnaMolecule.Name);
-    const nucleotideIndex = props.scaffoldingKey;
+    const nucleotideIndex = scaffoldingKey;
     const fullKeys = {
       nucleotideIndex,
       rnaMoleculeName,
@@ -151,12 +152,17 @@ export namespace Nucleotide {
           );
         }}
         onMouseOver = {function(e : React.MouseEvent<Nucleotide.SvgRepresentation>) {
-          conditionallySetStroke(setStroke);
+          conditionallySetStroke(
+            stroke,
+            setStroke
+          );
           setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
         }}
         onMouseLeave = {function() {
           setMouseOverText("");
-          setStroke("none");
+          if (stroke !== "none") {
+            setStroke("none");
+          }
         }}
       >
         {symbol}

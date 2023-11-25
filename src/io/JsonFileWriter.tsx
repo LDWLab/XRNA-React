@@ -23,7 +23,8 @@ type BasePairForJson = {
   basePairType : BasePair.Type,
   classes : Array<string>,
   residueIndex1 : number,
-  residueIndex2 : number
+  residueIndex2 : number,
+  points? : Array<Vector2D>
 };
 
 type LabelForJson = {
@@ -143,6 +144,7 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
               singularRnaMoleculeProps.nucleotideProps[nucleotideIndex].symbol,
               singularRnaComplexProps.rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName].nucleotideProps[mappedBasePairInformation.nucleotideIndex].symbol
             );
+            const points = mappedBasePairInformation.points;
             handleStrokeCss({
               strokeWidth : mappedBasePairInformation.strokeWidth ?? DEFAULT_STROKE_WIDTH,
               stroke : mappedBasePairInformation.color ?? BLACK
@@ -154,7 +156,8 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
               basePairType,
               classes : basePairsCssClasses[nucleotideIndex],
               residueIndex1 : singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndex,
-              residueIndex2 : singularRnaMoleculeProps.firstNucleotideIndex + mappedBasePairInformation.nucleotideIndex
+              residueIndex2 : singularRnaMoleculeProps.firstNucleotideIndex + mappedBasePairInformation.nucleotideIndex,
+              points
             });
           };
           let labels = new Array<LabelForJson>();

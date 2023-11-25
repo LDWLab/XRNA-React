@@ -126,7 +126,10 @@ export namespace LabelContent {
         e.preventDefault();
       }}
       onMouseOver = {function() {
-        conditionallySetStroke(setStroke);
+        conditionallySetStroke(
+          stroke,
+          setStroke
+        );
       }}
       onMouseLeave = {function() {
         setStroke("none");
