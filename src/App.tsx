@@ -333,6 +333,8 @@ function App() {
   const downloadButtonErrorMessageReference = useRef<string>();
   downloadButtonErrorMessageReference.current = downloadButtonErrorMessage;
   const uploadInputFileHtmlInputReference = useRef<HTMLInputElement>();
+  const flattenedRnaComplexPropsLengthReference = useRef<number>(0);
+  flattenedRnaComplexPropsLengthReference.current = flattenedRnaComplexPropsLength;
   // Begin memo data.
   const flattenedRnaComplexProps = useMemo(
     function() {
@@ -1372,6 +1374,11 @@ function App() {
   const onMouseMove = useMemo(
     function() {
       return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        const flattenedRnaComplexPropsLength = flattenedRnaComplexPropsLengthReference.current;
+        if (flattenedRnaComplexPropsLength === 0) {
+          return;
+        }
+        
         const dragListener = dragListenerReference.current as DragListener | null;
         if (dragListener !== null) {
           const originOfDrag = originOfDragReference.current as Vector2D;
@@ -1444,6 +1451,11 @@ function App() {
   const onWheel = useMemo(
     function() {
       return function(e : React.WheelEvent<SVGSVGElement>) {
+        const flattenedRnaComplexPropsLength = flattenedRnaComplexPropsLengthReference.current;
+        if (flattenedRnaComplexPropsLength === 0) {
+          return;
+        }
+        
         const viewportScaleExponent = viewportScaleExponentReference.current as number;
         const toolsDivResizeDetectorHeight = toolsDivResizeDetectorHeightReference.current ?? 0;
         const totalScale = totalScaleReference.current as TotalScale;
