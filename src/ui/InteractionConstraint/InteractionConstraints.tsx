@@ -395,6 +395,10 @@ export namespace InteractionConstraint {
     
   export const all = Object.values(Enum);
 
+  export function isEnum(enumCandidate : string) : enumCandidate is Enum {
+    return (all as Array<string>).includes(enumCandidate);
+  }
+
   export const record : Record<
     Enum,
     (
