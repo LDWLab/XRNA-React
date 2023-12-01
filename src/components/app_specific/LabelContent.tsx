@@ -1,4 +1,4 @@
-import React, { createRef, FunctionComponent, LegacyRef, useContext, useMemo, useState } from "react";
+import React, { createRef, FunctionComponent, LegacyRef, memo, useContext, useMemo, useState } from "react";
 import { useEffect } from "react";
 import { FullKeys } from "../../App";
 import { Context } from "../../context/Context";
@@ -40,8 +40,8 @@ export namespace LabelContent {
     // Begin reference data.
     const contentSvgTextElementReference = createRef<SVGTextElement>();
     // Begin context data.
-    const conditionallySetStroke = useContext(Context.App.ConditionallySetStroke);
     const onMouseDownHelper = useContext(Context.Label.Content.OnMouseDownHelper);
+    const className = useContext(Context.Label.ClassName);
 
     // Begin state data.
     const [
@@ -58,10 +58,6 @@ export namespace LabelContent {
       x : 0,
       y : 0
     });
-    const [
-      stroke,
-      setStroke
-    ] = useState("none");
     // Begin memo data.
     const color = useMemo(
       function() {
@@ -111,11 +107,11 @@ export namespace LabelContent {
       id = {id}
       ref = {contentSvgTextElementReference}
       transform = {`translate(${x}, ${y}) translate(${graphicalAdjustment.x}, ${graphicalAdjustment.y}) scale(1 -1)`}
+      className = {className}
       fontSize = {font.size}
       fontFamily = {font.family}
       fontWeight = {font.weight}
       fontStyle = {font.style}
-      stroke = {stroke}
       strokeWidth = {strokeWidth}
       fill = {toCSS(color)}
       onMouseDown = {function(e) {
@@ -125,17 +121,10 @@ export namespace LabelContent {
         );
         e.preventDefault();
       }}
-      onMouseOver = {function() {
-        conditionallySetStroke(
-          stroke,
-          setStroke
-        );
-      }}
-      onMouseLeave = {function() {
-        setStroke("none");
-      }}
     >
       {content}
     </text>;
   }
+
+  export const MemoizedComponent = memo(Component);
 }

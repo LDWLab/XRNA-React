@@ -16,13 +16,15 @@ export namespace ColorEditor {
 
   export type Props = {
     setColorHelper : (color : Color) => void,
-    color? : Color
+    color? : Color,
+    children? : React.ReactNode
   };
 
   export function Component(props : Props) {
     let {
       setColorHelper,
-      color
+      color,
+      children
     } = props;
     // Begin state data.
     const [
@@ -384,6 +386,7 @@ export namespace ColorEditor {
       <Collapsible.Component
         title = "Color"
       >
+        {children}
         Edit mode:&nbsp;
         <select
           value = {editMode}

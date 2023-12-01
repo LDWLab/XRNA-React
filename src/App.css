@@ -1,0 +1,27 @@
+.nucleotide {
+  stroke:none;
+}
+
+.nucleotide:hover {
+  stroke:inherit;
+}
+
+.label {
+  stroke:none;
+}
+
+.label:hover {
+  stroke:inherit;
+}
+
+path {
+  stroke:none;
+}
+
+text {
+  stroke:none;
+}
+
+circle {
+  stroke:none;
+}

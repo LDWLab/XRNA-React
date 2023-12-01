@@ -1,4 +1,4 @@
-import React, { createElement, useContext } from "react";
+import React, { createElement, memo, useContext } from "react";
 import { Context } from "../../context/Context";
 import Color, { toCSS, BLACK } from "../../data_structures/Color";
 import { Vector2D, add, dotProduct, interpolate, normalize, orthogonalize, scaleUp, subtract } from "../../data_structures/Vector2D";
@@ -1041,6 +1041,7 @@ export namespace BasePair {
 
   function fill(color : string) {
     return {
+      stroke : "none",
       fill : color
     }
   }
@@ -1117,6 +1118,8 @@ export namespace BasePair {
       }
     );
   }
+
+  export const MemoizedComponent = memo(Component);
 }
 
 export default BasePair;

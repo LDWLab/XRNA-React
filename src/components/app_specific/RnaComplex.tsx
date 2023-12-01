@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { createElement, useContext, useEffect, useMemo, useState } from "react";
 import { RnaMoleculeKey, NucleotideKey } from "../../App";
 import { BasePairKeysToRerenderPerRnaComplex, Context, NucleotideKeysToRerenderPerRnaComplex } from "../../context/Context";
 import { Vector2D, add, distance, scaleUp } from "../../data_structures/Vector2D";
@@ -145,14 +145,12 @@ export namespace RnaComplex {
     basePairKeysToRerenderPerRnaComplex : BasePairKeysToRerenderPerRnaComplex
   };
 
+  function createKey({ rnaMoleculeName, nucleotideIndex } : BasePairKeys) {
+    return `#${nucleotideIndex} in ${rnaMoleculeName}`;
+  }
+
   export function Component(props : Props) {
-    type SingularFlattenedBasePairProps = {
-      scaffoldingKey : {
-        rnaMoleculeName : string,
-        nucleotideIndex : number
-      },
-      props : BasePair.Props
-    };
+    type SingularFlattenedBasePairProps = BasePair.Props & { scaffoldingKey : BasePairKeys, key : string };
     const {
       name,
       rnaMoleculeProps,
@@ -166,14 +164,24 @@ export namespace RnaComplex {
     const basePairAverageRadii = useContext(Context.BasePair.AverageDistances);
     const updateBasePairAverageDistances = useContext(Context.BasePair.UpdateAverageDistances);
     // Begin state data.
-    // const [
-    //   flattenedBasePairProps,
-    //   setFlattenedBasePairProps
-    // ] = useState<Scaffolding.SortedProps<ScaffoldingKey, BasePair.Props>>([]);
     const [
       editedFlattenedBasePairProps,
-      setEditedFlattenedBasePairProps
+      _setEditedFlattenedBasePairProps
     ] = useState<Array<SingularFlattenedBasePairProps>>([]);
+    // function setEditedFlattenedBasePairProps(newEditedFlattenedBasePairProps : Array<SingularFlattenedBasePairProps>) {
+    //   for (const { rnaMoleculeName, nucleotideIndex } of basePairKeysToRerenderPerRnaComplex) {
+    //     const index = editedFlattenedBasePairProps.findIndex(function({ scaffoldingKey }) {
+    //       return (
+    //         rnaMoleculeName === scaffoldingKey.rnaMoleculeName &&
+    //         nucleotideIndex === scaffoldingKey.nucleotideIndex
+    //       );
+    //     });
+    //     if (index !== -1) {
+    //       editedFlattenedBasePairProps[index] = structuredClone(editedFlattenedBasePairProps[index]);
+    //     }
+    //   }
+    //   _setEditedFlattenedBasePairProps(newEditedFlattenedBasePairProps);
+    // }
     // Begin memo data.
     const flattenedRnaMoleculeProps = Object.entries(rnaMoleculeProps);
     // const flattenedRnaMoleculeProps = useMemo(
@@ -213,16 +221,15 @@ export namespace RnaComplex {
                 );
               }
               flattenedBasePairProps.push({
-                scaffoldingKey : basePairKeys,
-                props : {
-                  mappedBasePair : mappedBasePair as BasePair.FinalizedMappedBasePair,
-                  position0 : singularNucleotideProps,
-                  position1 : singularBasePairedNucleotideProps,
-                  rnaMoleculeName0 : rnaMoleculeName,
-                  formattedNucleotideIndex0 : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
-                  rnaMoleculeName1 : mappedBasePair.rnaMoleculeName,
-                  formattedNucleotideIndex1 : mappedBasePair.nucleotideIndex + singularBasePairedRnaMoleculeProps.firstNucleotideIndex
-                }
+                key : createKey(basePairKeys),
+                mappedBasePair : mappedBasePair as BasePair.FinalizedMappedBasePair,
+                position0 : singularNucleotideProps,
+                position1 : singularBasePairedNucleotideProps,
+                rnaMoleculeName0 : rnaMoleculeName,
+                formattedNucleotideIndex0 : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
+                rnaMoleculeName1 : mappedBasePair.rnaMoleculeName,
+                formattedNucleotideIndex1 : mappedBasePair.nucleotideIndex + singularBasePairedRnaMoleculeProps.firstNucleotideIndex,
+                scaffoldingKey : basePairKeys
               });
             }
           });
@@ -240,81 +247,98 @@ export namespace RnaComplex {
       },
       [basePairs]
     );
-    // Begin effect data.
+    // Begin effects.
     useEffect(
       function() {
-        const editedFlattenedBasePairProps = flattenedBasePairProps;
-        if (basePairDataToEditPerRnaComplex === undefined) {
-          setEditedFlattenedBasePairProps(editedFlattenedBasePairProps);
-          return;
-        }
-        for (const basePairDatumToDelete of basePairDataToEditPerRnaComplex.delete) {
-          sortedArraySplice(
-            editedFlattenedBasePairProps,
-            function(editedFlattenedBasePairPropsI : SingularFlattenedBasePairProps) {
-              return compareBasePairKeys(
-                editedFlattenedBasePairPropsI.scaffoldingKey,
-                basePairDatumToDelete
-              );
-            },
-            1,
-            [],
-            HandleQueryNotFound.DO_NOTHING
-          );
-        }
-        for (const basePairDatumToAdd of basePairDataToEditPerRnaComplex.add) {
-          const {
-            rnaMoleculeName,
-            nucleotideIndex
-          } = basePairDatumToAdd;
-          const mappedBasePair = basePairs[rnaMoleculeName][nucleotideIndex];
-          if (isRelevantBasePairKeySetInPair(
-            basePairDatumToAdd,
-            mappedBasePair
-          )) {
-            const singularRnaMoleculeProps = rnaMoleculeProps[rnaMoleculeName];
-            const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
-            const singularBasePairedRnaMoleculeProps = rnaMoleculeProps[mappedBasePair.rnaMoleculeName];
-            const singularBasePairedNucleotideProps = singularBasePairedRnaMoleculeProps.nucleotideProps[mappedBasePair.nucleotideIndex];
-            if (mappedBasePair.basePairType === undefined) {
-              mappedBasePair.basePairType = getBasePairType(
-                singularNucleotideProps.symbol,
-                singularBasePairedNucleotideProps.symbol
-              );
-            }
-            const newSingularFlattenedBasePairProps : SingularFlattenedBasePairProps = {
-              scaffoldingKey : basePairDatumToAdd,
-              props : {
+        let editedFlattenedBasePairProps = flattenedBasePairProps;
+        if (basePairDataToEditPerRnaComplex !== undefined) {
+          for (const basePairDatumToDelete of basePairDataToEditPerRnaComplex.delete) {
+            sortedArraySplice(
+              editedFlattenedBasePairProps,
+              function(editedFlattenedBasePairPropsI : SingularFlattenedBasePairProps) {
+                return compareBasePairKeys(
+                  editedFlattenedBasePairPropsI.scaffoldingKey,
+                  basePairDatumToDelete
+                );
+              },
+              1,
+              [],
+              HandleQueryNotFound.DO_NOTHING
+            );
+          }
+          for (const basePairDatumToAdd of basePairDataToEditPerRnaComplex.add) {
+            const {
+              rnaMoleculeName,
+              nucleotideIndex
+            } = basePairDatumToAdd;
+            const mappedBasePair = basePairs[rnaMoleculeName][nucleotideIndex];
+            if (isRelevantBasePairKeySetInPair(
+              basePairDatumToAdd,
+              mappedBasePair
+            )) {
+              const singularRnaMoleculeProps = rnaMoleculeProps[rnaMoleculeName];
+              const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+              const singularBasePairedRnaMoleculeProps = rnaMoleculeProps[mappedBasePair.rnaMoleculeName];
+              const singularBasePairedNucleotideProps = singularBasePairedRnaMoleculeProps.nucleotideProps[mappedBasePair.nucleotideIndex];
+              if (mappedBasePair.basePairType === undefined) {
+                mappedBasePair.basePairType = getBasePairType(
+                  singularNucleotideProps.symbol,
+                  singularBasePairedNucleotideProps.symbol
+                );
+              }
+              const newSingularFlattenedBasePairProps : SingularFlattenedBasePairProps = {
                 mappedBasePair : mappedBasePair as BasePair.FinalizedMappedBasePair,
                 position0 : singularNucleotideProps,
                 position1 : singularBasePairedNucleotideProps,
                 rnaMoleculeName0 : rnaMoleculeName,
                 formattedNucleotideIndex0 : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
                 rnaMoleculeName1 : mappedBasePair.rnaMoleculeName,
-                formattedNucleotideIndex1 : mappedBasePair.nucleotideIndex + singularBasePairedRnaMoleculeProps.firstNucleotideIndex
-              }
-            };
-            sortedArraySplice(
-              editedFlattenedBasePairProps,
-              function(editedFlattenedBasePairPropsI : SingularFlattenedBasePairProps) {
-                return compareBasePairKeys(
-                  editedFlattenedBasePairPropsI.scaffoldingKey,
-                  basePairDatumToAdd
-                );
-              },
-              0,
-              [newSingularFlattenedBasePairProps],
-              HandleQueryNotFound.ADD
-            );
+                formattedNucleotideIndex1 : mappedBasePair.nucleotideIndex + singularBasePairedRnaMoleculeProps.firstNucleotideIndex,
+                scaffoldingKey : basePairDatumToAdd,
+                key : createKey(basePairDatumToAdd)
+              };
+              sortedArraySplice(
+                editedFlattenedBasePairProps,
+                function(editedFlattenedBasePairPropsI : SingularFlattenedBasePairProps) {
+                  return compareBasePairKeys(
+                    editedFlattenedBasePairPropsI.scaffoldingKey,
+                    basePairDatumToAdd
+                  );
+                },
+                0,
+                [newSingularFlattenedBasePairProps],
+                HandleQueryNotFound.ADD
+              );
+            }
           }
         }
-        setEditedFlattenedBasePairProps([...editedFlattenedBasePairProps]);
+        editedFlattenedBasePairProps = [...editedFlattenedBasePairProps];
+        _setEditedFlattenedBasePairProps(editedFlattenedBasePairProps);
       },
       [
         flattenedBasePairProps,
         basePairDataToEditPerRnaComplex
       ]
     );
+    // useEffect(
+    //   function() {
+    //     for (const { rnaMoleculeName, nucleotideIndex } of basePairKeysToRerenderPerRnaComplex) {
+    //       const index = editedFlattenedBasePairProps.findIndex(function({ scaffoldingKey }) {
+    //         return (
+    //           rnaMoleculeName === scaffoldingKey.rnaMoleculeName &&
+    //           nucleotideIndex === scaffoldingKey.nucleotideIndex
+    //         );
+    //       });
+    //       if (index !== -1) {
+    //         editedFlattenedBasePairProps[index] = structuredClone(editedFlattenedBasePairProps[index]);
+    //       }
+    //     }
+    //   },
+    //   [
+    //     editedFlattenedBasePairProps,
+    //     basePairKeysToRerenderPerRnaComplex
+    //   ]
+    // );
     useEffect(
       function() {
         let averageDistancesData = {} as Record<BasePair.Type, { count : number, distanceSum : number }>;
@@ -439,12 +463,20 @@ export namespace RnaComplex {
             <Context.BasePair.Radius.Provider
               value = {radii}
             >
-              <Scaffolding.Component<BasePairKeys, BasePair.Props>
-                sortedProps = {editedFlattenedBasePairProps}
-                childComponent = {BasePair.Component}
-                propsToRerenderKeys = {basePairKeysToRerenderPerRnaComplex}
-                comparator = {compareBasePairKeys}
-              />
+              {editedFlattenedBasePairProps.map(function(props) {
+                return createElement(
+                  BasePair.Component,
+                  props
+                );
+              })}
+              {/* 
+                <Scaffolding.Component<BasePairKeys, BasePair.Props>
+                  sortedProps = {editedFlattenedBasePairProps}
+                  childComponent = {BasePair.MemoizedComponent}
+                  propsToRerenderKeys = {basePairKeysToRerenderPerRnaComplex}
+                  comparator = {compareBasePairKeys}
+                />
+              */}
             </Context.BasePair.Radius.Provider>
           </g>
           {flattenedRnaMoleculeProps.map(function(

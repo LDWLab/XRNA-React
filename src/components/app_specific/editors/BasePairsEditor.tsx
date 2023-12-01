@@ -596,7 +596,9 @@ export namespace BasePairsEditor {
             defaultRnaMoleculeName0,
             defaultRnaMoleculeName1,
             approveBasePairs,
-            initialBasePairs
+            initialBasePairs,
+            setBasePairKeysToEdit,
+            populateBasePairKeysToEdit
           }
         )}
       </Collapsible.Component>
@@ -610,7 +612,9 @@ export namespace BasePairsEditor {
       avoidRepositioningIndicesSet? : Set<number>
     ) => void,
     approveBasePairs : (newBasePairs : Array<BasePair>) => void,
-    initialBasePairs? : Array<InitialBasePair>
+    initialBasePairs? : Array<InitialBasePair>,
+    setBasePairKeysToEdit : Context.BasePair.SetKeysToEdit,
+    populateBasePairKeysToEdit : (basePair : BasePair, basePairKeysToEdit : Context.BasePair.KeysToEdit, addOrDelete : "add" | "delete") => void
   };
 
   export namespace EditorTypeSelector {
@@ -907,7 +911,9 @@ export namespace BasePairsEditor {
       initialBasePairs,
       defaultRnaComplexIndex,
       defaultRnaMoleculeName0,
-      defaultRnaMoleculeName1
+      defaultRnaMoleculeName1,
+      setBasePairKeysToEdit,
+      populateBasePairKeysToEdit
     } = props;
     // Begin state data.
     const [
@@ -1211,14 +1217,34 @@ export namespace BasePairsEditor {
                     height : "100%"
                   }}
                   onClick = {function() {
-                    setPartialBasePairs([
-                      ...partialBasePairs,
-                      basePair
-                    ]);
+                    const partialBasePair0 = partialBasePairs[0];
+                    if (
+                      partialBasePair0.rnaComplexIndex === undefined &&
+                      partialBasePair0.rnaMoleculeName0 === undefined &&
+                      partialBasePair0.rnaMoleculeName1 === undefined &&
+                      partialBasePair0.nucleotideIndex0 === undefined &&
+                      partialBasePair0.nucleotideIndex1 === undefined &&
+                      partialBasePair0.length === undefined &&
+                      partialBasePair0.type === undefined
+                    ) {
+                      setPartialBasePairs([basePair]);
+                    } else {
+                      setPartialBasePairs([
+                        ...partialBasePairs,
+                        basePair
+                      ]);
+                    }
                     _setBasePairs([
                      ...basePairs.slice(0, basePairIndex),
                      ...basePairs.slice(basePairIndex + 1)
-                    ]); 
+                    ]);
+                    const basePairKeysToEdit : Context.BasePair.KeysToEdit = {};
+                    populateBasePairKeysToEdit(
+                      basePair,
+                      basePairKeysToEdit,
+                      "delete"
+                    );
+                    setBasePairKeysToEdit(basePairKeysToEdit);
                   }}
                 >
                   Edit
@@ -1256,7 +1282,7 @@ export namespace BasePairsEditor {
           })}
           <tr
             style = {{
-              border : "inherit",
+              border : "1px solid black",
               background : "black",
               height : 10
             }}
@@ -1415,7 +1441,7 @@ export namespace BasePairsEditor {
     >
       <td
         style = {{
-          border : "inherit"
+          border : "1px solid black"
         }}
       >
         <select
@@ -1451,7 +1477,7 @@ export namespace BasePairsEditor {
       </td>
       <td
         style = {{
-          border : "inherit",
+          border : "1px solid black",
           maxHeight : fontSize
         }}
       >
@@ -1486,7 +1512,7 @@ export namespace BasePairsEditor {
       </td>
       <td
         style = {{
-          border : "inherit",
+          border : "1px solid black",
           maxHeight : fontSize
         }}
       >
@@ -1512,7 +1538,7 @@ export namespace BasePairsEditor {
       </td>
       <td
         style = {{
-          border : "inherit",
+          border : "1px solid black",
           maxHeight : fontSize
         }}
       >
@@ -1547,7 +1573,7 @@ export namespace BasePairsEditor {
       </td>
       <td
         style = {{
-          border : "inherit",
+          border : "1px solid black",
           maxHeight : fontSize
         }}
       >
@@ -1573,7 +1599,7 @@ export namespace BasePairsEditor {
       </td>
       <td
         style = {{
-          border : "inherit",
+          border : "1px solid black",
           maxHeight : fontSize
         }}
       >
@@ -1597,7 +1623,7 @@ export namespace BasePairsEditor {
       </td>
       <td
         style = {{
-          border : "inherit",
+          border : "1px solid black",
           maxHeight : fontSize
         }}
       >
@@ -1631,7 +1657,7 @@ export namespace BasePairsEditor {
       </td>
       <td
         style = {{
-          border : "inherit",
+          border : "1px solid black",
           maxHeight : fontSize,
           textAlign : "center"
         }}
@@ -1648,7 +1674,7 @@ export namespace BasePairsEditor {
       </td>
       <td
         style = {{
-          border : "inherit",
+          border : "1px solid black",
           maxHeight : fontSize
         }}
       >

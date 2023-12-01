@@ -167,10 +167,10 @@ export function fromCssString(
       colorFormat
     );
   }
-  match = /^#[abcdefABCDEF\d]+$/.exec(cssString);
+  match = /^#([abcdefABCDEF\d]+)$/.exec(cssString);
   if (match !== null) {
     return fromHexadecimal(
-      cssString,
+      match[1],
       colorFormat
     );
   }

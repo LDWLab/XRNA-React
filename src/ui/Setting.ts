@@ -11,7 +11,9 @@ export enum Setting {
   CANONICAL_BASE_PAIR_DISTANCE = "canonical_base_pair_distance",
   WOBBLE_BASE_PAIR_DISTANCE = "wobble_base_pair_distance",
   MISMATCH_BASE_PAIR_DISTANCE = "mismatch_base_pair_distance",
-  DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS = "distance_between_contiguous_base_pairs"
+  DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS = "distance_between_contiguous_base_pairs",
+  REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE = "replace_nucleotides_with_contour_line",
+  
 }
 
 export const settings = Object.values(Setting);
@@ -27,7 +29,8 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "Canonical base-pair distance",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "Wobble base-pair distance",
   [Setting.MISMATCH_BASE_PAIR_DISTANCE] : "Mismatch base-pair distance",
-  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : "Distance between contiguous base pairs"
+  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : "Distance between contiguous base pairs",
+  [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : "Replace nucleotides with contour line"
 };
 
 export const settingsLongDescriptionsMap : Record<Setting, string> = {
@@ -41,7 +44,8 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "The default distance between base pairs which are \"canonical.\" (i.e. Watson-Crick). Applied when formatting base pairs",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "The default distance between base pairs which are \"wobble.\" Applied when formatting base pairs",
   [Setting.MISMATCH_BASE_PAIR_DISTANCE] : "The default distance between base pairs which are \"mismatch.\" Applied when formatting base pairs",
-  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : "The default distance between base pairs which are contiguous. Applied when formatting base pairs"
+  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : "The default distance between base pairs which are contiguous. Applied when formatting base pairs",
+  [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : "Display only a countour line per RNA molecule, instead of individual nucleotides"
 };
 
 export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairsEditorType"> = {
@@ -55,7 +59,8 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairs
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "number",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "number",
   [Setting.MISMATCH_BASE_PAIR_DISTANCE] : "number",
-  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : "number"
+  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : "number",
+  [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : "boolean"
 };
 
 export type SettingValue = boolean | number | BasePairsEditor.EditorType;
@@ -73,5 +78,6 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : NaN,
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : NaN,
   [Setting.MISMATCH_BASE_PAIR_DISTANCE] : NaN,
-  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : NaN
+  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : NaN,
+  [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : false
 };

@@ -139,13 +139,6 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     const boundingNucleotideIndex1 = listOfNucleotideIndices[listOfNucleotideIndices.length - 1];
     const boundingNucleotideProps0 = singularRnaMoleculeProps.nucleotideProps[boundingNucleotideIndex0];
     const boundingNucleotideProps1 = singularRnaMoleculeProps.nucleotideProps[boundingNucleotideIndex1];
-    const boundingNucleotideCenter = scaleUp(
-      add(
-        boundingNucleotideProps0,
-        boundingNucleotideProps1
-      ),
-      0.5
-    );
     this.partialMenuHeader = <>
       Nucleotides bound by
       <br/>
@@ -200,7 +193,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
         length : Math.abs(helixDatum.start[0] - helixDatum.stop[0]) + 1
       };
     });
-    this.addFullIndicesPerHelices(...initialBasePairs);
+    this.addFullIndicesPerNucleotideKeysToRerender(nucleotideKeysToRerender);
     this.initialBasePairs = initialBasePairs;
   }
 

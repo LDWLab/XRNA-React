@@ -279,7 +279,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       length : extrema1[0] - extrema0[0] + 1,
     };
     this.initialBasePairs = [initialBasePair];
-    this.addFullIndicesPerHelices(initialBasePair);
+    this.addFullIndicesPerNucleotideKeysToRerender(nucleotideKeysToRerender);
   }
 
   public override drag() {

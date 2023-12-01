@@ -68,11 +68,6 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
         const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
         const nucleotideIndices = Object.keys(singularRnaMoleculeProps.nucleotideProps).map(parseInteger);
         for (let nucleotideIndex of nucleotideIndices) {
-          this.addFullIndices({
-            rnaComplexIndex,
-            rnaMoleculeName,
-            nucleotideIndex
-          });
           const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
           const nucleotideColor = singularNucleotideProps.color ?? BLACK;
           if (areEqual(
@@ -176,6 +171,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     }
     this.approveBasePair = approveBasePair;
     this.initialBasePairs = unfilteredInitialBasePairs.filter(approveBasePair);
+    this.addFullIndicesPerNucleotideKeysToRerender(nucleotideKeysToRerender);
   }
 
   public override drag() {
@@ -198,13 +194,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
           rnaComplexProps = {this.rnaComplexProps}
           initialBasePairs = {this.initialBasePairs}
           approveBasePairs = {function(basePairs) {
-            for (let i = 0; i < basePairs.length; i++) {
-              const basePair = basePairs[i];
-              const approvalFlag = approveBasePair(basePair);
-              if (!approvalFlag) {
-                throw `This interaction constraint expects base-pairs between nucleotides with the exact same color as the clicked-on nucleotide. The base pair(s) on line ${i + 1} include differently colored nucleotides.`;
-              }
-            }
+            // Do nothing.
           }}
         />;
         break;

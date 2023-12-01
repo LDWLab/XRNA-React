@@ -5,7 +5,7 @@ import { LabelContent } from "../components/app_specific/LabelContent";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { DuplicateBasePairKeysHandler, insertBasePair } from "../components/app_specific/RnaComplex";
 import { Line2D, Rectangle } from "../data_structures/Geometry";
-import { Vector2D, add, distance, distanceSquared, distanceSquaredBetweenVector2DAndLineSegment, dotProduct, magnitude, negate, normalize, scaleUp, subtract } from "../data_structures/Vector2D";
+import { Vector2D, add, distance, distanceSquared, distanceSquaredBetweenVector2DAndLineSegment, dotProduct, magnitude, magnitudeSquared, negate, normalize, scaleUp, subtract } from "../data_structures/Vector2D";
 import { degreesToRadians } from "../utils/Utils";
 import Color from "../data_structures/Color";
 
@@ -199,11 +199,11 @@ export function parseGraphicalData(
           },
           {
             x : x + width,
-            y : y + height
+            y : y - height
           },
           {
             x,
-            y : y + height
+            y : y - height
           }
         ];
         const sides : Array<Line2D> = [
@@ -279,8 +279,7 @@ export function parseGraphicalData(
         ) {
           return candidate0.distanceSquared - candidate1.distanceSquared;
         });
-        // It is less consequential to get labels wrong.
-        // Therefore, more distant label contents will be discarded.
+        // It is less consequential to get labels wrong. Therefore, more distant label contents will simply be discarded.
         pairedLabelData.push({
           ...pairedLabelDataCandidateArray[0],
           labelLineIndex
@@ -383,18 +382,41 @@ export function parseGraphicalData(
       }
       function createLabelWithSmallestDistance(
         pairedLabelDatum : PairedLabelDatum,
-        unfilteredNucleotideData : Array<NucleotideData>
+        unfilteredNucleotideData : Array<NucleotideData>,
+        minimumDistanceRatio? : number,
+        maximumDistanceRatio? : number
       ) {
+        if (
+          minimumDistanceRatio !== undefined &&
+          maximumDistanceRatio !== undefined
+        ) {
+          const distanceRatio = distanceSquared(
+            pairedLabelDatum.labelContent,
+            pairedLabelDatum.vectorNearLabelContent
+          ) / distanceSquared(
+            pairedLabelDatum.vectorNearLabelContent,
+            pairedLabelDatum.vectorNearNucleotide
+          );
+          if (
+            distanceRatio < minimumDistanceRatio ||
+            distanceRatio > maximumDistanceRatio
+          ) {
+            return;
+          }
+        }
         unfilteredNucleotideData.sort(function(
           unfilteredNucleotideDatum0,
           unfilteredNucleotideDatum1
         ) {
           return unfilteredNucleotideDatum0.distance - unfilteredNucleotideDatum1.distance;
         });
+        const arrayIndex = unfilteredNucleotideData[0].indices.arrayIndex;
+        // if (flattenedNucleotideProps[arrayIndex].singularNucleotideProps.labelContentProps === undefined) {
         createLabel(
           pairedLabelDatum,
-          unfilteredNucleotideData[0].indices.arrayIndex
+          arrayIndex
         );
+        // }
       }
       const nucleotideIndexDeltaMultiplicitiesEntries = Object.entries(nucleotideIndexDeltaMultiplicities);
       if (nucleotideIndexDeltaMultiplicitiesEntries.length === 0) {
@@ -423,11 +445,32 @@ export function parseGraphicalData(
         for (const { nucleotideIndexDelta, multiplicityData } of nucleotideIndexDeltasSortedByMultiplicities) {
           totalNucleotideIndexDeltasMultiplicity += multiplicityData.multiplicity;
         }
+        const multiplicityData0 = nucleotideIndexDeltasSortedByMultiplicities[0];
+        let minimumDistanceSquaredRatioForLabels = Number.POSITIVE_INFINITY;
+        let maximumDistanceSquaredRatioForLabels = Number.NEGATIVE_INFINITY;
+        for (const { pairedLabelDatum } of multiplicityData0.multiplicityData.candidates) {
+          const distanceSquaredRatioForLabel = distanceSquared(
+            pairedLabelDatum.labelContent,
+            pairedLabelDatum.vectorNearLabelContent
+          ) / distanceSquared(
+            pairedLabelDatum.vectorNearLabelContent,
+            pairedLabelDatum.vectorNearNucleotide
+          );
+          if (distanceSquaredRatioForLabel < minimumDistanceSquaredRatioForLabels) {
+            minimumDistanceSquaredRatioForLabels = distanceSquaredRatioForLabel;
+          }
+          if (distanceSquaredRatioForLabel > maximumDistanceSquaredRatioForLabels){
+            maximumDistanceSquaredRatioForLabels = distanceSquaredRatioForLabel;
+          }
+        }
         nucleotideIndexDeltasSortedByMultiplicities = nucleotideIndexDeltasSortedByMultiplicities.filter(function({
           nucleotideIndexDelta,
           multiplicityData
         }) {
-          const filterFlag = multiplicityData.multiplicity > 1 && multiplicityData.multiplicity / totalNucleotideIndexDeltasMultiplicity > 0.05;
+          const filterFlag = (
+            multiplicityData.multiplicity > 1 && 
+            multiplicityData.multiplicity / totalNucleotideIndexDeltasMultiplicity > 0.05
+          );
           if (filterFlag) {
             for (const { pairedLabelDatum, arrayIndex } of multiplicityData.candidates) {
               createLabel(
@@ -455,7 +498,9 @@ export function parseGraphicalData(
           if (labelContentAsNumber === undefined) {
             createLabelWithSmallestDistance(
               pairedLabelDatum,
-              unfilteredNucleotideData
+              unfilteredNucleotideData,
+              minimumDistanceSquaredRatioForLabels,
+              maximumDistanceSquaredRatioForLabels
             );
           } else {
             let foundMatchingNucleotideIndexDeltaFlag = false;
@@ -475,12 +520,14 @@ export function parseGraphicalData(
                 }
               }
             }
-            if (!foundMatchingNucleotideIndexDeltaFlag) {
-              createLabelWithSmallestDistance(
-                pairedLabelDatum,
-                unfilteredNucleotideData
-              );
-            }
+            // if (!foundMatchingNucleotideIndexDeltaFlag) {
+            //   createLabelWithSmallestDistance(
+            //     pairedLabelDatum,
+            //     unfilteredNucleotideData,
+            //     minimumDistanceSquaredRatioForLabels,
+            //     maximumDistanceSquaredRatioForLabels
+            //   );
+            // }
           }
         }
       }

@@ -1,4 +1,4 @@
-import React, { FunctionComponent, LegacyRef, useContext, useEffect, useMemo, useState } from "react";
+import React, { FunctionComponent, LegacyRef, memo, useContext, useEffect, useMemo, useState } from "react";
 import { FullKeys } from "../../App";
 import { Context } from "../../context/Context";
 import Color, { toCSS, BLACK } from "../../data_structures/Color";
@@ -37,17 +37,9 @@ export namespace LabelLine {
     const BOUNDING_PATH_RADIUS = 1;
     // Begin context.
     const bodyOnMouseDownHelper = useContext(Context.Label.Line.Body.OnMouseDownHelper);
-    const conditionallySetStroke = useContext(Context.App.ConditionallySetStroke);
     const endpointOnMouseDownHelper = useContext(Context.Label.Line.Endpoint.OnMouseDownHelper);
+    const className = useContext(Context.Label.ClassName);
     // Begin state data.
-    const [
-      bodyStroke,
-      setBodyStroke
-    ] = useState("none");
-    const [
-      pointStrokes,
-      setPointStrokes
-    ] = useState<Record<number, string>>({});
     const radius = BOUNDING_PATH_RADIUS;
     const [
       renderData,
@@ -111,17 +103,15 @@ export namespace LabelLine {
         point,
         pointIndex
       ) {
-        const stroke = pointIndex in pointStrokes ? pointStrokes[pointIndex] : "none";
         return <circle
           key = {pointIndex}
+          className = {className}
           pointerEvents = "all"
-          stroke = {stroke}
           strokeWidth = {DEFAULT_STROKE_WIDTH}
           fill = "none"
           cx = {point.x}
           cy = {point.y}
           r = {radius}
-          visibility = {stroke === "none" ? "hidden" : "visible"}
           onMouseDown = {function(e) {
             endpointOnMouseDownHelper(
               e,
@@ -130,31 +120,14 @@ export namespace LabelLine {
               updateRenderData
             );
           }}
-          onMouseOver = {function() {
-            conditionallySetStroke(
-              pointStrokes[pointIndex],
-              function(newStroke : string) {
-                setPointStrokes({
-                  ...pointStrokes,
-                  [pointIndex] : newStroke
-                });
-            });
-          }}
-          onMouseLeave = {function() {
-            setPointStrokes({
-              ...pointStrokes,
-              [pointIndex] : "none"
-            });
-          }}
         />
       })}
       <path
+        className = {className}
         pointerEvents = "all"
-        stroke = {bodyStroke}
         strokeWidth = {DEFAULT_STROKE_WIDTH}
         fill = "none"
         d = {renderData.pathDAttribute}
-        visibility = {bodyStroke === "none" ? "hidden" : "visible"}
         onMouseDown = {function(e) {
           bodyOnMouseDownHelper(
             e,
@@ -163,16 +136,9 @@ export namespace LabelLine {
           );
           e.preventDefault();
         }}
-        onMouseOver = {function(e) {
-          conditionallySetStroke(
-            bodyStroke,
-            setBodyStroke
-          );
-        }}
-        onMouseLeave = {function() {
-          setBodyStroke("none");
-        }}
       />
     </g>;
   }
+
+  export const MemoizedComponent = memo(Component);
 }

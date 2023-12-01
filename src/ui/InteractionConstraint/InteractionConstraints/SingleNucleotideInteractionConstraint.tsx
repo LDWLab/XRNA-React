@@ -11,6 +11,7 @@ import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/
 
 export class SingleNucleotideInteractionConstraint extends AbstractInteractionConstraint {
   private readonly singularNucleotideProps : Nucleotide.ExternalProps;
+  private readonly error? : InteractionConstraintError;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -36,15 +37,18 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
     const {
       basePairs
     } = singularRnaComplexProps;
-    if (tab !== Tab.ANNOTATE && rnaMoleculeName in basePairs && nucleotideIndex in basePairs[rnaMoleculeName]) {
-      throw basePairedNucleotideError;
-    }
     this.singularNucleotideProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
 
     this.addFullIndices(fullKeys);
+    if (tab !== Tab.ANNOTATE && rnaMoleculeName in basePairs && nucleotideIndex in basePairs[rnaMoleculeName]) {
+      this.error = basePairedNucleotideError;
+    }
   }
 
   public override drag() {
+    if (this.error !== undefined) {
+      throw this.error;
+    }
     const {
       rnaComplexIndex,
       rnaMoleculeName,
@@ -95,6 +99,9 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
+        if (this.error !== undefined) {
+          throw this.error;
+        }
         menu = <SingleNucleotideInteractionConstraintEditMenu.Component
           rnaComplexProps = {this.rnaComplexProps}
           fullKeys = {this.fullKeys}
@@ -109,6 +116,9 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
         break;
       }
       case Tab.FORMAT : {
+        if (this.error !== undefined) {
+          throw this.error;
+        }
         const formattedNucleotideIndex0 = nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
         menu = <BasePairsEditor.Component
           rnaComplexProps = {this.rnaComplexProps}

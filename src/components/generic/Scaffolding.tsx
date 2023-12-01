@@ -8,9 +8,11 @@ namespace Scaffolding {
     props : Props
   }>;
 
+  type PropsWithScaffoldingKey<Key, Props> = Props & {scaffoldingKey : Key};
+
   export type Props<Key, Props extends {}> = {
     sortedProps : SortedProps<Key, Props>,
-    childComponent : FunctionComponent<Props & {scaffoldingKey : Key}>,
+    childComponent : FunctionComponent<PropsWithScaffoldingKey<Key, Props>>,
     propsToRerenderKeys? : Array<Key>,
     comparator : (props0 : Key, props1 : Key) => number
   };
@@ -66,12 +68,11 @@ namespace Scaffolding {
               props,
               scaffoldingKey
             } = leftPropsPartition[0];
+            const propsWithScaffoldingKey = props as PropsWithScaffoldingKey<Key, Props>;
+            propsWithScaffoldingKey.scaffoldingKey = scaffoldingKey;
             return createElement(
               childComponent,
-              {
-                ...props,
-                scaffoldingKey
-              }
+              propsWithScaffoldingKey
             );
           }
           default : {
@@ -100,12 +101,11 @@ namespace Scaffolding {
               props,
               scaffoldingKey
             } = rightPropsPartition[0];
+            const propsWithScaffoldingKey = props as PropsWithScaffoldingKey<Key, Props>;
+            propsWithScaffoldingKey.scaffoldingKey = scaffoldingKey;
             return createElement(
               childComponent,
-              {
-                ...props,
-                scaffoldingKey
-              }
+              propsWithScaffoldingKey
             );
           }
           default : {

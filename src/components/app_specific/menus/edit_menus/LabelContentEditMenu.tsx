@@ -20,7 +20,7 @@ export namespace LabelContentEditMenu {
     const {
       fullKeys,
       rnaComplexProps,
-      triggerRerender,
+      triggerRerender : triggerRerenderHelper,
     } = props;
     // Begin context data.
     const _triggerRerender = useContext(Context.OrientationEditor.ResetDataTrigger);
@@ -89,6 +89,12 @@ export namespace LabelContentEditMenu {
       y,
       setY
     ] = useState(labelContentProps.y);
+    function triggerRerender() {
+      singularNucleotideProps.labelContentProps = {
+        ...labelContentProps
+      };
+      triggerRerenderHelper();
+    }
     // Begin effects.
     useEffect(
       function() {

@@ -65,7 +65,8 @@ type Cache = {
   complexDocumentName? : string,
   mostRecentGroupId? : string,
   labelLinesPerRnaComplex? : LabelLinesPerRnaComplex,
-  labelContentsPerRnaComplex? : LabelContentsPerRnaComplex
+  labelContentsPerRnaComplex? : LabelContentsPerRnaComplex,
+  currentRnaMoleculeName? : string
 };
 
 enum SvgFileType {
@@ -378,9 +379,9 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
                 nucleotideProps : {},
                 firstNucleotideIndex : 0
               };
-              cache.singularRnaMoleculeProps = singularRnaMoleculeProps;
               cache.rnaMoleculeCount++;
               const rnaMoleculeName = `RNA molecule #${cache.rnaMoleculeCount}`;
+              cache.currentRnaMoleculeName = rnaMoleculeName;
               (cache.singularRnaComplexProps as RnaComplex.ExternalProps).rnaMoleculeProps[rnaMoleculeName] = singularRnaMoleculeProps;
               const graphicalAdjustmentsPerRnaComplex = cache.graphicalAdjustmentsPerRnaComplex as GraphicalAdjustmentsPerRnaComplex;
               graphicalAdjustmentsPerRnaComplex[rnaMoleculeName] = {};
@@ -406,8 +407,16 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
                 }
               }
               const id = requiredAttributes.id as string;
-              if (!/-?\d+/.test(id)) {
-                throw `Unrecognized nucleotide-index format "${id}"`;
+              let nucleotideIndex = Number.NaN;
+              if (/^-?\d+$/.test(id)) {
+                nucleotideIndex = Number.parseInt(id);
+              } else {
+                const idRegexMatch = id.match(/^(\w+)_(\w+):(\d+)$/);
+                if (idRegexMatch === null) {
+                  throw `Unrecognized nucleotide-index format "${id}"`;
+                }
+                cache.currentRnaMoleculeName = idRegexMatch[2];
+                nucleotideIndex = Number.parseInt(idRegexMatch[3]);
               }
               const textContent = (requiredAttributes.textContent as string).trim();
               if (!Nucleotide.isSymbol(textContent)) {
@@ -423,8 +432,6 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
                 x : Number.parseFloat(transformRegexMatch[1]),
                 y : Number.parseFloat(transformRegexMatch[2])
               };
-              const nucleotideIndex = Number.parseInt(id);
-              (cache.singularRnaMoleculeProps as RnaMolecule.ExternalProps).nucleotideProps[nucleotideIndex] = singularNucleotideProps;
               const optionalAttributes = {
                 fill : svgElement.getAttribute("fill"),
                 fontFamily : svgElement.getAttribute("font-family"),
@@ -453,6 +460,23 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
                 width : Number.parseFloat(requiredAttributes.rectangleWidth as string),
                 height : Number.parseFloat(requiredAttributes.rectangleHeight as string)
               });
+              const currentRnaMoleculeName = cache.currentRnaMoleculeName;
+              if (currentRnaMoleculeName === undefined) {
+                throw `cache.currentRnaMoleculeName should not be undefined at this point.`;
+              }
+              const rnaMoleculeProps = (cache.singularRnaComplexProps as RnaComplex.ExternalProps).rnaMoleculeProps;
+              if (!(currentRnaMoleculeName in rnaMoleculeProps)) {
+                const singularRnaMoleculeProps = {
+                  firstNucleotideIndex : 0,
+                  nucleotideProps : {}
+                };
+                cache.singularRnaMoleculeProps = singularRnaMoleculeProps;
+                (cache.singularRnaComplexProps as RnaComplex.ExternalProps).rnaMoleculeProps[currentRnaMoleculeName] = singularRnaMoleculeProps;
+                const graphicalAdjustmentsPerRnaMolecule = {};
+                cache.graphicalAdjustmentsPerRnaMolecule = graphicalAdjustmentsPerRnaMolecule;
+                (cache.graphicalAdjustmentsPerRnaComplex as GraphicalAdjustmentsPerRnaComplex)[currentRnaMoleculeName] = graphicalAdjustmentsPerRnaMolecule;
+              }
+              (cache.singularRnaMoleculeProps as RnaMolecule.ExternalProps).nucleotideProps[nucleotideIndex] = singularNucleotideProps;
               (cache.graphicalAdjustmentsPerRnaMolecule as GraphicalAdjustmentsPerRnaMolecule)[nucleotideIndex] = graphicalAdjustment;
               break;
             }
@@ -478,7 +502,8 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
                 fontFamily : svgElement.getAttribute("font-family"),
                 fontStyle : svgElement.getAttribute("font-style"),
                 fontWeight : svgElement.getAttribute("font-weight"),
-                fontSize : svgElement.getAttribute("font-size")
+                fontSize : svgElement.getAttribute("font-size"),
+                color : svgElement.getAttribute("fill")
               }
               const font = structuredClone(Font.DEFAULT);
               if (optionalAttributes.fontFamily !== null) {
@@ -494,6 +519,11 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
                 font.size = parseFontSize(optionalAttributes.fontSize);
               }
 
+              let color = structuredClone(BLACK);
+              if (optionalAttributes.color !== null) {
+                color = fromCssString(optionalAttributes.color);
+              }
+
               const x = Number.parseFloat(transformRegexMatch[1]);
               const y = Number.parseFloat(transformRegexMatch[2]);
               const width = Number.parseFloat(requiredAttributes.rectangleWidth as string);
@@ -503,7 +533,8 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
                   content : requiredAttributes.textContent as string,
                   x,
                   y,
-                  font
+                  font,
+                  color
                 },
                 rectangle : {
                   width,
@@ -850,7 +881,7 @@ export function svgInputFileHandler(
   let svgFileType = SvgFileType.UNFORMATTED;
   if (/data-xrna_type/.test(inputFileContent)) {
     svgFileType = SvgFileType.XRNA_JS;
-  } else if (/id\s*=\s*"Letters"/) {
+  } else if (/id\s*=\s*"Letters"/.test(inputFileContent)) {
     svgFileType = SvgFileType.XRNA_GT;
     const singularRnaComplexProps : RnaComplex.ExternalProps = {
       name : "RNA complex",
@@ -887,6 +918,7 @@ export function svgInputFileHandler(
       nucleotideProps : {}
     };
     const rnaMoleculeName = "RNA molecule";
+    cache.currentRnaMoleculeName = rnaMoleculeName;
     singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName] = singularRnaMoleculeProps;
     cache.singularRnaMoleculeProps = singularRnaMoleculeProps;
 
@@ -914,12 +946,30 @@ export function svgInputFileHandler(
     parseSvgElement(topLevelSvgElement, cache, svgFileType);
   }
 
+  function deleteEmptyRnaMolecules() {
+    for (const singularRnaComplexProps of Object.values(rnaComplexProps)) {
+      const rnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps;
+      for (const [rnaMoleculeName, singularRnaMoleculeProps] of Object.entries(rnaMoleculeProps)) {
+        if (Object.values(singularRnaMoleculeProps.nucleotideProps).length === 0) {
+          delete rnaMoleculeProps[rnaMoleculeName];
+        }
+      }
+    }
+  }
+
   switch (svgFileType) {
     case SvgFileType.XRNA_JS : {
       // Do nothing.
       break;
     }
     case SvgFileType.XRNA_GT : {
+      deleteEmptyRnaMolecules();
+      for (const [rnaComplexIndexAsString, labelContentsPerRnaComplex] of Object.entries(cache.labelContents)) {
+        for (const { labelContent, rectangle } of labelContentsPerRnaComplex) {
+          labelContent.x -= rectangle.width * 0.125;
+          labelContent.y += rectangle.height * 0.25;
+        }
+      }
       parseGraphicalData(
         rnaComplexProps,
         {
@@ -935,6 +985,7 @@ export function svgInputFileHandler(
       break;
     }
     case SvgFileType.UNFORMATTED : {
+      deleteEmptyRnaMolecules();
       parseGraphicalData(
         rnaComplexProps,
         {

@@ -19,10 +19,6 @@ export type BasePairKeysToRerender = Record<RnaComplexKey, BasePairKeysToRerende
 
 export namespace Context {
   export namespace App {
-    export const ConditionallySetStroke = createContext(function(
-      stroke : string,
-      setStroke : (stroke : string) => void) { /* Do nothing. */ }
-    )
     export const SetMouseOverText = createContext(function(mouseOverText : string) { /* Do nothing. */ })
     export const Settings = createContext(DEFAULT_SETTINGS);
     export const ComplexDocumentName = createContext("");
@@ -34,6 +30,9 @@ export namespace Context {
     ) { /* Do nothing. */ });
     export const InteractionConstraintOptions = createContext(InteractionConstraint.DEFAULT_OPTIONS);
     export const UpdateInteractionConstraintOptions = createContext(function(options : Partial<InteractionConstraint.Options>) { /* Do nothing. */ });
+    export type RerenderTriggersPerNucleotide = {
+      setX : (x : number) => void
+    };
   }
 
   export namespace RnaComplex {
@@ -83,6 +82,7 @@ export namespace Context {
       delete : []
     });
     export type KeysToEdit = Record<RnaComplexKey, KeysToEditPerRnaComplexType>;
+    export type SetKeysToEdit = (keysToEdit : KeysToEdit) => void;
     export const SetKeysToEdit = createContext(function(keysToEdit : KeysToEdit) { /* Do nothing. */ });
     export const SetKeysToRerender = createContext(function(basePairKeysToRerender : BasePairKeysToRerender) { /* Do nothing. */ });
     export const UpdateAverageDistances = createContext(function(
@@ -95,6 +95,8 @@ export namespace Context {
   };
 
   export namespace Label {
+    export const ClassName = createContext<string | undefined>(undefined);
+
     export namespace Content {
       export const OnMouseDownHelper = createContext(function(
         e : React.MouseEvent<_LabelContent.SvgRepresentation>,

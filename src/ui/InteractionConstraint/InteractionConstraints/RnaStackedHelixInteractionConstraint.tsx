@@ -413,10 +413,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         length : Math.abs(nucleotideIndex1Start - nucleotideIndex1Stop) + 1
       };
     });
-    this.addFullIndicesPerHelices(...initialBasePairs);
     this.initialBasePairs = initialBasePairs;
     this.rnaMoleculeName0 = rnaMoleculeName0;
     this.rnaMoleculeName1 = rnaMoleculeName1;
+    this.addFullIndicesPerNucleotideKeysToRerender(nucleotideKeysToRerender);
   }
 
   public override drag() {

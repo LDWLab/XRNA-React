@@ -58,6 +58,19 @@ export class EntireSceneInteractionConstraint extends AbstractInteractionConstra
     })
     });
     this.initialBasePairs = initialBasePairs;
+    for (const [rnaComplexIndexAsString, {rnaMoleculeProps}] of Object.entries(rnaComplexProps)) {
+      const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+      for (const [rnaMoleculeName, {nucleotideProps}] of Object.entries(rnaMoleculeProps)) {
+        for (const nucleotideIndexAsString of Object.keys(nucleotideProps)) {
+          const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+          this.addFullIndices({
+            rnaComplexIndex,
+            rnaMoleculeName,
+            nucleotideIndex
+          });
+        }
+      }
+    }
   }
 
   public override drag() {

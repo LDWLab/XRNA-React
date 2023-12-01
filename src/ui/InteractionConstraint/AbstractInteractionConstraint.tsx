@@ -1,6 +1,4 @@
 import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../App";
-import { Tab } from "../../app_data/Tab";
-import { Nucleotide } from "../../components/app_specific/Nucleotide";
 import { BasePairsEditor } from "../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../context/Context";
 import { InteractionConstraint } from "./InteractionConstraints";
@@ -60,7 +58,11 @@ export abstract class AbstractInteractionConstraint {
     }
   }
 
-  addFullIndicesPerHelices(...basePairs : Array<BasePairsEditor.BasePair>) {
+  addFullIndicesPerHelices(
+    firstNucleotideIndexPerRnaMolecule0 : number,
+    firstNucleotideIndexPerRnaMolecule1 : number,
+    ...basePairs : Array<BasePairsEditor.BasePair>
+  ) {
     for (const basePair of basePairs) {
       const {
         rnaComplexIndex,
@@ -75,14 +77,29 @@ export abstract class AbstractInteractionConstraint {
           {
             rnaComplexIndex,
             rnaMoleculeName : rnaMoleculeName0,
-            nucleotideIndex : nucleotideIndex0 + i
+            nucleotideIndex : nucleotideIndex0 + i - firstNucleotideIndexPerRnaMolecule0
           },
           {
             rnaComplexIndex,
             rnaMoleculeName : rnaMoleculeName1,
-            nucleotideIndex : nucleotideIndex1 - i
+            nucleotideIndex : nucleotideIndex1 - i - firstNucleotideIndexPerRnaMolecule1
           }
         );
+      }
+    }
+  }
+
+  addFullIndicesPerNucleotideKeysToRerender(nucleotideKeysToRerender : NucleotideKeysToRerender) {
+    for (const [rnaComplexIndexAsString, nucleotideKeysToRerenderPerRnaComplex] of Object.entries(nucleotideKeysToRerender) ) {
+      const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+      for (const [rnaMoleculeName, nucleotideKeysToRerenderPerRnaMolecule] of Object.entries(nucleotideKeysToRerenderPerRnaComplex)) {
+        for (const nucleotideIndex of nucleotideKeysToRerenderPerRnaMolecule) {
+          this.addFullIndices({
+            rnaComplexIndex,
+            rnaMoleculeName,
+            nucleotideIndex
+          });
+        }
       }
     }
   }

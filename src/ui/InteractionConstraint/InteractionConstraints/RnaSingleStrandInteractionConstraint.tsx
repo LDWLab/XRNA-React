@@ -192,6 +192,11 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       }
     };
     let lowerBoundingNucleotideIndex = nucleotideIndex;
+    this.addFullIndices({
+      rnaComplexIndex,
+      rnaMoleculeName,
+      nucleotideIndex
+    });
     let lowerTerminalIsBasePairedFlag : boolean;
     let lowerBoundingNucleotidePosition : Vector2D = {
       x : 0,

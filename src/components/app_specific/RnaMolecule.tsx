@@ -1,10 +1,12 @@
-import { useContext, useEffect, useMemo } from "react";
+import { Fragment, createElement, useContext, useEffect, useMemo } from "react";
 import { Context, NucleotideKeysToRerenderPerRnaMolecule } from "../../context/Context";
 import Scaffolding from "../generic/Scaffolding";
 import { Nucleotide } from "./Nucleotide";
 import { SVG_PROPERTY_XRNA_RNA_MOLECULE_FIRST_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 import Color, { BLACK, areEqual } from "../../data_structures/Color";
 import Font, { PartialFont, parseFontSize } from "../../data_structures/Font";
+import { Setting } from "../../ui/Setting";
+import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 
 export namespace RnaMolecule {
   export type ExternalProps = {
@@ -26,17 +28,59 @@ export namespace RnaMolecule {
     const name = useContext(Context.RnaMolecule.Name);
     const rnaComplexIndex = useContext(Context.RnaComplex.Index);
     const updateLabelContentDefaultStyle = useContext(Context.Label.Content.UpdateDefaultStyle);
+    const settingsRecord = useContext(Context.App.Settings);
+    const displayContourLineFlag = settingsRecord[Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] as boolean;
     // Begin memo data
+    // const flattenedNucleotideProps = useMemo(
+    //   function() {
+    //     const flattenedNucleotideProps = Object.entries(nucleotideProps).map(function([
+    //       nucleotideIndexAsString,
+    //       singularNucleotideProps
+    //     ]) {
+    //       return {
+    //         scaffoldingKey : Number.parseInt(nucleotideIndexAsString),
+    //         props : singularNucleotideProps
+    //       };
+    //     });
+    //     flattenedNucleotideProps.sort(function(
+    //       singularFlattenedNucleotideProps0,
+    //       singularFlattenedNucleotideProps1
+    //     ) {
+    //       return singularFlattenedNucleotideProps0.scaffoldingKey - singularFlattenedNucleotideProps1.scaffoldingKey
+    //     });
+    //     return flattenedNucleotideProps;
+    //   },
+    //   [nucleotideProps]
+    // );
+    // const renderedNucleotides = useMemo(
+    //   function() {
+    //     return flattenedNucleotideProps.map(function({ scaffoldingKey, props }) {
+    //       const finalizedProps = props as Nucleotide.Props & { scaffoldingKey : number };
+    //       finalizedProps.scaffoldingKey = scaffoldingKey;
+    //       return <Fragment
+    //         key = {scaffoldingKey}
+    //       >
+    //         {createElement(
+    //           Nucleotide.Component,
+    //           finalizedProps
+    //         )}
+    //       </Fragment>
+    //     });
+    //   },
+    //   [flattenedNucleotideProps]
+    // );
+    
     const flattenedNucleotideProps = useMemo(
       function() {
         const flattenedNucleotideProps = Object.entries(nucleotideProps).map(function([
           nucleotideIndexAsString,
           singularNucleotideProps
         ]) {
-          return {
-            scaffoldingKey : Number.parseInt(nucleotideIndexAsString),
-            props : singularNucleotideProps
-          };
+          const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+          const finalizedProps = singularNucleotideProps as Nucleotide.ExternalProps & { scaffoldingKey : number, key : number };
+          finalizedProps.key = nucleotideIndex;
+          finalizedProps.scaffoldingKey = nucleotideIndex;
+          return finalizedProps;
         });
         flattenedNucleotideProps.sort(function(
           singularFlattenedNucleotideProps0,
@@ -48,6 +92,12 @@ export namespace RnaMolecule {
       },
       [nucleotideProps]
     );
+    // const renderedNucleotides = useMemo(
+    //   function() {
+      // return renderedNucleotides;
+    //   },
+    //   [nucleotideProps]
+    // );
     // Begin effects.
     useEffect(
       function() {
@@ -151,19 +201,34 @@ export namespace RnaMolecule {
         [SVG_PROPERTY_XRNA_RNA_MOLECULE_FIRST_NUCLEOTIDE_INDEX] : firstNucleotideIndex
       }}
     >
-      <Context.RnaMolecule.FirstNucleotideIndex.Provider
+      {displayContourLineFlag && <polyline
+        points = {flattenedNucleotideProps.map(function({ x, y }) {
+          return `${x},${y}`;
+        }).join(" ")}
+        pointerEvents = "none"
+        stroke = "black"
+        strokeWidth = {DEFAULT_STROKE_WIDTH}
+        fill = "none"
+      />}
+      {!displayContourLineFlag && <Context.RnaMolecule.FirstNucleotideIndex.Provider
         value = {firstNucleotideIndex}
         // value = {flattenedNucleotideProps.length === 0 ? NaN : flattenedNucleotideProps[0].scaffoldingKey}
       >
-        <Scaffolding.Component<number, Nucleotide.ExternalProps>
+        {flattenedNucleotideProps.map(function(finalizedProps) {
+          return createElement(
+            Nucleotide.MemoizedComponent,
+            finalizedProps
+          );
+        })}
+        {/* <Scaffolding.Component<number, Nucleotide.ExternalProps>
           sortedProps = {flattenedNucleotideProps}
           childComponent = {Nucleotide.Component}
           propsToRerenderKeys = {nucleotideKeysToRerender}
           comparator = {function(nucleotideIndex0, nucleotideIndex1) {
             return nucleotideIndex0 - nucleotideIndex1;
           }}
-        />
-      </Context.RnaMolecule.FirstNucleotideIndex.Provider>
+        /> */}
+      </Context.RnaMolecule.FirstNucleotideIndex.Provider>}
     </g>;
   }
 }

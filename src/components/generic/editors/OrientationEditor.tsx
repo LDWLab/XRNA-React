@@ -13,7 +13,8 @@ export namespace OrientationEditor {
     initialAngle? : number | undefined,
     initialScale? : number | undefined,
     disabledFlag? : boolean | undefined,
-    relativePositions? : Array<Vector2D>
+    relativePositions? : Array<Vector2D>,
+    applyCenterToRelativePositionsFlag? : boolean
   };
 
   export function Component(props : Props) {
@@ -26,7 +27,8 @@ export namespace OrientationEditor {
       initialAngle,
       initialScale,
       disabledFlag,
-      relativePositions
+      relativePositions,
+      applyCenterToRelativePositionsFlag
     } = props;
     // Begin context data.
     const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
@@ -106,21 +108,22 @@ export namespace OrientationEditor {
     ) {
       const angleDelta = angle - initialAngleNullCoalesced;
       const totalScale = scale * initialScaleNullCoalescedReciprocal;
+      const cartesianCenter = {
+        x : centerX,
+        y : centerY
+      };
       const metaArray = [
         { 
           cartesian : positions,
           polar : polarCoordinates,
-          cartesianCenter : {
-            x : centerX,
-            y : centerY
-          }
+          cartesianCenter
         }
       ];
       if (relativePositions !== undefined) {
         metaArray.push({
           cartesian : relativePositions,
           polar : polarCoordinatesOfRelativeCoordinates,
-          cartesianCenter : {
+          cartesianCenter : applyCenterToRelativePositionsFlag ? cartesianCenter : {
             x : 0,
             y : 0
           }
