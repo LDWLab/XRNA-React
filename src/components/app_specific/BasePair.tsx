@@ -1079,14 +1079,7 @@ export namespace BasePair {
     const colorAsString = toCSS(mappedBasePair.color ?? BLACK);
     const strokeWidth = mappedBasePair.strokeWidth ?? DEFAULT_STROKE_WIDTH;
     if (mappedBasePair.points !== undefined) {
-      const points = mappedBasePair.points.map(function(point) {
-        const {
-          x,
-          y
-        } = add(
-          point,
-          position0
-        );
+      const points = mappedBasePair.points.map(function({ x, y }) {
         return `${x},${y}`;
       }).join(" ");
       return <polyline

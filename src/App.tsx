@@ -2684,9 +2684,16 @@ function App() {
   useEffect(
     function() {
       window.onbeforeunload = function(e) {
-        // Custom messages aren't allowed anymore.
-        return "";
+        if (!settingsRecord[Setting.DISABLE_NAVIGATE_AWAY_PROMPT]) {
+          // Custom messages aren't allowed anymore.
+          return "";
+        }
       };
+    },
+    [settingsRecord]
+  );
+  useEffect(
+    function() {
       let documentUrl = document.URL;
       let index = documentUrl.indexOf('?');
       if (index != -1) {
