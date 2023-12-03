@@ -87,10 +87,6 @@ export namespace Nucleotide {
       width : 0,
       height : 0
     });
-    const [
-      stroke,
-      setStroke
-    ] = useState("none");
     // Begin references.
     const symbolReference = createRef<SVGTextElement>();
     // Begin memo data.

@@ -86,7 +86,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
             }
           }
           if (boundingVectors === undefined) {
-            const boundingVector0 = nucleotideProps[0];
+            const boundingVector0 = Object.values(nucleotideProps)[0];
             boundingVectors = {
               0 : add(
                 boundingVector0,

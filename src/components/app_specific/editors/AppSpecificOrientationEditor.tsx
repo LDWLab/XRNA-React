@@ -60,7 +60,7 @@ export namespace AppSpecificOrientationEditor {
     );
     return <>
       <Collapsible.Component
-        title = "Positions:"
+        title = "Positions"
       >
         <OrientationEditor.Component
           {...props}
@@ -125,7 +125,7 @@ export namespace AppSpecificOrientationEditor {
     );
     return <>
       <Collapsible.Component
-        title = "Positions:"
+        title = "Positions"
       >
         <OrientationEditor.Simplified
           {...props}

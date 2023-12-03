@@ -991,7 +991,6 @@ export namespace BasePairsEditor {
     );
     return <div
       style = {{
-        maxHeight : 400,
         overflow : "auto",
         background : TOOLS_DIV_BACKGROUND_COLOR,
         position : "sticky"

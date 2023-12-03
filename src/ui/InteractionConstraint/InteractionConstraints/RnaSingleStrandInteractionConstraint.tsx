@@ -206,6 +206,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       let decremented = lowerBoundingNucleotideIndex - 1;
       lowerBoundingNucleotideIndex = decremented;
       if (!(decremented in singularRnaMoleculeProps.nucleotideProps)) {
+        lowerBoundingNucleotidePosition = structuredClone(singularRnaMoleculeProps.nucleotideProps[decremented + 1]);
         lowerTerminalIsBasePairedFlag = false;
         break;
       }
@@ -236,6 +237,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       let incremented = upperBoundingNucleotideIndex + 1;
       upperBoundingNucleotideIndex = incremented;
       if (!(incremented in singularRnaMoleculeProps.nucleotideProps)) {
+        upperBoundingNucleotidePosition = structuredClone(singularRnaMoleculeProps.nucleotideProps[incremented - 1]);
         upperTerminalIsBasePairedFlag = false;
         break;
       }
@@ -443,12 +445,18 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
             ),
             toBeDragged.length + 1
           );
-          let positionI = lowerBoundingNucleotidePosition;
-          for (let nucleotideIndexI = lowerBoundingNucleotideIndex; nucleotideIndexI <= upperBoundingNucleotideIndex; nucleotideIndexI++) {
+          let positionI = add(
+            lowerBoundingNucleotidePosition,
+            positionDelta
+          );
+          for (let nucleotideIndexI = lowerBoundingNucleotideIndex + 1; nucleotideIndexI < upperBoundingNucleotideIndex; nucleotideIndexI++) {
             let singularNucleotidePropsI = singularRnaMoleculeProps.nucleotideProps[nucleotideIndexI];
             singularNucleotidePropsI.x = positionI.x;
             singularNucleotidePropsI.y = positionI.y;
-            positionI = add(positionI, positionDelta);
+            positionI = add(
+              positionI,
+              positionDelta
+            );
           }
           rerender();
           break;
@@ -502,10 +510,10 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       case Tab.EDIT : {
         let singleColorFlag = true;
         let singleFontFlag = true;
-        const singularNucleotideProps0 = singularRnaMoleculeProps.nucleotideProps[this.lowerBoundingNucleotideIndex];
+        const singularNucleotideProps0 = singularRnaMoleculeProps.nucleotideProps[this.lowerBoundingNucleotideIndex + 1];
         const candidateSingleColor = singularNucleotideProps0.color ?? BLACK;
         const candidateSingleFont = singularNucleotideProps0.font ?? Font.DEFAULT;
-        for (let nucleotideIndexI = this.lowerBoundingNucleotideIndex + 1; nucleotideIndexI <= this.upperBoundingNucleotideIndex; nucleotideIndexI++) {
+        for (let nucleotideIndexI = this.lowerBoundingNucleotideIndex + 1; nucleotideIndexI < this.upperBoundingNucleotideIndex; nucleotideIndexI++) {
           const singularNucleotidePropsI = singularRnaMoleculeProps.nucleotideProps[nucleotideIndexI];
           if (!areEqual(
             singularNucleotidePropsI.color ?? BLACK,

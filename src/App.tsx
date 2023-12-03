@@ -4,28 +4,25 @@ import { add, scaleDown, subtract, Vector2D } from './data_structures/Vector2D';
 import { useResizeDetector } from 'react-resize-detector';
 import { compareBasePairKeys, RnaComplex } from './components/app_specific/RnaComplex';
 import { OutputFileExtension, outputFileExtensions, outputFileWritersMap } from './io/OutputUI';
-import { SCALE_BASE, ONE_OVER_LOG_OF_SCALE_BASE, MouseButtonIndices } from './utils/Constants';
-import { inputFileExtensions, InputFileExtension, inputFileReadersRecord, ParsedInputFile, defaultInvertYAxisFlagRecord } from './io/InputUI';
-import { DEFAULT_SETTINGS, Setting, settings, settingsLongDescriptionsMap, SettingsRecord, settingsShortDescriptionsMap, settingsTypeMap, SettingValue } from './ui/Setting';
+import { SCALE_BASE, ONE_OVER_LOG_OF_SCALE_BASE, MouseButtonIndices, DEFAULT_STROKE_WIDTH } from './utils/Constants';
+import { inputFileExtensions, InputFileExtension, inputFileReadersRecord, defaultInvertYAxisFlagRecord } from './io/InputUI';
+import { DEFAULT_SETTINGS, Setting, settings, settingsLongDescriptionsMap, SettingsRecord, settingsShortDescriptionsMap, settingsTypeMap } from './ui/Setting';
 import InputWithValidator from './components/generic/InputWithValidator';
-import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, Context, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaComplex } from './context/Context';
+import { BasePairKeysToRerender, Context, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaComplex } from './context/Context';
 import { isEmpty, sign, subtractNumbers } from './utils/Utils';
 import { Nucleotide } from './components/app_specific/Nucleotide';
 import { LabelContent } from './components/app_specific/LabelContent';
 import { LabelLine } from './components/app_specific/LabelLine';
 import { InteractionConstraint } from './ui/InteractionConstraint/InteractionConstraints';
-import { LabelContentEditMenu } from './components/app_specific/menus/edit_menus/LabelContentEditMenu';
-import { LabelLineEditMenu } from './components/app_specific/menus/edit_menus/LabelLineEditMenu';
 import { BasePairsEditor } from './components/app_specific/editors/BasePairsEditor';
 import { Collapsible } from './components/generic/Collapsible';
 import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
 import { fileExtensionDescriptions } from './io/FileExtension';
 import loadingGif from './images/loading.svg';
 import { SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from './io/SvgInputFileHandler';
-import { BLACK } from './data_structures/Color';
+import { areEqual, BLACK } from './data_structures/Color';
 import { RnaMolecule } from './components/app_specific/RnaMolecule';
 import { LabelEditMenu } from './components/app_specific/menus/edit_menus/LabelEditMenu';
-import { AbstractInteractionConstraint, basePairedNucleotideError } from './ui/InteractionConstraint/AbstractInteractionConstraint';
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -38,6 +35,11 @@ export const TOOLS_DIV_BACKGROUND_COLOR = "white";
 export const SVG_ELEMENT_HTML_ID = "viewport";
 export const TEST_SPACE_ID = "testSpace";
 export const MOUSE_OVER_TEXT_HTML_ID = "mouse_over_text_group";
+export const VIEWPORT_SCALE_GROUP_HTML_ID = "viewport_scale_group";
+export const VIEWPORT_TRANSLATE_GROUP_HTML_ID = "viewport_translate_group";
+
+export const LABEL_CLASS_NAME = "label";
+export const NO_STROKE_CLASS_NAME = "noStroke";
 
 // Begin externally-facing constants.
 export const HTML_ELEMENT_ID_DELIMITER = "|";
@@ -69,7 +71,7 @@ enum SceneState {
   DATA_LOADING_FAILED = "Data loading failed"
 }
 // Begin app-specific constants.
-const DIV_BUFFER_HEIGHT = 2;
+const DIV_BUFFER_DIMENSION = 2;
 const MOUSE_OVER_TEXT_FONT_SIZE = 20;
 const UPLOAD_BUTTON_TEXT = "Upload";
 const DOWNLOAD_ROW_TEXT = "Output File";
@@ -78,10 +80,10 @@ const TRANSLATION_TEXT = "Translation";
 const SCALE_TEXT = "Scale";
 const INTERACTION_CONSTRAINT_TEXT = "Constraint";
 const XRNA_SETTINGS_FILE_NAME = "xrna_settings";
-const strokesPerTab : Partial<Record<Tab, string>> = {
+const strokesPerTab : Record<InteractionConstraint.SupportedTab, string> = {
   [Tab.EDIT] : "red",
   [Tab.FORMAT] : "blue",
-  [Tab.ANNOTATE] : "orange"
+  [Tab.ANNOTATE] : "rgb(0,110,51)"
 };
 
 function App() {
@@ -180,6 +182,10 @@ function App() {
     y : 0
   });
   const [
+    dataSpaceOriginOfDrag,
+    setDataSpaceOriginOfDrag
+  ] = useState<Vector2D | undefined>(undefined);
+  const [
     dragCache,
     setDragCache
   ] = useState<Vector2D>({
@@ -249,16 +255,15 @@ function App() {
     debugVisualElements,
     setDebugVisualElements
   ] = useState<Array<JSX.Element>>([]);
-  type ToolsDivHeightAttribute = "auto" | number | undefined;
+  type ToolsDivWidthOrHeightAttribute = "auto" | number | undefined;
   const [
-    toolsDivHeightAttribute,
-    setToolsDivHeightAttribute
-  ] = useState<ToolsDivHeightAttribute>("auto");
-  type RerenderTriggers = Record<RnaComplexKey, Record<RnaMoleculeKey, Record<NucleotideKey, Context.App.RerenderTriggersPerNucleotide>>>;
+    toolsDivWidthAttribute,
+    setToolsDivWidthAttribute
+  ] = useState<ToolsDivWidthOrHeightAttribute>("auto");
   const [
-    rerenderTriggers,
-    setRerenderTriggers
-  ] = useState<RerenderTriggers>({});
+    lowerToolsDivHeightAttribute,
+    setLowerToolsDivHeightAttribute
+  ] = useState<ToolsDivWidthOrHeightAttribute>("auto");
   // Begin state-relevant helper functions.
   function setDragListener(
     dragListener : DragListener | null,
@@ -291,6 +296,7 @@ function App() {
   const mouseOverTextSvgTextElementReference = createRef<SVGTextElement>();
   const parentDivResizeDetector = useResizeDetector();
   const toolsDivResizeDetector = useResizeDetector();
+  const upperToolsDivResizeDetector = useResizeDetector();
   const interactionConstraintReference = useRef<InteractionConstraint.Enum | undefined>(interactionConstraint);
   interactionConstraintReference.current = interactionConstraint;
   const tabReference = useRef<Tab>();
@@ -321,12 +327,12 @@ function App() {
   const triggerRightClickMenuFlagReference = useRef<boolean>();
   const viewportScaleExponentReference = useRef<number>();
   viewportScaleExponentReference.current = viewportScaleExponent;
-  const toolsDivResizeDetectorHeightReference = useRef<number | undefined>();
-  toolsDivResizeDetectorHeightReference.current = toolsDivResizeDetector.height;
+  const toolsDivResizeDetectorWidthReference = useRef<number | undefined>();
+  toolsDivResizeDetectorWidthReference.current = toolsDivResizeDetector.width;
   type TotalScale = {
     positiveScale : number,
     negativeScale : number,
-    asTransform : string
+    asTransform : string[]
   };
   const totalScaleReference = useRef<TotalScale>();
   const sceneBoundsReference = useRef<SceneBounds>();
@@ -347,24 +353,29 @@ function App() {
   const uploadInputFileHtmlInputReference = useRef<HTMLInputElement>();
   const flattenedRnaComplexPropsLengthReference = useRef<number>(0);
   flattenedRnaComplexPropsLengthReference.current = flattenedRnaComplexPropsLength;
-  const rerenderTriggersReference = useRef<RerenderTriggers>();
-  rerenderTriggersReference.current = {};
+  const toolsDivWidthReference = useRef<number>(0);
+  const transformTranslate0Reference = useRef<{ asVector : Vector2D, asString : string }>();
+  const transformTranslate1Reference = useRef<{ asVector : Vector2D, asString : string }>();
+  const dataSpaceOriginOfDragReference = useRef<Vector2D>();
+  dataSpaceOriginOfDragReference.current = dataSpaceOriginOfDrag;
+  const flattenedRnaComplexPropsReference = useRef<Array<[string, RnaComplex.ExternalProps]>>();
   // Begin memo data.
   const flattenedRnaComplexProps = useMemo(
     function() {
       const flattenedRnaComplexProps = Object.entries(rnaComplexProps);
       setFlattenedRnaComplexPropsLength(flattenedRnaComplexProps.length);
+      flattenedRnaComplexPropsReference.current = flattenedRnaComplexProps;
       return flattenedRnaComplexProps;
     },
     [rnaComplexProps]
   );
-  const svgHeight = useMemo(
+  const svgWidth = useMemo(
     function() {
-      return Math.max((parentDivResizeDetector.height ?? 0) - (toolsDivResizeDetector.height ?? 0), 0);
+      return Math.max((parentDivResizeDetector.width ?? 0) - (toolsDivResizeDetector.width ?? 0), 0);
     },
     [
-      parentDivResizeDetector.height,
-      toolsDivResizeDetector.height
+      parentDivResizeDetector.width,
+      toolsDivResizeDetector.width
     ]
   );
   const sceneDimensionsReciprocals = useMemo(
@@ -379,23 +390,46 @@ function App() {
   const sceneBoundsScaleMin = useMemo(
     function() {
       return Math.min(
-        (parentDivResizeDetector.width ?? 0) * sceneDimensionsReciprocals.width,
-        svgHeight * sceneDimensionsReciprocals.height
+        svgWidth * sceneDimensionsReciprocals.width,
+        (parentDivResizeDetector.height ?? 0) * sceneDimensionsReciprocals.height
       );
     },
     [
-      parentDivResizeDetector.width,
-      svgHeight,
+      parentDivResizeDetector.height,
+      svgWidth,
       sceneDimensionsReciprocals
     ]
   );
   sceneBoundsScaleMinReference.current = sceneBoundsScaleMin;
-  const transformTranslate = useMemo(
+  const transformTranslate0 = useMemo(
     function() {
-      return `translate(${-sceneBounds.x + viewportTranslateX}, ${-(sceneBounds.y + sceneBounds.height) + viewportTranslateY})`;
+      const asVector = {
+        x : -sceneBounds.x,
+        y : -(sceneBounds.y + sceneBounds.height)
+      };
+      const returnValue = {
+        asVector,
+        asString : `translate(${asVector.x}, ${asVector.y})`
+      };
+      transformTranslate0Reference.current = returnValue;
+      return returnValue;
+    },
+    [sceneBounds]
+  );
+  const transformTranslate1 = useMemo(
+    function() {
+      const asVector = {
+        x : viewportTranslateX,
+        y : viewportTranslateY
+      };
+      const returnValue = {
+        asVector,
+        asString : `translate(${asVector.x}, ${asVector.y})`
+      };
+      transformTranslate1Reference.current = returnValue;
+      return returnValue;
     },
     [
-      sceneBounds,
       viewportTranslateX,
       viewportTranslateY
     ]
@@ -406,7 +440,10 @@ function App() {
       return {
         positiveScale,
         negativeScale : 1 / positiveScale,
-        asTransform : `scale(${positiveScale})`
+        asTransform : [
+          `scale(${sceneBoundsScaleMin})`,
+          `scale(${viewportScale})`
+        ]
       };
     },
     [
@@ -417,10 +454,12 @@ function App() {
   totalScaleReference.current = totalScale;
   const labelOnMouseDownRightClickHelper = useMemo(
     function() {
-      return function(fullKeys : FullKeys) {
+      return function(
+        fullKeys : FullKeys,
+        interactionConstraint = interactionConstraintReference.current
+      ) {
         switch (tabReference.current) {
           case Tab.EDIT : {
-            const interactionConstraint = interactionConstraintReference.current;
             if (interactionConstraint === undefined || !InteractionConstraint.isEnum(interactionConstraint)) {
               alert("Select an interaction constraint first!");
               return;
@@ -643,29 +682,43 @@ function App() {
           case MouseButtonIndices.Right : {
             if (tabReference.current === Tab.EDIT) {
               labelOnMouseDownRightClickHelper(fullKeys);
-              // const setPerRnaMolecule = new Set<number>();
-              // setPerRnaMolecule.add(nucleotideIndex);
-              // setRightClickMenuContent(
-              //   <LabelLineEditMenu.Component
-              //     rnaComplexProps = {rnaComplexPropsReference.current as RnaComplexProps}
-              //     fullKeys = {fullKeys}
-              //     triggerRerender = {function() {
-              //       setNucleotideKeysToRerender({
-              //         [rnaComplexIndex] : {
-              //           [rnaMoleculeName] : [nucleotideIndex]
-              //         }
-              //       });
-              //     }}
-              //   />,
-              //   {
-              //     [rnaComplexIndex] : {
-              //       [rnaMoleculeName] : setPerRnaMolecule
-              //     }
-              //   }
-              // );
             }
             break;
           }
+        }
+      }
+    },
+    []
+  );
+  const nucleotideOnMouseDownRightClickHelper = useMemo(
+    function() {
+      return function(
+        fullKeys : FullKeys,
+        interactionConstraint : InteractionConstraint.Enum,
+        tab : InteractionConstraint.SupportedTab
+      ) {
+        try {
+          const helper = InteractionConstraint.record[interactionConstraint](
+            rnaComplexPropsReference.current as RnaComplexProps,
+            fullKeys,
+            setNucleotideKeysToRerender,
+            setBasePairKeysToRerender,
+            setDebugVisualElements,
+            tab
+          );
+          const rightClickMenu = helper.createRightClickMenu(tab);
+          setResetOrientationDataTrigger(!resetOrientationDataTrigger);
+          setRightClickMenuContent(
+            rightClickMenu,
+            helper.indicesOfAffectedNucleotides
+          );
+        } catch (error : any) {
+          if (typeof error === "object" && "errorMessage" in error) {
+            alert(error.errorMessage);
+          } else {
+            throw error;
+          }
+          return;
         }
       }
     },
@@ -725,29 +778,11 @@ function App() {
                 alert("Select an interaction constraint first!");
                 return;
               }
-              try {
-                const helper = InteractionConstraint.record[interactionConstraint](
-                  rnaComplexPropsReference.current as RnaComplexProps,
-                  fullKeys,
-                  setNucleotideKeysToRerender,
-                  setBasePairKeysToRerender,
-                  setDebugVisualElements,
-                  tab
-                );
-                const rightClickMenu = helper.createRightClickMenu(tab);
-                setResetOrientationDataTrigger(!resetOrientationDataTrigger);
-                setRightClickMenuContent(
-                  rightClickMenu,
-                  helper.indicesOfAffectedNucleotides
-                );
-              } catch (error : any) {
-                if (typeof error === "object" && "errorMessage" in error) {
-                  alert(error.errorMessage);
-                } else {
-                  throw error;
-                }
-                return;
-              }
+              nucleotideOnMouseDownRightClickHelper(
+                fullKeys,
+                interactionConstraint,
+                tab
+              );
             }
             break;
           }
@@ -1065,6 +1100,7 @@ function App() {
           onChange = {function(e) {
             const newInteractionConstraint = e.target.value as InteractionConstraint.Enum;
             setInteractionConstraint(newInteractionConstraint);
+            resetRightClickMenuContent();
             if (newInteractionConstraint in InteractionConstraint.optionsMenuRecord) {
               setRightClickMenuOptionsMenu(createElement(
                 InteractionConstraint.optionsMenuRecord[newInteractionConstraint] as FunctionComponent<{}>,
@@ -1353,20 +1389,22 @@ function App() {
           return;
         }
         
+        const mouseCoordinates = {
+          x : e.clientX,
+          y : e.clientY
+        };
+
         const dragListener = dragListenerReference.current as DragListener | null;
         if (dragListener !== null) {
           const originOfDrag = originOfDragReference.current as Vector2D;
           const dragCache = dragCacheReference.current as Vector2D;
-          const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
           const viewportScale = viewportScaleReference.current as number;
+          const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
           const repositionAnnotationsFlag = repositionAnnotationsFlagReference.current as boolean;
           const triggerRightClickMenuFlag = triggerRightClickMenuFlagReference.current as boolean;
           const resetOrientationDataTrigger = resetOrientationDataTriggerReference.current as boolean;
           const translation = subtract(
-            {
-              x : e.clientX,
-              y : e.clientY
-            },
+            mouseCoordinates,
             originOfDrag
           );
           translation.y = -translation.y;
@@ -1384,6 +1422,32 @@ function App() {
             setResetOrientationDataTrigger(!resetOrientationDataTrigger);
           }
         }
+
+        const dataSpaceOriginOfDrag = dataSpaceOriginOfDragReference.current;
+        const tab = tabReference.current as Tab;
+        if (dataSpaceOriginOfDrag !== undefined && InteractionConstraint.isSupportedTab(tab)) {
+          const mouseDataSpaceCoordinates = transformIntoDataSpace(mouseCoordinates);
+          const xCoordinates = [
+            dataSpaceOriginOfDrag.x,
+            mouseDataSpaceCoordinates.x
+          ].sort(subtractNumbers);
+          const yCoordinates = [
+            dataSpaceOriginOfDrag.y,
+            mouseDataSpaceCoordinates.y
+          ].sort(subtractNumbers);
+          const minX = xCoordinates[0];
+          const minY = yCoordinates[0]
+          setDebugVisualElements([<rect
+            key = {0}
+            x = {minX}
+            y = {minY}
+            width = {xCoordinates[1] - minX}
+            height = {yCoordinates[1] - minY}
+            fill = "none"
+            stroke = {strokesPerTab[tab]}
+            strokeWidth = {DEFAULT_STROKE_WIDTH}
+          />]);
+        }
         e.preventDefault();
       }
     },
@@ -1392,12 +1456,19 @@ function App() {
   const onMouseDown = useMemo(
     function() {
       return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        const clickedOnCoordinates = {
+          x : e.clientX,
+          y : e.clientY
+        };
         switch (e.button) {
           case MouseButtonIndices.Left : {
-            setOriginOfDrag({
-              x : e.clientX,
-              y : e.clientY
-            });
+            setOriginOfDrag(clickedOnCoordinates);
+            break;
+          }
+          case MouseButtonIndices.Middle : {
+            // setMiddleMouseButtonDownFlag(true);
+            const clickedOnCoordinatesInDataSpace = transformIntoDataSpace(clickedOnCoordinates);
+            setDataSpaceOriginOfDrag(clickedOnCoordinatesInDataSpace);
             break;
           }
         }
@@ -1418,6 +1489,561 @@ function App() {
             {}
           );
         }
+        const dataSpaceOriginOfDrag = dataSpaceOriginOfDragReference.current;
+        const tab = tabReference.current as Tab;
+        if (dataSpaceOriginOfDrag !== undefined && InteractionConstraint.isSupportedTab(tab)) {
+          setDebugVisualElements([]);
+          const mouseCoordinates = {
+            x : e.clientX,
+            y : e.clientY
+          };
+          const mouseDataSpaceCoordinates = transformIntoDataSpace(mouseCoordinates);
+          const xCoordinates = [
+            dataSpaceOriginOfDrag.x,
+            mouseDataSpaceCoordinates.x
+          ].sort(subtractNumbers);
+          const yCoordinates = [
+            dataSpaceOriginOfDrag.y,
+            mouseDataSpaceCoordinates.y
+          ].sort(subtractNumbers);
+          const minX = xCoordinates[0];
+          const minY = yCoordinates[0];
+          const maxX = xCoordinates[1];
+          const maxY = yCoordinates[1];
+          const fullKeysOfCapturedNucleotides = new Array<FullKeys>();
+          const labelsEncounteredKeysRecord : Record<RnaMoleculeKey, Set<NucleotideKey>> = {};
+          const fullKeysOfCapturedLabels = new Array<FullKeys>();
+          const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+          type Keys = { rnaMoleculeName : RnaMoleculeKey, nucleotideIndex : NucleotideKey };
+          function validateLabel(
+            {
+              rnaMoleculeName,
+              nucleotideIndex
+            } : Keys,
+            {
+              x,
+              y
+            } : Vector2D
+          ) {
+            if (
+              x < minX ||
+              x > maxX ||
+              y < minY ||
+              y > maxY
+            ) {
+              return false;
+            }
+
+            if (!(rnaMoleculeName in labelsEncounteredKeysRecord)) {
+              labelsEncounteredKeysRecord[rnaMoleculeName] = new Set<NucleotideKey>();
+            }
+            const labelsEncounteredKeysRecordPerRnaMolecule = labelsEncounteredKeysRecord[rnaMoleculeName];
+            if (labelsEncounteredKeysRecordPerRnaMolecule.has(nucleotideIndex)) {
+              return false;
+            }
+            labelsEncounteredKeysRecordPerRnaMolecule.add(nucleotideIndex);
+            return true;
+          }
+          for (const [rnaComplexIndexAsString, { rnaMoleculeProps }] of Object.entries(rnaComplexProps)) {
+            const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+            for (const [rnaMoleculeName, { nucleotideProps }] of Object.entries(rnaMoleculeProps)) {
+              for (const [nucleotideIndexAsString, singularNucleotideProps] of Object.entries(nucleotideProps)) {
+                const { labelContentProps, labelLineProps } = singularNucleotideProps;
+                const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+
+                const fullKeys = {
+                  rnaComplexIndex,
+                  rnaMoleculeName,
+                  nucleotideIndex
+                };
+
+                if (validateLabel(
+                  fullKeys,
+                  singularNucleotideProps
+                )) {
+                  fullKeysOfCapturedNucleotides.push(fullKeys);
+                }
+                if (labelContentProps !== undefined) {
+                  const absolutePosition = add(
+                    singularNucleotideProps,
+                    labelContentProps
+                  );
+                  if (validateLabel(
+                    fullKeys,
+                    absolutePosition
+                  )) {
+                    fullKeysOfCapturedLabels.push(fullKeys);
+                  }
+                }
+                if (labelLineProps !== undefined) {
+                  for (const point of labelLineProps.points) {
+                    const absolutePosition = add(
+                      singularNucleotideProps,
+                      point
+                    );
+                    if (validateLabel(
+                      fullKeys,
+                      absolutePosition
+                    )) {
+                      fullKeysOfCapturedLabels.push(fullKeys);
+                    }
+                  }
+                }
+              }
+            }
+          }
+          function sort(
+            fullKeys0 : FullKeys,
+            fullKeys1 : FullKeys
+          ) {
+            return (
+              (fullKeys0.rnaComplexIndex - fullKeys1.rnaComplexIndex) ||
+              (fullKeys0.rnaMoleculeName.localeCompare(fullKeys1.rnaMoleculeName)) ||
+              (fullKeys0.nucleotideIndex - fullKeys1.nucleotideIndex)
+            );
+          }
+          type FullKeysAndInteractionConstraint = { fullKeys : FullKeys, interactionConstraint : InteractionConstraint.Enum } | undefined;
+          function getInteractionConstraintAndFullKeys(fullKeysArray : Array<FullKeys>) : FullKeysAndInteractionConstraint {
+            function handleMultipleFullKeys() : FullKeysAndInteractionConstraint {
+              fullKeysArray.sort(sort);
+
+              const minimumFullKeys = fullKeysArray[0];
+              const maximumFullKeys = fullKeysArray[fullKeysArray.length - 1];
+
+              let singleRnaComplexFlag = true;
+              let singleRnaMoleculeFlag = true;
+              let dualRnaMoleculesFlag = false;
+              let otherRnaMoleculeName : string | undefined = undefined;
+              for (let i = 1; i < fullKeysArray.length; i++) {
+                const {
+                  rnaComplexIndex,
+                  rnaMoleculeName,
+                } = fullKeysArray[i];
+                if (rnaComplexIndex !== minimumFullKeys.rnaComplexIndex) {
+                  singleRnaComplexFlag = false;
+                }
+                if (rnaMoleculeName !== minimumFullKeys.rnaMoleculeName) {
+                  singleRnaMoleculeFlag = false;
+                  if (otherRnaMoleculeName === undefined) {
+                    otherRnaMoleculeName = rnaMoleculeName;
+                    dualRnaMoleculesFlag = true;
+                  } else if (rnaMoleculeName !== otherRnaMoleculeName) {
+                    dualRnaMoleculesFlag = false;
+                  }
+                }
+              }
+
+              if (!singleRnaComplexFlag) {
+                singleRnaMoleculeFlag = false;
+              }
+
+              let allNucleotidesAreBasePairedFlag = true;
+              let noNucleotidesAreBasePairedFlag = true;
+              const mappedBasePairInformationArray = fullKeysArray.map(function({
+                rnaComplexIndex,
+                rnaMoleculeName,
+                nucleotideIndex
+              }) {
+                const { basePairs } = rnaComplexProps[rnaComplexIndex];
+                if (rnaMoleculeName in basePairs) {
+                  const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
+                  if (nucleotideIndex in basePairsPerRnaMolecule) {
+                    noNucleotidesAreBasePairedFlag = false;
+                    return basePairsPerRnaMolecule[nucleotideIndex];
+                  }
+                }
+                allNucleotidesAreBasePairedFlag = false;
+                return undefined;
+              });
+
+              function isSubdomain() {
+                // BEGIN DETECTING InteractionConstraint.Enum.RNA_SUB_DOMAIN
+                if (!singleRnaMoleculeFlag) {
+                  return false;
+                }
+                const mappedBasePair0 = mappedBasePairInformationArray[0];
+                if (
+                  mappedBasePair0 === undefined ||
+                  mappedBasePair0.rnaMoleculeName !== maximumFullKeys.rnaMoleculeName ||
+                  mappedBasePair0.nucleotideIndex !== maximumFullKeys.nucleotideIndex
+                ) {
+                  return false;
+                }
+                const { basePairs } = rnaComplexProps[minimumFullKeys.rnaComplexIndex];
+                const basePairsPerRnaMolecule = basePairs[minimumFullKeys.rnaMoleculeName];
+                for (let nucleotideIndex = minimumFullKeys.nucleotideIndex + 1; nucleotideIndex < maximumFullKeys.nucleotideIndex; nucleotideIndex++) {
+                  const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
+                  if (
+                    mappedBasePairInformation !== undefined &&
+                    (
+                      mappedBasePairInformation.rnaMoleculeName !== minimumFullKeys.rnaMoleculeName ||
+                      mappedBasePairInformation.nucleotideIndex < minimumFullKeys.nucleotideIndex || 
+                      mappedBasePairInformation.nucleotideIndex > maximumFullKeys.nucleotideIndex
+                    )
+                  ) {
+                    return false;
+                  }
+                }
+                return true;
+                // FINISH DETECTING InteractionConstraint.Enum.RNA_SUB_DOMAIN
+              }
+
+              function isStackedHelix() {
+                // BEGIN DETECTING InteractionConstraint.Enum.RNA_STACKED_HELIX
+                if (
+                  !singleRnaMoleculeFlag &&
+                  !dualRnaMoleculesFlag
+                ) {
+                  return false;
+                }
+                const rnaMoleculeNames = new Set<string>();
+                for (let i = 0; i < fullKeysArray.length; i++) {
+                  rnaMoleculeNames.add(fullKeysArray[i].rnaMoleculeName);
+                  const mappedBasePairInformation = mappedBasePairInformationArray[i];
+                  if (mappedBasePairInformation !== undefined) {
+                    rnaMoleculeNames.add(mappedBasePairInformation.rnaMoleculeName);
+                  }
+                }
+                if (rnaMoleculeNames.size > 2) {
+                  return false;
+                }
+                let encounteredBreakFlag = false;
+                let previousFullKeys = fullKeysArray[0];
+                for (let i = 1; i < fullKeysArray.length; i++) {
+                  const currentFullKeys = fullKeysArray[i];
+                  if (
+                    currentFullKeys.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
+                    currentFullKeys.nucleotideIndex - previousFullKeys.nucleotideIndex !== 1
+                  ) {
+                    if (encounteredBreakFlag) {
+                      return false;
+                    }
+                    encounteredBreakFlag = true;
+                    const mappedBasePairInformation = mappedBasePairInformationArray[i];
+                    if (
+                      mappedBasePairInformation === undefined ||
+                      mappedBasePairInformation.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
+                      mappedBasePairInformation.nucleotideIndex !== previousFullKeys.nucleotideIndex
+                    ) {
+                      return false;
+                    }
+                  }
+                  previousFullKeys = currentFullKeys;
+                }
+                return true;
+                // FINISH DETECTING InteractionConstraint.Enum.RNA_STACKED_HELIX
+              }
+
+              function isRnaCycle() {
+                // BEGIN DETECTING InteractionConstraint.Enum.RNA_CYCLE
+                if (!singleRnaComplexFlag) {
+                  return false;
+                }
+                const keysRecord : Record<RnaMoleculeKey, Set<NucleotideKey>> = {};
+                for (const { rnaMoleculeName, nucleotideIndex } of fullKeysArray) {
+                  if (!(rnaMoleculeName in keysRecord)) {
+                    keysRecord[rnaMoleculeName] = new Set<NucleotideKey>();
+                  }
+                  const keysPerRnaMolecule = keysRecord[rnaMoleculeName];
+                  keysPerRnaMolecule.add(nucleotideIndex);
+                }
+                const { rnaMoleculeProps, basePairs } = rnaComplexProps[minimumFullKeys.rnaComplexIndex];
+                const encounteredKeysRecord : Record<RnaMoleculeKey, Set<NucleotideKey>> = {};
+                const queue = new Array<Keys>(minimumFullKeys);
+                let count = 0;
+                while (queue.length > 0) {
+                  count++;
+
+                  const {
+                    rnaMoleculeName,
+                    nucleotideIndex
+                  } = queue.shift() as Keys;
+                  const { nucleotideProps } = rnaMoleculeProps[rnaMoleculeName];
+                  const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
+
+                  if (!(rnaMoleculeName in encounteredKeysRecord)) {
+                    encounteredKeysRecord[rnaMoleculeName] = new Set<NucleotideKey>();
+                  }
+                  const encounteredKeysPerRnaMolecule = encounteredKeysRecord[rnaMoleculeName];
+                  encounteredKeysPerRnaMolecule.add(nucleotideIndex);
+
+                  const neighbors = new Array<Keys>();
+                  if (nucleotideIndex - 1 in nucleotideProps) {
+                    neighbors.push({
+                      rnaMoleculeName,
+                      nucleotideIndex : nucleotideIndex - 1
+                    });
+                  }
+                  if (nucleotideIndex + 1 in nucleotideProps) {
+                    neighbors.push({
+                      rnaMoleculeName,
+                      nucleotideIndex : nucleotideIndex + 1
+                    });
+                  }
+                  if (nucleotideIndex in basePairsPerRnaMolecule) {
+                    const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
+                    neighbors.push(mappedBasePairInformation);
+                  }
+                  for (const neighbor of neighbors) {
+                    const {
+                      rnaMoleculeName,
+                      nucleotideIndex
+                    } = neighbor;
+                    if (
+                      rnaMoleculeName in keysRecord &&
+                      keysRecord[rnaMoleculeName].has(nucleotideIndex) && (
+                        !(rnaMoleculeName in encounteredKeysRecord) ||
+                        !encounteredKeysRecord[rnaMoleculeName].has(nucleotideIndex)
+                      )
+                    ) {
+                      queue.push(neighbor);
+                    }
+                  }
+                }
+                return count === fullKeysArray.length;
+                // FINISH DETECTING InteractionConstraint.Enum.RNA_CYCLE
+              }
+
+              if (noNucleotidesAreBasePairedFlag) {
+                // BEGIN DETECTING InteractionConstraint.Enum.RNA_SINGLE_STRAND
+                let singleStrandFlag = true;
+                let previousFullKeys = fullKeysArray[0];
+                for (let i = 1; i < fullKeysArray.length; i++) {
+                  const currentFullKeys = fullKeysArray[i];
+                  if (
+                    previousFullKeys.rnaComplexIndex !== currentFullKeys.rnaComplexIndex ||
+                    previousFullKeys.rnaMoleculeName !== currentFullKeys.rnaMoleculeName ||
+                    Math.abs(previousFullKeys.nucleotideIndex - currentFullKeys.nucleotideIndex) !== 1
+                  ) {
+                    singleStrandFlag = false;
+                    break;
+                  }
+                  previousFullKeys = currentFullKeys;
+                }
+                if (singleStrandFlag) {
+                  return {
+                    fullKeys : previousFullKeys,
+                    interactionConstraint : InteractionConstraint.Enum.RNA_SINGLE_STRAND
+                  };
+                }
+                // FINISH DETECTING InteractionConstraint.Enum.RNA_SINGLE_STRAND
+              } else if (allNucleotidesAreBasePairedFlag) {
+                // BEGIN DETECTING InteractionConstraint.Enum.RNA_HELIX
+                if (
+                  singleRnaComplexFlag && 
+                  (singleRnaMoleculeFlag || dualRnaMoleculesFlag)
+                ) {
+                  let encounteredBreakFlag = false;
+                  let singleHelixFlag = true;
+                  let previousFullKeys = fullKeysArray[0];
+                  for (let i = 1; i < fullKeysArray.length; i++) {
+                    const currentFullKeys = fullKeysArray[i];
+                    if (currentFullKeys.nucleotideIndex - previousFullKeys.nucleotideIndex !== 1) {
+                      if (encounteredBreakFlag) {
+                        singleHelixFlag = false;
+                        break;
+                      } else {
+                        encounteredBreakFlag = true;
+                        const mappedBasePairInformation = mappedBasePairInformationArray[i];
+                        if (
+                          mappedBasePairInformation === undefined ||
+                          mappedBasePairInformation.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
+                          mappedBasePairInformation.nucleotideIndex !== previousFullKeys.nucleotideIndex
+                        ) {
+                          singleHelixFlag = false;
+                        }
+                      }
+                    }
+                    previousFullKeys = currentFullKeys;
+                  }
+                  if (singleHelixFlag) {
+                    return {
+                      fullKeys : minimumFullKeys,
+                      interactionConstraint : InteractionConstraint.Enum.RNA_HELIX
+                    };
+                  }
+                }
+                // FINISH DETECTING InteractionConstraint.Enum.RNA_HELIX
+                if (isSubdomain()) {
+                  return {
+                    fullKeys : minimumFullKeys,
+                    interactionConstraint : InteractionConstraint.Enum.RNA_SUB_DOMAIN
+                  };
+                }
+                if (isStackedHelix()) {
+                  return {
+                    fullKeys : minimumFullKeys,
+                    interactionConstraint : InteractionConstraint.Enum.RNA_STACKED_HELIX
+                  };
+                }
+              } else {
+                if (isSubdomain()) {
+                  return {
+                    fullKeys : minimumFullKeys,
+                    interactionConstraint : InteractionConstraint.Enum.RNA_SUB_DOMAIN
+                  };
+                }
+                if (isStackedHelix()) {
+                  return {
+                    fullKeys : fullKeysArray.find(function(
+                      _fullKeys,
+                      i
+                    ) {
+                      return mappedBasePairInformationArray[i] !== undefined;
+                    }) as FullKeys,
+                    interactionConstraint : InteractionConstraint.Enum.RNA_STACKED_HELIX
+                  };
+                }
+                if (isRnaCycle()) {
+                  return {
+                    fullKeys : fullKeysArray.find(function(
+                      _fullKeys,
+                      i
+                    ) {
+                      return mappedBasePairInformationArray[i] === undefined;
+                    }) as FullKeys,
+                    interactionConstraint : InteractionConstraint.Enum.RNA_CYCLE
+                  }
+                }
+              }
+
+              if (singleRnaMoleculeFlag) {
+                return {
+                  fullKeys : minimumFullKeys,
+                  interactionConstraint : InteractionConstraint.Enum.RNA_MOLECULE
+                };
+              }
+
+              if (singleRnaComplexFlag) {
+                return {
+                  fullKeys : minimumFullKeys,
+                  interactionConstraint : InteractionConstraint.Enum.RNA_COMPLEX
+                };
+              }
+
+              // BEGIN DETECTING InteractionConstraint.Enum.SINGLE_COLOR
+              const singleColorCandidate = rnaComplexProps[minimumFullKeys.rnaComplexIndex].rnaMoleculeProps[minimumFullKeys.rnaMoleculeName].nucleotideProps[minimumFullKeys.nucleotideIndex].color ?? BLACK;
+              let singleColorFlag = true;
+              for (let i = 1; i < fullKeysArray.length; i++) {
+                const {
+                  rnaComplexIndex,
+                  rnaMoleculeName,
+                  nucleotideIndex
+                } = fullKeysArray[i];
+                const color = rnaComplexProps[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].color ?? BLACK;
+                if (!areEqual(
+                  singleColorCandidate,
+                  color
+                )) {
+                  singleColorFlag = false;
+                  break;
+                }
+              }
+              if (singleColorFlag) {
+                return {
+                  fullKeys : minimumFullKeys,
+                  interactionConstraint : InteractionConstraint.Enum.SINGLE_COLOR
+                };
+              }
+              // FINISH DETECTING InteractionConstraint.Enum.SINGLE_COLOR
+
+              return {
+                fullKeys : minimumFullKeys,
+                interactionConstraint : InteractionConstraint.Enum.ENTIRE_SCENE
+              };
+            }
+            switch (fullKeysArray.length) {
+              case 0 : {
+                return undefined;
+              }
+              case 1 : {
+                const fullKeys = fullKeysArray[0];
+                const {
+                  rnaComplexIndex,
+                  rnaMoleculeName,
+                  nucleotideIndex
+                } = fullKeys;
+                const { basePairs } = rnaComplexProps[rnaComplexIndex];
+                let interactionConstraint = InteractionConstraint.Enum.SINGLE_NUCLEOTIDE;
+                if (rnaMoleculeName in basePairs) {
+                  const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
+                  if (nucleotideIndex in basePairsPerRnaMolecule) {
+                    interactionConstraint = InteractionConstraint.Enum.SINGLE_BASE_PAIR;
+                  }
+                }
+                return {
+                  fullKeys,
+                  interactionConstraint 
+                };
+              }
+              case 2 : {
+                const fullKeys0 = fullKeysArray[0];
+                const fullKeys1 = fullKeysArray[1];
+  
+                const { basePairs } = rnaComplexProps[fullKeys0.rnaComplexIndex];
+                let basePairsPerRnaMolecule : RnaComplex.BasePairsPerRnaMolecule;
+                let mappedBasePairInformation : RnaComplex.MappedBasePair;
+                if (
+                  fullKeys0.rnaComplexIndex === fullKeys1.rnaComplexIndex &&
+                  fullKeys0.rnaMoleculeName in basePairs &&
+                  fullKeys0.nucleotideIndex in (basePairsPerRnaMolecule = basePairs[fullKeys0.rnaMoleculeName]) && 
+                  fullKeys1.rnaMoleculeName === (mappedBasePairInformation = basePairsPerRnaMolecule[fullKeys0.nucleotideIndex]).rnaMoleculeName &&
+                  fullKeys1.nucleotideIndex === mappedBasePairInformation.nucleotideIndex
+                ) {
+                  return {
+                    fullKeys : fullKeys0,
+                    interactionConstraint : InteractionConstraint.Enum.SINGLE_BASE_PAIR
+                  };
+                } else {
+                  return handleMultipleFullKeys();
+                }
+              }
+              default : {
+                return handleMultipleFullKeys();
+              }
+            }
+          }
+          let interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(fullKeysOfCapturedNucleotides);
+          if (interactionConstraintAndFullKeys !== undefined) {
+            const {
+              fullKeys,
+              interactionConstraint
+            } = interactionConstraintAndFullKeys;
+            setInteractionConstraint(interactionConstraint);
+            nucleotideOnMouseDownRightClickHelper(
+              fullKeys,
+              interactionConstraint,
+              tab as InteractionConstraint.SupportedTab
+            );
+          } else {
+            interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(fullKeysOfCapturedLabels);
+            if (interactionConstraintAndFullKeys !== undefined) {
+              const {
+                fullKeys,
+                interactionConstraint
+              } = interactionConstraintAndFullKeys;
+              setInteractionConstraint(interactionConstraint);
+              labelOnMouseDownRightClickHelper(
+                fullKeys,
+                interactionConstraint
+              );
+            }
+          }
+        }
+        setDataSpaceOriginOfDrag(undefined);
+      };
+    },
+    []
+  );
+  const onMouseLeave = useMemo(
+    function() {
+      return function() {
+        setDragListener(
+          null,
+          {}
+        );
+        setDebugVisualElements([]);
+        setDataSpaceOriginOfDrag(undefined);
       };
     },
     []
@@ -1431,7 +2057,7 @@ function App() {
         }
 
         const viewportScaleExponent = viewportScaleExponentReference.current as number;
-        const toolsDivResizeDetectorHeight = toolsDivResizeDetectorHeightReference.current ?? 0;
+        const toolsDivResizeDetectorWidth = toolsDivResizeDetectorWidthReference.current ?? 0;
         const totalScale = totalScaleReference.current as TotalScale;
         const sceneBounds = sceneBoundsReference.current as SceneBounds;
         const viewportTranslateX = viewportTranslateXReference.current as number;
@@ -1444,8 +2070,8 @@ function App() {
         setViewportScale(newScale);
         setViewportScaleExponent(newScaleExponent);
         let uiVector = {
-          x : e.clientX,
-          y : e.clientY - toolsDivResizeDetectorHeight - DIV_BUFFER_HEIGHT
+          x : e.clientX - toolsDivResizeDetectorWidth - DIV_BUFFER_DIMENSION,
+          y : e.clientY
         };
         let reciprocal = totalScale.negativeScale;
         let inputVector = {
@@ -1975,9 +2601,84 @@ function App() {
   );
   const labelClassName = useMemo(
     function() {
-      return tab === Tab.EDIT ? "label" : undefined;
+      return tab === Tab.EDIT ? LABEL_CLASS_NAME : NO_STROKE_CLASS_NAME;
     },
     [tab]
+  );
+  const transformIntoDataSpace = useMemo(
+    function() {
+      return function(clickedOnCoordinates : Vector2D) {
+        const toolsDivResizeDetectorWidth = toolsDivResizeDetectorWidthReference.current as number;
+        const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
+        const viewportScale = viewportScaleReference.current as number;
+        const transformTranslate0 = transformTranslate0Reference.current as { asVector : Vector2D, asString : string };
+        const transformTranslate1 = transformTranslate1Reference.current as { asVector : Vector2D, asString : string };
+
+        let transformedCoordinates = structuredClone(clickedOnCoordinates);
+        transformedCoordinates.x -= toolsDivResizeDetectorWidth;
+        transformedCoordinates = scaleDown(
+          transformedCoordinates,
+          sceneBoundsScaleMin * viewportScale
+        );
+        transformedCoordinates.y = -transformedCoordinates.y;
+        transformedCoordinates = subtract(
+          transformedCoordinates,
+          add(
+            transformTranslate0.asVector,
+            transformTranslate1.asVector
+          )
+        );
+        return transformedCoordinates;
+      }
+    },
+    []
+  );
+  const resetRightClickMenuContent = useMemo(
+    function() {
+      return function() {
+        const flattenedRnaComplexProps = flattenedRnaComplexPropsReference.current as Array<[string, RnaComplex.ExternalProps]>;
+        const tab = tabReference.current as Tab;
+        let rightClickPrompt = "";
+        if (flattenedRnaComplexProps.length === 0) {
+          const promptStart = "You must load a non-empty input file before attempting to ";
+          switch (tab) {
+            case Tab.EDIT : {
+              rightClickPrompt = promptStart + "edit.";
+              break;
+            }
+            case Tab.FORMAT : {
+              rightClickPrompt = promptStart + "format.";
+              break;
+            }
+            case Tab.ANNOTATE : {
+              rightClickPrompt = promptStart + "annotate.";
+              break;
+            }
+          }
+        } else {
+          const promptStart = "Right-click on a nucleotide to begin ";
+          switch (tab) {
+            case Tab.EDIT : {
+              rightClickPrompt = promptStart + "editing.";
+              break;
+            }
+            case Tab.FORMAT : {
+              rightClickPrompt = promptStart + "formating.";
+              break;
+            }
+            case Tab.ANNOTATE : {
+              rightClickPrompt = promptStart + "annotating.";
+              break;
+            }
+          }
+        }
+        setRightClickMenuContent(
+          <>{rightClickPrompt}</>,
+          {}
+        );
+      }
+    },
+    []
   );
   // Begin effects.
   useEffect(
@@ -2019,49 +2720,9 @@ function App() {
     [mouseOverText]
   );
   useEffect(
-    function() {
-      let rightClickPrompt = "";
-      if (flattenedRnaComplexProps.length === 0) {
-        const promptStart = "You must load a non-empty input file before attempting to ";
-        switch (tab) {
-          case Tab.EDIT : {
-            rightClickPrompt = promptStart + "edit.";
-            break;
-          }
-          case Tab.FORMAT : {
-            rightClickPrompt = promptStart + "format.";
-            break;
-          }
-          case Tab.ANNOTATE : {
-            rightClickPrompt = promptStart + "annotate.";
-            break;
-          }
-        }
-      } else {
-        const promptStart = "Right-click on a nucleotide to begin ";
-        switch (tab) {
-          case Tab.EDIT : {
-            rightClickPrompt = promptStart + "editing.";
-            break;
-          }
-          case Tab.FORMAT : {
-            rightClickPrompt = promptStart + "formating.";
-            break;
-          }
-          case Tab.ANNOTATE : {
-            rightClickPrompt = promptStart + "annotating.";
-            break;
-          }
-        }
-      }
-      setRightClickMenuContent(
-        <>{rightClickPrompt}</>,
-        {}
-      );
-    },
+    resetRightClickMenuContent,
     [
       tab,
-      interactionConstraint,
       rnaComplexProps
     ]
   );
@@ -2158,16 +2819,24 @@ function App() {
   );
   useEffect(
     function() {
-      setToolsDivHeightAttribute(toolsDivResizeDetector.height);
+      setToolsDivWidthAttribute(toolsDivResizeDetector.width);
+      setLowerToolsDivHeightAttribute(upperToolsDivResizeDetector.height);
 
       setTimeout(
         function() {
-          setToolsDivHeightAttribute("auto");
+          setToolsDivWidthAttribute("auto");
+          setLowerToolsDivHeightAttribute("auto");
         },
         100
       );
     },
     [rightClickMenuContent]
+  );
+  useEffect(
+    function() {
+      toolsDivResizeDetectorWidthReference.current = toolsDivResizeDetector.width ?? 0;
+    },
+    [toolsDivResizeDetector.width]
   );
   return <Context.Label.ClassName.Provider
     value = {labelClassName}
@@ -2223,22 +2892,25 @@ function App() {
                               ref = {toolsDivResizeDetector.ref}
                               style = {{
                                 position : "absolute",
-                                width : "100%",
-                                height : toolsDivHeightAttribute,
-                                resize : "vertical",
-                                overflow : "hidden",
+                                width : toolsDivWidthAttribute,
+                                height : "100%",
                                 display : "block",
-                                borderBottom : "1px solid black"
+                                borderRight : "1px solid black"
                               }}
                             >
-                              {/* Left tools div */}
+                              {/* Top tools div */}
                               <div
+                                ref = {upperToolsDivResizeDetector.ref}
                                 style = {{
-                                  width : "50%",
-                                  height : "auto",
+                                  width : toolsDivWidthAttribute,
+                                  height : lowerToolsDivHeightAttribute,
                                   display : "inline-block",
+                                  overflowX : "auto",
                                   overflowY : "auto",
-                                  verticalAlign : "top"
+                                  top : 0,
+                                  left : 0,
+                                  resize : "both",
+                                  borderBottom : "1px solid black"
                                 }}
                               >
                                 {renderedTabs}
@@ -2252,16 +2924,37 @@ function App() {
                                   </b>
                                 </>}
                               </div>
-                              {/* Right tools div */}
+                              {/* Bottom tools div */}
                               <div
                                 style = {{
-                                  width : "50%",
-                                  height : "auto",
+                                  position : "absolute",
+                                  width : "100%",
+                                  maxHeight : (parentDivResizeDetector.height ?? 0) - (upperToolsDivResizeDetector.height ?? 0),
                                   display : "inline-block",
+                                  overflowX : "auto",
                                   overflowY : "auto",
-                                  verticalAlign : "top"
+                                  top : upperToolsDivResizeDetector.height ?? 0,
+                                  left : 0
                                 }}
                               >
+                              {sceneState === SceneState.DATA_LOADING_FAILED && <>
+                                <b
+                                  style = {{
+                                    color : "red",
+                                  }}
+                                >
+                                  Parsing the provided input file failed.&nbsp;{dataLoadingFailedErrorMessage ? dataLoadingFailedErrorMessage : "Try another file, or report a bug."}
+                                </b>
+                                &nbsp;
+                                <a
+                                  href = "https://github.com/LDWLab/XRNA-React/issues"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  Report a bug
+                                </a>
+                                <br/>
+                              </>}
                                 <Context.App.ComplexDocumentName.Provider
                                   value = {complexDocumentName}
                                 >
@@ -2276,51 +2969,34 @@ function App() {
                                   </Context.App.SetComplexDocumentName.Provider>
                                 </Context.App.ComplexDocumentName.Provider>
                               </div>
-                              {sceneState === SceneState.DATA_LOADING_FAILED && <>
-                                <br/>
-                                <b
-                                  style = {{
-                                    color : "red",
-                                    display : dataLoadingFailedErrorMessage === "" ? "none" : "block"
-                                  }}
-                                >
-                                  Parsing the provided input file failed.&nbsp;{dataLoadingFailedErrorMessage ? dataLoadingFailedErrorMessage : "Try another file, or report a bug."}
-                                </b>
-                                &nbsp;
-                                <a
-                                  href = "https://github.com/LDWLab/XRNA-React/issues"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  Report a bug
-                                </a>
-                              </>}
                             </div>
                             <svg
                               id = {SVG_ELEMENT_HTML_ID}
                               style = {{
-                                top : (toolsDivResizeDetector.height ?? 0) + DIV_BUFFER_HEIGHT,
-                                left : 0,
+                                top : 0,
+                                left : (toolsDivResizeDetector.width ?? 0) + DIV_BUFFER_DIMENSION,
                                 position : "absolute"
                               }}
                               xmlns = "http://www.w3.org/2000/svg"
-                              viewBox = {`0 0 ${parentDivResizeDetector.width ?? 0} ${svgHeight}`}
+                              viewBox = {`0 0 ${svgWidth} ${parentDivResizeDetector.height ?? 0}`}
                               tabIndex = {1}
                               onMouseDown = {onMouseDown}
                               onMouseMove = {onMouseMove}
                               onMouseUp = {onMouseUp}
-                              onMouseLeave = {function() {
-                                setDragListener(
-                                  null,
-                                  {}
-                                );
-                              }}
+                              onMouseLeave = {onMouseLeave}
                               onContextMenu = {function(event) {
                                 event.preventDefault();
                               }}
                               onWheel = {onWheel}
-                              stroke = {tab in strokesPerTab ? strokesPerTab[tab] : "none"}
+                              stroke = {InteractionConstraint.isSupportedTab(tab) ? strokesPerTab[tab] : "none"}
                             >
+                              <style>{`
+                                .nucleotide { stroke:none; }
+                                .nucleotide:hover { stroke:inherit; }
+                                .${LABEL_CLASS_NAME} { stroke:none; }
+                                .${LABEL_CLASS_NAME}:hover { stroke:inherit; }
+                                .${NO_STROKE_CLASS_NAME} { stroke:none; }
+                              `}</style>
                               <rect
                                 width = "100%"
                                 height = "100%"
@@ -2342,17 +3018,31 @@ function App() {
                                 style = {{
                                   visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
                                 }}
-                                transform = {totalScale.asTransform + " scale(1, -1) " + transformTranslate}
+                                transform = {totalScale.asTransform[0]}
                               >
-                                {debugVisualElements}
-                                {renderedRnaComplexes}
+                                <g
+                                  id = {VIEWPORT_SCALE_GROUP_HTML_ID}
+                                  transform = {totalScale.asTransform[1]}
+                                >
+                                  <g
+                                    transform = {"scale(1, -1) " + transformTranslate0.asString}
+                                  >
+                                    <g
+                                      id = {VIEWPORT_TRANSLATE_GROUP_HTML_ID}
+                                      transform = {transformTranslate1.asString}
+                                    >
+                                      {debugVisualElements}
+                                      {renderedRnaComplexes}
+                                    </g>
+                                  </g>
+                                </g>
                               </g>
                               <g
                                 id = {MOUSE_OVER_TEXT_HTML_ID}
                               >
                                 <rect
                                   x = {0}
-                                  y = {svgHeight - mouseOverTextDimensions.height - 2}
+                                  y = {(parentDivResizeDetector.height ?? 0) - mouseOverTextDimensions.height}
                                   width = {mouseOverTextDimensions.width}
                                   height = {mouseOverTextDimensions.height}
                                   fill = "black"
@@ -2362,7 +3052,7 @@ function App() {
                                   fill = "white"
                                   stroke = "none"
                                   x = {0}
-                                  y = {svgHeight - mouseOverTextDimensions.height * 0.25 - 2}
+                                  y = {(parentDivResizeDetector.height ?? 0) - mouseOverTextDimensions.height * 0.25}
                                   ref = {mouseOverTextSvgTextElementReference}
                                   fontFamily = "dialog"
                                   fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
@@ -2373,8 +3063,8 @@ function App() {
                             </svg>
                             {sceneState === SceneState.DATA_IS_LOADING && <img
                               style = {{
-                                top : ((toolsDivResizeDetector.height ?? 0) + (parentDivResizeDetector.height ?? 0)) * 0.5 - 100,
-                                left : (parentDivResizeDetector.width ?? 0) * 0.5 - 50,
+                                top : (parentDivResizeDetector.height ?? 0) * 0.5 - 100,
+                                left : ((toolsDivResizeDetector.width ?? 0) + (parentDivResizeDetector.width ?? 0)) * 0.5 - 50,
                                 position : "absolute"
                               }}
                               src = {loadingGif}

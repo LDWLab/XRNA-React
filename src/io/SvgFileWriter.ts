@@ -1,4 +1,4 @@
-import { MOUSE_OVER_TEXT_HTML_ID, RnaComplexProps, SVG_ELEMENT_HTML_ID } from "../App";
+import { MOUSE_OVER_TEXT_HTML_ID, RnaComplexProps, SVG_ELEMENT_HTML_ID, VIEWPORT_SCALE_GROUP_HTML_ID, VIEWPORT_TRANSLATE_GROUP_HTML_ID } from "../App";
 
 export function svgFileWriter(
   rnaComplexProps : RnaComplexProps,
@@ -15,7 +15,8 @@ export function svgFileWriter(
     throw "regexMatch should never be null.";
   }
   const top = Number.parseInt(regexMatch[0]);
-  regexMatch = /^(\d+)/.exec(svgHtmlElement.style.left);
+  const tempLeft = svgHtmlElement.style.left;
+  regexMatch = /^(\d+)/.exec(tempLeft);
   if (regexMatch === null) {
     throw "regexMatch should never be null.";
   }
@@ -23,18 +24,28 @@ export function svgFileWriter(
   const left = Number.parseInt(regexMatch[0]);
   const tempTransform = svgHtmlElement.getAttribute("transform");
   const tempStroke = svgHtmlElement.getAttribute("stroke");
+  const viewportScaleGroup = document.getElementById(VIEWPORT_SCALE_GROUP_HTML_ID) as HTMLElement;
+  const tempScaleTransform = viewportScaleGroup.getAttribute("transform") as string;
+  const viewportTranslateGroup = document.getElementById(VIEWPORT_TRANSLATE_GROUP_HTML_ID) as HTMLElement;
+  const tempTranslateTransform = viewportTranslateGroup.getAttribute("transform") as string;
   svgHtmlElement.setAttribute("transform", `translate(${left * -0.5}, ${top * -0.5})`);
-  svgHtmlElement.style.top = "0px";
+  svgHtmlElement.style.left = "0px";
   svgHtmlElement.setAttribute("stroke", "none");
   if (mouseOverTextGroup !== null) {
     mouseOverTextGroup.setAttribute("visibility", "hidden");
   }
+  viewportScaleGroup.setAttribute("transform", "");
+  viewportTranslateGroup.setAttribute("transform", "");
+
   let returnValue = svgHtmlElement.outerHTML;
+
   svgHtmlElement.setAttribute("transform", tempTransform ?? "");
-  svgHtmlElement.style.top = tempTop;
+  svgHtmlElement.style.left = tempLeft;
   svgHtmlElement.setAttribute("stroke", tempStroke ?? "none");
   if (mouseOverTextGroup !== null) {
     mouseOverTextGroup.setAttribute("visibility", "visible");
   }
+  viewportScaleGroup.setAttribute("transform", tempScaleTransform);
+  viewportTranslateGroup.setAttribute("transform", tempTranslateTransform);
   return returnValue;
 }

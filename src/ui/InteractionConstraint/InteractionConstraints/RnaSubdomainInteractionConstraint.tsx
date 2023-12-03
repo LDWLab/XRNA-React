@@ -53,11 +53,11 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName0];
     const originalMappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
     const rnaMoleculeName1 = originalMappedBasePairInformation.rnaMoleculeName;
+    const twoDistinctRnaMoleculesError : InteractionConstraintError = {
+      errorMessage : "Cannot interact with a base pair between two distinct rna molecules using this interaction constraint."
+    };
     if (rnaMoleculeName0 !== rnaMoleculeName1) {
-      const error : InteractionConstraintError = {
-        errorMessage : "Cannot interact with a base pair between two distinct rna molecules using this interaction constraint."
-      }
-      throw error;
+      throw twoDistinctRnaMoleculesError;
     }
     const nucleotideIndex1 = originalMappedBasePairInformation.nucleotideIndex;
     const toBeDragged = new Array<Nucleotide.ExternalProps>();
@@ -111,7 +111,31 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     listOfNucleotideIndices.sort(subtractNumbers);
     let startingNucleotideIndex = listOfNucleotideIndices[(listOfNucleotideIndices.length - 1) >> 1];
     let endingNucleotideIndex = listOfNucleotideIndices[listOfNucleotideIndices.length >> 1];
+    this.minimumNucleotideIndex = Math.min(
+      extremaDecremented[0],
+      extremaDecremented[1],
+      extremaIncremented[0],
+      extremaIncremented[1]
+    );
+    this.maximumNucleotideIndex = Math.max(
+      extremaDecremented[0],
+      extremaDecremented[1],
+      extremaIncremented[0],
+      extremaIncremented[1]
+    );
     for (let nucleotideIndex = startingNucleotideIndex + 1; nucleotideIndex < endingNucleotideIndex; nucleotideIndex++) {
+      if (nucleotideIndex in basePairsPerRnaMolecule) {
+        if (basePairsPerRnaMolecule[nucleotideIndex].rnaMoleculeName !== rnaMoleculeName) {
+          throw twoDistinctRnaMoleculesError;
+        } else if (
+          nucleotideIndex < this.minimumNucleotideIndex ||
+          nucleotideIndex > this.maximumNucleotideIndex
+        ) {
+          throw {
+            errorMessage : "Cannot interact with a complex series of base pairs using this interaction constraint"
+          };
+        }
+      }
       toBeDragged.push(singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]);
       nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
       if (nucleotideIndex in basePairsPerRnaMolecule) {
@@ -164,18 +188,6 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       onUpdatePositions : rerender,
       initialAngle : asAngle(normalVector)
     };
-    this.minimumNucleotideIndex = Math.min(
-      extremaDecremented[0],
-      extremaDecremented[1],
-      extremaIncremented[0],
-      extremaIncremented[1]
-    );
-    this.maximumNucleotideIndex = Math.max(
-      extremaDecremented[0],
-      extremaDecremented[1],
-      extremaIncremented[0],
-      extremaIncremented[1]
-    );
     const helixData = iterateOverFreeNucleotidesAndHelicesPerNucleotideRange(
       singularRnaComplexProps,
       rnaMoleculeName,

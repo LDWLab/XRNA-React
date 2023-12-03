@@ -350,7 +350,7 @@ export namespace ColorEditor {
               hexadecimalEncoding
             );
           }}
-          width = "50%"
+          width = "100%"
         />
         <br/>
         <Wheel

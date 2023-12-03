@@ -5,7 +5,7 @@ import { LabelContent } from "../../LabelContent";
 import { LabelLine } from "../../LabelLine";
 import { Context, NucleotideKeysToRerender } from "../../../../context/Context";
 import { ColorEditor } from "../../../generic/editors/ColorEditor";
-import Color, { BLACK } from "../../../../data_structures/Color";
+import Color, { BLACK, areEqual } from "../../../../data_structures/Color";
 import { FontEditor } from "../../../generic/editors/FontEditor";
 import Font from "../../../../data_structures/Font";
 import { subtractNumbers } from "../../../../utils/Utils";
@@ -56,7 +56,7 @@ export namespace LabelEditMenu {
         [_triggerRerender]
       );
       return <Collapsible.Component
-        title = "Content Positions"
+        title = "Content"
       >
         <label>
           x:&nbsp;
@@ -230,55 +230,59 @@ export namespace LabelEditMenu {
       return <Collapsible.Component
         title = "Line Positions"
       >
-        <label>
-          Edit vertex #&nbsp;
-          <InputWithValidator.Integer
-            value = {pointIndex + 1}
-            setValue = {function(newPointIndex) {
-              const normalizedNewPointIndex = newPointIndex - 1;
-              const newPoint = points[normalizedNewPointIndex];
-              setPointIndex(normalizedNewPointIndex);
-              setX(newPoint.x);
-              setY(newPoint.y);
-            }}
-            min = {1}
-            max = {points.length}
-          />
-        </label>
-        <br/>
-        <label>
-          x:&nbsp;
-          <InputWithValidator.Number
-            value = {x}
-            setValue = {function(newX) {
-              setX(newX);
-              point.x = newX;
-              props.rerender(
-                newX,
-                y,
-                pointIndex
-              );
-              updateOrientationEditorProps();
-            }}
-          />
-        </label>
-        <br/>
-        <label>
-          y:&nbsp;
-          <InputWithValidator.Number
-            value = {y}
-            setValue = {function(newY) {
-              setY(newY);
-              point.y = newY;
-              props.rerender(
-                x,
-                newY,
-                pointIndex
-              );
-              updateOrientationEditorProps();
-            }}
-          />
-        </label>
+        <Collapsible.Component
+          title = "Single position"
+        >
+          <label>
+            Edit position #&nbsp;
+            <InputWithValidator.Integer
+              value = {pointIndex + 1}
+              setValue = {function(newPointIndex) {
+                const normalizedNewPointIndex = newPointIndex - 1;
+                const newPoint = points[normalizedNewPointIndex];
+                setPointIndex(normalizedNewPointIndex);
+                setX(newPoint.x);
+                setY(newPoint.y);
+              }}
+              min = {1}
+              max = {points.length}
+            />
+          </label>
+          <br/>
+          <label>
+            x:&nbsp;
+            <InputWithValidator.Number
+              value = {x}
+              setValue = {function(newX) {
+                setX(newX);
+                point.x = newX;
+                props.rerender(
+                  newX,
+                  y,
+                  pointIndex
+                );
+                updateOrientationEditorProps();
+              }}
+            />
+          </label>
+          <br/>
+          <label>
+            y:&nbsp;
+            <InputWithValidator.Number
+              value = {y}
+              setValue = {function(newY) {
+                setY(newY);
+                point.y = newY;
+                props.rerender(
+                  x,
+                  newY,
+                  pointIndex
+                );
+                updateOrientationEditorProps();
+              }}
+            />
+          </label>
+        </Collapsible.Component>
         {orientationEditorProps && <AppSpecificOrientationEditor.Component
           {...orientationEditorProps}
         />}
@@ -423,7 +427,6 @@ export namespace LabelEditMenu {
         const nucleotidePropsWithLabelContentProps = new Array<Nucleotide.ExternalProps>();
         const nucleotidePropsWithLabelLineProps = new Array<Nucleotide.ExternalProps>();
         const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
-        let initialColor : Color | undefined = undefined;
         for (const [rnaComplexIndexAsString, indicesOfAffectedNucleotidesPerRnaComplex] of Object.entries(indicesOfAffectedNucleotides)) {
           const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
           const { rnaMoleculeProps } = rnaComplexProps[rnaComplexIndex];
@@ -469,6 +472,45 @@ export namespace LabelEditMenu {
               font ?? Font.DEFAULT
             )) {
               initialFont = undefined;
+              break;
+            }
+          }
+        }
+
+        let initialColor : Color | undefined = undefined;
+        if (nucleotidePropsWithLabelContentProps.length > 0) {
+          initialColor = (nucleotidePropsWithLabelContentProps[0].labelContentProps as LabelContent.ExternalProps).color ?? BLACK;
+          for (let i = 1; i < nucleotidePropsWithLabelContentProps.length; i++) {
+            const color = (nucleotidePropsWithLabelContentProps[i].labelContentProps as LabelContent.ExternalProps).color;
+            if (!areEqual(
+              initialColor,
+              color ?? BLACK
+            )) {
+              initialColor = undefined;
+              break;
+            }
+          }
+          if (initialColor !== undefined) {
+            for (let i = 1; i < nucleotidePropsWithLabelLineProps.length; i++) {
+              const color = (nucleotidePropsWithLabelLineProps[i].labelLineProps as LabelLine.ExternalProps).color;
+              if (!areEqual(
+                initialColor,
+                color ?? BLACK
+              )) {
+                initialColor = undefined;
+                break;
+              }
+            }
+          }
+        } else {
+          initialColor = (nucleotidePropsWithLabelLineProps[0].labelLineProps as LabelLine.ExternalProps).color ?? BLACK;
+          for (let i = 1; i < nucleotidePropsWithLabelLineProps.length; i++) {
+            const color = (nucleotidePropsWithLabelLineProps[i].labelLineProps as LabelLine.ExternalProps).color;
+            if (!areEqual(
+              initialColor,
+              color ?? BLACK
+            )) {
+              initialColor = undefined;
               break;
             }
           }
@@ -528,8 +570,8 @@ export namespace LabelEditMenu {
           nucleotidePropsWithLabelContentProps,
           nucleotidePropsWithLabelLineProps,
           nucleotideKeysToRerender,
-          initialColor : initialColor ?? BLACK,
-          initialFont : initialFont ?? Font.DEFAULT,
+          initialColor : initialColor ?? structuredClone(BLACK),
+          initialFont : initialFont ?? structuredClone(Font.DEFAULT),
           positionsEditor
         };
       },
