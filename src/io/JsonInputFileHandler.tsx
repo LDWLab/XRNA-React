@@ -271,6 +271,8 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
             });
           }
           nucleotideProps.labelContentProps = {
+            // x : Number.parseFloat(label.labelContent.x),
+            // y : Number.parseFloat(label.labelContent.y),
             ...subtract(
               {
                 x : Number.parseFloat(label.labelContent.x),
@@ -356,6 +358,7 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
           }
 
           nucleotideProps.labelLineProps = {
+            // points : parsedPoints,
             points : parsedPoints.map(function(point) {
               return subtract(
                 point,

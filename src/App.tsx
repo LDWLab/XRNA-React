@@ -1164,7 +1164,7 @@ function App() {
               }}
             >
               <li>
-                Click the "{UPLOAD_BUTTON_TEXT}" button.
+                Click the "{UPLOAD_BUTTON_TEXT}" button (Ctrl + O).
               </li>
               <li>
                 Select one of the following supported input-file formats:
@@ -1226,7 +1226,7 @@ function App() {
                 </ul>
               </li>
               <li>
-                Click the "{DOWNLOAD_BUTTON_TEXT}" button
+                Click the "{DOWNLOAD_BUTTON_TEXT}" button (Ctrl + S)
               </li>
             </ol>
           </Collapsible.Component>
@@ -1234,7 +1234,7 @@ function App() {
         [Tab.VIEWPORT] : <>
           Here, you can manipulate the viewport with precision.
           <br/>
-          To clarify, the viewport is the main component of XRNA. Within it, interactive RNA diagrms are displayed.
+          To clarify, the viewport is the main, right-hand component of XRNA. Within it, interactive 2D RNA diagrams are displayed.
           <Collapsible.Component
             title = {TRANSLATION_TEXT}
           >
@@ -1277,9 +1277,6 @@ function App() {
             }}
           >
             <li>
-              Select a constraint. This selects the set of tools which you will use to edit data.
-            </li>
-            <li>
               Navigate within the viewport to the portion of the scene you plan to edit.
             </li>
             <li>
@@ -1290,10 +1287,13 @@ function App() {
                 }}
               >
                 <li>
-                  Left-click on a nucleotide. Drag it to change relevant nucleotide data, according to the behavior of the constraint.
+                  Select a constraint. Then, left-click on a nucleotide. Drag it to change relevant nucleotide data, according to the behavior of the constraint.
                 </li>
                 <li>
-                  Right-click on a nucleotide. This will populate a right-hand menu, which will allow you precisely edit data.
+                  Middle-mouse-click and drag to select one or more nucleotide(s) or label(s). This will populate a menu which will allow you precisely edit data, according to the behavior of an automatically determined constraint.
+                </li>
+                <li>
+                  Select a constraint. Then, right-click on a nucleotide. This will populate a menu which will allow you precisely edit data, according to the behavior of the constraint.
                 </li>
               </ul>
               <Collapsible.Component
@@ -1307,7 +1307,7 @@ function App() {
                     Other constraints have more restrictive usage requirements.
                   </li>
                   <li>
-                    Annotations may be edited in the same exact way as nucleotides / nucleotide regions (described above).
+                    Annotations (i.e. labels) may be edited in the same exact way as nucleotides / nucleotide regions (described above).
                   </li>
                   <li>
                     Annotations are not present in some input files, but they can be added within the "{Tab.ANNOTATE}" tab.
@@ -1325,13 +1325,18 @@ function App() {
             }}
           >
             <li>
-              Select a constraint. This selects the set of tools which you will use to format base-pair data.
+              Navigate within the viewport to the portion of the scene you plan to format.
             </li>
             <li>
-              Navigate within the viewport to the portion of the scene you plan to edit.
-            </li>
-            <li>
-              Right-click on a nucleotide. This will populate a right-hand menu, which will allow you to format base-pair data.
+              Do one of the following:
+              <ul>
+                <li>
+                  Middle-mouse-click and drag to select one or more nucleotide(s). This will populate a menu which will allow you precisely format data, according to the behavior of an automatically determined constraint.
+                </li>
+                <li>
+                  Select a constraint. Then, right-click on a nucleotide. This will populate a right-hand menu which will allow you to format base-pair data, according to the behavior of the constraint
+                </li>
+              </ul>
             </li>
           </ol>
           <Collapsible.Component
@@ -1352,23 +1357,47 @@ function App() {
           </Collapsible.Component>
         </>,
         [Tab.ANNOTATE] : <>
-          Here, you can add, delete, or edit annotations.
+          Here, you can add, delete, or edit annotations (label lines or label content).
           <br/>
-          Annotations include:
-          <ul
+          <ol
             style = {{
               margin : 0
             }}
           >
-            <li>Label content</li>
-            <li>label lines</li>
-          </ul>
-           <b>
-            This tab is not yet implemented.
-          </b>
+            <li>
+              Navigate within the viewport to the portion of the scene you plan to annotate.
+            </li>
+            <li>
+              Do one of the following:
+              <ul>
+                <li>
+                  Select a constraint. Then, right-click on a nucleotide. This will populate a right-hand menu which will allow you to annotate nucleotides, according to the behavior of the constraint
+                </li>
+                <li>
+                  Middle-mouse-click and drag to select one or more nucleotide(s). This will populate a menu which will allow you to annotate nucleotides, according to the behavior an automatically determined constraint
+                </li>
+              </ul>
+            </li>
+          </ol>
+          <Collapsible.Component
+            title = "Notes"
+          >
+            <ul
+              style = {{
+                margin : 0
+              }}
+            >
+              <li>
+                Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
+              </li>
+              <li>
+                Other constraints have more restrictive usage requirements.
+              </li>
+            </ul>
+          </Collapsible.Component>
         </>,
         [Tab.SETTINGS] : <>
-          Here, you can change settings which regulate how XRNA behaves.
+          Here, you can change settings which regulate how XRNA.js behaves.
           <br/>
           Support for saving your settings is implemented by the pair of upload/download buttons. 
           <br/>
@@ -1696,6 +1725,7 @@ function App() {
                 ) {
                   return false;
                 }
+                const { basePairs } = rnaComplexProps[minimumFullKeys.rnaComplexIndex];
                 const rnaMoleculeNames = new Set<string>();
                 for (let i = 0; i < fullKeysArray.length; i++) {
                   rnaMoleculeNames.add(fullKeysArray[i].rnaMoleculeName);
@@ -1709,8 +1739,10 @@ function App() {
                 }
                 let encounteredBreakFlag = false;
                 let previousFullKeys = fullKeysArray[0];
+                let previousBasePairedNucleotideIndex : number | undefined = mappedBasePairInformationArray[0]?.nucleotideIndex;
                 for (let i = 1; i < fullKeysArray.length; i++) {
                   const currentFullKeys = fullKeysArray[i];
+                  const mappedBasePairInformationI = mappedBasePairInformationArray[i];
                   if (
                     currentFullKeys.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
                     currentFullKeys.nucleotideIndex - previousFullKeys.nucleotideIndex !== 1
@@ -1719,14 +1751,50 @@ function App() {
                       return false;
                     }
                     encounteredBreakFlag = true;
-                    const mappedBasePairInformation = mappedBasePairInformationArray[i];
                     if (
-                      mappedBasePairInformation === undefined ||
-                      mappedBasePairInformation.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
-                      mappedBasePairInformation.nucleotideIndex !== previousFullKeys.nucleotideIndex
+                      mappedBasePairInformationI === undefined ||
+                      mappedBasePairInformationI.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
+                      mappedBasePairInformationI.nucleotideIndex !== previousFullKeys.nucleotideIndex
                     ) {
                       return false;
                     }
+                    previousBasePairedNucleotideIndex = mappedBasePairInformationI.nucleotideIndex;
+                    const mappedBasePairInformationIMinusOne = mappedBasePairInformationArray[i - 1];
+                    if (
+                      mappedBasePairInformationIMinusOne !== undefined &&
+                      (
+                        mappedBasePairInformationI.rnaMoleculeName !== mappedBasePairInformationIMinusOne.rnaMoleculeName ||
+                        Math.abs(mappedBasePairInformationI.nucleotideIndex - mappedBasePairInformationIMinusOne.nucleotideIndex) !== 1
+                      )
+                    ) {
+                      return false;
+                    }
+                  } else if (mappedBasePairInformationI !== undefined) {
+                    const mappedBasePairInformationIMinusOne = mappedBasePairInformationArray[i - 1];
+                    if (
+                      mappedBasePairInformationIMinusOne !== undefined &&
+                      (
+                        mappedBasePairInformationI.rnaMoleculeName !== mappedBasePairInformationIMinusOne.rnaMoleculeName ||
+                        Math.abs(mappedBasePairInformationI.nucleotideIndex - mappedBasePairInformationIMinusOne.nucleotideIndex) !== 1
+                      )
+                    ) {
+                      return false;
+                    }
+                    if (previousBasePairedNucleotideIndex !== undefined) {
+                      const basePairsPerRnaMolecule = basePairs[mappedBasePairInformationI.rnaMoleculeName];
+                      const boundingNucleotides = [
+                        previousBasePairedNucleotideIndex,
+                        mappedBasePairInformationI.nucleotideIndex
+                      ].sort(subtractNumbers);
+                      const minimumNucleotideIndex = boundingNucleotides[0];
+                      const maximumNucleotideIndex = boundingNucleotides[1];
+                      for (let nucleotideIndex = minimumNucleotideIndex + 1; nucleotideIndex < maximumNucleotideIndex; nucleotideIndex++) {
+                        if (nucleotideIndex in basePairsPerRnaMolecule) {
+                          return false;
+                        }
+                      }
+                    }
+                    previousBasePairedNucleotideIndex = mappedBasePairInformationI.nucleotideIndex;
                   }
                   previousFullKeys = currentFullKeys;
                 }
@@ -1838,20 +1906,33 @@ function App() {
                   let previousFullKeys = fullKeysArray[0];
                   for (let i = 1; i < fullKeysArray.length; i++) {
                     const currentFullKeys = fullKeysArray[i];
+                    const mappedBasePairInformationI = mappedBasePairInformationArray[i];
                     if (currentFullKeys.nucleotideIndex - previousFullKeys.nucleotideIndex !== 1) {
                       if (encounteredBreakFlag) {
                         singleHelixFlag = false;
                         break;
                       } else {
                         encounteredBreakFlag = true;
-                        const mappedBasePairInformation = mappedBasePairInformationArray[i];
                         if (
-                          mappedBasePairInformation === undefined ||
-                          mappedBasePairInformation.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
-                          mappedBasePairInformation.nucleotideIndex !== previousFullKeys.nucleotideIndex
+                          mappedBasePairInformationI === undefined ||
+                          mappedBasePairInformationI.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
+                          mappedBasePairInformationI.nucleotideIndex !== previousFullKeys.nucleotideIndex
                         ) {
                           singleHelixFlag = false;
+                          break;
                         }
+                      }
+                    } else if (mappedBasePairInformationI !== undefined) {
+                      const mappedBasePairInformationIMinusOne = mappedBasePairInformationArray[i - 1];
+                      if (
+                        mappedBasePairInformationIMinusOne !== undefined &&
+                        (
+                          mappedBasePairInformationI.rnaMoleculeName !== mappedBasePairInformationIMinusOne.rnaMoleculeName ||
+                          Math.abs(mappedBasePairInformationI.nucleotideIndex - mappedBasePairInformationIMinusOne.nucleotideIndex) !== 1
+                        )
+                      ) {
+                        singleHelixFlag = false;
+                        break;
                       }
                     }
                     previousFullKeys = currentFullKeys;
@@ -2452,41 +2533,49 @@ function App() {
                 </label>
               </li>
               <li>
-                Now that you have an input file, navigate to the "{Tab.INPUT_OUTPUT}" tab to upload it. It should take just a few seconds for the program to import its data.
+                Now that you have an input file, navigate to the "{Tab.INPUT_OUTPUT}" tab to upload it. XRNA.js should import its data in only a few seconds.
                 <br/>
               </li>
               <li>
                 Once the data is imported, you can continue work in several different ways:
                 <ul>
-                  <li>Download its data to a different file</li>
-                  <li>Edit its data (e.g. positions)</li>
-                  <li>Add/remove/edit base base pairs</li>
-                  <li>Add/remove annotations</li>
-                  <li>Open a different input file.</li>
+                  <li>Download its data to a different file ({Tab.INPUT_OUTPUT} tab)</li>
+                  <li>Edit its data ({Tab.EDIT} tab)</li>
+                  <li>Add/remove/edit base base pairs ({Tab.FORMAT} tab)</li>
+                  <li>Add/remove annotations ({Tab.ANNOTATE} tab)</li>
                 </ul>
                 For explanation of these, read the relevant section of the "{Tab.ABOUT}" tab.
               </li>
             </ol>
           </Collapsible.Component>
-          {tabs.map(function(tabI) {
-            let content = <></>;
-            if (tabI !== Tab.ABOUT) {
-              content = <Collapsible.Component
-                title = {`The ${tabI} tab`}
+          <Collapsible.Component
+            title = "Tabs"
+          >
+            {tabs.map(function(tabI) {
+              let content = <></>;
+              if (tabI !== Tab.ABOUT) {
+                content = <Collapsible.Component
+                  title = {`The ${tabI} tab`}
+                >
+                  {tabInstructionsRecord[tabI]}
+                </Collapsible.Component>;
+              }
+              return <Fragment
+                key = {tabI}
               >
-                {tabInstructionsRecord[tabI]}
-              </Collapsible.Component>;
-            }
-            return <Fragment
-              key = {tabI}
-            >
-              {content}
-            </Fragment>;
-          })}
+                {content}
+              </Fragment>;
+            })}
+          </Collapsible.Component>
+          {/* <Collapsible.Component
+            title = "Constraints"
+          >
+            TODO: Implement this.
+          </Collapsible.Component> */}
           <Collapsible.Component
             title = "How to cite XRNA"
           >
-            This version of XRNA (written in JavaScript) is currently unpublished. Once it becomes published, citation instructions will replace this text block.
+            XRNA.js is currently unpublished; once it becomes published, citation instructions will replace this text block.
           </Collapsible.Component>
           <Collapsible.Component
             title = "Contact us"
