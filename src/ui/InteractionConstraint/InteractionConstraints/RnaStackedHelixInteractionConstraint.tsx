@@ -47,14 +47,14 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
     const nucleotideIndex0 = nucleotideIndex;
     if (!(rnaMoleculeName0 in basePairsPerRnaComplex)) {
       const error : InteractionConstraintError = {
-        errorMessage : "Cannot interact with a non-base-paired nucleotide using this interaction constraint."
+        errorMessage : "Cannot interact with a non-base-paired nucleotide using this constraint."
       };
       throw error;
     }
     const basePairsPerRnaMolecule0 = basePairsPerRnaComplex[rnaMoleculeName0];
     if (!(nucleotideIndex0 in basePairsPerRnaMolecule0)) {
       const error : InteractionConstraintError = {
-        errorMessage : "Cannot interact with a non-base-paired nucleotide using this interaction constraint."
+        errorMessage : "Cannot interact with a non-base-paired nucleotide using this constraint."
       };
       throw error;
     }
@@ -460,9 +460,9 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
                 ) {
                   let errorMessage : string;
                   if (rnaMoleculeName0 === rnaMoleculeName1) {
-                    errorMessage = `This interaction constraint exclusively expects base-pairs between RNA molecule "${rnaMoleculeName0}" and RNA molecule "${rnaMoleculeName1}".`
+                    errorMessage = `This constraint exclusively expects base-pairs between RNA molecule "${rnaMoleculeName0}" and RNA molecule "${rnaMoleculeName1}".`
                   } else {
-                    errorMessage = `This interaction constraint exclusivley expects base-pairs within RNA molecule "${rnaMoleculeName0}"`;
+                    errorMessage = `This constraint exclusivley expects base-pairs within RNA molecule "${rnaMoleculeName0}"`;
                   }
                   throw errorMessage;
                 }

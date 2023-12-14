@@ -595,8 +595,9 @@ export namespace LabelEditMenu {
     }
     return <>
       <b>
-        Edit label(s) per interaction constraint:
+        Edit label(s) per constraint:
       </b>
+      <br/>
       <ColorEditor.Component
         color = {initialColor}
         setColorHelper = {function(color) {

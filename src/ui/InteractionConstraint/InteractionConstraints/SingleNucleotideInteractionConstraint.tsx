@@ -8,10 +8,12 @@ import { InteractionConstraint } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
+import { RnaComplex, isRelevantBasePairKeySetInPair } from "../../../components/app_specific/RnaComplex";
 
 export class SingleNucleotideInteractionConstraint extends AbstractInteractionConstraint {
   private readonly singularNucleotideProps : Nucleotide.ExternalProps;
   private readonly error? : InteractionConstraintError;
+  private readonly rerender : () => void;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -40,22 +42,42 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
     this.singularNucleotideProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
 
     this.addFullIndices(fullKeys);
-    if (tab !== Tab.ANNOTATE && rnaMoleculeName in basePairs && nucleotideIndex in basePairs[rnaMoleculeName]) {
+    let basePairsPerRnaMolecule : RnaComplex.BasePairsPerRnaMolecule;
+    if (rnaMoleculeName in basePairs && nucleotideIndex in (basePairsPerRnaMolecule = basePairs[rnaMoleculeName])) {
+      const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
       this.error = basePairedNucleotideError;
+      this.rerender = function() {
+        setNucleotideKeysToRerender({
+          [rnaComplexIndex] : {
+            [rnaMoleculeName] : [nucleotideIndex]
+          }
+        });
+        let basePairKeysToRerender = {
+          rnaMoleculeName,
+          nucleotideIndex
+        };
+        if (!isRelevantBasePairKeySetInPair(
+          basePairKeysToRerender,
+          mappedBasePairInformation
+        )) {
+          basePairKeysToRerender = mappedBasePairInformation;
+        }
+        setBasePairKeysToRerender(basePairKeysToRerender);
+      }
+    } else {
+      this.rerender = function() {
+        setNucleotideKeysToRerender({
+          [rnaComplexIndex] : {
+            [rnaMoleculeName] : [nucleotideIndex]
+          }
+        });
+      }
     }
   }
 
   public override drag() {
-    if (this.error !== undefined) {
-      throw this.error;
-    }
-    const {
-      rnaComplexIndex,
-      rnaMoleculeName,
-      nucleotideIndex
-    } = this.fullKeys;
     const singularNucleotideProps = this.singularNucleotideProps;
-    const setNucleotideKeysToRerender = this.setNucleotideKeysToRerender;
+    const rerender = this.rerender;
     return {
       initiateDrag() {
         return {
@@ -66,11 +88,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       continueDrag(totalDrag : Vector2D) {
         singularNucleotideProps.x = totalDrag.x;
         singularNucleotideProps.y = totalDrag.y;
-        setNucleotideKeysToRerender({
-          [rnaComplexIndex] : {
-            [rnaMoleculeName] : [nucleotideIndex]
-          }
-        });
+        rerender();
       }
     };
   }
@@ -83,8 +101,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
     } = this.fullKeys;
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
-    const setNucleotideKeysToRerender = this.setNucleotideKeysToRerender;
-    const setBasePairKeysToRerender = this.setBasePairKeysToRerender;
+    const rerender = this.rerender;
 
     const header = <>
       <b>
@@ -99,25 +116,18 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
-        if (this.error !== undefined) {
-          throw this.error;
-        }
         menu = <SingleNucleotideInteractionConstraintEditMenu.Component
           rnaComplexProps = {this.rnaComplexProps}
           fullKeys = {this.fullKeys}
-          triggerRerender = {function() {
-            setNucleotideKeysToRerender({
-              [rnaComplexIndex] : {
-                [rnaMoleculeName] : [nucleotideIndex]
-              }
-            });
-          }}
+          triggerRerender = {rerender}
         />;
         break;
       }
       case Tab.FORMAT : {
         if (this.error !== undefined) {
-          throw this.error;
+          throw {
+            errorMessage : "Cannot format a base-paired nucleotide using this constraint"
+          };
         }
         const formattedNucleotideIndex0 = nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
         menu = <BasePairsEditor.Component
@@ -131,20 +141,29 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
             }
           ]}
           approveBasePairs = {function(parsedBasePairs : Array<BasePairsEditor.BasePair>) {
-            if (parsedBasePairs.length > 1) {
-              throw "This interaction constraint expects at most one base pair.";
-            }
-            const parsedBasePair = parsedBasePairs[0];
-            if (parsedBasePair.length > 1) {
-              throw "This interaction constraint expects at most one base pair.";
-            }
-            const errorMessage = "This interaction constraint expects a base pair involving the clicked-on nucleotide.";
-            if (
-              parsedBasePair.rnaComplexIndex !== rnaComplexIndex ||
-              ![parsedBasePair.rnaMoleculeName0, parsedBasePair.rnaMoleculeName1].includes(rnaMoleculeName) ||
-              ![parsedBasePair.nucleotideIndex0, parsedBasePair.nucleotideIndex1].includes(formattedNucleotideIndex0)
-            ) {
-              throw errorMessage;
+            switch (parsedBasePairs.length) {
+              case 0 : {
+                // Do nothing.
+                break;
+              }
+              case 1 : {
+                const parsedBasePair = parsedBasePairs[0];
+                if (parsedBasePair.length > 1) {
+                  throw "This constraint expects at most one base pair.";
+                }
+                const errorMessage = "This constraint expects a base pair involving the clicked-on nucleotide.";
+                if (
+                  parsedBasePair.rnaComplexIndex !== rnaComplexIndex ||
+                  ![parsedBasePair.rnaMoleculeName0, parsedBasePair.rnaMoleculeName1].includes(rnaMoleculeName) ||
+                  ![parsedBasePair.nucleotideIndex0, parsedBasePair.nucleotideIndex1].includes(formattedNucleotideIndex0)
+                ) {
+                  throw errorMessage;
+                }
+                break;
+              }
+              default : {
+                throw "This constraint expects at most one base pair.";
+              }
             }
           }}
           defaultRnaComplexIndex = {rnaComplexIndex}
@@ -164,7 +183,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
             }
           }}
           rnaComplexProps = {this.rnaComplexProps}
-          setNucleotideKeysToRerender = {setNucleotideKeysToRerender}
+          setNucleotideKeysToRerender = {this.setNucleotideKeysToRerender}
         />;
         break;
       }

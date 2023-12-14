@@ -8,6 +8,8 @@ import { sign, subtractNumbers } from "../../../../utils/Utils";
 import { Collapsible } from "../../../generic/Collapsible";
 import BasePair from "../../BasePair";
 import { DEFAULT_STROKE_WIDTH } from "../../../../utils/Constants";
+import { BLACK } from "../../../../data_structures/Color";
+import Font from "../../../../data_structures/Font";
 
 export namespace NucleotideRegionsAnnotateMenu {
   export type Region = {
@@ -219,7 +221,10 @@ export namespace NucleotideRegionsAnnotateMenu {
                       const orthogonalAsAngle = asAngle(orthogonalUnitVector);
                       // Adjust horizontal scales up, vertical scales down.
                       const scalePercentAdjustment = Math.cos(2 * orthogonalAsAngle) * 0.125;
-                      const labelContentDefaultStyle = labelContentDefaultStyles[rnaComplexIndex][rnaMoleculeName];
+                      const labelContentDefaultStyle = labelContentDefaultStyles[rnaComplexIndex][rnaMoleculeName] ?? {
+                        color : structuredClone(BLACK),
+                        font : structuredClone(Font.DEFAULT)
+                      };
                       singularNucleotideProps.labelContentProps = {
                         ...scaleUp(
                           orthogonalUnitVector,
@@ -477,6 +482,7 @@ export namespace NucleotideRegionsAnnotateMenu {
           min = {1}
         />
       </label>
+      <br/>
       <Collapsible.Component
         title = "Starting nucleotide indices"
       >

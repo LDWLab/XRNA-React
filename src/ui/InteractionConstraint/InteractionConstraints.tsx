@@ -17,6 +17,7 @@ import { RnaSubdomainInteractionConstraint } from "./InteractionConstraints/RnaS
 import { SingleBasePairInteractionConstraint } from "./InteractionConstraints/SingleBasePairInteractionConstraint";
 import { SingleColorInteractionConstraint } from "./InteractionConstraints/SingleColorInteractionConstraint";
 import { SingleNucleotideInteractionConstraint } from "./InteractionConstraints/SingleNucleotideInteractionConstraint";
+import { Collapsible } from "../../components/generic/Collapsible";
 
 export type Extrema = {
   0 : number,
@@ -597,6 +598,195 @@ export namespace InteractionConstraint {
         tab
       );
     }
+  };
+
+  export const descriptionRecord : Record<Enum, JSX.Element> = {
+    [Enum.SINGLE_NUCLEOTIDE] : <>
+      This constraint allows the user to interact with a single nucleotide.
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/9wnXxSEwpKA"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.SINGLE_BASE_PAIR] : <>
+      This constraint allows the user to interact with a single base pair between two nucleotides.
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/WJHwCsgauvA"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.RNA_SINGLE_STRAND] : <>
+      This constraint allows the user to interact with a contiguous series of single (non-basepaired) nucleotides.
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/RTZIk_E-7SE"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.RNA_HELIX] : <>
+      This constraint allows the user to interact with a contiguous series of base-paired nucleotides.
+      <br/>
+      "Helix" is defined as two series of nucleotides which are mutually base-paired without gaps.
+      <br/>
+      This involves at most two RNA molecules.
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/hf2VUYS9clM"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.RNA_SUB_DOMAIN] : <>
+      This constraint allows the user to interact with a contiguous series of nucleotides constrainted by a helix.
+      <br/>
+      This constraint involves only one RNA molecule.
+      <br/>
+      This includes all nucleotides with nucleotide indices:
+      <ul
+        style = {{
+          margin : 0
+        }}
+      >
+        <li>
+          Greater than or equal to the least nucleotide index in the helix
+        </li>
+        <li>
+          Less than or equal to the greatest nucleotide index in the helix
+        </li>
+      </ul>
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/sQ3vISkz1uc"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.RNA_STACKED_HELIX] : <>
+      This constraint allows the user to interact with a contiguous series of helices between RNA molecules.
+      <br/>
+      These helices may be separated by single (non-basepaired) nucleotides, but their mutually-basepaired status must resume outside the single-stranded regions.
+      <br/>
+      This constraint involves at most two RNA molecules.
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/UQu-zwaiKY8"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.RNA_CYCLE] : <>
+      This constraint allows the user to interact with a cycle of nucleotides.
+      <br/>
+      An RNA cycle is calculated as follows:
+      <ul
+        style = {{
+          margin : 0
+        }}
+      >
+        <li>Treat the nucleotides as nodes in a graph</li>
+        <li>Treat the following as edges in the graph:</li>
+        <ul
+          style = {{
+            margin : 0
+          }}
+        >
+          <li>Base pairs between nucleotides</li>
+          <li>Neighboring nucleotides within a given RNA molecule (with nucleotide indices i, j such that abs(i - j) = 1)</li>
+        </ul>
+        <li>Calculate the smallest cycle within the graph involving the clicked-on nucleotide</li>
+      </ul>
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/2NSCglba3gg"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.RNA_MOLECULE] : <>
+      This constraint allows the user to interact with a single RNA molecule.
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/oS2DwNiRZXg"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.RNA_COMPLEX] : <>
+      This constraint allows the user to interact with a single RNA complex (which may contain more than one RNA molecule).
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/AhODO78ol2A"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.SINGLE_COLOR] : <>
+      This constraint allows the user to interact with all nucleotides or labels with the same color
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/GQPgrklPn34"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>,
+    [Enum.ENTIRE_SCENE] : <>
+      This constraint allows the user to interact with all nucleotides or labels within the scene (i.e. viewport)
+      <Collapsible.Component
+        title = "Demo"
+      >
+        <iframe
+          src = "https://youtube.com/embed/viejdl_aj8A"
+          allowFullScreen = {true}
+          width = {960}
+          height = {540}
+        />
+      </Collapsible.Component>
+    </>
   };
 
   function BasePairOptionsMenu(props : {}) {

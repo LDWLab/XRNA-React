@@ -141,7 +141,7 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
             for (let i = 0; i < basePairs.length; i++) {
               const basePair = basePairs[i];
               if (rnaComplexIndex !== basePair.rnaComplexIndex) {
-                throw `This interaction constraint expects base pairs to be placed within the clicked-on RNA complex. The base pair(s) on line ${i + 1} do not.`;
+                throw `This constraint expects base pairs to be placed within the clicked-on RNA complex. The base pair(s) on line ${i + 1} do not.`;
               }
             }
           }}

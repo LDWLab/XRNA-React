@@ -94,6 +94,7 @@ export namespace RnaCycleInteractionConstraintEditMenu {
           min = {minimumRadius}
         />
       </label>
+      <br/>
       <ColorEditor.Component
         color = {color}
         setColorHelper = {function(newColor) {

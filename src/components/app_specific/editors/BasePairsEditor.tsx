@@ -1,5 +1,5 @@
 import { FunctionComponent, createElement, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { RnaComplexKey, RnaComplexProps, TOOLS_DIV_BACKGROUND_COLOR } from "../../../App";
+import { RnaComplexKey, RnaComplexProps } from "../../../App";
 import { Context, NucleotideKeysToRerender } from "../../../context/Context";
 import { DuplicateBasePairKeysHandler, RnaComplex, compareBasePairKeys, insertBasePair } from "../RnaComplex";
 import { default as _BasePair, getBasePairType } from  "../BasePair";
@@ -50,6 +50,10 @@ export namespace BasePairsEditor {
   }
 
   const editorTypes = Object.values(EditorType);
+
+  export function isEditorType(candidateEditorType : string) : candidateEditorType is EditorType {
+    return (editorTypes as Array<string>).includes(candidateEditorType);
+  }
 
   const editorTypeToEditorMap : Record<EditorType, FunctionComponent<EditorProps>> = {
     [EditorType.TEXT_BASED] : TextBasedEditor,
@@ -992,7 +996,7 @@ export namespace BasePairsEditor {
     return <div
       style = {{
         overflow : "auto",
-        background : TOOLS_DIV_BACKGROUND_COLOR,
+        background : "inherit",
         position : "sticky"
       }}
     >

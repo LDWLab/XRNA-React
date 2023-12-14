@@ -198,6 +198,7 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
           }}
         />
       </label>
+      <br/>
       <ColorEditor.Component
         color = {color}
         setColorHelper = {function(newColor) {

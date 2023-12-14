@@ -54,7 +54,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     const originalMappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
     const rnaMoleculeName1 = originalMappedBasePairInformation.rnaMoleculeName;
     const twoDistinctRnaMoleculesError : InteractionConstraintError = {
-      errorMessage : "Cannot interact with a base pair between two distinct rna molecules using this interaction constraint."
+      errorMessage : "Cannot interact with a base pair between two distinct rna molecules using this constraint."
     };
     if (rnaMoleculeName0 !== rnaMoleculeName1) {
       throw twoDistinctRnaMoleculesError;
@@ -132,7 +132,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
           nucleotideIndex > this.maximumNucleotideIndex
         ) {
           throw {
-            errorMessage : "Cannot interact with a complex series of base pairs using this interaction constraint"
+            errorMessage : "Cannot interact with a complex series of base pairs using this constraint"
           };
         }
       }
@@ -235,7 +235,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
           rnaComplexProps = {this.rnaComplexProps}
           approveBasePairs = {function(basePairs) {
             for (let i = 0; i < basePairs.length; i++) {
-              const errorMessage = `This interaction constraint expects base-pairs to exist strictly within the clicked-on subdomain.`;
+              const errorMessage = `This constraint expects base-pairs to exist strictly within the clicked-on subdomain.`;
               const basePair = basePairs[i];
               if (basePair.rnaComplexIndex !== rnaComplexIndex) {
                 throw errorMessage;

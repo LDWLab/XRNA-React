@@ -467,14 +467,14 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       }
     };
     this.updateSingleStrandColors = function(newColor : Color) {
-      for (let nucleotideIndexI = lowerBoundingNucleotideIndex; nucleotideIndexI <= upperBoundingNucleotideIndex; nucleotideIndexI++) {
+      for (let nucleotideIndexI = lowerBoundingNucleotideIndex + 1; nucleotideIndexI < upperBoundingNucleotideIndex; nucleotideIndexI++) {
         let singularNucleotidePropsI = singularRnaMoleculeProps.nucleotideProps[nucleotideIndexI];
         singularNucleotidePropsI.color = newColor;
       }
       rerender();
     };
     this.updateSingleStrandFonts = function(newFont : Font) {
-      for (let nucleotideIndexI = lowerBoundingNucleotideIndex; nucleotideIndexI <= upperBoundingNucleotideIndex; nucleotideIndexI++) {
+      for (let nucleotideIndexI = lowerBoundingNucleotideIndex + 1; nucleotideIndexI < upperBoundingNucleotideIndex; nucleotideIndexI++) {
         let singularNucleotidePropsI = singularRnaMoleculeProps.nucleotideProps[nucleotideIndexI];
         singularNucleotidePropsI.font = newFont;
       }
@@ -556,7 +556,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
             approveBasePairs = {function(basePairs) {
               for (let i = 0; i < basePairs.length; i++) {
                 const basePair = basePairs[i];
-                const errorMessage = `This interaction constraint expects base pairs to include the clicked-on single-stranded nucleotide region. The helix on line ${i + 1} does not.`;
+                const errorMessage = `This constraint expects base pairs to include the clicked-on single-stranded nucleotide region. The helix on line ${i + 1} does not.`;
                 if (rnaComplexIndex !== basePair.rnaComplexIndex) {
                   throw errorMessage;
                 }

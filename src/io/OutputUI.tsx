@@ -1,6 +1,7 @@
 import { RnaComplexProps } from "../App";
 import FileExtension from "./FileExtension";
-import { jsonFileWriter } from "./JsonFileWriter";
+import { jsonFileWriter as r2dtLegacyJsonFileWriter } from "./JsonFileWriter";
+import { jsonFileWriter } from "./JsonFileWriter_relative_coordinates";
 import { xrnaFileWriter } from "./XrnaFileWriter";
 import { csvFileWriter } from "./CsvFileWriter";
 import { bpseqFileWriter } from "./BpseqFileWriter";
@@ -48,4 +49,9 @@ export const outputFileWritersMap : Record<OutputFileExtension, OutputFileWriter
   [OutputFileExtension.bpseq] : bpseqFileWriter,
   [OutputFileExtension.tr] : trFileWriter,
   [OutputFileExtension.svg] : svgFileWriter
+};
+
+export const r2dtLegacyOutputFileWritersMap = {
+  ...outputFileWritersMap,
+  [OutputFileExtension.json] : r2dtLegacyJsonFileWriter
 };

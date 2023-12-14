@@ -1,4 +1,5 @@
-import { useState, ReactNode, CSSProperties } from "react";
+import { useState, ReactNode, CSSProperties, useContext, useEffect } from "react";
+import { Context } from "../../context/Context";
 
 export namespace Collapsible {
   export type Props = {
@@ -17,6 +18,9 @@ export namespace Collapsible {
       buttonStyle,
       divStyle
     } = props;
+    // Begin context data.
+    const widthFromContext = useContext(Context.Collapsible.Width);
+    const widthAttribute = widthFromContext ?? "100%"
     // Begin state data.
     const [
       collapsedFlag,
@@ -24,19 +28,22 @@ export namespace Collapsible {
     ] = useState(initialCollapsedFlag ?? true);
     return <>
       <button
+        className = "collapsible"
         style = {{
-          width : "100%",
+          width : widthAttribute,
           ...buttonStyle
         }}
         onClick = {function() {
-          setCollapsedFlag(!collapsedFlag);
+          const newCollapsedFlag = !collapsedFlag;
+          setCollapsedFlag(newCollapsedFlag);
         }}
       >
         <span
           style = {{
             display : "inline-block",
             textAlign : "left",
-            width : "50%"
+            width : "50%",
+            whiteSpace : "nowrap"
           }}
         >
           {title}
@@ -59,7 +66,12 @@ export namespace Collapsible {
           ...divStyle
         }}
       >
-        {children}
+        
+        <Context.Collapsible.Width.Provider
+          value = "100%"
+        >
+          {children}
+        </Context.Collapsible.Width.Provider>
       </div>
     </>;
   }

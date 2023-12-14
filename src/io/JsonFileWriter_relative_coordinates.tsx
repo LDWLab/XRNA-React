@@ -5,7 +5,7 @@ import { RnaComplex, isRelevantBasePairKeySetInPair } from "../components/app_sp
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
 import Color, { toCSS, BLACK } from "../data_structures/Color";
 import Font from "../data_structures/Font";
-import { Vector2D, add } from "../data_structures/Vector2D";
+import { Vector2D } from "../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
 import { OutputFileWriter } from "./OutputUI";
 
@@ -22,6 +22,8 @@ type CssClassForJson = {
 type BasePairForJson = {
   basePairType : BasePair.Type,
   classes : Array<string>,
+  rnaMoleculeName1 : string,
+  rnaMoleculeName2 : string,
   residueIndex1 : number,
   residueIndex2 : number,
   points? : Array<Vector2D>
@@ -120,13 +122,13 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
     rnaComplexes : flattenedRnaComplexProps.map((singularRnaComplexProps : RnaComplex.ExternalProps) => {
       const flattenedRnaMoleculeProps = Object.entries(singularRnaComplexProps.rnaMoleculeProps);
       const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+      const outputBasePairs = new Array<BasePairForJson>();
       return {
         name : singularRnaComplexProps.name,
         rnaMolecules : flattenedRnaMoleculeProps.map(function([
           rnaMoleculeName,
           singularRnaMoleculeProps
         ]) {
-          const outputBasePairs = new Array<BasePairForJson>();
           const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
           const flattenedBasePairsPerRnaMolecule = Object.entries(basePairsPerRnaMolecule);
           for (const [nucleotideIndexAsString, mappedBasePairInformation] of flattenedBasePairsPerRnaMolecule) {
@@ -154,6 +156,8 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
             outputBasePairs.push({
               basePairType,
               classes : basePairsCssClasses[nucleotideIndex],
+              rnaMoleculeName1 : rnaMoleculeName,
+              rnaMoleculeName2 : mappedBasePairInformation.rnaMoleculeName,
               residueIndex1 : singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndex,
               residueIndex2 : singularRnaMoleculeProps.firstNucleotideIndex + mappedBasePairInformation.nucleotideIndex,
               points : mappedBasePairInformation.points
@@ -183,20 +187,18 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
                 label.labelContent = {
                   classes : labelContentCssClasses[nucleotideIndex],
                   label : labelContentProps.content,
-                  x : labelContentProps.x + singularNucleotideProps.x,
-                  y : -(labelContentProps.y + singularNucleotideProps.y)
+                  x : labelContentProps.x,
+                  y : -labelContentProps.y
                 };
               }
               if (labelLineProps !== undefined) {
                 label.labelLine = {
                   classes : labelLineCssClasses[nucleotideIndex],
-                  points : labelLineProps.points.map(function(point) {
-                    const pointSum = add(
-                      point,
-                      singularNucleotideProps
-                    );
-                    pointSum.y = -pointSum.y;
-                    return pointSum;
+                  points : labelLineProps.points.map(function({ x, y }) {
+                    return {
+                      x,
+                      y : -y
+                    }
                   })
                 };
               }
@@ -205,7 +207,6 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
           });
           return {
             name : rnaMoleculeName,
-            basePairs: outputBasePairs,
             labels,
             sequence : flattenedNucleotideProps.map(function({
               nucleotideIndex,
@@ -220,8 +221,9 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
               };
             })
           };
-        })
+        }),
+        basePairs : outputBasePairs
       };
-    })
+    }),
   });
 }

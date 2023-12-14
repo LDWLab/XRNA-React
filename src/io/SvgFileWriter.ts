@@ -1,9 +1,13 @@
-import { MOUSE_OVER_TEXT_HTML_ID, RnaComplexProps, SVG_ELEMENT_HTML_ID, VIEWPORT_SCALE_GROUP_HTML_ID, VIEWPORT_TRANSLATE_GROUP_HTML_ID } from "../App";
+import { MOUSE_OVER_TEXT_HTML_ID, PARENT_DIV_HTML_ID, RnaComplexProps, SVG_ELEMENT_HTML_ID, VIEWPORT_SCALE_GROUP_HTML_ID, VIEWPORT_TRANSLATE_GROUP_HTML_ID } from "../App";
 
 export function svgFileWriter(
   rnaComplexProps : RnaComplexProps,
   complexDocumentName : string
 ) {
+  const parentDiv = document.getElementById(PARENT_DIV_HTML_ID);
+  if (parentDiv === null) {
+    throw "parentDiv should never be null.";
+  }
   let svgHtmlElement = document.getElementById(SVG_ELEMENT_HTML_ID);
   if (svgHtmlElement === null) {
     throw "svgHtmlElement should never be null.";
@@ -28,6 +32,7 @@ export function svgFileWriter(
   const tempScaleTransform = viewportScaleGroup.getAttribute("transform") as string;
   const viewportTranslateGroup = document.getElementById(VIEWPORT_TRANSLATE_GROUP_HTML_ID) as HTMLElement;
   const tempTranslateTransform = viewportTranslateGroup.getAttribute("transform") as string;
+  const tempFilter = svgHtmlElement.getAttribute("filter") as string;
   svgHtmlElement.setAttribute("transform", `translate(${left * -0.5}, ${top * -0.5})`);
   svgHtmlElement.style.left = "0px";
   svgHtmlElement.setAttribute("stroke", "none");
@@ -36,6 +41,7 @@ export function svgFileWriter(
   }
   viewportScaleGroup.setAttribute("transform", "");
   viewportTranslateGroup.setAttribute("transform", "");
+  svgHtmlElement.setAttribute("filter", parentDiv.style.filter);
 
   let returnValue = svgHtmlElement.outerHTML;
 
@@ -47,5 +53,6 @@ export function svgFileWriter(
   }
   viewportScaleGroup.setAttribute("transform", tempScaleTransform);
   viewportTranslateGroup.setAttribute("transform", tempTranslateTransform);
+  svgHtmlElement.setAttribute("filter", tempFilter);
   return returnValue;
 }

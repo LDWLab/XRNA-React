@@ -70,7 +70,10 @@ export namespace OrientationEditor {
       function() {
         return (relativePositions ?? []).map(toPolar);
       },
-      [relativePositions]
+      [
+        relativePositions,
+        resetDataTrigger
+      ]
     );
     const disabledFlagNullCoalesced = useMemo(
       function() {

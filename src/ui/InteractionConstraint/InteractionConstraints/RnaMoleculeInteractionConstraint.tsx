@@ -146,7 +146,7 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
           approveBasePairs = {function(basePairs) {
             for (let i = 0; i < basePairs.length; i++) {
               const basePair = basePairs[i];
-              const errorMessage = `This interaction constraint expects base pairs to involve the clicked-on RNA molecule. The base pair on line #${i + 1} does not.`;
+              const errorMessage = `This constraint expects base pairs to involve the clicked-on RNA molecule. The base pair on line #${i + 1} does not.`;
               if (
                 rnaComplexIndex !== basePair.rnaComplexIndex ||
                 (rnaMoleculeName !== basePair.rnaMoleculeName0 && rnaMoleculeName !== basePair.rnaMoleculeName1)

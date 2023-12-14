@@ -295,19 +295,19 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
           initialBasePairs = {this.initialBasePairs}
           approveBasePairs = {function(parsedBasePairs : Array<BasePairsEditor.BasePair>) {
             if (parsedBasePairs.length > 1) {
-              throw "This interaction constraint expects at most one base pair.";
+              throw "This constraint expects at most one base pair.";
             }
             if (parsedBasePairs.length === 1) {
               const parsedBasePair = parsedBasePairs[0];
               if (parsedBasePair.length > 1) {
-                throw "This interaction constraint expects at most one base pair.";
+                throw "This constraint expects at most one base pair.";
               }
               // for (let {rnaMoleculeName, nucleotideIndex} of [fullKeys, basePairedKeys]) {
               //   if (
               //     (rnaMoleculeName !== parsedBasePair.rnaMoleculeName0 || nucleotideIndex !== parsedBasePair.nucleotideIndex0) &&
               //     (rnaMoleculeName !== parsedBasePair.rnaMoleculeName1 || nucleotideIndex !== parsedBasePair.nucleotideIndex1)
               //   ) {
-              //     throw "This interaction constraint expects a base pair strictly between the original nucleotides.";
+              //     throw "This constraint expects a base pair strictly between the original nucleotides.";
               //   }
               // }
             }

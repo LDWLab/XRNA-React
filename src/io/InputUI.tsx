@@ -1,7 +1,8 @@
 import { RnaComplex } from "../components/app_specific/RnaComplex";
 import FileExtension from "./FileExtension";
 import { xrnaInputFileHandler } from "./XrnaInputFileHandler";
-import { jsonInputFileHandler } from "./JsonInputFileHandler";
+import { jsonInputFileHandler as r2dtLegacyJsonInputFileHandler } from "./JsonInputFileHandler";
+import { jsonInputFileHandler } from "./JsonInputFileHandler_relative_coordinates";
 import { strInputFileHandler } from "./StrInputFileHandler";
 import { svgInputFileHandler } from "./SvgInputFileHandler";
 
@@ -31,6 +32,11 @@ export const inputFileReadersRecord : Record<InputFileExtension, InputFileReader
   [InputFileExtension.str] : strInputFileHandler,
   [InputFileExtension.svg] : svgInputFileHandler
 }
+
+export const r2dtLegacyInputFileReadersRecord = {
+  ...inputFileReadersRecord,
+  [InputFileExtension.json] : r2dtLegacyJsonInputFileHandler
+};
 
 export const defaultInvertYAxisFlagRecord : Record<InputFileExtension, boolean> = {
   [InputFileExtension.xrna] : false,

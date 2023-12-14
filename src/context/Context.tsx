@@ -137,4 +137,8 @@ export namespace Context {
   export namespace OrientationEditor {
     export const ResetDataTrigger = createContext(false);
   }
+
+  export namespace Collapsible {
+    export const Width = createContext<"auto" | "100%" | number | undefined>(undefined);
+  }
 };

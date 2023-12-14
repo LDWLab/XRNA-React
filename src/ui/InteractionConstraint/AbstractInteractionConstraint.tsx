@@ -3,8 +3,8 @@ import { BasePairsEditor } from "../../components/app_specific/editors/BasePairs
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../context/Context";
 import { InteractionConstraint } from "./InteractionConstraints";
 
-export const basePairedNucleotideErrorMessage = "Cannot interact with a base-paired nucleotide using this interaction constraint.";
-export const nonBasePairedNucleotideErrorMessage = "Cannot interact with a non-base-paired nucleotide using this interaction constraint.";
+export const basePairedNucleotideErrorMessage = "Cannot interact with a base-paired nucleotide using this constraint.";
+export const nonBasePairedNucleotideErrorMessage = "Cannot interact with a non-base-paired nucleotide using this constraint.";
 
 export const basePairedNucleotideError : InteractionConstraintError = {
   errorMessage : basePairedNucleotideErrorMessage
