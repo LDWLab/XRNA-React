@@ -31,6 +31,113 @@ function parsePolyline(
   });
 }
 
+function parseBasePair(
+  basePair : any,
+  cssClasses : Array<any>,
+  singularRnaComplexProps : RnaComplex.ExternalProps,
+  stroke : Color,
+  strokeWidth : number,
+  rnaMoleculeName0? : string,
+  rnaMoleculeName1? : string
+) {
+  if (!("basePairType" in basePair) || !("residueIndex1" in basePair) || !("residueIndex2" in basePair)) {
+    throw "Input basePairs elements of input Json should have \"basePairType\", \"residueIndex1\" and \"residueIndex2\" variables."
+  }
+  let basePairType : BasePair.Type | undefined;
+  
+  if ([null, undefined].includes(basePair.basePairType)) {
+    basePairType = undefined;
+  } else if (typeof basePair.basePairType === "string" && isBasePairType(basePair.basePairType)) {
+    basePairType = basePair.basePairType;
+  } else {
+    throw "Unrecognized base-pair type.";
+  }
+  let color = structuredClone(stroke);
+  const classes = basePair.classes;
+  if (classes !== undefined) {
+    if (!Array.isArray(classes)) {
+      throw "Base-pair \"classes\" variable should be an array.";
+    }
+    (classes as Array<string>).forEach(className => {
+      let cssClass = cssClasses.find(cssClass => cssClass.name === className);
+      if (cssClass !== undefined) {
+        Object.entries(cssClass).forEach(cssClassData => {
+          switch (cssClassData[0]) {
+            case "stroke-width" : {
+              strokeWidth = Number.parseFloat(cssClassData[1] as string);
+              break;
+            }
+            case "stroke" : {
+              color = fromCssString(cssClassData[1] as string);
+              break;
+            }
+            case "color" : {
+              color = fromCssString(cssClassData[1] as string);
+              break;
+            }
+          }
+        });
+      }
+    });
+  }
+  let points : Array<Vector2D> | undefined = undefined;
+  if ("points" in basePair) {
+    points = parsePolyline(
+      basePair.points,
+      "basePair.points"
+    );
+  }
+  if (rnaMoleculeName0 === undefined) {
+    if ("rnaMoleculeName1" in basePair) {
+      const {
+        rnaMoleculeName1
+      } = basePair;
+      if (typeof rnaMoleculeName1 !== "string") {
+        throw `rnaMoleculeName1 should be a string.`;
+      }
+      rnaMoleculeName0 = rnaMoleculeName1;
+    } else {
+      throw "No rnaMoleculeName1 was provided.";
+    }
+  }
+  if (rnaMoleculeName1 === undefined) {
+    if ("rnaMoleculeName2" in basePair) {
+      const {
+        rnaMoleculeName2
+      } = basePair;
+      if (typeof rnaMoleculeName2 !== "string") {
+        throw `rnaMoleculeName2 should be a string.`;
+      }
+      rnaMoleculeName1 = rnaMoleculeName2;
+    } else {
+      throw "No rnaMoleculeName2 was provided.";
+    }
+  }
+  const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+  const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+  for (const rnaMoleculeName of [rnaMoleculeName0, rnaMoleculeName1]) {
+    if (!(rnaMoleculeName in singularRnaComplexProps.rnaMoleculeProps)) {
+      throw `RNA molecule "${rnaMoleculeName}" does not exist in the RNA complex.`;
+    }
+  }
+  let residueIndex1 = Number.parseInt(basePair.residueIndex1) - singularRnaMoleculeProps0.firstNucleotideIndex;
+  let residueIndex2 = Number.parseInt(basePair.residueIndex2) - singularRnaMoleculeProps1.firstNucleotideIndex;
+  insertBasePair(
+    singularRnaComplexProps,
+    rnaMoleculeName0,
+    residueIndex1,
+    rnaMoleculeName1,
+    residueIndex2,
+    DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
+    {
+      color,
+      strokeWidth,
+      basePairType,
+      points
+    }
+  );
+}
+
 export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
   if (!("classes" in parsedJson) || !("rnaComplexes" in parsedJson)) {
     throw "Input Json should have \"classes\" and \"rnaComplexes\" variables.";
@@ -53,8 +160,8 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
     singularRnaComplexProps.name = inputRnaComplex.name;
     singularRnaComplexProps.rnaMoleculeProps = {};
     (inputRnaComplex.rnaMolecules as Array<any>).forEach((inputRnaMolecule : any) => {
-      if (!("name" in inputRnaMolecule) || !("basePairs" in inputRnaMolecule) || !("labels" in inputRnaMolecule) || !("sequence" in inputRnaMolecule)) {
-        throw "Input rnaMolecule elements of input Json should have \"name\", \"sequence\", \"basePairs\", \"labels\" variables."
+      if (!("name" in inputRnaMolecule) || !("labels" in inputRnaMolecule) || !("sequence" in inputRnaMolecule)) {
+        throw "Input rnaMolecule elements of input Json should have \"name\", \"sequence\", \"labels\" variables."
       }
       let singularRnaMoleculeProps : RnaMolecule.ExternalProps = {
         firstNucleotideIndex : Number.MAX_VALUE,
@@ -271,8 +378,6 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
             });
           }
           nucleotideProps.labelContentProps = {
-            // x : Number.parseFloat(label.labelContent.x),
-            // y : Number.parseFloat(label.labelContent.y),
             ...subtract(
               {
                 x : Number.parseFloat(label.labelContent.x),
@@ -358,7 +463,6 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
           }
 
           nucleotideProps.labelLineProps = {
-            // points : parsedPoints,
             points : parsedPoints.map(function(point) {
               return subtract(
                 point,
@@ -404,43 +508,58 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
           }
         });
       }
-      (inputRnaMolecule.basePairs as Array<any>).forEach(basePair => {
-        if (!("basePairType" in basePair) || !("residueIndex1" in basePair) || !("residueIndex2" in basePair)) {
-          throw "Input basePairs elements of input Json should have \"basePairType\", \"residueIndex1\" and \"residueIndex2\" variables."
+      if ("basePairs" in inputRnaMolecule) {
+        const { basePairs } = inputRnaMolecule;
+        if (!Array.isArray(basePairs)) {
+          throw `The basePairs property of each input RNA molecule should be an array.`;
         }
-        let basePairType : BasePair.Type | undefined;
-        
-        if ([null, undefined].includes(basePair.basePairType)) {
-          basePairType = undefined;
-        } else if (typeof basePair.basePairType === "string" && isBasePairType(basePair.basePairType)) {
-          basePairType = basePair.basePairType;
-        } else {
-          throw "Unrecognized base-pair type.";
+        for (const basePair of inputRnaMolecule.basePairs as Array<any>) {
+          parseBasePair(
+            basePair,
+            cssClasses ?? [],
+            singularRnaComplexProps,
+            parsedClassesForBasePairs.stroke,
+            parsedClassesForBasePairs.strokeWidth,
+            rnaMoleculeName,
+            rnaMoleculeName
+          );
         }
-        let residueIndex1 = Number.parseInt(basePair.residueIndex1) - singularRnaMoleculeProps.firstNucleotideIndex;
-        let residueIndex2 = Number.parseInt(basePair.residueIndex2) - singularRnaMoleculeProps.firstNucleotideIndex;
-        let strokeWidth = parsedClassesForBasePairs.strokeWidth;
-        let color = structuredClone(parsedClassesForBasePairs.stroke);
-        const classes = basePair.classes;
-        if (classes !== undefined) {
-          if (!Array.isArray(classes)) {
-            throw "Base-pair \"classes\" variable should be an array.";
+      }
+      return singularRnaMoleculeProps;
+    });
+    if ("basePairs" in inputRnaComplex) {
+      const { basePairs } = inputRnaComplex;
+      if (!Array.isArray(basePairs)) {
+        throw `The basePairs property of each input RNA complex should be an array.`;
+      }
+      for (const basePair of inputRnaComplex.basePairs) {
+        const parsedClassesForBasePairs = {
+          strokeWidth : DEFAULT_STROKE_WIDTH,
+          stroke : structuredClone(BLACK)
+        };
+        const classesForBasePairs = inputRnaComplex.classesForBasePairs;
+        if (classesForBasePairs !== undefined) {
+          if (!Array.isArray(classesForBasePairs)) {
+            throw "RNA-molecule \"classesForBasePairs\" variable should be an array.";
           }
-          (classes as Array<string>).forEach(className => {
-            let cssClass = cssClasses.find(cssClass => cssClass.name === className);
+          classesForBasePairs.forEach((classForBasePair : any) => {
+            if (typeof classForBasePair !== "string") {
+              throw "\"classForBasePair\" should be a string.";
+            }
+            let cssClass = cssClasses.find(cssClass => cssClass.name === classForBasePair);
             if (cssClass !== undefined) {
               Object.entries(cssClass).forEach(cssClassData => {
                 switch (cssClassData[0]) {
                   case "stroke-width" : {
-                    strokeWidth = Number.parseFloat(cssClassData[1] as string);
+                    parsedClassesForBasePairs.strokeWidth = Number.parseFloat(cssClassData[1] as string);
                     break;
                   }
                   case "stroke" : {
-                    color = fromCssString(cssClassData[1] as string);
+                    parsedClassesForBasePairs.stroke = fromCssString(cssClassData[1] as string);
                     break;
                   }
                   case "color" : {
-                    color = fromCssString(cssClassData[1] as string);
+                    parsedClassesForBasePairs.stroke = fromCssString(cssClassData[1] as string);
                     break;
                   }
                 }
@@ -448,30 +567,15 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
             }
           });
         }
-        let points : Array<Vector2D> | undefined = undefined;
-        if ("points" in basePair) {
-          points = parsePolyline(
-            basePair.points,
-            "basePair.points"
-          );
-        }
-        insertBasePair(
+        parseBasePair(
+          basePair,
+          inputRnaComplex.classesForBasePairs ?? [],
           singularRnaComplexProps,
-          rnaMoleculeName,
-          residueIndex1,
-          rnaMoleculeName,
-          residueIndex2,
-          DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
-          {
-            color,
-            strokeWidth,
-            basePairType,
-            points
-          }
+          parsedClassesForBasePairs.stroke,
+          parsedClassesForBasePairs.strokeWidth
         );
-      });
-      return singularRnaMoleculeProps;
-    });
+      }
+    }
     return singularRnaComplexProps;
   });
   const output : ParsedInputFile = {
