@@ -983,8 +983,7 @@ export namespace App {
         rnaComplexProps,
         nucleotideKeysToRerender,
         basePairKeysToRerender,
-        labelsOnlyFlag,
-        tab
+        labelsOnlyFlag && tab == Tab.EDIT
       ]
     );
     const triggerRightClickMenuFlag = useMemo(
