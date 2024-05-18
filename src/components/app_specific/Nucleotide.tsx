@@ -10,6 +10,14 @@ import { LabelLine } from "./LabelLine";
 import { SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 import "../../App.css";
 
+export function getLabelLineHtmlElementId(
+  rnaComplexIndex : number,
+  rnaMoleculeName : string,
+  nucleotideIndex : number
+) {
+  return `${rnaComplexIndex}${HTML_ELEMENT_ID_DELIMITER}${rnaMoleculeName}${HTML_ELEMENT_ID_DELIMITER}${nucleotideIndex}${HTML_ELEMENT_ID_DELIMITER}LabelLine`;
+}
+
 export function getLabelContentHtmlElementId(
   rnaComplexIndex : number,
   rnaMoleculeName : string,
@@ -79,6 +87,7 @@ export namespace Nucleotide {
     const firstNucleotideIndexInRnaMolecule = useContext(Context.RnaMolecule.FirstNucleotideIndex);
     const setMouseOverText = useContext(Context.App.SetMouseOverText);
     const onMouseDownHelper = useContext(Context.Nucleotide.OnMouseDownHelper);
+    const labelsOnlyFlag = useContext(Context.Nucleotide.LabelsOnlyFlag);
     // Begin state data.
     const [
       textDimensions,
@@ -141,6 +150,7 @@ export namespace Nucleotide {
         fontSize = {font.size}
         strokeWidth = {strokeWidth}
         fill = {toCSS(color)}
+        pointerEvents = {labelsOnlyFlag ? "none" : "all"}
         // stroke = {stroke}
         onMouseDown = {function(e : React.MouseEvent<Nucleotide.SvgRepresentation>) {
           onMouseDownHelper(
@@ -159,6 +169,11 @@ export namespace Nucleotide {
       </text>
       {labelLineProps && <LabelLine.Component
         {...labelLineProps}
+        id = {getLabelContentHtmlElementId(
+          rnaComplexIndex,
+          rnaMoleculeName,
+          nucleotideIndex
+        )}
         fullKeys = {fullKeys}
       />}
       {labelContentProps && <LabelContent.Component

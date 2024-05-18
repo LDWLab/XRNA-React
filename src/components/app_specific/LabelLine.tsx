@@ -20,7 +20,8 @@ export namespace LabelLine {
   };
 
   export type Props = ExternalProps & {
-    fullKeys : FullKeys
+    fullKeys : FullKeys,
+    id : string
   }
 
   type RenderData = {
@@ -31,7 +32,8 @@ export namespace LabelLine {
   export function Component(props : Props) {
     const {
       fullKeys,
-      points
+      points,
+      id
     } = props;
     // Begin constants.
     const BOUNDING_PATH_RADIUS = 1;
@@ -104,6 +106,7 @@ export namespace LabelLine {
         pointIndex
       ) {
         return <circle
+          id = {id}
           key = {pointIndex}
           className = {className}
           pointerEvents = "all"

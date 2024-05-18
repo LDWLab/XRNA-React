@@ -5,6 +5,7 @@ import { LabelLine } from "../components/app_specific/LabelLine";
 import { Nucleotide, getGraphicalAdjustment } from "../components/app_specific/Nucleotide";
 import { DuplicateBasePairKeysHandler, RnaComplex, insertBasePair } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
+import { AffineMatrix, identity } from "../data_structures/AffineMatrix";
 import Color, { BLACK, fromCssString } from "../data_structures/Color";
 import Font, { parseFontSize } from "../data_structures/Font";
 import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
@@ -54,6 +55,7 @@ type Cache = {
   basePairCentersPerRnaComplex : BasePairCentersPerRnaComplex,
   rnaMoleculeCount : number,
   nucleotideCount : number,
+  transform : AffineMatrix,
   graphicalAdjustmentsPerRnaComplex? : GraphicalAdjustmentsPerRnaComplex,
   graphicalAdjustmentsPerRnaMolecule? : GraphicalAdjustmentsPerRnaMolecule,
   singularRnaComplexProps? : RnaComplex.ExternalProps,
@@ -875,7 +877,8 @@ export function svgInputFileHandler(
     rnaMoleculeCount : 0,
     nucleotideCount : 0,
     labelLines : {},
-    labelContents : {}
+    labelContents : {},
+    transform : identity()
   };
   
   let svgFileType = SvgFileType.UNFORMATTED;
@@ -911,8 +914,11 @@ export function svgInputFileHandler(
     };
     rnaComplexProps.push(singularRnaComplexProps);
     cache.singularRnaComplexProps = singularRnaComplexProps;
-    cache.graphicalAdjustments[0] = {};
-    cache.graphicalAdjustmentsPerRnaComplex = cache.graphicalAdjustments[0];
+    const DEFAULT_RNA_COMPLEX_INDEX = 0;
+    cache.graphicalAdjustments[DEFAULT_RNA_COMPLEX_INDEX] = {};
+    cache.labelLines[DEFAULT_RNA_COMPLEX_INDEX] = [];
+    cache.labelContents[DEFAULT_RNA_COMPLEX_INDEX] = [];
+    cache.graphicalAdjustmentsPerRnaComplex = cache.graphicalAdjustments[DEFAULT_RNA_COMPLEX_INDEX];
     const singularRnaMoleculeProps : RnaMolecule.ExternalProps = {
       firstNucleotideIndex : 1,
       nucleotideProps : {}
@@ -924,6 +930,9 @@ export function svgInputFileHandler(
 
     cache.graphicalAdjustmentsPerRnaComplex[rnaMoleculeName] = {};
     cache.graphicalAdjustmentsPerRnaMolecule = cache.graphicalAdjustmentsPerRnaComplex[rnaMoleculeName];
+
+    cache.labelLinesPerRnaComplex = [];
+    cache.labelContentsPerRnaComplex = [];
   }
 
   if ([

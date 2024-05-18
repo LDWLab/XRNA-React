@@ -24,6 +24,7 @@ import { areEqual, BLACK } from './data_structures/Color';
 import { RnaMolecule } from './components/app_specific/RnaMolecule';
 import { LabelEditMenu } from './components/app_specific/menus/edit_menus/LabelEditMenu';
 import BasePair from './components/app_specific/BasePair';
+import { multiplyAffineMatrices, parseAffineMatrix } from './data_structures/AffineMatrix';
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -141,6 +142,10 @@ export namespace App {
       basePairKeysToEdit,
       setBasePairKeysToEdit
     ] = useState<Record<RnaComplexKey, Context.BasePair.KeysToEditPerRnaComplexType>>({});
+    const [
+      labelsOnlyFlag,
+      setLabelsOnlyFlag
+    ] = useState(false);
     // Begin UI-relevant state data.
     const [
       tab,
@@ -914,66 +919,72 @@ export namespace App {
     }
     const renderedRnaComplexes = useMemo(
       function() {
-        return <Context.App.SetMouseOverText.Provider
-          value = {setMouseOverText}
+        return <Context.Nucleotide.LabelsOnlyFlag.Provider
+          value = {labelsOnlyFlag && tab == Tab.EDIT}
         >
-          <Context.Nucleotide.OnMouseDownHelper.Provider
-            value = {nucleotideOnMouseDownHelper}
+          <Context.App.SetMouseOverText.Provider
+            value = {setMouseOverText}
           >
-            <Context.Label.Content.OnMouseDownHelper.Provider
-              value = {labelContentOnMouseDownHelper}
+            <Context.Nucleotide.OnMouseDownHelper.Provider
+              value = {nucleotideOnMouseDownHelper}
             >
-              <Context.Label.Line.Body.OnMouseDownHelper.Provider
-                value = {labelLineBodyOnMouseDownHelper}
+              <Context.Label.Content.OnMouseDownHelper.Provider
+                value = {labelContentOnMouseDownHelper}
               >
-                <Context.Label.Line.Endpoint.OnMouseDownHelper.Provider
-                  value = {labelLineEndpointOnMouseDownHelper}
+                <Context.Label.Line.Body.OnMouseDownHelper.Provider
+                  value = {labelLineBodyOnMouseDownHelper}
                 >
-                  <g
-                    {...{
-                      [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.SCENE,
-                      [SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME] : complexDocumentName
-                    }}
-                    ref = {function(svgGElement : SVGGElement | null) {
-                      if (svgGElement === null) {
-                        return;
-                      }
-                      sceneSvgGElementReference.current = svgGElement;
-                    }}
+                  <Context.Label.Line.Endpoint.OnMouseDownHelper.Provider
+                    value = {labelLineEndpointOnMouseDownHelper}
                   >
-                    {flattenedRnaComplexProps.map(function(
-                      [
-                        rnaComplexIndexAsString,
-                        singularRnaComplexProps
-                      ]
-                    ) {
-                      const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-                      return <Context.RnaComplex.Index.Provider
-                        key = {rnaComplexIndex}
-                        value = {rnaComplexIndex}
-                      >
-                        <Context.BasePair.DataToEditPerRnaComplex.Provider
-                          value = {basePairKeysToEdit[rnaComplexIndex]}
+                    <g
+                      {...{
+                        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.SCENE,
+                        [SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME] : complexDocumentName
+                      }}
+                      ref = {function(svgGElement : SVGGElement | null) {
+                        if (svgGElement === null) {
+                          return;
+                        }
+                        sceneSvgGElementReference.current = svgGElement;
+                      }}
+                    >
+                      {flattenedRnaComplexProps.map(function(
+                        [
+                          rnaComplexIndexAsString,
+                          singularRnaComplexProps
+                        ]
+                      ) {
+                        const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+                        return <Context.RnaComplex.Index.Provider
+                          key = {rnaComplexIndex}
+                          value = {rnaComplexIndex}
                         >
-                          <RnaComplex.Component
-                            {...singularRnaComplexProps}
-                            nucleotideKeysToRerenderPerRnaComplex = {nucleotideKeysToRerender[rnaComplexIndex] ?? {}}
-                            basePairKeysToRerenderPerRnaComplex = {basePairKeysToRerender[rnaComplexIndex] ?? []}
-                          />
-                        </Context.BasePair.DataToEditPerRnaComplex.Provider>
-                      </Context.RnaComplex.Index.Provider>;
-                    })}
-                  </g>
-                </Context.Label.Line.Endpoint.OnMouseDownHelper.Provider>
-              </Context.Label.Line.Body.OnMouseDownHelper.Provider>
-            </Context.Label.Content.OnMouseDownHelper.Provider>
-          </Context.Nucleotide.OnMouseDownHelper.Provider>
-        </Context.App.SetMouseOverText.Provider>;
+                          <Context.BasePair.DataToEditPerRnaComplex.Provider
+                            value = {basePairKeysToEdit[rnaComplexIndex]}
+                          >
+                            <RnaComplex.Component
+                              {...singularRnaComplexProps}
+                              nucleotideKeysToRerenderPerRnaComplex = {nucleotideKeysToRerender[rnaComplexIndex] ?? {}}
+                              basePairKeysToRerenderPerRnaComplex = {basePairKeysToRerender[rnaComplexIndex] ?? []}
+                            />
+                          </Context.BasePair.DataToEditPerRnaComplex.Provider>
+                        </Context.RnaComplex.Index.Provider>;
+                      })}
+                    </g>
+                  </Context.Label.Line.Endpoint.OnMouseDownHelper.Provider>
+                </Context.Label.Line.Body.OnMouseDownHelper.Provider>
+              </Context.Label.Content.OnMouseDownHelper.Provider>
+            </Context.Nucleotide.OnMouseDownHelper.Provider>
+          </Context.App.SetMouseOverText.Provider>
+        </Context.Nucleotide.LabelsOnlyFlag.Provider>;
       },
       [
         rnaComplexProps,
         nucleotideKeysToRerender,
-        basePairKeysToRerender
+        basePairKeysToRerender,
+        labelsOnlyFlag,
+        tab
       ]
     );
     const triggerRightClickMenuFlag = useMemo(
@@ -1157,11 +1168,23 @@ export namespace App {
             })}
           </select>
           <br/>
+          {tab == Tab.EDIT && <label>
+            Labels Only:&nbsp;
+            <input
+              type = "checkbox"
+              checked = {labelsOnlyFlag}
+              onChange = {function() {
+                setLabelsOnlyFlag(!labelsOnlyFlag);
+              }}
+            />
+          </label>}
         </>;
       },
       [
         interactionConstraint,
-        interactionConstraintOptions
+        interactionConstraintOptions,
+        labelsOnlyFlag,
+        tab
       ]
     );
     const tabInstructionsRecord : Record<Tab, JSX.Element> = useMemo(
@@ -3185,6 +3208,12 @@ export namespace App {
       },
       [userDrivenResizeDetector.width]
     );
+    // useEffect(
+    //   function() {
+        
+    //   },
+    //   [tab]
+    // );
     return <Context.Label.ClassName.Provider
       value = {labelClassName}
     >
