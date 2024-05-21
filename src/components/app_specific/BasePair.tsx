@@ -1076,8 +1076,9 @@ export namespace BasePair {
       rnaMoleculeName1,
       formattedNucleotideIndex1
     } = props;
+    const defaultStrokeWidth = useContext(Context.BasePair.AverageStrokeWidth);
     const colorAsString = toCSS(mappedBasePair.color ?? BLACK);
-    const strokeWidth = mappedBasePair.strokeWidth ?? DEFAULT_STROKE_WIDTH;
+    const strokeWidth = mappedBasePair.strokeWidth ?? defaultStrokeWidth;
     if (mappedBasePair.points !== undefined) {
       const points = mappedBasePair.points.map(function({ x, y }) {
         return `${x},${y}`;

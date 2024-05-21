@@ -249,6 +249,10 @@ export namespace App {
       dragListenerAffectedNucleotideIndices,
       setDragListenerAffectedNucleotideIndices
     ] = useState<FullKeysRecord>({});
+    const [
+      autoDetectedInteractionConstraintMessage,
+      setAutoDetectedInteractionConstraintMessage
+    ] = useState<"" | "Auto-detected">("");
     // Begin viewport-relevant state data.
     const [
       viewportTranslateX,
@@ -1138,6 +1142,7 @@ export namespace App {
             onChange = {function(e) {
               const newInteractionConstraint = e.target.value as InteractionConstraint.Enum;
               setInteractionConstraint(newInteractionConstraint);
+              setAutoDetectedInteractionConstraintMessage("");
               resetRightClickMenuContent();
               if (newInteractionConstraint in InteractionConstraint.optionsMenuRecord) {
                 setRightClickMenuOptionsMenu(createElement(
@@ -1166,17 +1171,27 @@ export namespace App {
               </option>);
             })}
           </select>
+          <span
+            style = {{
+              color : "red"
+            }}
+          >
+            {autoDetectedInteractionConstraintMessage}
+          </span>
           <br/>
-          {tab == Tab.EDIT && <label>
-            Labels Only:&nbsp;
-            <input
-              type = "checkbox"
-              checked = {labelsOnlyFlag}
-              onChange = {function() {
-                setLabelsOnlyFlag(!labelsOnlyFlag);
-              }}
-            />
-          </label>}
+          {tab == Tab.EDIT && <>
+            <label>
+              Labels Only:&nbsp;
+              <input
+                type = "checkbox"
+                checked = {labelsOnlyFlag}
+                onChange = {function() {
+                  setLabelsOnlyFlag(!labelsOnlyFlag);
+                }}
+              />
+            </label>
+            <br/>
+          </>}
         </>;
       },
       [
@@ -1621,7 +1636,7 @@ export namespace App {
               setOriginOfDrag(clickedOnCoordinates);
               break;
             }
-            case MouseButtonIndices.Middle : {
+            case MouseButtonIndices.Right : {
               // setMiddleMouseButtonDownFlag(true);
               const clickedOnCoordinatesInDataSpace = transformIntoDataSpace(clickedOnCoordinates);
               setDataSpaceOriginOfDrag(clickedOnCoordinatesInDataSpace);
@@ -2212,6 +2227,7 @@ export namespace App {
               }
             }
             let interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(fullKeysOfCapturedNucleotides);
+            setAutoDetectedInteractionConstraintMessage("Auto-detected");
             if (interactionConstraintAndFullKeys !== undefined) {
               const {
                 fullKeys,

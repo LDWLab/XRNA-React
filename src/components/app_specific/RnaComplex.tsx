@@ -7,6 +7,11 @@ import BasePair, { getBasePairType } from "./BasePair";
 import { RnaMolecule } from "./RnaMolecule";
 import { HandleQueryNotFound, sortedArraySplice } from "../../utils/Utils";
 import { SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
+import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
+
+const distanceScalars : Partial<Record<BasePair.Type, number>> = {
+  [BasePair.Type.WOBBLE] : 1.15
+}
 
 export enum DuplicateBasePairKeysHandler {
   DO_NOTHING,
@@ -247,6 +252,25 @@ export namespace RnaComplex {
       },
       [basePairs]
     );
+    const averageBasePairStrokeWidth = useMemo(
+      function() {
+        let count = 0;
+        let sum = 0;
+        for (const rnaMoleculeName of Object.keys(basePairs)) {
+          const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
+          for (const nucleotideIndexAsString of Object.keys(basePairsPerRnaMolecule)) {
+            const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+            const { strokeWidth } = basePairsPerRnaMolecule[nucleotideIndex];
+            if (strokeWidth !== undefined) {
+              count++;
+              sum += strokeWidth;
+            }
+          }
+        }
+        return count === 0 ? DEFAULT_STROKE_WIDTH : sum / count;
+      },
+      [basePairs]
+    );
     // Begin effects.
     useEffect(
       function() {
@@ -434,6 +458,18 @@ export namespace RnaComplex {
           const averageDistancesDataI = averageDistancesData[basePairType];
           distances[basePairType] = averageDistancesDataI.distanceSum / averageDistancesDataI.count;
         }
+        const canonicalDistance = distances[BasePair.Type.CANONICAL];
+        if (!Number.isNaN(canonicalDistance)) {
+          for (const basePairType of BasePair.types) {
+            if (Number.isNaN(distances[basePairType])) {
+              let newDistance = canonicalDistance;
+              if (basePairType in distanceScalars) {
+                newDistance *= distanceScalars[basePairType] as number;
+              }
+              distances[basePairType] = newDistance;
+            }
+          }
+        }
         updateBasePairAverageDistances(
           index,
           {
@@ -463,6 +499,9 @@ export namespace RnaComplex {
             <Context.BasePair.Radius.Provider
               value = {radii}
             >
+              <Context.BasePair.AverageStrokeWidth.Provider
+                value = {averageBasePairStrokeWidth}
+              >
               {editedFlattenedBasePairProps.map(function(props) {
                 return createElement(
                   BasePair.Component,
@@ -477,6 +516,7 @@ export namespace RnaComplex {
                   comparator = {compareBasePairKeys}
                 />
               */}
+              </Context.BasePair.AverageStrokeWidth.Provider>
             </Context.BasePair.Radius.Provider>
           </g>
           {flattenedRnaMoleculeProps.map(function(

@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS } from "../ui/Setting";
 import { InteractionConstraint } from "../ui/InteractionConstraint/InteractionConstraints";
 import Font from "../data_structures/Font";
 import Color, { BLACK } from "../data_structures/Color";
+import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
 
 export type NucleotideKeysToRerenderPerRnaMolecule = Array<NucleotideKey>;
 export type NucleotideKeysToRerenderPerRnaComplex = Record<RnaMoleculeKey, NucleotideKeysToRerenderPerRnaMolecule>;
@@ -93,6 +94,7 @@ export namespace Context {
       // Do nothing.
     });
     export const AverageDistances = createContext<Record<RnaComplexKey, AllDistances>>({});
+    export const AverageStrokeWidth = createContext<number>(DEFAULT_STROKE_WIDTH);
   };
 
   export namespace Label {
