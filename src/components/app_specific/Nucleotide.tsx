@@ -29,7 +29,7 @@ export function getLabelContentHtmlElementId(
 export function getGraphicalAdjustment(rectangle : {width : number, height : number}) {
   return {
     x : -0.5 * rectangle.width,
-    y : -0.25 * rectangle.height
+    y : -0.3 * rectangle.height
   };
 }
 
