@@ -42,6 +42,10 @@ export namespace LabelContent {
     // Begin context data.
     const onMouseDownHelper = useContext(Context.Label.Content.OnMouseDownHelper);
     const className = useContext(Context.Label.ClassName);
+    const setMouseOverText = useContext(Context.App.SetMouseOverText);
+    const firstNucleotideIndexInRnaMolecule = useContext(Context.RnaMolecule.FirstNucleotideIndex);
+    const rnaComplexName = useContext(Context.RnaComplex.Name);
+    const symbol = useContext(Context.Nucleotide.Symbol);
 
     // Begin state data.
     const [
@@ -120,6 +124,9 @@ export namespace LabelContent {
           fullKeys
         );
         e.preventDefault();
+      }}
+      onMouseOver = {function(e) {
+        setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
       }}
     >
       {content}

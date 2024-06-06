@@ -167,24 +167,28 @@ export namespace Nucleotide {
       >
         {symbol}
       </text>
-      {labelLineProps && <LabelLine.Component
-        {...labelLineProps}
-        id = {getLabelContentHtmlElementId(
-          rnaComplexIndex,
-          rnaMoleculeName,
-          nucleotideIndex
-        )}
-        fullKeys = {fullKeys}
-      />}
-      {labelContentProps && <LabelContent.Component
-        {...labelContentProps}
-        id = {getLabelContentHtmlElementId(
-          rnaComplexIndex,
-          rnaMoleculeName,
-          nucleotideIndex
-        )}
-        fullKeys = {fullKeys}
-      />}
+      <Context.Nucleotide.Symbol.Provider
+        value = {symbol}
+      >
+        {labelLineProps && <LabelLine.Component
+          {...labelLineProps}
+          id = {getLabelContentHtmlElementId(
+            rnaComplexIndex,
+            rnaMoleculeName,
+            nucleotideIndex
+          )}
+          fullKeys = {fullKeys}
+        />}
+        {labelContentProps && <LabelContent.Component
+          {...labelContentProps}
+          id = {getLabelContentHtmlElementId(
+            rnaComplexIndex,
+            rnaMoleculeName,
+            nucleotideIndex
+          )}
+          fullKeys = {fullKeys}
+        />}
+      </Context.Nucleotide.Symbol.Provider>
     </g>;
   }
 

@@ -41,6 +41,15 @@ export namespace LabelLine {
     const bodyOnMouseDownHelper = useContext(Context.Label.Line.Body.OnMouseDownHelper);
     const endpointOnMouseDownHelper = useContext(Context.Label.Line.Endpoint.OnMouseDownHelper);
     const className = useContext(Context.Label.ClassName);
+    const setMouseOverText = useContext(Context.App.SetMouseOverText);
+    const firstNucleotideIndexInRnaMolecule = useContext(Context.RnaMolecule.FirstNucleotideIndex);
+    const rnaComplexName = useContext(Context.RnaComplex.Name);
+    const symbol = useContext(Context.Nucleotide.Symbol);
+    const {
+      nucleotideIndex,
+      rnaMoleculeName,
+      rnaComplexIndex
+    } = fullKeys;
     // Begin state data.
     const radius = BOUNDING_PATH_RADIUS;
     const [
@@ -123,6 +132,9 @@ export namespace LabelLine {
               updateRenderData
             );
           }}
+          onMouseOver = {function(e) {
+            setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
+          }}
         />
       })}
       <path
@@ -138,6 +150,9 @@ export namespace LabelLine {
             updateRenderData
           );
           e.preventDefault();
+        }}
+        onMouseOver = {function(e) {
+          setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
         }}
       />
     </g>;

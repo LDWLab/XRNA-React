@@ -59,6 +59,7 @@ export namespace Context {
     export const Index = createContext(NaN);
     export const SetKeysToRerender = createContext(function(nucleotideKeysToRerender : NucleotideKeysToRerender) { /* Do nothing. */ });
     export const LabelsOnlyFlag = createContext(false);
+    export const Symbol = createContext<string>("");
   }
 
   export namespace BasePair {
