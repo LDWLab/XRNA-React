@@ -107,7 +107,7 @@ export namespace LabelContent {
       id = {id}
       ref = {contentSvgTextElementReference}
       transform = {`translate(${x}, ${y}) translate(${graphicalAdjustment.x}, ${graphicalAdjustment.y}) scale(1 -1)`}
-      className = {className}
+      className = {className + " noselect"}
       fontSize = {font.size}
       fontFamily = {font.family}
       fontWeight = {font.weight}

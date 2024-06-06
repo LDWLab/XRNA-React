@@ -142,7 +142,7 @@ export namespace Nucleotide {
     >
       <text
         ref = {symbolReference}
-        className = "nucleotide"
+        className = "nucleotide noselect"
         transform = {`translate(${graphicalAdjustment.x}, ${graphicalAdjustment.y}) scale(1, -1)`}
         fontStyle = {font.style}
         fontWeight = {font.weight}

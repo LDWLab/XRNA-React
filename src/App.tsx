@@ -37,8 +37,12 @@ export const PARENT_DIV_HTML_ID = "parent_div";
 export const SVG_ELEMENT_HTML_ID = "viewport";
 export const TEST_SPACE_ID = "testSpace";
 export const MOUSE_OVER_TEXT_HTML_ID = "mouse_over_text_group";
-export const VIEWPORT_SCALE_GROUP_HTML_ID = "viewport_scale_group";
-export const VIEWPORT_TRANSLATE_GROUP_HTML_ID = "viewport_translate_group";
+export const VIEWPORT_SCALE_GROUP_0_HTML_ID = "viewport_scale_group_0";
+export const VIEWPORT_SCALE_GROUP_1_HTML_ID = "viewport_scale_group_1";
+export const VIEWPORT_TRANSLATE_GROUP_0_HTML_ID = "viewport_translate_group_0";
+export const VIEWPORT_TRANSLATE_GROUP_1_HTML_ID = "viewport_translate_group_1";
+export const SVG_BACKGROUND_HTML_ID = "svg_background";
+export const SVG_SCENE_GROUP_HTML_ID = "svg_scene_group";
 
 export const LABEL_CLASS_NAME = "label";
 export const NO_STROKE_CLASS_NAME = "noStroke";
@@ -419,9 +423,12 @@ export namespace App {
     );
     const sceneBoundsScaleMin = useMemo(
       function() {
+        const heightScale = (parentDivResizeDetector.height ?? 0);
+        (window as any).widthScale = svgWidth;
+        (window as any).heightScale = heightScale;
         return Math.min(
           svgWidth * sceneDimensionsReciprocals.width,
-          (parentDivResizeDetector.height ?? 0) * sceneDimensionsReciprocals.height
+          heightScale * sceneDimensionsReciprocals.height
         );
       },
       [
@@ -942,6 +949,7 @@ export namespace App {
                     value = {labelLineEndpointOnMouseDownHelper}
                   >
                     <g
+                      id = {SVG_SCENE_GROUP_HTML_ID}
                       {...{
                         [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.SCENE,
                         [SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME] : complexDocumentName
@@ -2901,10 +2909,40 @@ export namespace App {
         tabRenderRecord
       ]
     );
+    const redo = useMemo(
+      function() {
+        return function() {
+
+        };
+      },
+      []
+    );
+    const undo = useMemo(
+      function() {
+        return function() {
+          
+        };
+      },
+      []
+    );
     const onKeyDown = useMemo(
       function() {
         return function(event : React.KeyboardEvent<Element>) {
-          switch (event.key) {
+          switch (event.key.toLowerCase()) {
+            case "0" : {
+              if (event.ctrlKey) {
+                event.preventDefault();
+                resetViewport();
+              }
+              break;
+            }
+            case "o" : {
+              if (event.ctrlKey) {
+                event.preventDefault();
+                (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
+              }
+              break;
+            }
             case "s" : {
               if (event.ctrlKey) {
                 event.preventDefault();
@@ -2916,17 +2954,15 @@ export namespace App {
               }
               break;
             }
-            case "o" : {
-              if (event.ctrlKey) {
-                event.preventDefault();
-                (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
-              }
+            case "y" : {
+              redo();
               break;
             }
-            case "0" : {
-              if (event.ctrlKey) {
-                event.preventDefault();
-                resetViewport();
+            case "z" : {
+              if (event.shiftKey) {
+                redo();
+              } else {
+                undo();
               }
               break;
             }
@@ -3223,12 +3259,6 @@ export namespace App {
       },
       [userDrivenResizeDetector.width]
     );
-    // useEffect(
-    //   function() {
-        
-    //   },
-    //   [tab]
-    // );
     return <Context.Label.ClassName.Provider
       value = {labelClassName}
     >
@@ -3432,6 +3462,7 @@ export namespace App {
                                   .${NO_STROKE_CLASS_NAME} { stroke:none; }
                                 `}</style>
                                 <rect
+                                  id = {SVG_BACKGROUND_HTML_ID}
                                   width = "100%"
                                   height = "100%"
                                   stroke = "none"
@@ -3451,17 +3482,19 @@ export namespace App {
                                   style = {{
                                     visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
                                   }}
+                                  id = {VIEWPORT_SCALE_GROUP_0_HTML_ID}
                                   transform = {totalScale.asTransform[0]}
                                 >
                                   <g
-                                    id = {VIEWPORT_SCALE_GROUP_HTML_ID}
+                                    id = {VIEWPORT_SCALE_GROUP_1_HTML_ID}
                                     transform = {totalScale.asTransform[1]}
                                   >
                                     <g
+                                      id = {VIEWPORT_TRANSLATE_GROUP_0_HTML_ID}
                                       transform = {"scale(1, -1) " + transformTranslate0.asString}
                                     >
                                       <g
-                                        id = {VIEWPORT_TRANSLATE_GROUP_HTML_ID}
+                                        id = {VIEWPORT_TRANSLATE_GROUP_1_HTML_ID}
                                         transform = {transformTranslate1.asString}
                                       >
                                         {debugVisualElements}
