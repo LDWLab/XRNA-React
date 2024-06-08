@@ -1,4 +1,4 @@
-import { RnaComplexProps, FullKeys } from "../../../App";
+import { RnaComplexProps, FullKeys, FullKeysRecord } from "../../../App";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import { Vector2D } from "../../../data_structures/Vector2D";
 import { AbstractInteractionConstraint, InteractionConstraintError, basePairedNucleotideError } from "../AbstractInteractionConstraint";
@@ -21,7 +21,8 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
-    tab : Tab
+    tab : Tab,
+    indicesOfFrozenNucleotides : FullKeysRecord
   ) {
     super(
       rnaComplexProps,
@@ -73,9 +74,23 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
         });
       }
     }
+    if (rnaComplexIndex in indicesOfFrozenNucleotides) {
+      const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
+      if (rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
+        const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName];
+        if (indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+          this.error = {
+            errorMessage : "Cannot interact with this frozen nucleotide."
+          };
+        }
+      }
+    }
   }
 
   public override drag() {
+    if (this.error !== undefined && this.error !== basePairedNucleotideError) {
+      throw this.error;
+    }
     const singularNucleotideProps = this.singularNucleotideProps;
     const rerender = this.rerender;
     return {
@@ -114,6 +129,9 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       <br/>
     </>;
     let menu : JSX.Element;
+    if (this.error !== undefined && this.error !== basePairedNucleotideError) {
+      throw this.error;
+    }
     switch (tab) {
       case Tab.EDIT : {
         menu = <SingleNucleotideInteractionConstraintEditMenu.Component
@@ -125,9 +143,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       }
       case Tab.FORMAT : {
         if (this.error !== undefined) {
-          throw {
-            errorMessage : "Cannot format a base-paired nucleotide using this constraint"
-          };
+          throw this.error;
         }
         const formattedNucleotideIndex0 = nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
         menu = <BasePairsEditor.Component

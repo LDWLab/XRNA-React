@@ -1,4 +1,4 @@
-import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
+import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../../App";
 import { BasePairKeysToRerender, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
 import { Circle, getBoundingCircle } from "../../../data_structures/Geometry";
 import { Vector2D, add, toCartesian, crossProduct, subtract, asAngle, scaleDown, normalize, scaleUp, dotProduct, orthogonalizeRight, distance, toNormalCartesian, magnitude } from "../../../data_structures/Vector2D";
@@ -164,7 +164,8 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
-    tab : Tab
+    tab : Tab,
+    indicesOfFrozenNucleotides : FullKeysRecord
   ) {
     super(
       rnaComplexProps,
@@ -178,6 +179,18 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       rnaMoleculeName,
       nucleotideIndex
     } = this.fullKeys;
+    let indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = new Set<number>();
+    if (rnaComplexIndex in indicesOfFrozenNucleotides) {
+      const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
+      if (rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
+        indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName];
+      }
+    }
+    if (indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+      throw {
+        errorMessage : "Cannot interact with this frozen nucleotide."
+      };
+    }
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName] ?? {};
     if (nucleotideIndex in basePairsPerRnaMolecule) {
@@ -211,7 +224,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         break;
       }
       const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[decremented];
-      if (decremented in basePairsPerRnaMolecule) {
+      if (decremented in basePairsPerRnaMolecule || indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(decremented)) {
         lowerBoundingNucleotidePosition = singularNucleotideProps;
         lowerTerminalIsBasePairedFlag = true;
         break;
@@ -242,7 +255,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         break;
       }
       const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[incremented];
-      if (incremented in basePairsPerRnaMolecule) {
+      if (incremented in basePairsPerRnaMolecule || indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(incremented)) {
         upperBoundingNucleotidePosition = singularNucleotideProps;
         upperTerminalIsBasePairedFlag = true;
         break;

@@ -62,7 +62,7 @@ export namespace Nucleotide {
   };
   
   export type Props = ExternalProps & {
-    scaffoldingKey : number
+    nucleotideIndex : number
   };
 
   function Component(props : Props) {
@@ -72,13 +72,12 @@ export namespace Nucleotide {
       symbol,
       labelContentProps,
       labelLineProps,
-      scaffoldingKey
+      nucleotideIndex
     } = props;
     // Begin context data.
     const rnaComplexIndex = useContext(Context.RnaComplex.Index);
     const rnaComplexName = useContext(Context.RnaComplex.Name);
     const rnaMoleculeName = useContext(Context.RnaMolecule.Name);
-    const nucleotideIndex = scaffoldingKey;
     const fullKeys = {
       nucleotideIndex,
       rnaMoleculeName,
@@ -88,6 +87,17 @@ export namespace Nucleotide {
     const setMouseOverText = useContext(Context.App.SetMouseOverText);
     const onMouseDownHelper = useContext(Context.Nucleotide.OnMouseDownHelper);
     const labelsOnlyFlag = useContext(Context.Nucleotide.LabelsOnlyFlag);
+    const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
+    let frozenFlag = false;
+    if (rnaComplexIndex in indicesOfFrozenNucleotides) {
+      const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
+      if (rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
+        const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName];
+        if (indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+          frozenFlag = true;
+        }
+      }
+    }
     // Begin state data.
     const [
       textDimensions,
@@ -168,6 +178,7 @@ export namespace Nucleotide {
           setMouseOverText("");
         }}
       >
+        {frozenFlag && <animate attributeName = "fill" values={`black;white;black`} dur = "2s" repeatCount = "indefinite"/>}
         {symbol}
       </text>
       <Context.Nucleotide.Symbol.Provider

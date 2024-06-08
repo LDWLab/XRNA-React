@@ -150,6 +150,10 @@ export namespace App {
       labelsOnlyFlag,
       setLabelsOnlyFlag
     ] = useState(false);
+    const [
+      indicesOfFrozenNucleotides,
+      setIndicesOfFrozenNucleotides
+    ] = useState<FullKeysRecord>({});
     // Begin UI-relevant state data.
     const [
       tab,
@@ -391,6 +395,10 @@ export namespace App {
     const toolsDivWidthAttributeReference = useRef<ToolsDivWidthOrHeightAttribute>();
     toolsDivWidthAttributeReference.current = toolsDivWidthAttribute;
     const inputFileNameAndExtensionReference = useRef<string>();
+    const indicesOfFrozenNucleotidesReference = useRef<typeof indicesOfFrozenNucleotides>();
+    indicesOfFrozenNucleotidesReference.current = indicesOfFrozenNucleotides;
+    const rightClickMenuAffectedNucleotideIndicesReference = useRef<typeof rightClickMenuAffectedNucleotideIndices>();
+    rightClickMenuAffectedNucleotideIndicesReference.current = rightClickMenuAffectedNucleotideIndices;
     
     const outputFileWritersMap = r2dtLegacyVersionFlag ? outputFileWritersMapAbsoluteJsonCoordinates : outputFileWritersMapRelativeJsonCoordinates;
     // Begin memo data.
@@ -498,18 +506,29 @@ export namespace App {
           switch (tabReference.current) {
             case Tab.EDIT : {
               if (interactionConstraint === undefined || !InteractionConstraint.isEnum(interactionConstraint)) {
-                alert("Select a constraint first!");
+                setRightClickMenuContent(
+                  <b
+                    style = {{
+                      color : "red"
+                    }}
+                  >
+                    Select a constraint first!
+                  </b>,
+                  {}
+                );
                 return;
               }
               const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
               try {
+                const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
                 const helper = InteractionConstraint.record[interactionConstraint](
                   rnaComplexProps,
                   fullKeys,
                   setNucleotideKeysToRerender,
                   setBasePairKeysToRerender,
                   setDebugVisualElements,
-                  tab
+                  tab,
+                  indicesOfFrozenNucleotides
                 );
                 setRightClickMenuContent(
                   <LabelEditMenu.Component
@@ -521,7 +540,16 @@ export namespace App {
                 );
               } catch (error : any) {
                 if (typeof error === "object" && "errorMessage" in error) {
-                  alert(error.errorMessage);
+                  setRightClickMenuContent(
+                    <b
+                      style = {{
+                        color : "red"
+                      }}
+                    >
+                      {error.errorMessage}
+                    </b>,
+                    {}
+                  );
                 } else {
                   throw error;
                 }
@@ -734,6 +762,7 @@ export namespace App {
           interactionConstraint : InteractionConstraint.Enum,
           tab : InteractionConstraint.SupportedTab
         ) {
+          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
           try {
             const helper = InteractionConstraint.record[interactionConstraint](
               rnaComplexPropsReference.current as RnaComplexProps,
@@ -741,7 +770,8 @@ export namespace App {
               setNucleotideKeysToRerender,
               setBasePairKeysToRerender,
               setDebugVisualElements,
-              tab
+              tab,
+              indicesOfFrozenNucleotides
             );
             const rightClickMenu = helper.createRightClickMenu(tab);
             setResetOrientationDataTrigger(!resetOrientationDataTrigger);
@@ -751,7 +781,16 @@ export namespace App {
             );
           } catch (error : any) {
             if (typeof error === "object" && "errorMessage" in error) {
-              alert(error.errorMessage);
+              setRightClickMenuContent(
+                <b
+                  style = {{
+                    color : "red"
+                  }}
+                >
+                  {error.errorMessage}
+                </b>,
+                {}
+              );
             } else {
               throw error;
             }
@@ -776,17 +815,28 @@ export namespace App {
               if (tab === Tab.EDIT) {
                 const interactionConstraint = interactionConstraintReference.current;
                 if (interactionConstraint === undefined) {
-                  alert("Select a constraint first!");
+                  setRightClickMenuContent(
+                    <b
+                      style = {{
+                        color : "red"
+                      }}
+                    >
+                      Select a constraint first!
+                    </b>,
+                    {}
+                  );
                   return;
                 }
                 try {
+                  const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
                   const helper = InteractionConstraint.record[interactionConstraint](
                     rnaComplexPropsReference.current as RnaComplexProps,
                     fullKeys,
                     setNucleotideKeysToRerender,
                     setBasePairKeysToRerender,
                     setDebugVisualElements,
-                    tab
+                    tab,
+                    indicesOfFrozenNucleotides
                   );
                   const newDragListenerAttempt = helper.drag(interactionConstraintOptions);
                   newDragListenerAffectedNucleotideIndices = helper.indicesOfAffectedNucleotides;
@@ -795,7 +845,16 @@ export namespace App {
                   }
                 } catch (error : any) {
                   if (typeof error === "object" && "errorMessage" in error) {
-                    alert(error.errorMessage);
+                    setRightClickMenuContent(
+                      <b
+                        style = {{
+                          color : "red"
+                        }}
+                      >
+                        {error.errorMessage}
+                      </b>,
+                      {}
+                    );
                   } else {
                     throw error;
                   }
@@ -808,11 +867,64 @@ export namespace App {
               );
               break;
             }
+            case MouseButtonIndices.Middle : {
+              const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
+              const rightClickMenuAffectedNucleotideIndices = rightClickMenuAffectedNucleotideIndicesReference.current!;
+              const newFullKeysRecord = structuredClone(indicesOfFrozenNucleotides);
+              const {
+                rnaComplexIndex,
+                rnaMoleculeName,
+                nucleotideIndex
+              } = fullKeys;
+              if (!(rnaComplexIndex in newFullKeysRecord)) {
+                newFullKeysRecord[rnaComplexIndex] = {};
+              }
+              const newFullKeysRecordPerRnaComplex = newFullKeysRecord[rnaComplexIndex];
+              if (!(rnaMoleculeName in newFullKeysRecordPerRnaComplex)) {
+                newFullKeysRecordPerRnaComplex[rnaMoleculeName] = new Set<number>();
+              }
+              const newFullKeysRecordPerRnaComplexPerRnaMolecule = newFullKeysRecordPerRnaComplex[rnaMoleculeName];
+              // Toggle the presence of nucleotideIndex in the Set.
+              if (newFullKeysRecordPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+                newFullKeysRecordPerRnaComplexPerRnaMolecule.delete(nucleotideIndex);
+              } else {
+                newFullKeysRecordPerRnaComplexPerRnaMolecule.add(nucleotideIndex);
+              }
+              setIndicesOfFrozenNucleotides(newFullKeysRecord);
+              if (rnaComplexIndex in rightClickMenuAffectedNucleotideIndices) {
+                const rightClickMenuAffectedNucleotideIndicesPerRnaComplex = rightClickMenuAffectedNucleotideIndices[rnaComplexIndex];
+                if (rnaMoleculeName in rightClickMenuAffectedNucleotideIndicesPerRnaComplex) {
+                  const rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule = rightClickMenuAffectedNucleotideIndicesPerRnaComplex[rnaMoleculeName];
+                  if (rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+                    setRightClickMenuContent(
+                      <b
+                        style = {{
+                          color : "red"
+                        }}
+                      >
+                        The current right-click menu is no longer valid, due to a newly frozen nucleotide
+                      </b>,
+                      {}
+                    );
+                  }
+                }
+              }
+              break;
+            }
             case MouseButtonIndices.Right : {
               if (InteractionConstraint.isSupportedTab(tab)) {
                 const interactionConstraint = interactionConstraintReference.current;
                 if (interactionConstraint === undefined || !InteractionConstraint.isEnum(interactionConstraint)) {
-                  alert("Select a constraint first!");
+                  setRightClickMenuContent(
+                    <b
+                      style = {{
+                        color : "red"
+                      }}
+                    >
+                      Select a constraint first!
+                    </b>,
+                    {}
+                  );
                   return;
                 }
                 nucleotideOnMouseDownRightClickHelper(
@@ -948,6 +1060,9 @@ export namespace App {
                   <Context.Label.Line.Endpoint.OnMouseDownHelper.Provider
                     value = {labelLineEndpointOnMouseDownHelper}
                   >
+                    <Context.App.IndicesOfFrozenNucleotides.Provider
+                      value = {indicesOfFrozenNucleotides}
+                    >
                     <g
                       id = {SVG_SCENE_GROUP_HTML_ID}
                       {...{
@@ -984,6 +1099,7 @@ export namespace App {
                         </Context.RnaComplex.Index.Provider>;
                       })}
                     </g>
+                    </Context.App.IndicesOfFrozenNucleotides.Provider>
                   </Context.Label.Line.Endpoint.OnMouseDownHelper.Provider>
                 </Context.Label.Line.Body.OnMouseDownHelper.Provider>
               </Context.Label.Content.OnMouseDownHelper.Provider>
@@ -995,7 +1111,8 @@ export namespace App {
         rnaComplexProps,
         nucleotideKeysToRerender,
         basePairKeysToRerender,
-        labelsOnlyFlag && tab == Tab.EDIT
+        labelsOnlyFlag && tab == Tab.EDIT,
+        indicesOfFrozenNucleotides
       ]
     );
     const triggerRightClickMenuFlag = useMemo(
@@ -2564,7 +2681,7 @@ export namespace App {
                   for (let key of keys) {
                     const value = settingsJson[key];
                     if (!isSetting(key) || (typeof value !== settingsTypeMap[key] && !(settingsTypeMap[key] === "BasePairsEditorType" && BasePairsEditor.isEditorType(value)))) {
-                      alert("Parsing the uploaded settings file failed. The content of that file is unrecognized.");
+                      setDataLoadingFailedErrorMessage("Parsing the uploaded settings file failed. The content of that file is unrecognized.");
                       formatCheckPassedFlag = false;
                       break;
                     }
@@ -2949,7 +3066,7 @@ export namespace App {
                 if (downloadButtonErrorMessage == "") {
                   (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement).click();
                 } else {
-                  alert(downloadButtonErrorMessage);
+                  setDataLoadingFailedErrorMessage(downloadButtonErrorMessage);
                 }
               }
               break;

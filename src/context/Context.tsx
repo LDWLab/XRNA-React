@@ -34,6 +34,7 @@ export namespace Context {
     export type RerenderTriggersPerNucleotide = {
       setX : (x : number) => void
     };
+    export const IndicesOfFrozenNucleotides = createContext<Record<RnaComplexKey, Record<RnaMoleculeKey, Set<NucleotideKey>>>>({});
   }
 
   export namespace RnaComplex {

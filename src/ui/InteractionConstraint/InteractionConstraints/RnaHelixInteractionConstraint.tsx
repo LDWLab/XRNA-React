@@ -1,4 +1,4 @@
-import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
+import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../../App";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { compareBasePairKeys, selectRelevantBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaComplex, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
@@ -26,7 +26,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
-    tab : Tab
+    tab : Tab,
+    indicesOfFrozenNucleotides : FullKeysRecord
   ) {
     super(
       rnaComplexProps,

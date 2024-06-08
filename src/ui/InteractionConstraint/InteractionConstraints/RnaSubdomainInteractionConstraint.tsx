@@ -1,4 +1,4 @@
-import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
+import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../../App";
 import { Tab } from "../../../app_data/Tab";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { RnaComplex, compareBasePairKeys, isRelevantBasePairKeySetInPair } from "../../../components/app_specific/RnaComplex";
@@ -27,7 +27,8 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
-    tab : Tab
+    tab : Tab,
+    indicesOfFrozenNucleotides : FullKeysRecord
   ) {
     super(
       rnaComplexProps,

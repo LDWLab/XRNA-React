@@ -35,12 +35,11 @@ export function svgFileWriter(
   const svgSceneGroup = <SVGGElement>svgHtmlElementClone.querySelector(`#${SVG_SCENE_GROUP_HTML_ID}`);
   svgSceneGroup.setAttribute("transform", `scale(${Math.min((window as any).widthScale / sceneBounds.width, (window as any).heightScale / sceneBounds.height)}) scale(1, -1) translate(${-sceneBounds.x}, ${-(sceneBounds.y + sceneBounds.height)})`);
 
-  const LABELS = "Labels";
   const MISCELLANEOUS = "Miscellaneous";
   const xrnaTypeToGroupHtmlIdMap : Partial<Record<SvgPropertyXrnaType, string>> = {
     [SvgPropertyXrnaType.BASE_PAIR] : "BasePairs",
-    [SvgPropertyXrnaType.LABEL_CONTENT] : LABELS,
-    [SvgPropertyXrnaType.LABEL_LINE] : LABELS,
+    [SvgPropertyXrnaType.LABEL_CONTENT] : "LabelContents",
+    [SvgPropertyXrnaType.LABEL_LINE] : "LabelLines",
     [SvgPropertyXrnaType.NUCLEOTIDE] : "Nucleotides"
   };
   const htmlIdToGroupMap : Record<string, HTMLElement>  = {};
@@ -70,7 +69,8 @@ export function svgFileWriter(
       transformAsMatrix
     );
     const xrnaType = <SvgPropertyXrnaType | null>element.getAttribute(SVG_PROPERTY_XRNA_TYPE);
-    if (element.tagName === "g" && !((<Array<String>>[SvgPropertyXrnaType.BASE_PAIR, SvgPropertyXrnaType.LABEL_LINE]).includes(xrnaType ?? "")) ) {
+    const tagName = element.tagName;
+    if (tagName === "g" && !((<Array<String>>[SvgPropertyXrnaType.BASE_PAIR, SvgPropertyXrnaType.LABEL_LINE]).includes(xrnaType ?? "")) ) {
       for (const childElement of Array.from(element.children)) {
         recurseOverGroups(
           cumulativeTransform,
@@ -102,6 +102,9 @@ export function svgFileWriter(
     if (group.children.length > 0) {
       svgSceneGroup.appendChild(group);
     }
+  }
+  for (const element of svgSceneGroup.querySelectorAll("animate")) {
+    element.remove();
   }
   svgHtmlElementClone.innerHTML = svgSceneGroup.outerHTML;
   return svgHtmlElementClone.outerHTML;

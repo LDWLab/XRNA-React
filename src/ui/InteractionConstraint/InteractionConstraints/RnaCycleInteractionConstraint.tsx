@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { RnaComplexProps, FullKeys, DragListener, NucleotideKey, RnaMoleculeKey } from "../../../App";
+import { RnaComplexProps, FullKeys, DragListener, NucleotideKey, RnaMoleculeKey, FullKeysRecord } from "../../../App";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { InteractionConstraint } from "../InteractionConstraints";
@@ -37,7 +37,8 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
-    tab : Tab
+    tab : Tab,
+    indicesOfFrozenNucleotides : FullKeysRecord
 ) {
     super(
       rnaComplexProps,

@@ -77,16 +77,16 @@ export namespace RnaMolecule {
           singularNucleotideProps
         ]) {
           const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
-          const finalizedProps = singularNucleotideProps as Nucleotide.ExternalProps & { scaffoldingKey : number, key : number };
+          const finalizedProps = singularNucleotideProps as Nucleotide.ExternalProps & { nucleotideIndex : number, key : number };
           finalizedProps.key = nucleotideIndex;
-          finalizedProps.scaffoldingKey = nucleotideIndex;
+          finalizedProps.nucleotideIndex = nucleotideIndex;
           return finalizedProps;
         });
         flattenedNucleotideProps.sort(function(
           singularFlattenedNucleotideProps0,
           singularFlattenedNucleotideProps1
         ) {
-          return singularFlattenedNucleotideProps0.scaffoldingKey - singularFlattenedNucleotideProps1.scaffoldingKey
+          return singularFlattenedNucleotideProps0.nucleotideIndex - singularFlattenedNucleotideProps1.nucleotideIndex
         });
         return flattenedNucleotideProps;
       },

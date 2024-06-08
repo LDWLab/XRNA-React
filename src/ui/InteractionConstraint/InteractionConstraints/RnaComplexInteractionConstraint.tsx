@@ -1,4 +1,4 @@
-import { DragListener, FullKeys, RnaComplexProps } from "../../../App";
+import { DragListener, FullKeys, FullKeysRecord, RnaComplexProps } from "../../../App";
 import { Tab } from "../../../app_data/Tab";
 import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
@@ -22,7 +22,8 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
-    tab : Tab
+    tab : Tab,
+    indicesOfFrozenNucleotides : FullKeysRecord
   ) {
     super(
       rnaComplexProps,

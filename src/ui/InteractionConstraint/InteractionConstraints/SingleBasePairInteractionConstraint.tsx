@@ -3,7 +3,7 @@ import { NucleotideKeysToRerender, BasePairKeysToRerender, NucleotideKeysToReren
 import { linearDrag } from "../CommonDragListeners";
 import { AbstractInteractionConstraint, InteractionConstraintError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
 import { InteractionConstraint } from "../InteractionConstraints";
-import { RnaComplexProps, FullKeys, DragListener } from "../../../App";
+import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../../App";
 import { SingleBasePairInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/SingleBasePairinteractionConstraintEditMenu";
 import BasePair, { getBasePairType } from "../../../components/app_specific/BasePair";
 import { Vector2D, orthogonalizeLeft } from "../../../data_structures/Vector2D";
@@ -39,7 +39,8 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
-    tab : Tab
+    tab : Tab,
+    indicesOfFrozenNucleotides : FullKeysRecord
   ) {
     super(
       rnaComplexProps,
@@ -96,6 +97,23 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     const nucleotideIndex1 = mappedBasePair.nucleotideIndex;
     const rnaMoleculeName0 = rnaMoleculeName;
     const rnaMoleculeName1 = mappedBasePair.rnaMoleculeName;
+    if (rnaComplexIndex in indicesOfFrozenNucleotides) {
+      const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
+      let frozenFlag = false;
+      if (rnaMoleculeName0 in indicesOfFrozenNucleotidesPerRnaComplex) {
+        const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0 = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName0];
+        frozenFlag ||= indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0.has(nucleotideIndex0);
+      }
+      if (rnaMoleculeName1 in indicesOfFrozenNucleotidesPerRnaComplex) {
+        const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1 = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName1];
+        frozenFlag ||= indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1.has(nucleotideIndex1);
+      }
+      if (frozenFlag) {
+        throw {
+          errorMessage : "Cannot interact with a base pair containing a frozen nucleotide."
+        };
+      }
+    }
     this.nucleotideIndices = {
       rnaMoleculeName0,
       nucleotideIndex0,

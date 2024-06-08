@@ -1,4 +1,4 @@
-import { DragListener, RnaComplexProps, FullKeys } from "../../../App";
+import { DragListener, RnaComplexProps, FullKeys, FullKeysRecord } from "../../../App";
 import { Tab } from "../../../app_data/Tab";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
@@ -27,7 +27,8 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
-    tab : Tab
+    tab : Tab,
+    indicesOfFrozenNucleotides : FullKeysRecord
   ) {
     super(
       rnaComplexProps,
