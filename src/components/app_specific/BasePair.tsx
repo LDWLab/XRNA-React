@@ -4,7 +4,7 @@ import Color, { toCSS, BLACK } from "../../data_structures/Color";
 import { Vector2D, add, dotProduct, interpolate, normalize, orthogonalize, scaleUp, subtract } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 import { Nucleotide } from "./Nucleotide";
-import { SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0, SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_1, SVG_PROPERTY_XRNA_BASE_PAIR_TYPE, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
+import { SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0, SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_1, SVG_PROPERTY_XRNA_BASE_PAIR_TYPE, SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 
 export function getBasePairType(symbol0 : Nucleotide.Symbol, symbol1 : Nucleotide.Symbol) : BasePair.CanonicalType {
   if (symbol0 > symbol1) {
@@ -97,6 +97,7 @@ export namespace BasePair {
   export type FinalizedMappedBasePair = CoreProps & Required<Pick<CoreProps, "basePairType">>;
 
   export type NucleotideIndicesForBasePair = {
+    rnaComplexName : string,
     rnaMoleculeName0 : string,
     formattedNucleotideIndex0 : number,
     rnaMoleculeName1 : string,
@@ -1071,6 +1072,7 @@ export namespace BasePair {
       position0,
       position1,
       mappedBasePair,
+      rnaComplexName,
       rnaMoleculeName0,
       formattedNucleotideIndex0,
       rnaMoleculeName1,
@@ -1094,6 +1096,7 @@ export namespace BasePair {
     const basePairType = mappedBasePair.basePairType;
     const svgPropertiesForXrna = {
       [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.BASE_PAIR,
+      [SVG_PROPERTY_XRNA_COMPLEX_NAME] : rnaComplexName,
       [SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0] : rnaMoleculeName0,
       [SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_1] : rnaMoleculeName1,
       [SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0] : formattedNucleotideIndex0,

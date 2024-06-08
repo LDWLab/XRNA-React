@@ -1,4 +1,6 @@
 import { MOUSE_OVER_TEXT_HTML_ID, PARENT_DIV_HTML_ID, RnaComplexProps, SVG_BACKGROUND_HTML_ID, SVG_ELEMENT_HTML_ID, SVG_SCENE_GROUP_HTML_ID, VIEWPORT_SCALE_GROUP_0_HTML_ID, VIEWPORT_SCALE_GROUP_1_HTML_ID, VIEWPORT_TRANSLATE_GROUP_0_HTML_ID, VIEWPORT_TRANSLATE_GROUP_1_HTML_ID } from "../App";
+import { AffineMatrix, affineMatrixToString, identity, multiplyAffineMatrices, parseAffineMatrix } from "../data_structures/AffineMatrix";
+import { SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "./SvgInputFileHandler";
 
 export function svgFileWriter(
   rnaComplexProps : RnaComplexProps,
@@ -31,9 +33,77 @@ export function svgFileWriter(
   svgHtmlElementClone.style.left = "0px";
 
   const svgSceneGroup = <SVGGElement>svgHtmlElementClone.querySelector(`#${SVG_SCENE_GROUP_HTML_ID}`);
-  svgSceneGroup.setAttribute("transform", `scale(${Math.min((window as any).widthScale / sceneBounds.width, (window as any).heightScale / sceneBounds.height)}) scale(1, -1) translate(${-sceneBounds.x}, ${-(sceneBounds.y + sceneBounds.height)})`)
-  const svgSceneGroupOuterHTML = svgSceneGroup.outerHTML;
-  svgHtmlElementClone.innerHTML = svgSceneGroupOuterHTML;
+  svgSceneGroup.setAttribute("transform", `scale(${Math.min((window as any).widthScale / sceneBounds.width, (window as any).heightScale / sceneBounds.height)}) scale(1, -1) translate(${-sceneBounds.x}, ${-(sceneBounds.y + sceneBounds.height)})`);
+
+  const LABELS = "Labels";
+  const MISCELLANEOUS = "Miscellaneous";
+  const xrnaTypeToGroupHtmlIdMap : Partial<Record<SvgPropertyXrnaType, string>> = {
+    [SvgPropertyXrnaType.BASE_PAIR] : "BasePairs",
+    [SvgPropertyXrnaType.LABEL_CONTENT] : LABELS,
+    [SvgPropertyXrnaType.LABEL_LINE] : LABELS,
+    [SvgPropertyXrnaType.NUCLEOTIDE] : "Nucleotides"
+  };
+  const htmlIdToGroupMap : Record<string, HTMLElement>  = {};
+  for (const htmlId of [...Object.values(xrnaTypeToGroupHtmlIdMap), MISCELLANEOUS]) {
+    const group = document.createElement("g");
+    group.setAttribute("id", htmlId);
+    htmlIdToGroupMap[htmlId] = group;
+  }
+
+  function recurseOverGroups(
+    cumulativeTransform : AffineMatrix,
+    element : Element
+  ) {
+    const transform = element.getAttribute("transform");
+    let transformAsMatrix = identity();
+    if (transform !== null) {
+      const transformComponents = transform.replaceAll(/\)\s*(?!$)/g, ")|").split("|");
+      for (const transformComponent of transformComponents) {
+        transformAsMatrix = multiplyAffineMatrices(
+          transformAsMatrix,
+          parseAffineMatrix(transformComponent)
+        )
+      }
+    }
+    cumulativeTransform = multiplyAffineMatrices(
+      cumulativeTransform,
+      transformAsMatrix
+    );
+    const xrnaType = <SvgPropertyXrnaType | null>element.getAttribute(SVG_PROPERTY_XRNA_TYPE);
+    if (element.tagName === "g" && !((<Array<String>>[SvgPropertyXrnaType.BASE_PAIR, SvgPropertyXrnaType.LABEL_LINE]).includes(xrnaType ?? "")) ) {
+      for (const childElement of Array.from(element.children)) {
+        recurseOverGroups(
+          cumulativeTransform,
+          childElement
+        );
+      }
+    } else {
+      let group : HTMLElement;
+      if (xrnaType !== null && xrnaType in xrnaTypeToGroupHtmlIdMap) {
+        group = htmlIdToGroupMap[<string>xrnaTypeToGroupHtmlIdMap[xrnaType]];
+      } else {
+        group = htmlIdToGroupMap[MISCELLANEOUS];
+      }
+      element.setAttribute("transform", affineMatrixToString(cumulativeTransform));
+      group.appendChild(element);
+    }
+  }
+
+  for (const childElement of Array.from(svgSceneGroup.children)) {
+    // Unpack grouped elements.
+    recurseOverGroups(
+      identity(),
+      childElement
+    );
+    // Remove unnecessary groups/duplicates.
+    childElement.remove();
+  }
+  for (const group of Object.values(htmlIdToGroupMap)) {
+    if (group.children.length > 0) {
+      svgSceneGroup.appendChild(group);
+    }
+  }
+  svgHtmlElementClone.innerHTML = svgSceneGroup.outerHTML;
   return svgHtmlElementClone.outerHTML;
 
   // const parentDiv = document.getElementById(PARENT_DIV_HTML_ID);

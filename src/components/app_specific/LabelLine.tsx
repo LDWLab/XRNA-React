@@ -4,7 +4,7 @@ import { Context } from "../../context/Context";
 import Color, { toCSS, BLACK } from "../../data_structures/Color";
 import { subtract, scaleUp, orthogonalize, magnitude, add, Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
-import { SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
+import { SVG_PROPERTY_XRNA_LABEL_FORMATTED_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 
 export namespace LabelLine {
   export type BodySvgRepresentation = SVGPathElement;
@@ -100,7 +100,10 @@ export namespace LabelLine {
     );
     return <g
       {...{
-        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.LABEL_LINE
+        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.LABEL_LINE,
+        [SVG_PROPERTY_XRNA_COMPLEX_NAME] : rnaComplexName,
+        [SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME] : rnaMoleculeName,
+        [SVG_PROPERTY_XRNA_LABEL_FORMATTED_NUCLEOTIDE_INDEX] : nucleotideIndex + firstNucleotideIndexInRnaMolecule
       }}
     >
       <polyline
@@ -135,6 +138,9 @@ export namespace LabelLine {
           onMouseOver = {function(e) {
             setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
           }}
+          onMouseLeave = {function() {
+            setMouseOverText("");
+          }}
         />
       })}
       <path
@@ -153,6 +159,9 @@ export namespace LabelLine {
         }}
         onMouseOver = {function(e) {
           setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
+        }}
+        onMouseLeave = {function() {
+          setMouseOverText("");
         }}
       />
     </g>;

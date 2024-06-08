@@ -4,25 +4,25 @@ import { Vector2D } from "./Vector2D";
 export type AffineMatrix = [number, number, number, number, number, number];
 
 export function multiplyAffineMatrices(m0 : AffineMatrix, m1 : AffineMatrix) : AffineMatrix {
-    // [a0 b0 c0] * [a1 b1 c1]
-    // [d0 e0 f0]   [d1 e1 f1]
+    // [a0 c0 e0] * [a1 c1 e1]
+    // [b0 d0 f0]   [b1 d1 f1]
     // =
-    // [a0 b0 c0] * [a1 b1 c1]
-    // [d0 e0 f0]   [d1 e1 f1]
+    // [a0 c0 e0] * [a1 c1 e1]
+    // [b0 d0 f0]   [b1 d1 f1]
     // [0  0  1 ]   [0  0  1 ]
     // =
-    // [a0a1 + b0d1 a0b1 + b0e1 a0c1 + b0f1 + c0]
-    // [d0a1 + e0d1 d0b1 + e0e1 d0c1 + e0f1 + f0]
+    // [a0a1 + c0b1 a0c1 + c0d1 a0e1 + c0f1 + e0]
+    // [b0a1 + d0b1 b0c1 + d0d1 b0e1 + d0f1 + f0]
     // [0           0           1               ]
     const [a0, b0, c0, d0, e0, f0] = m0;
     const [a1, b1, c1, d1, e1, f1] = m1;
     return [
-        a0 * a1 + b0 * d1,
-        a0 * b1 + b0 * e1,
-        a0 * c1 + b0 * f1 + c0,
-        d0 * a1 + e0 * d1,
-        d0 * b1 + e0 * e1,
-        d0 * c1 + e0 * f1 + f0
+        a0 * a1 + c0 * b1,
+        b0 * a1 + d0 * b1,
+        a0 * c1 + c0 * d1,
+        b0 * c1 + d0 * d1,
+        a0 * e1 + c0 * f1 + e0,
+        b0 * e1 + d0 * f1 + f0
     ];
 }
 
@@ -33,7 +33,7 @@ const rotateMatrixParser : MatrixParser = {
         const angle = inputNumbers[0];
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
-        return [cos, -sin, 0, sin, cos, 0];
+        return [cos, sin, -sin, cos, 0, 0];
     }
 };
 
@@ -54,21 +54,21 @@ const matrixParserRecord : Record<string, MatrixParser> = {
         minimum : 2,
         maximum : 2,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            return [1, 0, inputNumbers[0], 0, 1, inputNumbers[1]];
+            return [1, 0, 0, 1, inputNumbers[0], inputNumbers[1]];
         }
     },
     "translatex" : {
         minimum : 1,
         maximum : 1,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            return [1, 0, inputNumbers[0], 0, 1, 0];
+            return [1, 0, 0, 1, inputNumbers[0], 0];
         }
     },
     "translatey" : {
         minimum : 1,
         maximum : 1,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            return [1, 0, 0, 0, 1, inputNumbers[0]];
+            return [1, 0, 0, 1, 0, inputNumbers[0]];
         }
     },
     "scale" : {
@@ -80,21 +80,21 @@ const matrixParserRecord : Record<string, MatrixParser> = {
             if (inputNumbers.length > 1) {
                 scaleY = inputNumbers[1];
             }
-            return [scaleX, 0, 0, 0, scaleY, 0];
+            return [scaleX, 0, 0, scaleY, 0, 0];
         }
     },
     "scalex" : {
         minimum : 1,
         maximum : 1,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            return [inputNumbers[0], 0, 0, 0, 1, 0];
+            return [inputNumbers[0], 0, 0, 1, 0, 0];
         }
     },
     "scaley" : {
         minimum : 1,
         maximum : 1,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            return [1, 0, 0, 0, inputNumbers[0], 0];
+            return [1, 0, 0, inputNumbers[0], 0, 0];
         }  
     },
     "rotate" : rotateMatrixParser,
@@ -108,21 +108,21 @@ const matrixParserRecord : Record<string, MatrixParser> = {
             if (inputNumbers.length > 1) {
                 skewY = Math.tan(inputNumbers[1]);
             }
-            return [1, Math.tan(skewXAngle), 0, skewY, 1, 0];
+            return [1, skewY, Math.tan(skewXAngle), 1, 0, 0];
         }
     },
     "skewx" : {
         minimum : 1,
         maximum : 1,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            return [1, Math.tan(inputNumbers[0]), 0, 0, 1, 0];
+            return [1, 0, Math.tan(inputNumbers[0]), 1, 0, 0];
         }
     },
     "skewy" : {
         maximum : 1,
         minimum : 1,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            return [1, 0, 0, Math.tan(inputNumbers[0]), 1, 0];
+            return [1, Math.tan(inputNumbers[0]), 0, 1, 0, 0];
         }
     }
 };
@@ -164,26 +164,23 @@ export function transformVector([a, b, c, d, e, f] : AffineMatrix, {x, y} : Vect
     // vector = [x, y, 1]
     // matrix * vector 
     // == 
-    // [a b c] * [x]
-    // [d e f]   [y]
+    // [a c e] * [x]
+    // [b d f]   [y]
     // [0 0 1]   [1]
     // ==
-    // [a * x + b * y + c]
-    // [d * x + e * y + f]
+    // [a * x + c * y + e]
+    // [b * x + d * y + f]
     // [1                ]
-    const event = new MouseEvent(
-        "onmousedown",
-        {
-            button : MouseButtonIndices.Right
-        }
-    );
-    document.getElementById("foo_abc")?.dispatchEvent(new Event(""))
     return {
-        x : a * x + b * y + c,
-        y : d * x + e * y + f
+        x : a * x + c * y + e,
+        y : b * x + d * y + f
     };
 }
 
 export function identity() : AffineMatrix {
-    return [1, 0, 0, 0, 1, 0];
+    return [1, 0, 0, 1, 0, 0];
+}
+
+export function affineMatrixToString([a, b, c, d, e, f] : AffineMatrix) {
+    return `matrix(${a}, ${b}, ${c}, ${d}, ${e}, ${f})`;
 }

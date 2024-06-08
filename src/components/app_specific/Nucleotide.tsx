@@ -7,7 +7,7 @@ import { Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 import { LabelContent } from "./LabelContent";
 import { LabelLine } from "./LabelLine";
-import { SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
+import { SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_RNA_MOLECULE_FIRST_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 import "../../App.css";
 
 export function getLabelLineHtmlElementId(
@@ -134,13 +134,16 @@ export namespace Nucleotide {
       ]
     );
     return <g
-      {...{
-        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.NUCLEOTIDE,
-        [SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX] : nucleotideIndex + firstNucleotideIndexInRnaMolecule
-      }}
       transform = {`translate(${x}, ${y})`}
     >
       <text
+        {...{
+          [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.NUCLEOTIDE,
+          [SVG_PROPERTY_XRNA_COMPLEX_NAME] : rnaComplexName,
+          [SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME] : rnaMoleculeName,
+          [SVG_PROPERTY_XRNA_RNA_MOLECULE_FIRST_NUCLEOTIDE_INDEX] : firstNucleotideIndexInRnaMolecule,
+          [SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX] : nucleotideIndex + firstNucleotideIndexInRnaMolecule
+        }}
         ref = {symbolReference}
         className = "nucleotide noselect"
         transform = {`translate(${graphicalAdjustment.x}, ${graphicalAdjustment.y}) scale(1, -1)`}

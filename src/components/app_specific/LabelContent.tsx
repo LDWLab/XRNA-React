@@ -6,7 +6,7 @@ import Color, { BLACK, toCSS } from "../../data_structures/Color";
 import Font from "../../data_structures/Font";
 import { Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
-import { SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
+import { SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_LABEL_FORMATTED_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 
 export namespace LabelContent {
   export type SvgRepresentation = SVGTextElement;
@@ -106,7 +106,10 @@ export namespace LabelContent {
     );
     return <text
       {...{
-        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.LABEL_CONTENT
+        [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.LABEL_CONTENT,
+        [SVG_PROPERTY_XRNA_COMPLEX_NAME] : rnaComplexName,
+        [SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME] : rnaMoleculeName,
+        [SVG_PROPERTY_XRNA_LABEL_FORMATTED_NUCLEOTIDE_INDEX] : nucleotideIndex + firstNucleotideIndexInRnaMolecule
       }}
       id = {id}
       ref = {contentSvgTextElementReference}
@@ -127,6 +130,9 @@ export namespace LabelContent {
       }}
       onMouseOver = {function(e) {
         setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
+      }}
+      onMouseLeave = {function() {
+        setMouseOverText("");
       }}
     >
       {content}
