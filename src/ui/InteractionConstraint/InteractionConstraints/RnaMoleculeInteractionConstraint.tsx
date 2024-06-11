@@ -3,7 +3,7 @@ import { RnaMoleculeInteractionConstraintEditMenu } from "../../../components/ap
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import { Vector2D } from "../../../data_structures/Vector2D";
-import { parseInteger, subtractNumbers } from "../../../utils/Utils";
+import { parseInteger, range, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
 import { FilterHelicesMode, InteractionConstraint, iterateOverFreeNucleotidesandHelicesPerRnaMolecule } from "../InteractionConstraints";
@@ -31,7 +31,8 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      indicesOfFrozenNucleotides
     );
     const {
       rnaComplexIndex,
@@ -57,14 +58,18 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
     const basePairKeysToRerenderPerRnaComplex = basePairKeysToRerender[rnaComplexIndex];
     const nucleotideIndices = Object.keys(singularRnaMoleculeProps.nucleotideProps).map(parseInteger);
     nucleotideIndices.sort(subtractNumbers);
+    const indicesOfFrozenNucleotidesPerRnaComplex = rnaComplexIndex in indicesOfFrozenNucleotides ? indicesOfFrozenNucleotides[rnaComplexIndex] : {};
+    const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName] : new Set<number>();
     for (let nucleotideIndex of nucleotideIndices) {
       this.addFullIndices({
         rnaComplexIndex,
         rnaMoleculeName,
         nucleotideIndex
       });
-      toBeDragged.push(singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]);
-      nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
+      if (!indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+        toBeDragged.push(singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]);
+        nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
+      }
       if (nucleotideIndex in basePairsPerRnaMolecule) {
         const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
         basePairKeysToRerenderPerRnaComplex.push({
@@ -91,6 +96,7 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
       initialName : rnaMoleculeName,
       rnaComplexProps : rnaComplexProps,
       rnaComplexIndex : fullKeys.rnaComplexIndex,
+      rnaMoleculeName,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender
     };
@@ -163,15 +169,21 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
         const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
         const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
         const maximumNucleotideIndexInclusive = Math.max(...Object.keys(singularRnaMoleculeProps.nucleotideProps).map(parseInteger));
+        const indicesOfFrozenNucleotidesPerRnaComplex = rnaComplexIndex in this.indicesOfFrozenNucleotides ? this.indicesOfFrozenNucleotides[rnaComplexIndex] : {};
+        const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName] : new Set<number>();
+        const regionsPerRnaMolecule : NucleotideRegionsAnnotateMenu.RegionsPerRnaMolecule = [];
+        NucleotideRegionsAnnotateMenu.populateRegions(
+          indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule,
+          range(
+            maximumNucleotideIndexInclusive + 1,
+            0
+          ),
+          regionsPerRnaMolecule
+        );
         menu = <NucleotideRegionsAnnotateMenu.Component
           regions = {{
             [rnaComplexIndex] : {
-              [rnaMoleculeName] : [
-                {
-                  minimumNucleotideIndexInclusive : 0,
-                  maximumNucleotideIndexInclusive
-                }
-              ]
+              [rnaMoleculeName] : regionsPerRnaMolecule
             }
           }}
           rnaComplexProps = {this.rnaComplexProps}

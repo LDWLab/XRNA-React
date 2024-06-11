@@ -1,21 +1,27 @@
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { RnaComplex } from "../../RnaComplex";
 import { AppSpecificOrientationEditor } from "../../editors/AppSpecificOrientationEditor";
 import { Vector2D } from "../../../../data_structures/Vector2D";
 import { subtractNumbersNegated } from "../../../../utils/Utils";
 import { AllInOneEditor } from "../../../../ui/InteractionConstraint/InteractionConstraints/AllInOneEditor";
+import { Context } from "../../../../context/Context";
 
 export namespace RnaComplexInteractionConstraintEditMenu {
   export type Props = {
     rerender : () => void,
+    rnaComplexIndex : number,
     singularRnaComplexProps : RnaComplex.ExternalProps
   };
 
   export function Component(props : Props) {
     const {
+      rnaComplexIndex,
       rerender,
       singularRnaComplexProps
     } = props;
+    // Begin context data.
+    const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
+    const indicesOfFrozenNucleotidesPerRnaComplex = rnaComplexIndex in indicesOfFrozenNucleotides ? indicesOfFrozenNucleotides[rnaComplexIndex] : {};
     // Begin state data.
     const [
       rnaComplexName,
@@ -55,8 +61,11 @@ export namespace RnaComplexInteractionConstraintEditMenu {
           ) {
             return singularNucleotidePropsWithIndex1.nucleotideIndex - singularNucleotidePropsWithIndex0.nucleotideIndex;
           });
+          const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName] : new Set<number>();
           for (let { nucleotideIndex, singularNucleotideProps } of flattenedNucleotideProps) {
-            positions.push(singularNucleotideProps);
+            if (!indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+              positions.push(singularNucleotideProps);
+            }
             if (nucleotideIndex in basePairsPerRnaMolecule) {
               const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
               boundingVectors = {
@@ -74,7 +83,10 @@ export namespace RnaComplexInteractionConstraintEditMenu {
           onUpdatePositions = {rerender}
         />;
       },
-      [singularRnaComplexProps]
+      [
+        indicesOfFrozenNucleotidesPerRnaComplex,
+        singularRnaComplexProps
+      ]
     );
 
     return <>

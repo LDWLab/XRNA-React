@@ -17,6 +17,7 @@ export namespace RnaCycleInteractionConstraintEditMenu {
       repositionAnnotationsFlag : boolean
     ) => void,
     cycleGraphNucleotides : Array<Nucleotide.ExternalProps>,
+    branchNucleotides : Array<Nucleotide.ExternalProps>,
     rerender : () => void,
     getRadius : () => number
   };
@@ -27,6 +28,7 @@ export namespace RnaCycleInteractionConstraintEditMenu {
       minimumRadius,
       updatePositionsHelper,
       cycleGraphNucleotides,
+      branchNucleotides,
       rerender,
       getRadius
     } = props;
@@ -57,7 +59,7 @@ export namespace RnaCycleInteractionConstraintEditMenu {
     useEffect(
       function() {
         let singleColorFlag = true;
-        const singleColorCandidate = cycleGraphNucleotides[0].color ?? BLACK;
+        const singleColorCandidate = cycleGraphNucleotides.length === 0 ? BLACK : cycleGraphNucleotides[0].color ?? BLACK;
         for (let i = 0; i < cycleGraphNucleotides.length; i++) {
           const singularNucleotideProps = cycleGraphNucleotides[i];
           if (!areEqual(singleColorCandidate, singularNucleotideProps.color ?? BLACK)) {
@@ -102,6 +104,9 @@ export namespace RnaCycleInteractionConstraintEditMenu {
           for (const singularNucleotideProps of cycleGraphNucleotides) {
             singularNucleotideProps.color = newColor;
           }
+          for (const singularNucleotideProps of branchNucleotides) {
+            singularNucleotideProps.color = newColor;
+          }
           rerender();
         }}
       />
@@ -110,6 +115,9 @@ export namespace RnaCycleInteractionConstraintEditMenu {
         setFont = {function(newFont) {
           setFont(newFont);
           for (const singularNucleotideProps of cycleGraphNucleotides) {
+            singularNucleotideProps.font = newFont;
+          }
+          for (const singularNucleotideProps of branchNucleotides) {
             singularNucleotideProps.font = newFont;
           }
           rerender();

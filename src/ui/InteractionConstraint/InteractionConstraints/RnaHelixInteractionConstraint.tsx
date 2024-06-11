@@ -5,7 +5,7 @@ import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, Nucleotide
 import { linearDrag } from "../CommonDragListeners";
 import { AbstractInteractionConstraint, nonBasePairedNucleotideError, nonBasePairedNucleotideErrorMessage } from "../AbstractInteractionConstraint";
 import { Extrema, InteractionConstraint, calculateExtremaMagnitudeDifference, checkExtremaForSingleStrand, populateToBeDraggedWithHelix } from "../InteractionConstraints";
-import { parseInteger, subtractNumbers } from "../../../utils/Utils";
+import { parseInteger, range, subtractNumbers } from "../../../utils/Utils";
 import { scaleUp, add, orthogonalizeLeft, subtract, asAngle, Vector2D } from "../../../data_structures/Vector2D";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 import { Tab } from "../../../app_data/Tab";
@@ -34,7 +34,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      indicesOfFrozenNucleotides
     );
     const {
       rnaComplexIndex,
@@ -57,7 +58,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     const rnaMoleculeName1 = originalMappedBasePairInformation.rnaMoleculeName;
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
     const singularNucleotideProps1 = singularRnaMoleculeProps1.nucleotideProps[originalMappedBasePairInformation.nucleotideIndex];
-    const allNucleotides = new Array<Nucleotide.ExternalProps>();
+    let allNucleotides = new Array<Nucleotide.ExternalProps>();
     const nucleotideKeysToRerenderPerRnaComplex : NucleotideKeysToRerenderPerRnaComplex = {
       [rnaMoleculeName0] : [],
       [rnaMoleculeName1] : []
@@ -160,6 +161,25 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
       setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
     }
+
+    const frozenNucleotides = new Array<Nucleotide.ExternalProps>();
+    if (rnaComplexIndex in indicesOfFrozenNucleotides) {
+      const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
+      if (rnaMoleculeName0 in indicesOfFrozenNucleotidesPerRnaComplex) {
+        const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0 = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName0];
+        for (const nucleotideIndex of Array.from(indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0)) {
+          frozenNucleotides.push(singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex]);
+        }
+      }
+      if (rnaMoleculeName1 in indicesOfFrozenNucleotidesPerRnaComplex) {
+        const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1 = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName1];
+        for (const nucleotideIndex of Array.from(indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1)) {
+          frozenNucleotides.push(singularRnaMoleculeProps1.nucleotideProps[nucleotideIndex]);
+        }
+      }
+    }
+    allNucleotides = allNucleotides.filter(function(nucleotide) { return !frozenNucleotides.includes(nucleotide); });
+
     this.dragListener = linearDrag(
       {
         x : singularNucleotideProps0.x,
@@ -248,7 +268,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       <br/>
     </>;
     let singleColorFlag = true;
-    const singleColorCandidate = allNucleotides[0].color ?? BLACK;
+    const singleColorCandidate = allNucleotides.length > 0 ? allNucleotides[0].color ?? BLACK : BLACK;
     for (let i = 1; i < allNucleotides.length; i++) {
       if (!areEqual(
         singleColorCandidate,
@@ -344,20 +364,38 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
           minimumNucleotideIndexInclusive : maximumNucleotideIndexInclusive1 - length + 1,
           maximumNucleotideIndexInclusive : maximumNucleotideIndexInclusive1
         };
+        const indicesOfFrozenNucleotidesPerRnaComplex = rnaComplexIndex in this.indicesOfFrozenNucleotides ? this.indicesOfFrozenNucleotides[rnaComplexIndex] : {};
+        const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0 = rnaMoleculeName0 in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName0] : new Set<number>();
+        const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1 = rnaMoleculeName1 in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName1] : new Set<number>();
+        const regionsPerRnaMoleculeName0 : NucleotideRegionsAnnotateMenu.RegionsPerRnaMolecule = [];
+        const regionsPerRnaMoleculeName1 : NucleotideRegionsAnnotateMenu.RegionsPerRnaMolecule = [];
+        NucleotideRegionsAnnotateMenu.populateRegions(
+          indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0,
+          range(
+            region0.maximumNucleotideIndexInclusive + 1,
+            region0.minimumNucleotideIndexInclusive
+          ),
+          regionsPerRnaMoleculeName0
+        );
+        NucleotideRegionsAnnotateMenu.populateRegions(
+          indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1,
+          range(
+            region1.maximumNucleotideIndexInclusive + 1,
+            region1.minimumNucleotideIndexInclusive
+          ),
+          regionsPerRnaMoleculeName1
+        );
         if (rnaMoleculeName0 === rnaMoleculeName1) {
           regions = {
             [rnaComplexIndex] : {
-              [rnaMoleculeName0] : [
-                region0,
-                region1
-              ]
+              [rnaMoleculeName0] : regionsPerRnaMoleculeName0
             }
           };
         } else {
           regions = {
             [rnaComplexIndex] : {
-              [rnaMoleculeName0] : [region0],
-              [rnaMoleculeName1] : [region1]
+              regionsPerRnaMoleculeName0,
+              regionsPerRnaMoleculeName1
             }
           };
         }

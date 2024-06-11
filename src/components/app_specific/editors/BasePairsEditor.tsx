@@ -75,6 +75,7 @@ export namespace BasePairsEditor {
     const setBasePairKeysToEdit = useContext(Context.BasePair.SetKeysToEdit);
     const settingsRecord = useContext(Context.App.Settings);
     const averageDistances = useContext(Context.BasePair.AverageDistances);
+    const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
     // Begin state data.
     const [
       editorType,
@@ -133,10 +134,13 @@ export namespace BasePairsEditor {
     mismatchBasePairDistanceReference.current = mismatchBasePairDistance;
     const distanceBetweenContiguousBasePairsReference = useRef<number>();
     distanceBetweenContiguousBasePairsReference.current = distanceBetweenContiguousBasePairs;
+    const indicesOfFrozenNucleotidesReference = useRef<typeof indicesOfFrozenNucleotides>();
+    indicesOfFrozenNucleotidesReference.current = indicesOfFrozenNucleotides;
     // Begin memo data.
     const populateBasePairKeysToEdit = useMemo(
       function() {
         return function(basePair : BasePair, basePairKeysToEdit : Context.BasePair.KeysToEdit, addOrDelete : "add" | "delete") {
+          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
           const skippedBasePairIndices = new Array<number>();
           let {
             rnaComplexIndex,
@@ -162,25 +166,59 @@ export namespace BasePairsEditor {
           const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
           nucleotideIndex0 -= singularRnaMoleculeProps0.firstNucleotideIndex;
           nucleotideIndex1 -= singularRnaMoleculeProps1.firstNucleotideIndex;
+          const indicesOfFrozenNucleotidesPerRnaComplex = rnaComplexIndex in indicesOfFrozenNucleotides ? indicesOfFrozenNucleotides[rnaComplexIndex] : {};
+          const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0 = rnaMoleculeName0 in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName0] : new Set<number>();
+          const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1 = rnaMoleculeName1 in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName1] : new Set<number>();
           for (let i = 0; i < length; i++) {
             const formattedNucleotideIndex0 = nucleotideIndex0 + i;
             const formattedNucleotideIndex1 = nucleotideIndex1 - i;
             if (addOrDelete === "add") {
               try {
-                const conflictingBasePairKeys = insertBasePair(
-                  singularRnaComplexProps,
-                  rnaMoleculeName0,
-                  formattedNucleotideIndex0,
-                  rnaMoleculeName1,
-                  formattedNucleotideIndex1,
-                  overrideConflictingBasePairsFlag ? DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING : DuplicateBasePairKeysHandler.THROW_ERROR,
-                  {
-                    basePairType : type
+                let frozenNucleotideFlag = (
+                  indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0.has(formattedNucleotideIndex0) ||
+                  indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1.has(formattedNucleotideIndex1)
+                );
+                
+                if (!frozenNucleotideFlag && rnaMoleculeName0 in singularRnaComplexProps.basePairs) {
+                  const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName0];
+                  if (formattedNucleotideIndex0 in basePairsPerRnaMolecule) {
+                    const basePairData = basePairsPerRnaMolecule[formattedNucleotideIndex0];
+                    if (basePairData.rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
+                      const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[basePairData.rnaMoleculeName];
+                      frozenNucleotideFlag ||= indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex0);
+                    }
                   }
-                );
-                basePairKeysToDeletePerRnaComplex.push(
-                  ...conflictingBasePairKeys
-                );
+                }
+                if (!frozenNucleotideFlag && rnaMoleculeName1 in singularRnaComplexProps.basePairs) {
+                  const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName1];
+                  if (formattedNucleotideIndex1 in basePairsPerRnaMolecule) {
+                    const basePairData = basePairsPerRnaMolecule[formattedNucleotideIndex1];
+                    if (basePairData.rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
+                      const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[basePairData.rnaMoleculeName];
+                      frozenNucleotideFlag ||= indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex1);
+                    }
+                  }
+                }
+                if (frozenNucleotideFlag) {
+                  skippedBasePairIndices.push(i);
+                  alert(`The base pair on line #${i + 1} was not created due to the involvement of a frozen nucleotide.`);
+                  continue;
+                } else {
+                  const conflictingBasePairKeys = insertBasePair(
+                    singularRnaComplexProps,
+                    rnaMoleculeName0,
+                    formattedNucleotideIndex0,
+                    rnaMoleculeName1,
+                    formattedNucleotideIndex1,
+                    overrideConflictingBasePairsFlag ? DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING : DuplicateBasePairKeysHandler.THROW_ERROR,
+                    {
+                      basePairType : type
+                    }
+                  );
+                  basePairKeysToDeletePerRnaComplex.push(
+                    ...conflictingBasePairKeys
+                  );
+                }
               } catch (error) {
                 if (typeof error === "string") {
                   skippedBasePairIndices.push(i);

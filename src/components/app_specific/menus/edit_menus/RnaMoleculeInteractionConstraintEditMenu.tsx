@@ -11,6 +11,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
     export type Props = {
       initialName : string,
       rnaComplexIndex : number,
+      rnaMoleculeName : string,
       rnaComplexProps : RnaComplexProps,
       setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
       setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void
@@ -20,6 +21,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
       const {
         initialName,
         rnaComplexIndex,
+        rnaMoleculeName,
         rnaComplexProps,
         setNucleotideKeysToRerender,
         setBasePairKeysToRerender
@@ -28,6 +30,9 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
       const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
       // Begin context data.
       const updateRnaMoleculeNameHelper = useContext(Context.App.UpdateRnaMoleculeNameHelper);
+      const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
+      const indicesOfFrozenNucleotidesPerRnaComplex = rnaComplexIndex in indicesOfFrozenNucleotides ? indicesOfFrozenNucleotides[rnaComplexIndex] : {};
+      const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName] : new Set<number>();
       // Begin state data.
       const [
         name,
@@ -69,7 +74,10 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
           for (let nucleotideIndex of nucleotideIndices) {
             nucleotideKeysToRerenderPerRnaMolecule.unshift(nucleotideIndex);
             const singularNucleotideProps = nucleotideProps[nucleotideIndex];
-            toBeDragged.unshift(singularNucleotideProps);
+
+            if (!indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+              toBeDragged.unshift(singularNucleotideProps);
+            }
             if (nucleotideIndex in basePairsPerRnaMolecule) {
               basePairKeysToRerenderPerRnaComplex.unshift({
                 rnaMoleculeName : initialName,

@@ -19,7 +19,6 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
   private readonly approveBasePair : (basePair : BasePairsEditor.BasePair) => boolean;
   private readonly fullKeysOfNucleotidesWithColor : Array<FullKeys>;
-  private readonly basePairBetweenDifferentColorsError? : string;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -35,14 +34,15 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      indicesOfFrozenNucleotides
     );
     const {
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
     } = this.fullKeys;
-    const toBeDragged = new Array<Vector2D>();
+    const allNucleotides = new Array<Vector2D>();
     const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
     const basePairKeysToRerender : BasePairKeysToRerender = {};
 
@@ -75,28 +75,40 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
             color,
             nucleotideColor
           )) {
+            let frozenFlag = false;
+            if (rnaComplexIndex in indicesOfFrozenNucleotides) {
+              const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
+              if (rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
+                const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName];
+                if (indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+                  frozenFlag = true;
+                }
+              }
+            }
             this.fullKeysOfNucleotidesWithColor.push({
               rnaComplexIndex,
               rnaMoleculeName,
               nucleotideIndex
             });
-            toBeDragged.push(singularNucleotideProps);
-
             nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
-            if (nucleotideIndex in basePairsPerRnaMolecule) {
-              const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
-              basePairKeysToRerenderPerRnaComplex.push({
-                rnaMoleculeName,
-                nucleotideIndex
-              });
-              const singularBasePairedRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName];
-              const singularBasePairedNucleotideProps = singularBasePairedRnaMoleculeProps.nucleotideProps[mappedBasePairInformation.nucleotideIndex];
-              const mismatchedColorBasePairExistsFlag = !areEqual(
-                color,
-                singularBasePairedNucleotideProps.color ?? BLACK
-              );
-              if (mismatchedColorBasePairExistsFlag && tab !== Tab.ANNOTATE) {
-                this.basePairBetweenDifferentColorsError = "Cannot interact with pairs of differently colored base-paired nucleotides using this selection constraint.";
+            if (!frozenFlag) {
+              allNucleotides.push(singularNucleotideProps);
+
+              if (nucleotideIndex in basePairsPerRnaMolecule) {
+                // const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
+                basePairKeysToRerenderPerRnaComplex.push({
+                  rnaMoleculeName,
+                  nucleotideIndex
+                });
+                // const singularBasePairedRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName];
+                // const singularBasePairedNucleotideProps = singularBasePairedRnaMoleculeProps.nucleotideProps[mappedBasePairInformation.nucleotideIndex];
+                // const mismatchedColorBasePairExistsFlag = !areEqual(
+                //   color,
+                //   singularBasePairedNucleotideProps.color ?? BLACK
+                // );
+                // if (mismatchedColorBasePairExistsFlag && tab !== Tab.ANNOTATE) {
+                //   this.basePairBetweenDifferentColorsError = "Cannot interact with pairs of differently colored base-paired nucleotides using this selection constraint.";
+                // }
               }
             }
           }
@@ -109,7 +121,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     }
     this.dragListener = linearDrag(
       structuredClone(singularNucleotideProps),
-      toBeDragged,
+      allNucleotides,
       rerender
     );
     this.editMenuProps = {
@@ -118,7 +130,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
         x : 1,
         y : 0
       },
-      positions : toBeDragged,
+      positions : allNucleotides,
       onUpdatePositions : rerender
     };
     const unfilteredInitialBasePairs : Array<BasePairsEditor.BasePair> = [];

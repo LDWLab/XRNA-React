@@ -409,7 +409,8 @@ export namespace InteractionConstraint {
       setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
       setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
       tab : Tab,
-      indicesOfFrozenNucleotides : FullKeysRecord
+      indicesOfFrozenNucleotides : FullKeysRecord,
+      interactionConstraintOptions : Options
     ) => AbstractInteractionConstraint
   > = {
     [Enum.SINGLE_NUCLEOTIDE] : function(
@@ -438,7 +439,8 @@ export namespace InteractionConstraint {
       setBasePairKeysToRerender,
       setDebugVisualElements,
       tab,
-      indicesOfFrozenNucleotides
+      indicesOfFrozenNucleotides,
+      interactionConstraintOptions : Options
     ) {
       return new SingleBasePairInteractionConstraint(
         rnaComplexProps,
@@ -447,7 +449,8 @@ export namespace InteractionConstraint {
         setBasePairKeysToRerender,
         setDebugVisualElements,
         tab,
-        indicesOfFrozenNucleotides
+        indicesOfFrozenNucleotides,
+        interactionConstraintOptions
       );
     },
     [Enum.RNA_SINGLE_STRAND] : function(
@@ -457,7 +460,8 @@ export namespace InteractionConstraint {
       setBasePairKeysToRerender,
       setDebugVisualElements,
       tab,
-      indicesOfFrozenNucleotides
+      indicesOfFrozenNucleotides,
+      interactionConstraintOptions
     ) {
       return new RnaSingleStrandInteractionConstraint(
         rnaComplexProps,
@@ -466,7 +470,8 @@ export namespace InteractionConstraint {
         setBasePairKeysToRerender,
         setDebugVisualElements,
         tab,
-        indicesOfFrozenNucleotides
+        indicesOfFrozenNucleotides,
+        interactionConstraintOptions
       );
     },
     [Enum.RNA_HELIX] : function(
@@ -812,7 +817,7 @@ export namespace InteractionConstraint {
     </>
   };
 
-  function BasePairOptionsMenu(props : {}) {
+  function SingleBasePairOptionsMenu(props : {}) {
     const interactionConstraintOptions = useContext(Context.App.InteractionConstraintOptions);
     const updateInteractionConstraintOptions = useContext(Context.App.UpdateInteractionConstraintOptions);
     const affectHairpinNucleotidesFlag = interactionConstraintOptions.affectHairpinNucleotidesFlag;
@@ -833,18 +838,40 @@ export namespace InteractionConstraint {
     </>;
   }
 
+  function SingleStrandOptionsMenu(props : {}) {
+    const interactionConstraintOptions = useContext(Context.App.InteractionConstraintOptions);
+    const updateInteractionConstraintOptions = useContext(Context.App.UpdateInteractionConstraintOptions);
+    const truncateRnaSingleStrandFlag = interactionConstraintOptions.truncateRnaSingleStrandFlag;
+    return <label>
+      Truncate Single Strand At Frozen Nucleotides:&nbsp;
+      <input
+        type = "checkbox"
+        checked = {truncateRnaSingleStrandFlag}
+        onChange = {function() {
+          const newTruncateRnaSingleStrandFlag = !truncateRnaSingleStrandFlag;
+          updateInteractionConstraintOptions({
+            truncateRnaSingleStrandFlag : newTruncateRnaSingleStrandFlag
+          });
+        }}
+      />
+    </label>;
+  }
+
   export const DEFAULT_OPTIONS : Options = {
-    affectHairpinNucleotidesFlag : true
+    affectHairpinNucleotidesFlag : true,
+    truncateRnaSingleStrandFlag : true
   };
 
   export type Options = {
-    affectHairpinNucleotidesFlag : boolean
+    affectHairpinNucleotidesFlag : boolean,
+    truncateRnaSingleStrandFlag : boolean
   };
 
   export const optionsMenuRecord : Partial<Record<
     Enum,
     FunctionComponent<{}>
   >> = {
-    [Enum.SINGLE_BASE_PAIR] : BasePairOptionsMenu
+    [Enum.SINGLE_BASE_PAIR] : SingleBasePairOptionsMenu,
+    [Enum.RNA_SINGLE_STRAND] : SingleStrandOptionsMenu
   };
 }

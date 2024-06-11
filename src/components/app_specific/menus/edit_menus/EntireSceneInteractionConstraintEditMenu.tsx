@@ -21,6 +21,7 @@ export namespace EntireSceneInteractionConstraintEditMenu {
     // Begin context data.
     const _complexDocumentName = useContext(Context.App.ComplexDocumentName);
     const _setComplexDocumentName = useContext(Context.App.SetComplexDocumentName);
+    const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
     // Begin state data.
     const [
       complexDocumentName,
@@ -64,6 +65,7 @@ export namespace EntireSceneInteractionConstraintEditMenu {
           const nucleotideKeysToRerenderPerRnaComplex = nucleotideKeysToRerender[rnaComplexIndex];
           basePairKeysToRerender[rnaComplexIndex] = [];
           const basePairKeysToRerenderPerRnaComplex = basePairKeysToRerender[rnaComplexIndex];
+          const indicesOfFrozenNucleotidesPerRnaComplex = rnaComplexIndex in indicesOfFrozenNucleotides ? indicesOfFrozenNucleotides[rnaComplexIndex] : {};
           for (let [rnaMoleculeName, singularRnaMoleculeProps] of flattenedRnaMoleculeProps) {
             const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
             nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] = [];
@@ -77,9 +79,12 @@ export namespace EntireSceneInteractionConstraintEditMenu {
                 singularNucleotideProps
               };
             });
+            const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName] : new Set<number>();
             for (let { nucleotideIndex, singularNucleotideProps } of flattenedNucleotideProps) {
-              nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
-              positions.push(singularNucleotideProps);
+              if (!indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+                nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
+                positions.push(singularNucleotideProps);
+              }
               if (nucleotideIndex in basePairsPerRnaMolecule) {
                 basePairKeysToRerenderPerRnaComplex.push({
                   rnaMoleculeName,

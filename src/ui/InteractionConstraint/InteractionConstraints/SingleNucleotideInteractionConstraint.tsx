@@ -29,7 +29,8 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      indicesOfFrozenNucleotides
     );
     const {
       rnaComplexIndex,

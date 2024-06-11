@@ -178,7 +178,7 @@ export namespace Nucleotide {
           setMouseOverText("");
         }}
       >
-        {frozenFlag && <animate attributeName = "fill" values={`black;white;black`} dur = "2s" repeatCount = "indefinite"/>}
+        {frozenFlag && <animate attributeName = "opacity" values={`0;1;0`} dur = "2s" repeatCount = "indefinite"/>}
         {symbol}
       </text>
       <Context.Nucleotide.Symbol.Provider

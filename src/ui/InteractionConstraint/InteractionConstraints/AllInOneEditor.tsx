@@ -27,6 +27,10 @@ export namespace AllInOneEditor {
     // Begin effects.
     useEffect(
       function() {
+        if (allNucleotides.length === 0) {
+          return;
+        }
+
         let singleColorFlag = true;
         const singularNucleotideProps0 = allNucleotides[0];
         const singleColorCandidate = singularNucleotideProps0.color ?? BLACK;
@@ -102,6 +106,9 @@ export namespace AllInOneEditor {
     // Begin effects.
     useEffect(
       function() {
+        if (allNucleotides.length === 0) {
+          return;
+        }
         let singleColorFlag = true;
         const singularNucleotideProps0 = allNucleotides[0];
         const singleColorCandidate = singularNucleotideProps0.color ?? BLACK;

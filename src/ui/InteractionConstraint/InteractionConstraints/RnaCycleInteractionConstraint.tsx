@@ -45,7 +45,8 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
-      setDebugVisualElements
+      setDebugVisualElements,
+      indicesOfFrozenNucleotides
     );
     const {
       rnaComplexIndex,
@@ -463,6 +464,11 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           if (rnaMoleculeName0 === rnaMoleculeName1 && nucleotideIndex0 === initialNucleotideIndex1) {
             break;
           }
+          this.addFullIndices({
+            rnaComplexIndex,
+            rnaMoleculeName : rnaMoleculeName0,
+            nucleotideIndex : nucleotideIndex0
+          });
           const singularNucleotideProps = nucleotideProps0[nucleotideIndex0];
           const polar = toPolar(subtract(
             singularNucleotideProps,
@@ -520,6 +526,11 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           if (rnaMoleculeName0 === rnaMoleculeName1 && nucleotideIndex1 === initialNucleotideIndex0) {
             break;
           }
+          this.addFullIndices({
+            rnaComplexIndex,
+            rnaMoleculeName : rnaMoleculeName1,
+            nucleotideIndex : nucleotideIndex1
+          });
           const singularNucleotideProps = nucleotideProps1[nucleotideIndex1];
           const polar = toPolar(subtract(
             singularNucleotideProps,
@@ -589,6 +600,17 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       setBasePairKeysToRerender(structuredClone(basePairKeysToRerender))
     }
 
+    const frozenNucleotides = new Array<Vector2D>();
+    for (const [rnaComplexIndexAsString, indicesOfFrozenNucleotidesPerRnaComplex] of Object.entries(indicesOfFrozenNucleotides)) {
+      const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+      for (const [rnaMoleculeName, indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule] of Object.entries(indicesOfFrozenNucleotidesPerRnaComplex)) {
+        const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
+        for (const nucleotideIndex of Array.from(indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule)) {
+          const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
+          frozenNucleotides.push(singularNucleotideProps);
+        }
+      }
+    }
     this.updatePositionsHelper = function(
       newRadius : number,
       repositionAnnotationsFlag : boolean
@@ -629,28 +651,32 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           angle,
           singularNucleotideProps : cycleGraphPositionI
         });
-        cycleGraphPositionI.x = newPosition.x;
-        cycleGraphPositionI.y = newPosition.y;
+        if (!frozenNucleotides.includes(cycleGraphPositionI)) {
+          cycleGraphPositionI.x = newPosition.x;
+          cycleGraphPositionI.y = newPosition.y;
+        }
       }
       if (repositionAnnotationsFlag) {
         for (const { angle, singularNucleotideProps } of cycleData) {
-          const direction = toNormalCartesian(angle);
-          const positions = [];
-          if (singularNucleotideProps.labelContentProps !== undefined) {
-            positions.push(singularNucleotideProps.labelContentProps);
-          }
-          if (singularNucleotideProps.labelLineProps !== undefined) {
-            // This causes the LabelLine.Component to be re-rendered properly.
-            singularNucleotideProps.labelLineProps.points = [...singularNucleotideProps.labelLineProps.points];
-            positions.push(...singularNucleotideProps.labelLineProps.points);
-          }
-          for (const position of positions) {
-            const newPosition = scaleUp(
-              direction,
-              magnitude(position)
-            );
-            position.x = newPosition.x;
-            position.y = newPosition.y;
+          if (!frozenNucleotides.includes(singularNucleotideProps)) {
+            const direction = toNormalCartesian(angle);
+            const positions = [];
+            if (singularNucleotideProps.labelContentProps !== undefined) {
+              positions.push(singularNucleotideProps.labelContentProps);
+            }
+            if (singularNucleotideProps.labelLineProps !== undefined) {
+              // This causes the LabelLine.Component to be re-rendered properly.
+              singularNucleotideProps.labelLineProps.points = [...singularNucleotideProps.labelLineProps.points];
+              positions.push(...singularNucleotideProps.labelLineProps.points);
+            }
+            for (const position of positions) {
+              const newPosition = scaleUp(
+                direction,
+                magnitude(position)
+              );
+              position.x = newPosition.x;
+              position.y = newPosition.y;
+            }
           }
         }
       }
@@ -696,10 +722,14 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           choordCenter,
           dv
         );
-        positionAtArrayIndex.x = newPositionAtArrayIndex.x;
-        positionAtArrayIndex.y = newPositionAtArrayIndex.y;
-        positionAtArrayIndexIncremented.x = newPositionAtArrayIndexIncremented.x;
-        positionAtArrayIndexIncremented.y = newPositionAtArrayIndexIncremented.y;
+        if (!frozenNucleotides.includes(positionAtArrayIndex)) {
+          positionAtArrayIndex.x = newPositionAtArrayIndex.x;
+          positionAtArrayIndex.y = newPositionAtArrayIndex.y;
+        }
+        if (!frozenNucleotides.includes(positionAtArrayIndexIncremented)) {
+          positionAtArrayIndexIncremented.x = newPositionAtArrayIndexIncremented.x;
+          positionAtArrayIndexIncremented.y = newPositionAtArrayIndexIncremented.y;
+        }
         midpoint = scaleUp(
           add(
             newPositionAtArrayIndex,
@@ -736,8 +766,10 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
             midpoint,
             dv 
           );
-          singularNucleotideProps.x = newPosition.x;
-          singularNucleotideProps.y = newPosition.y;
+          if (!frozenNucleotides.includes(singularNucleotideProps)) {
+            singularNucleotideProps.x = newPosition.x;
+            singularNucleotideProps.y = newPosition.y;
+          }
         }
         if (repositionAnnotationsFlag) {
           for (const { singularNucleotideProps, annotationData } of positionsToEdit) {
@@ -754,8 +786,10 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
                   direction,
                   magnitude
                 );
-                position.x = newPosition.x;
-                position.y = newPosition.y;
+                if (!frozenNucleotides.includes(position)) {
+                  position.x = newPosition.x;
+                  position.y = newPosition.y;
+                }
               }
             }
           }
@@ -771,11 +805,20 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const rnaMoleculeName1 = nucleotideIndices1.rnaMoleculeName;
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
     this.rnaCycleBoundsText = `RNA cycle anchored by nucleotide #${nucleotideIndices0.nucleotideIndex + singularRnaMoleculeProps0.firstNucleotideIndex} in RNA molecule "${rnaMoleculeName0}" and nucleotide #${nucleotideIndices1.nucleotideIndex + singularRnaMoleculeProps1.firstNucleotideIndex} in RNA molecule "${rnaMoleculeName1}"`;
+    const branchNucleotides = new Array<Nucleotide.ExternalProps>();
+    for (const branch of branches) {
+      const { positionsToEdit } = branch;
+      for (const positionToEdit of positionsToEdit) {
+        const { singularNucleotideProps } = positionToEdit;
+        branchNucleotides.push(singularNucleotideProps);
+      }
+    }
     this.editMenuProps = {
       initialRadius,
       minimumRadius,
       updatePositionsHelper : this.updatePositionsHelper,
-      cycleGraphNucleotides,
+      cycleGraphNucleotides : cycleGraphNucleotides.filter(function(cycleGraphNucleotide) { return !frozenNucleotides.includes(cycleGraphNucleotide); }),
+      branchNucleotides : branchNucleotides.filter(function(branchNucleotide) { return !frozenNucleotides.includes(branchNucleotide); }),
       rerender,
       getRadius
     };
@@ -837,6 +880,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           // This is deliberate. I want the rnaMoleculeName comparison to fail on the first iteration.
           rnaMoleculeName : undefined as any as string
         };
+        const indicesOfFrozenNucleotidesPerRnaComplex = rnaComplexIndex in this.indicesOfFrozenNucleotides ? this.indicesOfFrozenNucleotides[rnaComplexIndex] : {};
         for (const cycleIndices of this.cycleIndices) {
           const {
             rnaMoleculeName,
@@ -845,24 +889,27 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           if (!(rnaMoleculeName in regionsPerRnaComplex)) {
             regionsPerRnaComplex[rnaMoleculeName] = [];
           }
+          const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex ? indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName] : new Set<number>();
           const regionsPerRnaMolecule = regionsPerRnaComplex[rnaMoleculeName];
-          if (rnaMoleculeName === previousCycleIndices.rnaMoleculeName && regionsPerRnaMolecule.length > 0) {
-            const previouslyAddedRegion = regionsPerRnaMolecule[regionsPerRnaMolecule.length - 1];
-            if (nucleotideIndex === previouslyAddedRegion.minimumNucleotideIndexInclusive - 1) {
-              previouslyAddedRegion.minimumNucleotideIndexInclusive = nucleotideIndex;
-            } else if (nucleotideIndex === previouslyAddedRegion.maximumNucleotideIndexInclusive + 1) {
-              previouslyAddedRegion.maximumNucleotideIndexInclusive = nucleotideIndex;
+          if (!indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+            if (rnaMoleculeName === previousCycleIndices.rnaMoleculeName && regionsPerRnaMolecule.length > 0) {
+              const previouslyAddedRegion = regionsPerRnaMolecule[regionsPerRnaMolecule.length - 1];
+              if (nucleotideIndex === previouslyAddedRegion.minimumNucleotideIndexInclusive - 1) {
+                previouslyAddedRegion.minimumNucleotideIndexInclusive = nucleotideIndex;
+              } else if (nucleotideIndex === previouslyAddedRegion.maximumNucleotideIndexInclusive + 1) {
+                previouslyAddedRegion.maximumNucleotideIndexInclusive = nucleotideIndex;
+              } else {
+                regionsPerRnaMolecule.push({
+                  minimumNucleotideIndexInclusive : nucleotideIndex,
+                  maximumNucleotideIndexInclusive : nucleotideIndex
+                });
+              }
             } else {
               regionsPerRnaMolecule.push({
                 minimumNucleotideIndexInclusive : nucleotideIndex,
                 maximumNucleotideIndexInclusive : nucleotideIndex
               });
             }
-          } else {
-            regionsPerRnaMolecule.push({
-              minimumNucleotideIndexInclusive : nucleotideIndex,
-              maximumNucleotideIndexInclusive : nucleotideIndex
-            });
           }
         }
         

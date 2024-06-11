@@ -1,5 +1,20 @@
 export const DEFAULT_EPSILON = 1E-7;
 
+export function range(
+  stopExclusive : number,
+  startInclusive = 0,
+  step = 1
+) {
+  if ((stopExclusive - startInclusive) * step <= 0) {
+    throw `Infinite loop error`;
+  }
+  const range = [];
+  for (let index = startInclusive; index < stopExclusive; index += step) {
+    range.push(index);
+  }
+  return range;
+}
+
 export function flattenRecord<K extends string | number | symbol, T>(record : Record<K, T>, parser : (keyAsString : string) => K) {
   const output = Object.entries(record) as Array<[string | K, T]>;
   for (let i = 0; i < output.length; i++) {

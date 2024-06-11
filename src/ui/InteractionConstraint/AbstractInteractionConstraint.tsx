@@ -20,22 +20,25 @@ export abstract class AbstractInteractionConstraint {
   protected readonly setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void;
   protected readonly setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void;
   protected readonly setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void;
+  protected readonly indicesOfFrozenNucleotides : FullKeysRecord;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
     fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
-    setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void
+    setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
+    indicesOfFrozenNucleotides : FullKeysRecord
   ) {
     this.rnaComplexProps = rnaComplexProps;
     this.fullKeys = fullKeys;
     this.setNucleotideKeysToRerender = setNucleotideKeysToRerender;
     this.setBasePairKeysToRerender = setBasePairKeysToRerender;
     this.setDebugVisualElements = setDebugVisualElements;
+    this.indicesOfFrozenNucleotides = indicesOfFrozenNucleotides;
   }
 
-  abstract drag(interactionConstraintOptions : InteractionConstraint.Options) : DragListener | undefined;
+  abstract drag() : DragListener | undefined;
 
   abstract createRightClickMenu(tab : InteractionConstraint.SupportedTab) : JSX.Element;
 

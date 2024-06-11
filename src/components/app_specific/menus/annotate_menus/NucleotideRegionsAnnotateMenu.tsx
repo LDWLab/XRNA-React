@@ -12,6 +12,40 @@ import { BLACK } from "../../../../data_structures/Color";
 import Font from "../../../../data_structures/Font";
 
 export namespace NucleotideRegionsAnnotateMenu {
+  export function populateRegions(
+    indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule : Set<number>,
+    nucleotideIndices : Array<number>,
+    regionsPerRnaMolecule : NucleotideRegionsAnnotateMenu.RegionsPerRnaMolecule
+  ) {
+    let minimumNucleotideIndexInclusive = Number.NaN;
+    let maximumNucleotideIndexInclusive = Number.NaN;
+    nucleotideIndices.sort(subtractNumbers);
+    for (let i = 0; i < nucleotideIndices.length; i++) {
+      const nucleotideIndex = nucleotideIndices[i];
+
+      if (indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+        if (!Number.isNaN(minimumNucleotideIndexInclusive)) {
+          regionsPerRnaMolecule.push({
+            minimumNucleotideIndexInclusive,
+            maximumNucleotideIndexInclusive
+          });
+        }
+        minimumNucleotideIndexInclusive = Number.NaN;
+      } else {
+        if (Number.isNaN(minimumNucleotideIndexInclusive)) {
+          minimumNucleotideIndexInclusive = nucleotideIndex;
+        }
+        maximumNucleotideIndexInclusive = nucleotideIndex;
+      }
+    }
+    if (!Number.isNaN(minimumNucleotideIndexInclusive)) {
+      regionsPerRnaMolecule.push({
+        minimumNucleotideIndexInclusive,
+        maximumNucleotideIndexInclusive
+      });
+    }
+  }
+
   export type Region = {
     minimumNucleotideIndexInclusive : number,
     maximumNucleotideIndexInclusive : number
