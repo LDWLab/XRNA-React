@@ -172,57 +172,56 @@ export namespace BasePairsEditor {
           for (let i = 0; i < length; i++) {
             const formattedNucleotideIndex0 = nucleotideIndex0 + i;
             const formattedNucleotideIndex1 = nucleotideIndex1 - i;
+            let frozenNucleotideFlag = (
+              indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0.has(formattedNucleotideIndex0) ||
+              indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1.has(formattedNucleotideIndex1)
+            );
+            
+            if (!frozenNucleotideFlag && rnaMoleculeName0 in singularRnaComplexProps.basePairs) {
+              const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName0];
+              if (formattedNucleotideIndex0 in basePairsPerRnaMolecule) {
+                const basePairData = basePairsPerRnaMolecule[formattedNucleotideIndex0];
+                if (basePairData.rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
+                  const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[basePairData.rnaMoleculeName];
+                  frozenNucleotideFlag ||= indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex0);
+                }
+              }
+            }
+            if (!frozenNucleotideFlag && rnaMoleculeName1 in singularRnaComplexProps.basePairs) {
+              const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName1];
+              if (formattedNucleotideIndex1 in basePairsPerRnaMolecule) {
+                const basePairData = basePairsPerRnaMolecule[formattedNucleotideIndex1];
+                if (basePairData.rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
+                  const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[basePairData.rnaMoleculeName];
+                  frozenNucleotideFlag ||= indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex1);
+                }
+              }
+            }
+            if (frozenNucleotideFlag) {
+              skippedBasePairIndices.push(i);
+              alert(`Base pair #${i + 1} was not ${{ add : "added", "delete" : "deleted" }[addOrDelete]} due to the involvement of a frozen nucleotide.`);
+              continue;
+            }
             if (addOrDelete === "add") {
               try {
-                let frozenNucleotideFlag = (
-                  indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0.has(formattedNucleotideIndex0) ||
-                  indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule1.has(formattedNucleotideIndex1)
+                const conflictingBasePairKeys = insertBasePair(
+                  singularRnaComplexProps,
+                  rnaMoleculeName0,
+                  formattedNucleotideIndex0,
+                  rnaMoleculeName1,
+                  formattedNucleotideIndex1,
+                  overrideConflictingBasePairsFlag ? DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING : DuplicateBasePairKeysHandler.THROW_ERROR,
+                  {
+                    basePairType : type
+                  }
                 );
-                
-                if (!frozenNucleotideFlag && rnaMoleculeName0 in singularRnaComplexProps.basePairs) {
-                  const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName0];
-                  if (formattedNucleotideIndex0 in basePairsPerRnaMolecule) {
-                    const basePairData = basePairsPerRnaMolecule[formattedNucleotideIndex0];
-                    if (basePairData.rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
-                      const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[basePairData.rnaMoleculeName];
-                      frozenNucleotideFlag ||= indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex0);
-                    }
-                  }
-                }
-                if (!frozenNucleotideFlag && rnaMoleculeName1 in singularRnaComplexProps.basePairs) {
-                  const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName1];
-                  if (formattedNucleotideIndex1 in basePairsPerRnaMolecule) {
-                    const basePairData = basePairsPerRnaMolecule[formattedNucleotideIndex1];
-                    if (basePairData.rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
-                      const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[basePairData.rnaMoleculeName];
-                      frozenNucleotideFlag ||= indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex1);
-                    }
-                  }
-                }
-                if (frozenNucleotideFlag) {
-                  skippedBasePairIndices.push(i);
-                  alert(`The base pair on line #${i + 1} was not created due to the involvement of a frozen nucleotide.`);
-                  continue;
-                } else {
-                  const conflictingBasePairKeys = insertBasePair(
-                    singularRnaComplexProps,
-                    rnaMoleculeName0,
-                    formattedNucleotideIndex0,
-                    rnaMoleculeName1,
-                    formattedNucleotideIndex1,
-                    overrideConflictingBasePairsFlag ? DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING : DuplicateBasePairKeysHandler.THROW_ERROR,
-                    {
-                      basePairType : type
-                    }
-                  );
-                  basePairKeysToDeletePerRnaComplex.push(
-                    ...conflictingBasePairKeys
-                  );
-                }
+                basePairKeysToDeletePerRnaComplex.push(
+                  ...conflictingBasePairKeys
+                );
               } catch (error) {
                 if (typeof error === "string") {
                   skippedBasePairIndices.push(i);
-                  alert(`The base pair on line #${i + 1} was not created due to conflicting, preexisting base pair(s). Activate the relevant option above if you want to override them.`);
+                  alert(`Base pair #${i + 1} was not added due to conflicting, preexisting base pair(s). Activate the relevant setting if you want to override them.`);
                   continue;
                 } else {
                   throw error;
@@ -263,27 +262,104 @@ export namespace BasePairsEditor {
           const mismatchBasePairDistance = mismatchBasePairDistanceReference.current as number;
           const distanceBetweenContiguousBasePairs = distanceBetweenContiguousBasePairsReference.current as number;
           const basePairKeysToEdit : Context.BasePair.KeysToEdit = {};
+          const actualNewBasePairs = new Array<BasePair>();
           for (let basePair of basePairs) {
-            populateBasePairKeysToEdit(
+            const skippedBasePairIndicesFromDeletion = populateBasePairKeysToEdit(
               basePair,
               basePairKeysToEdit,
               "delete"
             );
+            let previousSkippedBasePairIndex = Number.NaN;
+            for (const skippedBasePairIndex of skippedBasePairIndicesFromDeletion) {
+              const {
+                rnaComplexIndex,
+                rnaMoleculeName0,
+                rnaMoleculeName1,
+                nucleotideIndex0,
+                nucleotideIndex1,
+                type
+              } = basePair;
+              // Base pairs which could not be deleted should be reflected in the edit menu.
+              if (skippedBasePairIndex === previousSkippedBasePairIndex + 1) {
+                const previousActualNewBasePair = actualNewBasePairs[actualNewBasePairs.length - 1];
+                if (previousActualNewBasePair.type === type) {
+                  previousActualNewBasePair.length++;
+                } else {
+                  actualNewBasePairs.push({
+                    rnaComplexIndex,
+                    rnaMoleculeName0,
+                    rnaMoleculeName1,
+                    nucleotideIndex0 : nucleotideIndex0 + skippedBasePairIndex,
+                    nucleotideIndex1 : nucleotideIndex1 - skippedBasePairIndex,
+                    length : 1,
+                    type
+                  });
+                }
+              } else {
+                actualNewBasePairs.push({
+                  rnaComplexIndex,
+                  rnaMoleculeName0,
+                  rnaMoleculeName1,
+                  nucleotideIndex0 : nucleotideIndex0 + skippedBasePairIndex,
+                  nucleotideIndex1 : nucleotideIndex1 - skippedBasePairIndex,
+                  length : 1,
+                  type
+                });
+              }
+              previousSkippedBasePairIndex = skippedBasePairIndex;
+            }
           }
-          let skippedBasePairIndices = new Array<number>();
+          const skippedBasePairIndices = new Set<number>();
           for (let basePair of newBasePairs) {
-            skippedBasePairIndices = populateBasePairKeysToEdit(
+            const skippedBasePairIndicesFromAddition = populateBasePairKeysToEdit(
               basePair,
               basePairKeysToEdit,
               "add"
             );
+            const {
+              rnaComplexIndex,
+              rnaMoleculeName0,
+              rnaMoleculeName1,
+              nucleotideIndex0,
+              nucleotideIndex1,
+              length,
+              type
+            } = basePair;
+            let previousSkippedBasePairIndex = -1;
+            for (const skippedBasePairIndex of skippedBasePairIndicesFromAddition) {
+              // Avoid creating a zero-length base pair.
+              if (skippedBasePairIndex !== 0) {
+                const _length = skippedBasePairIndex - previousSkippedBasePairIndex - 1;
+                actualNewBasePairs.push({
+                  rnaComplexIndex,
+                  rnaMoleculeName0,
+                  rnaMoleculeName1,
+                  nucleotideIndex0 : nucleotideIndex0 + skippedBasePairIndex - _length,
+                  nucleotideIndex1 : nucleotideIndex1 - skippedBasePairIndex + _length,
+                  length : _length,
+                  type
+                });
+                previousSkippedBasePairIndex = skippedBasePairIndex;
+              }
+              skippedBasePairIndices.add(skippedBasePairIndex);
+            }
+            if (previousSkippedBasePairIndex !== length - 1) {
+              actualNewBasePairs.push({
+                rnaComplexIndex,
+                rnaMoleculeName0,
+                rnaMoleculeName1,
+                nucleotideIndex0 : nucleotideIndex0 + previousSkippedBasePairIndex + 1,
+                nucleotideIndex1 : nucleotideIndex1 - (previousSkippedBasePairIndex + 1),
+                length : length - previousSkippedBasePairIndex - 1
+              });
+            }
           }
           const repositionNucleotidesFlag = overridingRepositionNucleotidesFlag ?? (repositionNucleotidesAlongBasePairAxisFlag || repositionNucleotidesAlongHelixAxisFlag);
           if (repositionNucleotidesFlag) {
             const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
-            const nucleotidePropSets = newBasePairs.filter(function(basePair, index) {
+            const nucleotidePropSets = /*newBasePairs.filter(function(basePair, index) {
               return !avoidRepositioningIndicesSet.has(index);
-            }).map(function(basePair) {
+            })*/actualNewBasePairs.map(function(basePair) {
               const singularRnaComplexProps = rnaComplexProps[basePair.rnaComplexIndex];
               const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName0];
               const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName1];
@@ -333,9 +409,6 @@ export namespace BasePairsEditor {
               return nucleotideProps;
             });
             for (let propSetIndex = 0; propSetIndex < nucleotidePropSets.length; propSetIndex++) {
-              if (skippedBasePairIndices.includes(propSetIndex)) {
-                continue;
-              }
               const nucleotidePropSet = nucleotidePropSets[propSetIndex];
               if (nucleotidePropSet.length === 0) {
                 continue;
@@ -454,7 +527,9 @@ export namespace BasePairsEditor {
             basePairKeysToEditPerRnaComplex.delete.sort(compareBasePairKeys);
           }
           setBasePairKeysToEdit(basePairKeysToEdit);
-          _setBasePairs(newBasePairs);
+          _setBasePairs(actualNewBasePairs);
+          return actualNewBasePairs;
+          // _setBasePairs(newBasePairs);
         }
       },
       []
@@ -652,11 +727,12 @@ export namespace BasePairsEditor {
     setBasePairs : (
       newBasePairs : Array<BasePair>,
       avoidRepositioningIndicesSet? : Set<number>
-    ) => void,
+    ) => Array<BasePair>,
     approveBasePairs : (newBasePairs : Array<BasePair>) => void,
     initialBasePairs? : Array<InitialBasePair>,
     setBasePairKeysToEdit : Context.BasePair.SetKeysToEdit,
-    populateBasePairKeysToEdit : (basePair : BasePair, basePairKeysToEdit : Context.BasePair.KeysToEdit, addOrDelete : "add" | "delete") => void
+    populateBasePairKeysToEdit : (basePair : BasePair, basePairKeysToEdit : Context.BasePair.KeysToEdit, addOrDelete : "add" | "delete") => void,
+    // approveBasePairEdit : () => boolean
   };
 
   export namespace EditorTypeSelector {
@@ -955,7 +1031,8 @@ export namespace BasePairsEditor {
       defaultRnaMoleculeName0,
       defaultRnaMoleculeName1,
       setBasePairKeysToEdit,
-      populateBasePairKeysToEdit
+      populateBasePairKeysToEdit,
+      // approveBasePairEdit
     } = props;
     // Begin state data.
     const [
@@ -970,13 +1047,13 @@ export namespace BasePairsEditor {
       basePairs : Array<BasePair>,
       avoidRepositioningIndicesSet : Set<number>
     ) {
-      _setBasePairs(basePairs);
       try {
         approveBasePairs(basePairs);
-        setBasePairsHelper(
+        const actualNewBasePairs = setBasePairsHelper(
           basePairs,
           avoidRepositioningIndicesSet
         );
+        _setBasePairs(actualNewBasePairs);
       } catch (error) {
         if (typeof error === "string") {
           alert(error);
