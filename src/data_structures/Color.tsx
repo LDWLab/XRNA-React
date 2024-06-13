@@ -78,7 +78,7 @@ export const FOREST_GREEN : Color = {
 
 export function toCSS(color : Color) : string {
   let cssRgb = `${color.red}, ${color.green}, ${color.blue}`;
-  return color.alpha == null || Number.isNaN(color.alpha) ? `rgb(${cssRgb})` : `rgba(${cssRgb}, ${color.alpha / 255})`;
+  return color.alpha == null || Number.isNaN(color.alpha) || color.alpha === 255 ? `rgb(${cssRgb})` : `rgba(${cssRgb}, ${color.alpha / 255})`;
 }
 
 export function fromHexadecimal(hexadecimal : string, colorFormat : ColorFormat) : Color {

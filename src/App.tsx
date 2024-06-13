@@ -888,6 +888,21 @@ export namespace App {
                 const helperIndicesOfAffectedNucleotides = helper.indicesOfAffectedNucleotides;
                 const rightClickMenuAffectedNucleotideIndices = rightClickMenuAffectedNucleotideIndicesReference.current!;
                 const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
+                let freezeNucleotidesFlag = true;
+                const {
+                  rnaComplexIndex,
+                  rnaMoleculeName,
+                  nucleotideIndex
+                } = fullKeys;
+                if (rnaComplexIndex in indicesOfFrozenNucleotides) {
+                  const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
+                  if (rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
+                    const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName];
+                    if (indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+                      freezeNucleotidesFlag = false;
+                    }
+                  }
+                }
                 for (const [rnaComplexIndexAsString, helperIndicesOfAffectedNucleotidesPerRnaComplex] of Object.entries(helperIndicesOfAffectedNucleotides)) {
                   const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
                   for (const [rnaMoleculeName, helperIndicesOfAffectedNucleotidesPerRnaComplexPerRnaMolecule] of Object.entries(helperIndicesOfAffectedNucleotidesPerRnaComplex)) {
@@ -900,11 +915,10 @@ export namespace App {
                         newIndicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName] = new Set<number>();
                       }
                       const newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = newIndicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName];
-                      // Toggle the presence of nucleotideIndex in the Set.
-                      if (newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
-                        newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.delete(nucleotideIndex);
-                      } else {
+                      if (freezeNucleotidesFlag) {
                         newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.add(nucleotideIndex);
+                      } else if (newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
+                        newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.delete(nucleotideIndex);
                       }
                       setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
                       if (rnaComplexIndex in rightClickMenuAffectedNucleotideIndices) {
