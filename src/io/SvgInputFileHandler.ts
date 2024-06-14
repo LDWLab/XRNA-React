@@ -339,11 +339,38 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
             if (!Nucleotide.isSymbol(symbol)) {
               throw `"${symbol}" is not a valid nucleotide symbol.`;
             }
-            singularRnaMoleculeProps.nucleotideProps[nucleotideIndex - firstNucleotideIndex] = {
+            const singularNucleotideProps : Nucleotide.ExternalProps = {
               x : transformAsMatrix[4],
               y : transformAsMatrix[5],
               symbol
             };
+            singularRnaMoleculeProps.nucleotideProps[nucleotideIndex - firstNucleotideIndex] = singularNucleotideProps;
+            const font = structuredClone(Font.DEFAULT);
+            singularNucleotideProps.font = font
+            const fontStyle = svgElement.getAttribute("font-style");
+            if (fontStyle !== null) {
+              font.style = fontStyle;
+            }
+            const fontWeight = svgElement.getAttribute("font-weight");
+            if (fontWeight !== null) {
+              font.weight = fontWeight;
+            }
+            const fontFamily = svgElement.getAttribute("font-family");
+            if (fontFamily !== null) {
+              font.family = fontFamily;
+            }
+            const fontSize = svgElement.getAttribute("font-size");
+            if (fontSize !== null) {
+              font.size = fontSize;
+            }
+            const strokeWidth = svgElement.getAttribute("stroke-width");
+            if (strokeWidth !== null) {
+              singularNucleotideProps.strokeWidth = Number.parseFloat(strokeWidth);
+            }
+            const fill = svgElement.getAttribute("fill");
+            if (fill !== null) {
+              singularNucleotideProps.color = fromCssString(fill);
+            }
             // const formattedNucleotideIndexAsString = svgElement.getAttribute(SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX);
             // if (formattedNucleotideIndexAsString === null) {
             //   throw `Required SVG-element property "${SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX}" is missing.`;
