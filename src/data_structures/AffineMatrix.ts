@@ -129,7 +129,7 @@ const matrixParserRecord : Record<string, MatrixParser> = {
 
 export function parseAffineMatrix(inputString : string) : AffineMatrix {
     inputString = inputString.toLowerCase();
-    const regex = /^\s*([a-z]+)\s*\(([\d.,\s-]+)\)\s*$/;
+    const regex = /^\s*([a-z]+)\s*\(([\d.,\s-e]+)\)\s*$/;
     const regexMatch = inputString.match(regex);
     if (regexMatch == null) {
         throw "Unrecognized input-text format";

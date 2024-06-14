@@ -154,6 +154,14 @@ export namespace App {
       indicesOfFrozenNucleotides,
       setIndicesOfFrozenNucleotides
     ] = useState<FullKeysRecord>({});
+    const [
+      undoStack,
+      setUndoStack
+    ] = useState<Array<FullKeysRecord>>([]);
+    const [
+      redoStack,
+      setRedoStack
+    ] = useState<Array<FullKeysRecord>>([]);
     // Begin UI-relevant state data.
     const [
       tab,
@@ -399,6 +407,10 @@ export namespace App {
     indicesOfFrozenNucleotidesReference.current = indicesOfFrozenNucleotides;
     const rightClickMenuAffectedNucleotideIndicesReference = useRef<typeof rightClickMenuAffectedNucleotideIndices>();
     rightClickMenuAffectedNucleotideIndicesReference.current = rightClickMenuAffectedNucleotideIndices;
+    const undoStackReference = useRef<typeof undoStack>();
+    undoStackReference.current = undoStack;
+    const redoStackReference = useRef<typeof redoStack>();
+    redoStackReference.current = redoStack;
     
     const outputFileWritersMap = r2dtLegacyVersionFlag ? outputFileWritersMapAbsoluteJsonCoordinates : outputFileWritersMapRelativeJsonCoordinates;
     // Begin memo data.
@@ -903,6 +915,7 @@ export namespace App {
                     }
                   }
                 }
+                let clearRightClickMenuFlag = false;
                 for (const [rnaComplexIndexAsString, helperIndicesOfAffectedNucleotidesPerRnaComplex] of Object.entries(helperIndicesOfAffectedNucleotides)) {
                   const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
                   for (const [rnaMoleculeName, helperIndicesOfAffectedNucleotidesPerRnaComplexPerRnaMolecule] of Object.entries(helperIndicesOfAffectedNucleotidesPerRnaComplex)) {
@@ -920,27 +933,33 @@ export namespace App {
                       } else if (newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
                         newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.delete(nucleotideIndex);
                       }
-                      setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
                       if (rnaComplexIndex in rightClickMenuAffectedNucleotideIndices) {
                         const rightClickMenuAffectedNucleotideIndicesPerRnaComplex = rightClickMenuAffectedNucleotideIndices[rnaComplexIndex];
                         if (rnaMoleculeName in rightClickMenuAffectedNucleotideIndicesPerRnaComplex) {
                           const rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule = rightClickMenuAffectedNucleotideIndicesPerRnaComplex[rnaMoleculeName];
                           if (rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
-                            setRightClickMenuContent(
-                              <b
-                                style = {{
-                                  color : "red"
-                                }}
-                              >
-                                The current right-click menu is no longer valid, due to a newly frozen nucleotide
-                              </b>,
-                              {}
-                            );
+                            clearRightClickMenuFlag = true;
                           }
                         }
                       }
                     }
                   }
+                }
+                setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
+                const undoStack = undoStackReference.current!;
+                setUndoStack([...undoStack, indicesOfFrozenNucleotides]);
+                setRedoStack([]);
+                if (clearRightClickMenuFlag) {
+                  setRightClickMenuContent(
+                    <b
+                      style = {{
+                        color : "red"
+                      }}
+                    >
+                      The current right-click menu is no longer valid, due to a newly frozen nucleotide
+                    </b>,
+                    {}
+                  );
                 }
               } catch (error : any) {
                 if (typeof error === "object" && "errorMessage" in error) {
@@ -1088,7 +1107,6 @@ export namespace App {
     }
     const renderedRnaComplexes = useMemo(
       function() {
-        const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
         return <Context.Nucleotide.LabelsOnlyFlag.Provider
           value = {labelsOnlyFlag && tab == Tab.EDIT}
         >
@@ -3067,18 +3085,38 @@ export namespace App {
         tabRenderRecord
       ]
     );
-    const redo = useMemo(
+    const undo = useMemo(
       function() {
         return function() {
+          const undoStack = undoStackReference.current!;
+          const redoStack = redoStackReference.current!;
+          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
 
+          if (undoStack.length > 0) {
+            const newUndoStack = [...undoStack];
+            const previousState = newUndoStack.pop()!;
+            setUndoStack(newUndoStack);
+            setRedoStack([...redoStack, indicesOfFrozenNucleotides]);
+            setIndicesOfFrozenNucleotides(previousState);
+          }
         };
       },
       []
     );
-    const undo = useMemo(
+    const redo = useMemo(
       function() {
         return function() {
+          const undoStack = undoStackReference.current!;
+          const redoStack = redoStackReference.current!;
+          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
           
+          if (redoStack.length > 0) {
+            const newRedoStack = [...redoStack];
+            const nextState = newRedoStack.pop()!;
+            setRedoStack(newRedoStack);
+            setUndoStack([...undoStack, indicesOfFrozenNucleotides]);
+            setIndicesOfFrozenNucleotides(nextState);
+          }
         };
       },
       []
