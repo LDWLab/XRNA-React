@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Color, { BLACK, ColorFormat, DEFAULT_ALPHA, DEFAULT_COLOR_FORMAT, colorFormats, fromHexadecimal, toHexadecimal } from "../../../data_structures/Color";
 import Wheel from '@uiw/react-color-wheel';
 import { rgbaToHsva, hsvaToRgba } from '@uiw/color-convert';
 import ShadeSlider from '@uiw/react-color-shade-slider';
 import { Collapsible } from "../Collapsible";
+import { Context } from "../../../context/Context";
 
 export namespace ColorEditor {
   enum EditMode {
@@ -22,7 +23,7 @@ export namespace ColorEditor {
 
   export function Component(props : Props) {
     let {
-      setColorHelper,
+      setColorHelper : _setColorHelper,
       color,
       children
     } = props;
@@ -64,6 +65,10 @@ export namespace ColorEditor {
       v : 100,
       a : 0
     });
+    const [
+      pushedColorStateFlag,
+      setPushedColorStateFlag
+    ] = useState(false);
     // Begin state-update helper functions.
     function setHexadecimalHelper(
       red : number,
@@ -98,6 +103,14 @@ export namespace ColorEditor {
         a : alpha
       }));
     }
+    function setColorHelper(newColor : Color) {
+      if (!pushedColorStateFlag) {
+        pushToUndoStack();
+      }
+      _setColorHelper(newColor);
+      setPushedColorStateFlag(true);
+    }
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin effects.
     useEffect(
       function() {

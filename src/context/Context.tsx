@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import { RnaComplexKey, RnaMoleculeKey, NucleotideKey, FullKeys } from "../App";
+import { RnaComplexKey, RnaMoleculeKey, NucleotideKey, FullKeys, RnaComplexProps } from "../App";
 import { RnaComplex as _RnaComplex } from "../components/app_specific/RnaComplex";
 import { Nucleotide as _Nucleotide } from "../components/app_specific/Nucleotide";
 import { LabelContent as _LabelContent } from "../components/app_specific/LabelContent";
@@ -35,6 +35,7 @@ export namespace Context {
       setX : (x : number) => void
     };
     export const IndicesOfFrozenNucleotides = createContext<Record<RnaComplexKey, Record<RnaMoleculeKey, Set<NucleotideKey>>>>({});
+    export const PushToUndoStack = createContext<() => void>(function() { /* Do nothing. */});
   }
 
   export namespace RnaComplex {

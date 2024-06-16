@@ -259,8 +259,10 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     }
     return <>
       <b>
-        {tab} all nucleotides of the same color (red = {color.red}, green = {color.green}, blue = {color.blue}, alpha = {color.alpha ?? DEFAULT_ALPHA}):
+        {tab} all nucleotides of the same color:
       </b>
+      <br/>
+      (red = {color.red}, green = {color.green}, blue = {color.blue}, alpha = {color.alpha ?? DEFAULT_ALPHA}):
       <br/>
       {menu}
     </>;

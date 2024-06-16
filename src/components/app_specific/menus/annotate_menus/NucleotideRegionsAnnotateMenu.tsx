@@ -95,6 +95,7 @@ export namespace NucleotideRegionsAnnotateMenu {
     // Begin context data.
     const averageDistancesFromContext = useContext(Context.BasePair.AverageDistances);
     const labelContentDefaultStyles = useContext(Context.Label.Content.DefaultStyles);
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin state data.
     const [
       affectLabelLineFlag,
@@ -548,6 +549,7 @@ export namespace NucleotideRegionsAnnotateMenu {
       </Collapsible.Component>
       <button
         onClick = {function(e) {
+          pushToUndoStack();
           performAnnotationAction(AnnotationAction.CREATE);
         }}
       >
@@ -556,6 +558,7 @@ export namespace NucleotideRegionsAnnotateMenu {
       <br/>
       <button
         onClick = {function(e) {
+          pushToUndoStack();
           performAnnotationAction(
             AnnotationAction.DELETE,
             1

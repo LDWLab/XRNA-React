@@ -1,5 +1,7 @@
+import { useContext, useState } from "react";
 import Font from "../../../data_structures/Font";
 import { Collapsible } from "../Collapsible";
+import { Context } from "../../../context/Context";
 
 export namespace FontEditor {
   export type Props = Font & {
@@ -12,8 +14,20 @@ export namespace FontEditor {
       style,
       weight,
       size,
-      setFont
+      setFont : _setFont
     } = props;
+    const [
+      pushedFontStateFlag,
+      setPushedFontStateFlag
+    ] = useState(false);
+    function setFont(newFont : Font) {
+      if (!pushedFontStateFlag) {
+        pushToUndoStack();
+      }
+      _setFont(newFont);
+      setPushedFontStateFlag(true);
+    }
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     return <Collapsible.Component
       title = "Font"
     >

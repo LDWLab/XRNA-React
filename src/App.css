@@ -13,3 +13,13 @@
             user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome, Edge, Opera and Firefox */
 }
+
+#closeRightClickMenuButton {
+  background-color : darkgray;
+  border : none;
+}
+
+#closeRightClickMenuButton:hover {
+  background-color : maroon;
+  color : white;
+}

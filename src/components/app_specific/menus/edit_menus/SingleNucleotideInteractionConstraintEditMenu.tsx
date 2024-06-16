@@ -57,15 +57,15 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
     // Begin state data.
     const [
       symbol,
-      setSymbol
+      _setSymbol
     ] = useState(singularNucleotideProps.symbol);
     const [
       x,
-      setX
+      _setX
     ] = useState(singularNucleotideProps.x);
     const [
       y,
-      setY
+      _setY
     ] = useState(singularNucleotideProps.y);
     const [
       color,
@@ -75,6 +75,38 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
       font,
       setFont
     ] = useState(singularNucleotideProps.font ?? Font.DEFAULT);
+    const [
+      symbolChangedFlag,
+      setSymbolChangedFlag
+    ] = useState(false);
+    const [
+      positionChangedFlag,
+      setPositionChangedFlag
+    ] = useState(false);
+    // Begin state-associated helper functions.
+    function setSymbol(newSymbol : Nucleotide.Symbol) {
+      if (!symbolChangedFlag) {
+        pushtoUndoStack();
+      }
+      _setSymbol(newSymbol);
+      setSymbolChangedFlag(true);
+    }
+    function setX(newX : number) {
+      if (!positionChangedFlag) {
+        pushtoUndoStack();
+      }
+      _setX(newX);
+      setPositionChangedFlag(true);
+    }
+    function setY(newY : number) {
+      if (!positionChangedFlag) {
+        pushtoUndoStack();
+      }
+      _setY(newY);
+      setPositionChangedFlag(true);
+    }
+    // Begin context data.
+    const pushtoUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin memo data.
     const previousNucleotidePosition : Vector2D | undefined = useMemo(
       function() {
@@ -128,9 +160,9 @@ export namespace SingleNucleotideInteractionConstraintEditMenu {
     // Begin effects.
     useEffect(
       function() {
-        setSymbol(singularNucleotideProps.symbol);
-        setX(singularNucleotideProps.x);
-        setY(singularNucleotideProps.y);
+        _setSymbol(singularNucleotideProps.symbol);
+        _setX(singularNucleotideProps.x);
+        _setY(singularNucleotideProps.y);
       },
       [
         fullKeys,

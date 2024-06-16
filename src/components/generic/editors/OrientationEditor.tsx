@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Vector2D, add, asAngle, distance, orthogonalizeLeft, projectAndReject, scaleUp, subtract, toCartesian, toPolar } from "../../../data_structures/Vector2D";
 import InputWithValidator from "../InputWithValidator";
 import { Context } from "../../../context/Context";
@@ -7,7 +7,7 @@ export namespace OrientationEditor {
   export type Props = {
     initialCenter : Vector2D,
     positions : Array<Vector2D>,
-    onUpdatePositions : () => void,
+    onUpdatePositions : (pushToUndoStackFlag : boolean) => void,
     useDegreesFlag : boolean,
     normal : Vector2D,
     initialAngle? : number | undefined,
@@ -32,6 +32,7 @@ export namespace OrientationEditor {
     } = props;
     // Begin context data.
     const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin memo data.
     const initialAngleNullCoalesced = useMemo(
       function() {
@@ -102,6 +103,9 @@ export namespace OrientationEditor {
       flipPositionsFlag,
       setFlipPositionsFlag
     ] = useState(false);
+    // Begin reference data.
+    const scaleReference = useRef<number>();
+    scaleReference.current = scale;
     function updatePositionsHelper(
       centerX : number,
       centerY : number,
@@ -181,7 +185,7 @@ export namespace OrientationEditor {
           }
         }
       }
-      onUpdatePositions();
+      onUpdatePositions(!flipPositions && scale === scaleReference.current!);
     }
     // Begin effects.
     useEffect(
@@ -274,7 +278,7 @@ export namespace OrientationEditor {
         <InputWithValidator.Number
           value = {scale}
           setValue = {function(newScale : number) {
-            setScale(newScale);
+            pushToUndoStack();
             updatePositionsHelper(
               centerX,
               centerY,
@@ -282,6 +286,7 @@ export namespace OrientationEditor {
               newScale,
               flipPositionsFlag
             );
+            setScale(newScale);
           }}
           disabledFlag = {disabledFlagNullCoalesced}
         />
@@ -289,6 +294,7 @@ export namespace OrientationEditor {
       <br/>
       <button
         onClick = {function() {
+          pushToUndoStack();
           const newFlipPositionsFlag = !flipPositionsFlag;
           setFlipPositionsFlag(newFlipPositionsFlag)
           updatePositionsHelper(
@@ -310,7 +316,7 @@ export namespace OrientationEditor {
     boundingVector0 : Vector2D,
     boundingVector1 : Vector2D,
     positions : Array<Vector2D>,
-    onUpdatePositions : () => void,
+    onUpdatePositions : (pushToUndoStackFlag : boolean) => void,
     useDegreesFlag : boolean,
     orthogonalizeHelper? : ((v : Vector2D) => Vector2D) | undefined,
     initialAngle? : number | undefined,

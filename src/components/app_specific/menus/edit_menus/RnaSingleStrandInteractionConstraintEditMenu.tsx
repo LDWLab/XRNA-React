@@ -42,6 +42,7 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
     const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
     const settingsRecord = useContext(Context.App.Settings);
     const repositionAnnotationsFlag = settingsRecord[Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] as boolean;
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin state data.
     const [
       orientation,
@@ -49,7 +50,7 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
     ] = useState<Orientation>(getOrientation());
     const [
       displacementAlongNormal,
-      setDisplacementAlongNormal
+      _setDisplacementAlongNormal
     ] = useState(getDisplacementAlongNormal());
     const [
       color,
@@ -59,10 +60,18 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
       font,
       setFont
     ] = useState(initialFont);
+    const [
+      displacementAlongNormalChangedFlag,
+      setDisplacementAlongNormalChangedFlag
+    ] = useState(false);
+    const [
+      orientationChangedFlag,
+      setOrientationChangedFlag
+    ] = useState(false);
     // Begin effects
     useEffect(
       function() {
-        setDisplacementAlongNormal(getDisplacementAlongNormal());
+        _setDisplacementAlongNormal(getDisplacementAlongNormal());
         _setOrientation(getOrientation());
       },
       [resetDataTrigger]
@@ -71,12 +80,23 @@ export namespace RnaSingleStrandInteractionConstraintEditMenu {
     function setOrientation(
       newOrientation : Orientation
     ) {
+      if (!orientationChangedFlag) {
+        pushToUndoStack();
+      }
       _setOrientation(newOrientation);
+      setOrientationChangedFlag(true);
       updateSingleStrandPositions(
         newOrientation,
         displacementAlongNormal,
         repositionAnnotationsFlag
       );
+    }
+    function setDisplacementAlongNormal(newDisplacementAlongNormal : number) {
+      if (!displacementAlongNormalChangedFlag) {
+        pushToUndoStack();
+      }
+      _setDisplacementAlongNormal(newDisplacementAlongNormal);
+      setDisplacementAlongNormalChangedFlag(true);
     }
     useEffect(
       function() {

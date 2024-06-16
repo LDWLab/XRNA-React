@@ -132,6 +132,7 @@ export function sortedArraySplice<T>(
       case HandleQueryNotFound.DO_NOTHING : {
         // Insert nothing.
         finalToBeInserted = [];
+        // Delete nothing.
         finalDeleteCount = 0;
         break;
       }

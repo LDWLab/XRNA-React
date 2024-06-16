@@ -26,7 +26,7 @@ export namespace RnaCycleInteractionConstraintEditMenu {
     const {
       initialRadius,
       minimumRadius,
-      updatePositionsHelper,
+      updatePositionsHelper : _updatePositionsHelper,
       cycleGraphNucleotides,
       branchNucleotides,
       rerender,
@@ -36,6 +36,7 @@ export namespace RnaCycleInteractionConstraintEditMenu {
     const resetDataTrigger = useContext(Context.OrientationEditor.ResetDataTrigger);
     const settingsRecord = useContext(Context.App.Settings);
     const repositionAnnotationsFlag = settingsRecord[Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] as boolean;
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin state data.
     const [
       radius,
@@ -49,6 +50,23 @@ export namespace RnaCycleInteractionConstraintEditMenu {
       font,
       setFont
     ] = useState(structuredClone(Font.DEFAULT));
+    const [
+      positionsHaveBeenUpdatedFlag,
+      setPositionsHaveBeenUpdatedFlag
+    ] = useState(false);
+    function updatePositionsHelper(
+      newRadius : number,
+      repositionAnnotationsFlag : boolean
+    ) {
+      if (!positionsHaveBeenUpdatedFlag) {
+        pushToUndoStack();
+      }
+      _updatePositionsHelper(
+        newRadius,
+        repositionAnnotationsFlag
+      );
+      setPositionsHaveBeenUpdatedFlag(true);
+    }
     // Begin effects.
     useEffect(
       function() {

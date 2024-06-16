@@ -7,6 +7,7 @@ import { Nucleotide } from "../../Nucleotide";
 import { Context } from "../../../../context/Context";
 import Font from "../../../../data_structures/Font";
 import { FontEditor } from "../../../generic/editors/FontEditor";
+import { AllInOneEditor } from "../../../../ui/InteractionConstraint/InteractionConstraints/AllInOneEditor";
 
 export namespace SingleBasePairInteractionConstraintEditMenu {
   export type Props = AppSpecificOrientationEditor.SimplifiedProps & {
@@ -62,7 +63,13 @@ export namespace SingleBasePairInteractionConstraintEditMenu {
     return <>
       Base-pair type: {props.basePairType.toLocaleLowerCase()}
       <br/>
-      <AppSpecificOrientationEditor.Simplified
+      <AllInOneEditor.Simplified
+        positions = {allNucleotides}
+        onUpdatePositions = {onUpdatePositions}
+        boundingVector0 = {boundingNucleotides[0]}
+        boundingVector1 = {boundingNucleotides[1]}
+      />
+      {/* <AppSpecificOrientationEditor.Simplified
         {...props}
         positions = {nucleotidesToAffect}
       />
@@ -85,7 +92,7 @@ export namespace SingleBasePairInteractionConstraintEditMenu {
           onUpdatePositions();
           setFont(newFont);
         }}
-      />
+      /> */}
     </>;
   }
 }

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import { RnaComplexProps, FullKeys, DragListener, NucleotideKey, RnaMoleculeKey, FullKeysRecord } from "../../../App";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
@@ -16,7 +16,7 @@ import Color from "../../../data_structures/Color";
 const EPSILON = 0.01;
 
 export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint {
-  private readonly rnaCycleBoundsText : string;
+  private readonly rnaCycleBoundsText : ReactNode;
   private readonly editMenuProps : RnaCycleInteractionConstraintEditMenu.Props;
   private readonly cycleIndices : Array<{
     rnaMoleculeName : RnaMoleculeKey,
@@ -804,7 +804,21 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const nucleotideIndices1 = cycleGraphNodes[boundingVector1ArrayIndex];
     const rnaMoleculeName1 = nucleotideIndices1.rnaMoleculeName;
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
-    this.rnaCycleBoundsText = `RNA cycle anchored by nucleotide #${nucleotideIndices0.nucleotideIndex + singularRnaMoleculeProps0.firstNucleotideIndex} in RNA molecule "${rnaMoleculeName0}" and nucleotide #${nucleotideIndices1.nucleotideIndex + singularRnaMoleculeProps1.firstNucleotideIndex} in RNA molecule "${rnaMoleculeName1}"`;
+    this.rnaCycleBoundsText = <>
+      Anchored by:
+      <br/>
+      Nucleotide #{nucleotideIndices0.nucleotideIndex + singularRnaMoleculeProps0.firstNucleotideIndex}
+      <br/>
+      In RNA molecule "{rnaMoleculeName0}"
+      <br/>
+      And
+      <br/>
+      Nucleotide #{nucleotideIndices1.nucleotideIndex + singularRnaMoleculeProps1.firstNucleotideIndex}
+      <br/>
+      In RNA molecule "{rnaMoleculeName1}"
+      <br/>
+      In RNA complex "{singularRnaComplexProps.name}"
+    </>;
     const branchNucleotides = new Array<Nucleotide.ExternalProps>();
     for (const branch of branches) {
       const { positionsToEdit } = branch;
@@ -926,8 +940,10 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     }
     return <>
       <b>
-        {tab} {this.rnaCycleBoundsText}:
+        {tab} RNA cycle:
       </b>
+      <br/>
+      {this.rnaCycleBoundsText}
       <br/>
       {menu}
     </>;

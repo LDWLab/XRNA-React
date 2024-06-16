@@ -1,18 +1,19 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Color, { BLACK, areEqual } from "../../../data_structures/Color";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { ColorEditor } from "../../../components/generic/editors/ColorEditor";
 import Font from "../../../data_structures/Font";
 import { FontEditor } from "../../../components/generic/editors/FontEditor";
+import { Context } from "../../../context/Context";
 
 export namespace AllInOneEditor {
-  export type Props = AppSpecificOrientationEditor.Props;
+  export type Props = AppSpecificOrientationEditor.Props
 
   export function Component(props : Props) {
     const {
       positions,
-      onUpdatePositions
+      onUpdatePositions : _onUpdatePositions
     } = props;
     const allNucleotides = positions as Array<Nucleotide.ExternalProps>;
     // Begin state data.
@@ -24,6 +25,19 @@ export namespace AllInOneEditor {
       font,
       setFont
     ] = useState(Font.DEFAULT);
+    const [
+      positionsChangedFlag,
+      setPositionsChangedFlag
+    ] = useState(false);
+    function onUpdatePositions(pushToUndoStackFlag : boolean) {
+      if (!positionsChangedFlag && pushToUndoStackFlag) {
+        pushToUndoStack();
+      }
+      _onUpdatePositions(false);
+      setPositionsChangedFlag(true);
+    }
+    // Begin context data.
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin effects.
     useEffect(
       function() {
@@ -62,6 +76,7 @@ export namespace AllInOneEditor {
     return <>
       <AppSpecificOrientationEditor.Component
         {...props}
+        onUpdatePositions = {onUpdatePositions}
       />
       <ColorEditor.Component
         color = {color}
@@ -70,7 +85,7 @@ export namespace AllInOneEditor {
             singularNucleotideProps.color = newColor;
           }
           setColor(newColor);
-          onUpdatePositions();
+          _onUpdatePositions(false);
         }}
       />
       <FontEditor.Component
@@ -80,7 +95,7 @@ export namespace AllInOneEditor {
             singularNucleotideProps.font = newFont;
           }
           setFont(newFont);
-          onUpdatePositions();
+          _onUpdatePositions(false);
         }}
       />
     </>;
@@ -91,7 +106,7 @@ export namespace AllInOneEditor {
   export function Simplified(props : SimplifiedProps) {
     const {
       positions,
-      onUpdatePositions
+      onUpdatePositions : _onUpdatePositions
     } = props;
     const allNucleotides = positions as Array<Nucleotide.ExternalProps>;
     // Begin state data.
@@ -103,6 +118,19 @@ export namespace AllInOneEditor {
       font,
       setFont
     ] = useState(Font.DEFAULT);
+    const [
+      positionsChangedFlag,
+      setPositionsChangedFlag
+    ] = useState(false);
+    function onUpdatePositions(pushToUndoStackFlag : boolean) {
+      if (!positionsChangedFlag && pushToUndoStackFlag) {
+        pushToUndoStack();
+      }
+      _onUpdatePositions(false);
+      setPositionsChangedFlag(true);
+    }
+    // Begin context data.
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin effects.
     useEffect(
       function() {
@@ -140,6 +168,7 @@ export namespace AllInOneEditor {
     return <>
       <AppSpecificOrientationEditor.Simplified
         {...props}
+        onUpdatePositions = {onUpdatePositions}
       />
       <ColorEditor.Component
         color = {color}
@@ -148,7 +177,7 @@ export namespace AllInOneEditor {
             singularNucleotideProps.color = newColor;
           }
           setColor(newColor);
-          onUpdatePositions();
+          _onUpdatePositions(false);
         }}
       />
       <FontEditor.Component
@@ -158,7 +187,7 @@ export namespace AllInOneEditor {
             singularNucleotideProps.font = newFont;
           }
           setFont(newFont);
-          onUpdatePositions();
+          _onUpdatePositions(false);
         }}
       />
     </>;

@@ -76,6 +76,7 @@ export namespace BasePairsEditor {
     const settingsRecord = useContext(Context.App.Settings);
     const averageDistances = useContext(Context.BasePair.AverageDistances);
     const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin state data.
     const [
       editorType,
@@ -1063,6 +1064,7 @@ export namespace BasePairsEditor {
         }
       }
     }
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin memo data
     const flattenedRnaComplexProps : Array<SingularFlattenedRnaComplexProps> = useMemo(
       function() {
@@ -1335,6 +1337,7 @@ export namespace BasePairsEditor {
                     height : "100%"
                   }}
                   onClick = {function() {
+                    pushToUndoStack();
                     const partialBasePair0 = partialBasePairs[0];
                     if (
                       partialBasePair0.rnaComplexIndex === undefined &&
@@ -1380,6 +1383,7 @@ export namespace BasePairsEditor {
                     height : "100%"
                   }}
                   onClick = {function() {
+                    pushToUndoStack();
                     const avoidRepositioningIndicesSet = new Set<number>();
                     for (let index = 0; index < basePairs.length; index++) {
                       avoidRepositioningIndicesSet.add(index);
@@ -1430,6 +1434,7 @@ export namespace BasePairsEditor {
               );
             }
             const addButtonOnClick = partialBasePairIndex === 0 ? function() {
+              pushToUndoStack();
               updateBasePairs();
               partialBasePair.rnaComplexIndex = undefined;
               partialBasePair.rnaMoleculeName0 = undefined;

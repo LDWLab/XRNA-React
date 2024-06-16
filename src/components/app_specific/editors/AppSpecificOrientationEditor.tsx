@@ -39,12 +39,12 @@ export namespace AppSpecificOrientationEditor {
               }
             }
           }
-          onUpdatePositions = function() {
+          onUpdatePositions = function(pushToUndoStackFlag : boolean) {
             for (const singularLabelLineProps of labelLinePropsArray) {
               // This causes a re-render of the LabelLine.
               singularLabelLineProps.points = [...singularLabelLineProps.points];
             }
-            props.onUpdatePositions();
+            props.onUpdatePositions(pushToUndoStackFlag);
           }
         }
         return {
@@ -104,12 +104,12 @@ export namespace AppSpecificOrientationEditor {
               }
             }
           }
-          onUpdatePositions = function() {
+          onUpdatePositions = function(pushToUndoStackFlag : boolean) {
             for (const singularLabelLineProps of labelLinePropsArray) {
               // This causes a re-render of the LabelLine.
               singularLabelLineProps.points = [...singularLabelLineProps.points];
             }
-            props.onUpdatePositions();
+            props.onUpdatePositions(pushToUndoStackFlag);
           }
         }
         return {
