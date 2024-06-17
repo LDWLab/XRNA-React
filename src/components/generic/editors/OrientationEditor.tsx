@@ -103,6 +103,14 @@ export namespace OrientationEditor {
       flipPositionsFlag,
       setFlipPositionsFlag
     ] = useState(false);
+    const [
+      scaleChangedFlag,
+      setScaleChangedFlag
+    ] = useState(false);
+    const [
+      flippedFlag,
+      setFlippedFlag
+    ] = useState(false);
     // Begin reference data.
     const scaleReference = useRef<number>();
     scaleReference.current = scale;
@@ -278,7 +286,10 @@ export namespace OrientationEditor {
         <InputWithValidator.Number
           value = {scale}
           setValue = {function(newScale : number) {
-            pushToUndoStack();
+            if (!scaleChangedFlag) {
+              pushToUndoStack();
+              setScaleChangedFlag(true);
+            }
             updatePositionsHelper(
               centerX,
               centerY,
@@ -294,7 +305,10 @@ export namespace OrientationEditor {
       <br/>
       <button
         onClick = {function() {
-          pushToUndoStack();
+          if (!flippedFlag) {
+            pushToUndoStack();
+            setFlippedFlag(true);
+          }
           const newFlipPositionsFlag = !flipPositionsFlag;
           setFlipPositionsFlag(newFlipPositionsFlag)
           updatePositionsHelper(

@@ -88,9 +88,10 @@ enum SceneState {
 // Begin app-specific constants.
 const DIV_BUFFER_DIMENSION = 2;
 const MOUSE_OVER_TEXT_FONT_SIZE = 20;
-const UPLOAD_BUTTON_TEXT = "Upload";
-const DOWNLOAD_ROW_TEXT = "Output File";
-const DOWNLOAD_BUTTON_TEXT = "Download";
+const OPEN_ROW_TEXT = "Open File";
+const OPEN_BUTTON_TEXT = "Open";
+const SAVE_ROW_TEXT = "Save File";
+const SAVE_BUTTON_TEXT = "Save";
 const TRANSLATION_TEXT = "Translation";
 const SCALE_TEXT = "Scale";
 const RESET_TEXT = "Reset";
@@ -312,6 +313,10 @@ export namespace App {
       listenForResizeFlag,
       setListenForResizeFlag
     ] = useState(false);
+    const [
+      outputFileHandle,
+      setOutputFileHandle
+    ] = useState<any>(undefined);
     // Begin state-relevant helper functions.
     function setDragListener(
       dragListener : DragListener | null,
@@ -410,6 +415,10 @@ export namespace App {
     redoStackReference.current = redoStack;
     const basePairKeysToEditReference = useRef<typeof basePairKeysToEdit>();
     basePairKeysToEditReference.current = basePairKeysToEdit;
+    const complexDocumentNameReference = useRef<typeof complexDocumentName>();
+    complexDocumentNameReference.current = complexDocumentName;
+    const outputFileHandleReference = useRef<typeof outputFileHandle>();
+    outputFileHandleReference.current = outputFileHandle;
     
     const outputFileWritersMap = r2dtLegacyVersionFlag ? outputFileWritersMapAbsoluteJsonCoordinates : outputFileWritersMapRelativeJsonCoordinates;
     // Begin memo data.
@@ -1353,8 +1362,102 @@ export namespace App {
       },
       []
     );
+    const undoRedoHelper = useMemo(
+      function() {
+        return function(
+          fromStack : UndoRedoStack,
+          toStack : UndoRedoStack,
+          setFromStack : (fromStack : UndoRedoStack) => void,
+          setToStack : (toStack : UndoRedoStack) => void
+        ) {
+          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
+          const rnaComplexProps = rnaComplexPropsReference.current!;
+          const rightClickMenuAffectedNucleotideIndices = rightClickMenuAffectedNucleotideIndicesReference.current!;
+
+          // console.log(setFromStack === setUndoStack ? "undo()" : "redo()", "fromStack.length", fromStack.length);
+          if (Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0) {
+            alert("Cannot use undo/redo while a right-click menu is open. Close the menu first to use undo/redo.");
+          } else if (fromStack.length > 0) {
+            const newFromStack = [...fromStack];
+            const copiedState = newFromStack.pop()!;
+            const {
+              data,
+              dataType
+            } = copiedState;
+            setFromStack(newFromStack);
+            switch (dataType) {
+              case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides : {
+                setToStack([
+                  ...toStack,
+                  {
+                    data : indicesOfFrozenNucleotides,
+                    dataType
+                  }
+                ]);
+                break;
+              }
+              case UndoRedoStacksDataTypes.RnaComplexProps : {
+                setToStack([
+                  ...toStack,
+                  {
+                    data : rnaComplexProps,
+                    dataType
+                  }
+                ]);
+                break;
+              }
+            }
+
+            switch (dataType) {
+              case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides : {
+                setIndicesOfFrozenNucleotides(data as FullKeysRecord);
+                break;
+              }
+              case UndoRedoStacksDataTypes.RnaComplexProps : {
+                setBasePairKeysToEdit({});
+                setRnaComplexProps(data as RnaComplexProps);
+                break;
+              }
+              default : {
+                throw "Unhandled switch case";
+              }
+            }
+          }
+        };
+      },
+      []
+    );
+    const undo = useMemo(
+      function() {
+        return function() {
+          undoRedoHelper(
+            undoStackReference.current!,
+            redoStackReference.current!,
+            setUndoStack,
+            setRedoStack
+          );
+        }
+      },
+      []
+    );
+    const redo = useMemo(
+      function() {
+        return function() {
+          undoRedoHelper(
+            redoStackReference.current!,
+            undoStackReference.current!,
+            setRedoStack,
+            setUndoStack
+          );
+        }
+      },
+      []
+    );
     const interactionConstraintSelectHtmlElement = useMemo(
       function() {
+        const undoStack = undoStackReference.current!;
+        const redoStack = redoStackReference.current!;
+        // console.log();
         const interactionConstraint = interactionConstraintReference.current as InteractionConstraint.Enum | undefined;
         return <>
           {INTERACTION_CONSTRAINT_TEXT}:&nbsp;
@@ -1414,13 +1517,30 @@ export namespace App {
             </label>
             <br/>
           </>}
+          <button
+            onClick = {undo}
+            title = "undo"
+            disabled = {undoStack.length === 0}
+          >
+            ↺
+          </button>
+          <button
+            onClick = {redo}
+            title = "redo"
+            disabled = {redoStack.length === 0}
+          >
+            ↻
+          </button>
+          <br/>
         </>;
       },
       [
         interactionConstraint,
         interactionConstraintOptions,
         labelsOnlyFlag,
-        tab
+        tab,
+        undoStack,
+        redoStack
       ]
     );
     const tabInstructionsRecord : Record<Tab, JSX.Element> = useMemo(
@@ -1452,7 +1572,7 @@ export namespace App {
                 }}
               >
                 <li>
-                  Click the "{UPLOAD_BUTTON_TEXT}" button (Ctrl + O).
+                  Click the "{OPEN_BUTTON_TEXT}" button (Ctrl + O).
                 </li>
                 <li>
                   Select a file with one of the following supported input-file extensions:
@@ -1483,7 +1603,7 @@ export namespace App {
             <Collapsible.Component
               title = "How to download output files"
             >
-              Within the "{DOWNLOAD_ROW_TEXT}" row:
+              Within the "{SAVE_ROW_TEXT}" row:
               <ol
                 style = {{
                   margin : 0
@@ -1514,7 +1634,7 @@ export namespace App {
                   </ul>
                 </li>
                 <li>
-                  Click the "{DOWNLOAD_BUTTON_TEXT}" button (Ctrl + S)
+                  Click the "{SAVE_BUTTON_TEXT}" button (Ctrl + S)
                 </li>
               </ol>
             </Collapsible.Component>
@@ -2536,7 +2656,7 @@ export namespace App {
       function() {
         const settingsRecord = settingsRecordReference.current as SettingsRecord;
         return <label>
-          Input File:&nbsp;
+          {OPEN_ROW_TEXT}:&nbsp;
           <input
             ref = {function(x) {
               if (x !== null) {
@@ -2610,17 +2730,17 @@ export namespace App {
                 (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
               }}
             >
-              {UPLOAD_BUTTON_TEXT}
+              {OPEN_BUTTON_TEXT}
             </button>
             <em>
               {inputFileNameAndExtension}
             </em>
             <br/>
             <label>
-              {DOWNLOAD_ROW_TEXT}:&nbsp;
+              {SAVE_ROW_TEXT}:&nbsp;
               <input
                 type = "text"
-                placeholder = "output_file_name"
+                placeholder = "save_file_name"
                 value = {outputFileName}
                 onChange = {function(e) {
                   setOutputFileName(e.target.value);
@@ -2654,18 +2774,30 @@ export namespace App {
               ref = {function(htmlButtonElement : HTMLButtonElement) {
                 downloadOutputFileHtmlButtonReference.current = htmlButtonElement;
               }}
-              onClick = {function() {
-                const downloadAnchor = downloadOutputFileHtmlAnchorReference.current as HTMLAnchorElement;
-                downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(outputFileWritersMap[outputFileExtension as OutputFileExtension](
-                  rnaComplexProps,
-                  complexDocumentName
-                ))}`;
-                downloadAnchor.click();
+              onClick = {async function() {
+                const outputFileHandle = outputFileHandleReference.current!;
+                let localOutputFileHandle = outputFileHandle;
+                if (outputFileHandle === undefined) {
+                  localOutputFileHandle = await getOutputFileHandle();
+                  setOutputFileHandle(localOutputFileHandle);
+                }
+                saveFile(localOutputFileHandle);
               }}
               disabled = {downloadButtonErrorMessage !== ""}
               title = {downloadButtonErrorMessage}
             >
-              {DOWNLOAD_BUTTON_TEXT}
+              {SAVE_BUTTON_TEXT}
+            </button>
+            <button
+              onClick = {async function() {
+                const localOutputFileHandle = await getOutputFileHandle();
+                setOutputFileHandle(localOutputFileHandle);
+                saveFile(localOutputFileHandle);
+              }}
+              disabled = {downloadButtonErrorMessage !== ""}
+              title = {downloadButtonErrorMessage}
+            >
+              Save As
             </button>
             <a
               ref = {downloadOutputFileHtmlAnchorReference}
@@ -3122,113 +3254,6 @@ export namespace App {
         tabRenderRecord
       ]
     );
-    const undoRedoHelper = useMemo(
-      function() {
-        return function(
-          fromStack : UndoRedoStack,
-          toStack : UndoRedoStack,
-          setFromStack : (fromStack : UndoRedoStack) => void,
-          setToStack : (toStack : UndoRedoStack) => void
-        ) {
-          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
-          const rnaComplexProps = rnaComplexPropsReference.current!;
-          const rightClickMenuAffectedNucleotideIndices = rightClickMenuAffectedNucleotideIndicesReference.current!;
-
-          // console.log(setFromStack === setUndoStack ? "undo()" : "redo()", "fromStack.length", fromStack.length);
-          if (Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0) {
-            alert("Cannot use undo/redo while a right-click menu is open. Close the menu first to use undo/redo.");
-          } else if (fromStack.length > 0) {
-            const newFromStack = [...fromStack];
-            const copiedState = newFromStack.pop()!;
-            const {
-              data,
-              dataType
-            } = copiedState;
-            setFromStack(newFromStack);
-            switch (dataType) {
-              case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides : {
-                setToStack([
-                  ...toStack,
-                  {
-                    data : indicesOfFrozenNucleotides,
-                    dataType
-                  }
-                ]);
-                break;
-              }
-              case UndoRedoStacksDataTypes.RnaComplexProps : {
-                setToStack([
-                  ...toStack,
-                  {
-                    data : rnaComplexProps,
-                    dataType
-                  }
-                ]);
-                break;
-              }
-            }
-
-            switch (dataType) {
-              case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides : {
-                setIndicesOfFrozenNucleotides(data as FullKeysRecord);
-                break;
-              }
-              case UndoRedoStacksDataTypes.RnaComplexProps : {
-                setBasePairKeysToEdit({});
-                setRnaComplexProps(data as RnaComplexProps);
-                break;
-              }
-              default : {
-                throw "Unhandled switch case";
-              }
-            }
-          }
-        };
-      },
-      []
-    );
-    const undo = useMemo(
-      function() {
-        return function() {
-          undoRedoHelper(
-            undoStackReference.current!,
-            redoStackReference.current!,
-            setUndoStack,
-            setRedoStack
-          );
-        }
-      },
-      []
-    );
-    const redo = useMemo(
-      function() {
-        return function() {
-          undoRedoHelper(
-            redoStackReference.current!,
-            undoStackReference.current!,
-            setRedoStack,
-            setUndoStack
-          );
-        }
-        // return function() {
-        //   const undoStack = undoStackReference.current!;
-        //   const redoStack = redoStackReference.current!;
-        //   const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
-          
-        //   if (redoStack.length > 0) {
-        //     const newRedoStack = [...redoStack];
-        //     const nextState = newRedoStack.pop()!;
-        //     setRedoStack(newRedoStack);
-        //     setUndoStack([...undoStack, {
-        //       data : indicesOfFrozenNucleotides,
-        //       dataType : UndoRedoStacksDataTypes.
-        //     }]);
-        //     setIndicesOfFrozenNucleotides(nextState);
-        //   }
-        // };
-      },
-      []
-    );
     const pushToUndoStack = useMemo(
       function() {
         return function() {
@@ -3392,6 +3417,44 @@ export namespace App {
         };
       },
       [settingsRecord]
+    );
+    const getOutputFileHandle = useMemo(
+      function() {
+        return async function() {
+          const outputFileName = outputFileNameReference.current!;
+          const outputFileExtension = outputFileExtensionReference.current!;
+          if (!("showSaveFilePicker" in window) || typeof window.showSaveFilePicker !== "function") {
+            return null;
+          }
+          return await window.showSaveFilePicker({
+            suggestedName : `${outputFileName}.${outputFileExtension}`,
+            types : [{
+              description : "",
+              accept: {
+                'text/plain': [`.${outputFileExtension}`],
+              }
+            }]
+          });
+        }
+      },
+      []
+    );
+    const saveFile = useMemo(
+      function() {
+        return async function(handle : any) {
+          const outputFileExtension = outputFileExtensionReference.current!;
+          const rnaComplexProps = rnaComplexPropsReference.current!;
+          const complexDocumentName = complexDocumentNameReference.current!;
+
+          const writable = await handle.createWritable();
+          await writable.write(outputFileWritersMap[outputFileExtension as OutputFileExtension](
+            rnaComplexProps,
+            complexDocumentName
+          ));
+          await writable.close();
+        }
+      },
+      []
     );
     // Begin effects.
     useEffect(
