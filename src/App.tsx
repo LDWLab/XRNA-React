@@ -1374,7 +1374,6 @@ export namespace App {
           const rnaComplexProps = rnaComplexPropsReference.current!;
           const rightClickMenuAffectedNucleotideIndices = rightClickMenuAffectedNucleotideIndicesReference.current!;
 
-          // console.log(setFromStack === setUndoStack ? "undo()" : "redo()", "fromStack.length", fromStack.length);
           if (Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0) {
             alert("Cannot use undo/redo while a right-click menu is open. Close the menu first to use undo/redo.");
           } else if (fromStack.length > 0) {
@@ -1457,7 +1456,6 @@ export namespace App {
       function() {
         const undoStack = undoStackReference.current!;
         const redoStack = redoStackReference.current!;
-        // console.log();
         const interactionConstraint = interactionConstraintReference.current as InteractionConstraint.Enum | undefined;
         return <>
           {INTERACTION_CONSTRAINT_TEXT}:&nbsp;

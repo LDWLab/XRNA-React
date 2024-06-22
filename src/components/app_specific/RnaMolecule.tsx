@@ -30,6 +30,7 @@ export namespace RnaMolecule {
     const updateLabelContentDefaultStyle = useContext(Context.Label.Content.UpdateDefaultStyle);
     const settingsRecord = useContext(Context.App.Settings);
     const displayContourLineFlag = settingsRecord[Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] as boolean;
+    const contourLineWidth = settingsRecord[Setting.CONTOUR_LINE_WIDTH] as number;
     // Begin memo data
     // const flattenedNucleotideProps = useMemo(
     //   function() {
@@ -207,7 +208,7 @@ export namespace RnaMolecule {
         }).join(" ")}
         pointerEvents = "none"
         stroke = "black"
-        strokeWidth = {DEFAULT_STROKE_WIDTH}
+        strokeWidth = {contourLineWidth}
         fill = "none"
       />}
       {!displayContourLineFlag && <Context.RnaMolecule.FirstNucleotideIndex.Provider

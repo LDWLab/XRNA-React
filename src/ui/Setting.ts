@@ -1,4 +1,5 @@
 import { BasePairsEditor } from "../components/app_specific/editors/BasePairsEditor";
+import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
 
 export enum Setting {
   COPY_FILE_NAME = "copy_file_name",
@@ -13,6 +14,7 @@ export enum Setting {
   MISMATCH_BASE_PAIR_DISTANCE = "mismatch_base_pair_distance",
   DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS = "distance_between_contiguous_base_pairs",
   REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE = "replace_nucleotides_with_contour_line",
+  CONTOUR_LINE_WIDTH = "contour_line_width",
   DARK_MODE = "dark_mode",
   DISABLE_NAVIGATE_AWAY_PROMPT = "disable_navigate_away_prompt"
 }
@@ -32,6 +34,7 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.MISMATCH_BASE_PAIR_DISTANCE] : "Mismatch base-pair distance",
   [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : "Distance between contiguous base pairs",
   [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : "Replace nucleotides with contour line",
+  [Setting.CONTOUR_LINE_WIDTH] : "Contour-line width",
   [Setting.DARK_MODE] : "Dark mode",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the navigate-away prompt"
 };
@@ -49,6 +52,7 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.MISMATCH_BASE_PAIR_DISTANCE] : "The default distance between base pairs which are \"mismatch.\" Applied when formatting base pairs",
   [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : "The default distance between base pairs which are contiguous. Applied when formatting base pairs",
   [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : "Display only a countour line per RNA molecule, instead of individual nucleotides",
+  [Setting.CONTOUR_LINE_WIDTH] : "Width of the contour line (applied when replacing nucleotides with a contour line)",
   [Setting.DARK_MODE] : "Change background colors and scene colors to darken the scene",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the prompt asking you to save your work, when you navigate away from this page"
 };
@@ -66,6 +70,7 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairs
   [Setting.MISMATCH_BASE_PAIR_DISTANCE] : "number",
   [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : "number",
   [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : "boolean",
+  [Setting.CONTOUR_LINE_WIDTH] : "number",
   [Setting.DARK_MODE] : "boolean",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "boolean"
 };
@@ -91,6 +96,7 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.MISMATCH_BASE_PAIR_DISTANCE] : NaN,
   [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] : NaN,
   [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : false,
+  [Setting.CONTOUR_LINE_WIDTH] : DEFAULT_STROKE_WIDTH,
   [Setting.DARK_MODE] : false,
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : false
 };
