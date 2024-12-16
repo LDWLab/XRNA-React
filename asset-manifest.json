@@ -1,16 +1,16 @@
 {
   "files": {
     "main.css": "/XRNA-React/static/css/main.91f7832c.css",
-    "main.js": "/XRNA-React/static/js/main.9c581443.js",
+    "main.js": "/XRNA-React/static/js/main.d1fe422d.js",
     "static/js/787.014ccd8a.chunk.js": "/XRNA-React/static/js/787.014ccd8a.chunk.js",
     "static/media/loading.svg": "/XRNA-React/static/media/loading.f1a01895d088c97c0124cff5527c41fb.svg",
     "index.html": "/XRNA-React/index.html",
     "main.91f7832c.css.map": "/XRNA-React/static/css/main.91f7832c.css.map",
-    "main.9c581443.js.map": "/XRNA-React/static/js/main.9c581443.js.map",
+    "main.d1fe422d.js.map": "/XRNA-React/static/js/main.d1fe422d.js.map",
     "787.014ccd8a.chunk.js.map": "/XRNA-React/static/js/787.014ccd8a.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.91f7832c.css",
-    "static/js/main.9c581443.js"
+    "static/js/main.d1fe422d.js"
   ]
 }
