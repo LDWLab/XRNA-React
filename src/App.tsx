@@ -44,6 +44,7 @@ export const VIEWPORT_TRANSLATE_GROUP_0_HTML_ID = "viewport_translate_group_0";
 export const VIEWPORT_TRANSLATE_GROUP_1_HTML_ID = "viewport_translate_group_1";
 export const SVG_BACKGROUND_HTML_ID = "svg_background";
 export const SVG_SCENE_GROUP_HTML_ID = "svg_scene_group";
+export const MARGIN_LEFT = 7;
 
 export const LABEL_CLASS_NAME = "label";
 export const NO_STROKE_CLASS_NAME = "noStroke";
@@ -460,7 +461,7 @@ export namespace App {
     const sceneDimensionsReciprocals = useMemo(
       function() {
         return ({
-          width : 1 / sceneBounds.width,
+          width : 1 / (sceneBounds.width + MARGIN_LEFT),
           height : 1 / sceneBounds.height
         });
       },
@@ -1640,7 +1641,7 @@ export namespace App {
               title = "Demo"
             >
               <iframe
-                src = "https://youtube.com/embed/y4h2paLWHkw?vq=hd1080"
+                src = "https://youtube.com/embed/Pdpwbka8wgw?start=27&end=58"
                 allowFullScreen = {true}
                 width = {960}
                 height = {540}
@@ -1704,7 +1705,7 @@ export namespace App {
               title = "Demo"
             >
               <iframe
-                src = "https://youtube.com/embed/MIs1GuBH-gU"
+                src = "https://youtube.com/embed/Pdpwbka8wgw?start=58&end=93"
                 allowFullScreen = {true}
                 width = {960}
                 height = {540}
@@ -1732,7 +1733,7 @@ export namespace App {
                     Select a constraint. Then, left-click on a nucleotide. Drag it to change relevant nucleotide-position data, according to the behavior of the constraint.
                   </li>
                   <li>
-                    Middle-mouse-click and drag to select one or more nucleotide(s) or label(s). This will populate a menu which will allow you to precisely edit data, according to the behavior of an automatically determined constraint.
+                    Right-mouse-click and drag to select one or more nucleotide(s) or label(s). This will populate a menu which will allow you to precisely edit data, according to the behavior of an automatically determined constraint.
                   </li>
                   <li>
                     Select a constraint. Then, right-click on a nucleotide. This will populate a menu which will allow you to precisely edit data, according to the behavior of the constraint.
@@ -1762,7 +1763,7 @@ export namespace App {
               title = "Demo"
             >
               <iframe
-                src = "https://youtube.com/embed/tHl9gmLTn7M"
+                src = "https://youtube.com/embed/joGzg568zds"
                 allowFullScreen = {true}
                 width = {960}
                 height = {540}
@@ -1783,7 +1784,7 @@ export namespace App {
                 Do one of the following:
                 <ul>
                   <li>
-                    Middle-mouse-click and drag to select one or more nucleotide(s). This will populate a menu which will allow you to precisely format data, according to the behavior of an automatically determined constraint.
+                    Right-mouse-click and drag to select one or more nucleotide(s). This will populate a menu which will allow you to precisely format data, according to the behavior of an automatically determined constraint.
                   </li>
                   <li>
                     Select a constraint. Then, right-click on a nucleotide. This will populate a menu which will allow you to format base-pair data, according to the behavior of the constraint
@@ -1811,7 +1812,7 @@ export namespace App {
               title = "Demo"
             >
               <iframe
-                src = "https://youtube.com/embed/2lVp4qd5kz8"
+                src = "https://youtube.com/embed/MJJ-G9IyV6Q"
                 allowFullScreen = {true}
                 width = {960}
                 height = {540}
@@ -1836,7 +1837,7 @@ export namespace App {
                     Select a constraint. Then, right-click on a nucleotide. This will populate a menu which will allow you to annotate nucleotides, according to the behavior of the constraint
                   </li>
                   <li>
-                    Middle-mouse-click and drag to select one or more nucleotide(s). This will populate a menu which will allow you to annotate nucleotides, according to the behavior an automatically determined constraint
+                    Right-mouse click-and-drag to select one or more nucleotide(s). This will populate a menu which will allow you to annotate nucleotides, according to the behavior an automatically determined constraint
                   </li>
                 </ul>
               </li>
@@ -1861,7 +1862,7 @@ export namespace App {
               title = "Demo"
             >
               <iframe
-                src = "https://youtube.com/embed/4C5YhlsAbWU"
+                src = "https://youtube.com/embed/KZy5xFL2ZgM"
                 allowFullScreen = {true}
                 width = {960}
                 height = {540}
@@ -1878,7 +1879,7 @@ export namespace App {
               title = "Demo"
             >
               <iframe
-                src = "https://youtube.com/embed/K9woUfHEBmg"
+                src = "https://youtube.com/embed/Jil5XVPkLuc"
                 allowFullScreen = {true}
                 width = {960}
                 height = {540}
@@ -2689,7 +2690,7 @@ export namespace App {
               }
               let reader = new FileReader();
               reader.addEventListener("load", function(event) {
-                // Read the content of the settings file.
+                // Read the content of the input file.
                 parseInputFileContent(
                   (event.target as FileReader).result as string,
                   fileExtension.toLocaleLowerCase() as InputFileExtension
@@ -3074,7 +3075,7 @@ export namespace App {
                   title = "Demo"
                 >
                   <iframe
-                    src = "https://youtube.com/embed/IQhuC63lTRc"
+                    src = "https://youtube.com/embed/h56dluFPR3w"
                     allowFullScreen = {true}
                     width = {960}
                     height = {540}
@@ -3132,18 +3133,24 @@ export namespace App {
                   <li>
                     Ctrl + 0 - resets the properties of the "{Tab.VIEWPORT}" tab.
                   </li>
+                  <li>
+                    Ctrl + Z - undo
+                  </li>
+                  <li>
+                    Ctrl + Shift + Z (Ctrl + Y) - redo
+                  </li>
                 </ul>
                 <Collapsible.Component
                   title = "Demo"
                 >
                   <iframe
-                    src = "https://youtube.com/embed/evlD9BDW7U0"
+                    src = "https://youtube.com/embed/5QiSc445DyU"
                     allowFullScreen = {true}
                     width = {960}
                     height = {540}
                   />
                 </Collapsible.Component>
-                In order to have a more enjoyable and intuitive experience with XRNA.js, try middle-mouse click-and-drag to highlight nucleotides.
+                In order to have a more enjoyable and intuitive experience with XRNA.js, try right-mouse click-and-drag to highlight nucleotides.
                 <br/>
                 This will:
                 <ol
@@ -3162,12 +3169,22 @@ export namespace App {
                   title = "Demo"
                 >
                   <iframe
-                    src = "https://youtube.com/embed/pR54iebw1LI"
+                    src = "https://youtube.com/embed/5QiSc445DyU?start=130"
                     allowFullScreen = {true}
                     width = {960}
                     height = {540}
                   />
                 </Collapsible.Component>
+              </Collapsible.Component>
+              <Collapsible.Component
+                title = "Important File Formats"
+              >
+                <iframe
+                  src = "https://youtube.com/embed/lwlfTPwrD8Q"
+                  allowFullScreen = {true}
+                  width = {960}
+                  height = {540}
+                />
               </Collapsible.Component>
               <Collapsible.Component
                 title = "How to cite XRNA"
@@ -3704,7 +3721,8 @@ export namespace App {
                                     overflow : "hidden",
                                     background : "white",
                                     color : "black",
-                                    filter : filterInvert
+                                    filter : filterInvert,
+                                    marginLeft : `${MARGIN_LEFT}px`
                                   }}
                                   onMouseUp = {function() {
                                     setListenForResizeFlag(false);

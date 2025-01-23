@@ -160,6 +160,23 @@ export function fromCssString(
       alpha : Number.parseFloat(match[4]) * 255
     };
   }
+  match = /^rgb\(([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)\)$/.exec(cssString);
+  if (match !== null) {
+    return {
+      red : Number.parseFloat(match[1]),
+      green : Number.parseFloat(match[2]),
+      blue : Number.parseFloat(match[3])
+    };
+  }
+  match = /^rgba\(([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)\)$/.exec(cssString);
+  if (match !== null) {
+    return {
+      red : Number.parseFloat(match[1]),
+      green : Number.parseFloat(match[2]),
+      blue : Number.parseFloat(match[3]),
+      alpha : Number.parseFloat(match[4]) * 255
+    };
+  }
   match = /^\d+$/.exec(cssString);
   if (match !== null) {
     return fromNumber(
@@ -196,6 +213,14 @@ export function fromCssString(
     }
   }
   switch (cssString) {
+    case "none" : {
+      return {
+        red : 0,
+        blue : 0,
+        green : 0,
+        alpha : 0
+      };
+    }
     case "black" : {
       return {
         red : 0,

@@ -98,6 +98,7 @@ const SVG_PROPERTY_RECTANGLE_WIDTH = "rectangle_width";
 const SVG_PROPERTY_RECTANGLE_HEIGHT = "rectangle_height";
 
 const transformRegex = /matrix\(1\s+0\s+0\s+1\s+(-?[\d.]+)\s+(-?[\d.]+)\)/;
+let styles : Record<string, Record<string, Style> & { default? : Style }> & { defaults : Record<string, Style>, root? : Style } = { defaults : {} };
 
 function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgFileType) {
   const dataXrnaType = svgElement.getAttribute(SVG_PROPERTY_XRNA_TYPE);
@@ -203,6 +204,7 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
               basePairs : {}
             };
             const rnaComplexIndex = cache.rnaComplexProps.length;
+            cache.rnaComplexPropsByName[rnaComplexName] = cache.singularRnaComplexProps;
 
             const labelLinesPerRnaComplex : LabelLinesPerRnaComplex = [];
             cache.labelLinesPerRnaComplex = labelLinesPerRnaComplex;
@@ -796,6 +798,30 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
     }
     case SvgFileType.UNFORMATTED : {
       // TODO : Test these files!
+      let style : Style = {
+        ...styles.root
+      };
+      for (const _class of svgElement.classList) {
+        if (_class in styles.defaults) {
+          style = {
+            ...style,
+            ...styles.defaults[_class]
+          };
+        }
+      }
+      if (svgElement.tagName in styles) {
+        const stylesPerType = styles[svgElement.tagName];
+        for (const _class of svgElement.classList) {
+          if (_class in stylesPerType) {
+            const stylesPerTypePerClass = stylesPerType[_class];
+            style = {
+              ...style,
+              ...stylesPerTypePerClass
+            }
+          }
+        }
+      }
+      
       switch (svgElement.tagName) {
         case "circle" : {
           const requiredAttributes = {
@@ -810,14 +836,17 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
           const optionalAttributes = {
             fill : svgElement.getAttribute("fill")
           };
+          let fillAttribute = undefined;
           if (optionalAttributes.fill !== null) {
             optionalAttributes.fill = optionalAttributes.fill.trim();
+            fillAttribute = fromCssString(optionalAttributes.fill);
           }
           const basePairType = optionalAttributes.fill === null ? BasePair.Type.MISMATCH : BasePair.Type.WOBBLE;
           cache.basePairCentersPerRnaComplex.push({
             x : Number.parseFloat(requiredAttributes.cx as string),
             y : Number.parseFloat(requiredAttributes.cy as string),
-            basePairType
+            basePairType,
+            color : fillAttribute ?? style.fill ?? style.stroke
           });
           break;
         }
@@ -835,29 +864,37 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
             transform : svgElement.getAttribute("transform"),
             x : svgElement.getAttribute("x"),
             y : svgElement.getAttribute("y"),
-            fontFamily : svgElement.getAttribute("font-family"),
-            fontStyle : svgElement.getAttribute("font-style"),
-            fontWeight : svgElement.getAttribute("font-weight"),
-            fontSize : svgElement.getAttribute("font-size"),
-            color : svgElement.getAttribute("fill"),
-            strokeWidth : svgElement.getAttribute("stroke-width")
+            fontFamily : svgElement.getAttribute("font-family") ?? style.family,
+            fontStyle : svgElement.getAttribute("font-style") ?? style.style,
+            fontWeight : svgElement.getAttribute("font-weight") ?? style.weight,
+            fontSize : svgElement.getAttribute("font-size") ?? style.size,
+            color : svgElement.getAttribute("fill") ?? style.fill ?? style.stroke,
+            strokeWidth : svgElement.getAttribute("stroke-width") ?? style.strokeWidth
           }
           const font = structuredClone(Font.DEFAULT);
-          if (optionalAttributes.fontFamily !== null) {
+          if (optionalAttributes.fontFamily) {
             font.family = optionalAttributes.fontFamily;
           }
-          if (optionalAttributes.fontStyle !== null) {
+          if (optionalAttributes.fontStyle) {
             font.style = optionalAttributes.fontStyle;
           }
-          if (optionalAttributes.fontWeight !== null) {
+          if (optionalAttributes.fontWeight) {
             font.weight = optionalAttributes.fontWeight;
           }
-          if (optionalAttributes.fontSize !== null) {
-            font.size = parseFontSize(optionalAttributes.fontSize);
+          if (optionalAttributes.fontSize) {
+            if (typeof optionalAttributes.fontSize == "number") {
+              font.size = optionalAttributes.fontSize;
+            } else {
+              font.size = parseFontSize(optionalAttributes.fontSize);
+            }
           }
           let color = structuredClone(BLACK);
-          if (optionalAttributes.color !== null) {
-            color = fromCssString(optionalAttributes.color);
+          if (optionalAttributes.color) {
+            if (typeof optionalAttributes.color == "object") {
+              color = optionalAttributes.color;
+            } else {
+              color = fromCssString(optionalAttributes.color);
+            }
           }
           let x = 0;
           let y = 0;
@@ -875,8 +912,12 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
             y = Number.parseFloat(optionalAttributes.y);
           }
           let strokeWidth = DEFAULT_STROKE_WIDTH;
-          if (optionalAttributes.strokeWidth !== null) {
-            strokeWidth = Number.parseFloat(optionalAttributes.strokeWidth);
+          if (optionalAttributes.strokeWidth) {
+            if (typeof optionalAttributes.strokeWidth == "number") {
+              strokeWidth = optionalAttributes.strokeWidth;
+            } else {
+              strokeWidth = Number.parseFloat(optionalAttributes.strokeWidth);
+            }
           }
           if (Nucleotide.isSymbol(textContent)) {
             const singularNucleotideProps : Nucleotide.ExternalProps = {
@@ -1028,10 +1069,129 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
     }
   }
 }
+type Style = Partial<Font> & {
+  stroke? : Color,
+  strokeWidth? : number,
+  fill? : Color
+};
+
+function parseStyle(styleText : string) : Style {
+  const style : Style = {};
+  let styleAttributes = styleText.split(";");
+  styleAttributes = styleAttributes.filter(
+    // Eliminate blank lines.
+    styleAttribute => !styleAttribute.match(/^\s*$/)
+  );
+  for (const styleAttribute of styleAttributes) {
+    const indicesOfColon = [...styleAttribute.matchAll(/:/g)].map(
+      match => match.index
+    );
+    switch (indicesOfColon.length) {
+      case 1 : {
+        const indexOfColon = indicesOfColon[0] as number;
+        const label = styleAttribute.substring(0, indexOfColon).trim();
+        const datum = styleAttribute.substring(indexOfColon + 1).trim();
+
+        switch (label) {
+          case "fill" : {
+            style.fill = fromCssString(datum);
+            break;
+          }
+          case "stroke" : {
+            style.stroke = fromCssString(datum);
+            break;
+          }
+          case "stroke-width" : {
+            style.strokeWidth = Number.parseFloat(datum);
+            break;
+          }
+          case "font-size" : {
+            style.size = datum;
+            break;
+          }
+          case "font-weight": {
+            style.weight = datum;
+            break;
+          }
+          case "font-family" : {
+            style.family = datum;
+            break;
+          }
+        }
+        break;
+      }
+      default : {
+        throw "Multiple colons found within style string.";
+      }
+    }
+  }
+  return style;
+}
 
 export function svgInputFileHandler(
   inputFileContent : string
 ) {
+  const cDataMatch = inputFileContent.match(/<!\[CDATA\[(.*)\]\]>/ms);
+  styles = {
+    defaults : {}
+  };
+
+  if (cDataMatch) {
+    let lines = cDataMatch[1].split("\n");
+    // Remove blank lines.
+    lines = lines.filter(line => (!line.match(/^\s*$/)));
+    for (const line of lines) {
+      const lineMatch = line.match(/^\s*([\w-.]+)\s*\{(.*)\}\s*$/);
+      if (!lineMatch) {
+        continue;
+      }
+      const label = lineMatch[1];
+      const indicesOfPeriod = [...label.matchAll(/\./g)].map(match => match.index);
+      let type : string;
+      let _class : string;
+      switch (indicesOfPeriod.length) {
+        case 0 : {
+          type = label;
+          _class = "";
+          break;
+        }
+        case 1 : {
+          const indexOfPeriod = indicesOfPeriod[0] as number;
+          type = label.substring(0, indexOfPeriod);
+          _class = label.substring(indexOfPeriod + 1);
+          break;
+        }
+        default : {
+          continue;
+        }
+      }
+      const style = parseStyle(lineMatch[2]);
+      switch (type) {
+        case "" : {
+          styles.defaults[_class] = style;
+          break;
+        }
+        default : {
+          if (!(type in styles)) {
+            styles[type] = {};
+          }
+          const stylesPerType = styles[type];
+          switch (_class) {
+            case "" : {
+              stylesPerType.default = style;
+              break;
+            }
+            default : {
+              stylesPerType[_class] = style;
+              break;
+            }
+          }
+          break;
+        }
+      }
+    }
+  }
+
   const rnaComplexProps : Array<RnaComplex.ExternalProps> = [];
   const cache : Cache = {
     rnaComplexProps,
@@ -1114,9 +1274,18 @@ export function svgInputFileHandler(
       textElement.setAttribute(SVG_PROPERTY_RECTANGLE_HEIGHT, `${rectangle.height}`);
     }
     inputFileContent = testSpace.innerHTML;
+    testSpace.innerHTML = "";
   }
 
-  const topLevelSvgElements = Array.from(new DOMParser().parseFromString(inputFileContent, "image/svg+xml").children);
+  const parsedElements = new DOMParser().parseFromString(inputFileContent, "image/svg+xml");
+  const topLevelSvgElements = Array.from(parsedElements.children);
+
+  const svgElement = parsedElements.querySelector("svg");
+  if (!svgElement) {
+    throw "No svg element was found within the input file.";
+  }
+  const svgStyle = parseStyle(svgElement.style.cssText);
+  styles.root = svgStyle;
 
   for (const topLevelSvgElement of topLevelSvgElements) {
     parseSvgElement(topLevelSvgElement, cache, svgFileType);
