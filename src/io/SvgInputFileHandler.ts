@@ -72,7 +72,9 @@ type Cache = {
   mostRecentGroupId? : string,
   labelLinesPerRnaComplex? : LabelLinesPerRnaComplex,
   labelContentsPerRnaComplex? : LabelContentsPerRnaComplex,
-  currentRnaMoleculeName? : string
+  currentRnaMoleculeName? : string,
+  relativeCoordinatesFlag? : boolean,
+  invertYAxisFlag? : boolean
 };
 
 enum SvgFileType {
@@ -93,6 +95,10 @@ export const SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0 = "data-xr
 export const SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1 = "data-xrna_base_pair_formatted_nucleotide_index_1";
 export const SVG_PROPERTY_XRNA_BASE_PAIR_TYPE = "data-xrna_base_pair_type";
 export const SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME = "data-xrna_scene_name";
+export const SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG = "data-xrna_relative_coordinates_flag";
+export const SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG_DEFAULT = true;
+export const SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG = "data-xrna_invert_y_axis_flag";
+export const SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG_DEFAULT = false;
 
 const SVG_PROPERTY_RECTANGLE_WIDTH = "rectangle_width";
 const SVG_PROPERTY_RECTANGLE_HEIGHT = "rectangle_height";
@@ -105,6 +111,29 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
   if (dataXrnaType !== null) {
     if (!isSvgPropertyXrnaDataType(dataXrnaType)) {
       throw `Unrecognized SvgXrnaDataType "${dataXrnaType}"`;
+    }
+  }
+  let style : Style = {
+    ...styles.root
+  };
+  for (const _class of svgElement.classList) {
+    if (_class in styles.defaults) {
+      style = {
+        ...style,
+        ...styles.defaults[_class]
+      };
+    }
+  }
+  if (svgElement.tagName in styles) {
+    const stylesPerType = styles[svgElement.tagName];
+    for (const _class of svgElement.classList) {
+      if (_class in stylesPerType) {
+        const stylesPerTypePerClass = stylesPerType[_class];
+        style = {
+          ...style,
+          ...stylesPerTypePerClass
+        }
+      }
     }
   }
   switch (svgFileType) {
@@ -184,6 +213,7 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
           // }
         }
       } else {
+        const invertYAxisFlag = cache.invertYAxisFlag ?? SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG_DEFAULT;
         switch (dataXrnaType) {
           case SvgPropertyXrnaType.SCENE : {
             const complexDocumentName = svgElement.getAttribute(SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME);
@@ -191,6 +221,16 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
               throw `Required SVG-element property "${SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME}" is missing.`;
             }
             cache.complexDocumentName = complexDocumentName;
+            const relativeCoordinatesFlag = svgElement.getAttribute(SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG);
+            if (relativeCoordinatesFlag == null) {
+              throw `Required SVG-element property "${SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG}" is missing.`;
+            }
+            cache.relativeCoordinatesFlag = relativeCoordinatesFlag === "true";
+            const invertYAxisFlag = svgElement.getAttribute(SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG);
+            if (invertYAxisFlag == null) {
+              throw `Required SVG-element property "${SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG}" is missing.`;
+            }
+            cache.invertYAxisFlag = invertYAxisFlag === "true";
             break;
           }
           case SvgPropertyXrnaType.RNA_COMPLEX : {
@@ -341,9 +381,14 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
             if (!Nucleotide.isSymbol(symbol)) {
               throw `"${symbol}" is not a valid nucleotide symbol.`;
             }
+            let x = transformAsMatrix[4];
+            let y = transformAsMatrix[5];
+            if (invertYAxisFlag) {
+              y *= -1;
+            }
             const singularNucleotideProps : Nucleotide.ExternalProps = {
-              x : transformAsMatrix[4],
-              y : transformAsMatrix[5],
+              x,
+              y,
               symbol
             };
             singularRnaMoleculeProps.nucleotideProps[nucleotideIndex - firstNucleotideIndex] = singularNucleotideProps;
@@ -352,26 +397,38 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
             const fontStyle = svgElement.getAttribute("font-style");
             if (fontStyle !== null) {
               font.style = fontStyle;
+            } else if (style.style !== undefined) {
+              font.style = style.style;
             }
             const fontWeight = svgElement.getAttribute("font-weight");
             if (fontWeight !== null) {
               font.weight = fontWeight;
+            } else if (style.weight !== undefined) {
+              font.weight = style.weight;
             }
             const fontFamily = svgElement.getAttribute("font-family");
             if (fontFamily !== null) {
               font.family = fontFamily;
+            } else if (style.family !== undefined) {
+              font.family = style.family;
             }
             const fontSize = svgElement.getAttribute("font-size");
             if (fontSize !== null) {
               font.size = fontSize;
+            } else if (style.size !== undefined) {
+              font.size = style.size;
             }
             const strokeWidth = svgElement.getAttribute("stroke-width");
             if (strokeWidth !== null) {
               singularNucleotideProps.strokeWidth = Number.parseFloat(strokeWidth);
+            } else if (style.strokeWidth !== undefined) {
+              singularNucleotideProps.strokeWidth = style.strokeWidth;
             }
             const fill = svgElement.getAttribute("fill");
             if (fill !== null) {
               singularNucleotideProps.color = fromCssString(fill);
+            } else if (style.fill !== undefined) {
+              singularNucleotideProps.color = style.fill;
             }
             // const formattedNucleotideIndexAsString = svgElement.getAttribute(SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX);
             // if (formattedNucleotideIndexAsString === null) {
@@ -416,20 +473,29 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
               if (pointRegexMatch === null) {
                 throw `Required SVG element property "points" does not match the expected format`;
               }
+              let x = Number.parseFloat(pointRegexMatch[1]);
+              let y = Number.parseFloat(pointRegexMatch[2]);
+              if (invertYAxisFlag) {
+                y *= -1;
+              }
               return {
-                x : Number.parseFloat(pointRegexMatch[1]),
-                y : Number.parseFloat(pointRegexMatch[2])
+                x,
+                y
               };
             });
             const stroke = svgElement.getAttribute("stroke");
             let color = BLACK;
             if (stroke !== null) {
               color = fromCssString(stroke);
+            } else if (style.stroke !== undefined) {
+              color = style.stroke;
             }
             let strokeWidth = DEFAULT_STROKE_WIDTH;
             const strokeWidthAttribute = svgElement.getAttribute("stroke-width");
             if (strokeWidthAttribute !== null) {
               strokeWidth = Number.parseFloat(strokeWidthAttribute);
+            } else if (style.strokeWidth !== undefined) {
+              strokeWidth = style.strokeWidth;
             }
             const singularLabelLineProps : LabelLine.ExternalProps = {
               points,
@@ -483,18 +549,53 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
             // if (transformRegexMatch === null) {
             //   throw `Required SVG-element property "transform" does not match the expected format`;
             // }
+            const font = structuredClone(Font.DEFAULT);
+            const fontSize = svgElement.getAttribute("font-size");
+            if (fontSize !== null) {
+              font.size = fontSize;
+            } else if (style.size !== undefined) {
+              font.size = style.size;
+            }
+            const fontStyle = svgElement.getAttribute("font-style");
+            if (fontStyle !== null) {
+              font.style = fontStyle;
+            } else if (style.style !== undefined) {
+              font.style = style.style;
+            }
+            const fontWeight = svgElement.getAttribute("font-weight");
+            if (fontWeight !== null) {
+              font.weight = fontWeight;
+            } else if (style.weight !== undefined) {
+              font.weight = style.weight;
+            }
+            const fontFamily = svgElement.getAttribute("font-family");
+            if (fontFamily !== null) {
+              font.family = fontFamily;
+            } else if (style.family !== undefined) {
+              font.family = style.family;
+            }
+            let x = transformAsMatrix[4];
+            let y = transformAsMatrix[5];
+            if (invertYAxisFlag) {
+              y *= -1;
+            }
             const labelContentProps : LabelContent.ExternalProps = {
               content : textContent,
-              x : transformAsMatrix[4],
-              y : transformAsMatrix[5]
+              x,
+              y,
+              font
             };
             const fill = svgElement.getAttribute("fill");
             if (fill !== null) {
               labelContentProps.color = fromCssString(fill);
+            } else if (style.fill !== undefined) {
+              labelContentProps.color = style.fill;
             }
             const strokeWidth = svgElement.getAttribute("stroke-width");
             if (strokeWidth !== null) {
               labelContentProps.strokeWidth = Number.parseFloat(strokeWidth);
+            } else if (style.strokeWidth !== undefined) {
+              labelContentProps.strokeWidth = style.strokeWidth;
             }
             const rnaComplexName = svgElement.getAttribute(SVG_PROPERTY_XRNA_COMPLEX_NAME);
             if (rnaComplexName === null) {
@@ -798,30 +899,6 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
     }
     case SvgFileType.UNFORMATTED : {
       // TODO : Test these files!
-      let style : Style = {
-        ...styles.root
-      };
-      for (const _class of svgElement.classList) {
-        if (_class in styles.defaults) {
-          style = {
-            ...style,
-            ...styles.defaults[_class]
-          };
-        }
-      }
-      if (svgElement.tagName in styles) {
-        const stylesPerType = styles[svgElement.tagName];
-        for (const _class of svgElement.classList) {
-          if (_class in stylesPerType) {
-            const stylesPerTypePerClass = stylesPerType[_class];
-            style = {
-              ...style,
-              ...stylesPerTypePerClass
-            }
-          }
-        }
-      }
-      
       switch (svgElement.tagName) {
         case "circle" : {
           const requiredAttributes = {
@@ -1304,6 +1381,7 @@ export function svgInputFileHandler(
 
   switch (svgFileType) {
     case SvgFileType.XRNA_JS : {
+      const relativeCoordinatesFlag = cache.relativeCoordinatesFlag ?? SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG_DEFAULT;
       for (const rnaComplexName of Object.keys(cache.temporaryBasePairsPerRnaComplexName)) {
         if (!(rnaComplexName in cache.temporaryBasePairsPerRnaComplexName)) {
           throw `A base pair within the input file referenced RNA complex "${rnaComplexName}," which was not present within the input file.`;
@@ -1353,10 +1431,12 @@ export function svgInputFileHandler(
             const nucleotideIndex = formattedNucleotideIndex - singularRnaMoleculeProps.firstNucleotideIndex;
             const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
             if (labelLineProps !== undefined) {
-              // for (const point of labelLineProps.points) {
-              //   point.x -= singularNucleotideProps.x;
-              //   point.y -= singularNucleotideProps.y;
-              // }
+              if (!relativeCoordinatesFlag) {
+                for (const point of labelLineProps.points) {
+                  point.x -= singularNucleotideProps.x;
+                  point.y -= singularNucleotideProps.y;
+                }
+              }
               singularNucleotideProps.labelLineProps = labelLineProps;
             }
             if (labelContentProps !== undefined) {
