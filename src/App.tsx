@@ -19,7 +19,7 @@ import { Collapsible } from './components/generic/Collapsible';
 import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
 import { fileExtensionDescriptions } from './io/FileExtension';
 import loadingGif from './images/loading.svg';
-import { SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME, SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from './io/SvgInputFileHandler';
+import { SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME, SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG, SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from './io/SvgInputFileHandler';
 import { areEqual, BLACK } from './data_structures/Color';
 import { RnaMolecule } from './components/app_specific/RnaMolecule';
 import { LabelEditMenu } from './components/app_specific/menus/edit_menus/LabelEditMenu';
@@ -1160,7 +1160,8 @@ export namespace App {
                       {...{
                         [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.SCENE,
                         [SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME] : complexDocumentName,
-                        [SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG] : true
+                        [SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG] : true,
+                        [SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG] : false
                       }}
                       ref = {function(svgGElement : SVGGElement | null) {
                         if (svgGElement === null) {
