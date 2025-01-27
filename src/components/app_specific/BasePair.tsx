@@ -37,18 +37,62 @@ export namespace BasePair {
     CIS_WATSON_CRICK_WATSON_CRICK = "cis_watson_crick_watson_crick",
     TRANS_WATSON_CRICK_WATSON_CRICK = "trans_watson_crick_watson_crick",
     CIS_WATSON_CRICK_HOOGSTEEN = "cis_watson_crick_hoogsteen",
+    CIS_HOOGSTEEN_WATSON_CRICK = "cis_hoogsteen_watson_crick",
     TRANS_WATSON_CRICK_HOOGSTEEN = "trans_watson_crick_hoogsteen",
+    TRANS_HOOGSTEEN_WATSON_CRICK = "trans_hoogsteen_watson_crick",
     CIS_WATSON_CRICK_SUGAR_EDGE = "cis_watson_crick_sugar_edge",
+    CIS_SUGAR_EDGE_WATSON_CRICK = "cis_sugar_edge_watson_crick",
     TRANS_WATSON_CRICK_SUGAR_EDGE = "trans_watson_crick_sugar_edge",
+    TRANS_SUGAR_EDGE_WATSON_CRICK = "trans_sugar_edge_watson_crick",
     CIS_HOOGSTEEN_HOOGSTEEN = "cis_hoogsteen_hoogsteen",
     TRANS_HOOGSTEEN_HOOGSTEEN = "trans_hoogsteen_hoogsteen",
     CIS_HOOGSTEEN_SUGAR_EDGE = "cis_hoogsteen_sugar_edge",
+    CIS_SUGAR_EDGE_HOOGSTEEN = "cis_sugar_edge_hoogsteen",
     TRANS_HOOGSTEEN_SUGAR_EDGE = "trans_hoogsteen_sugar_edge",
+    TRANS_SUGAR_EDGE_HOOGSTEEN = "trans_sugar_edge_hoogsteen",
     CIS_SUGAR_EDGE_SUGAR_EDGE = "cis_sugar_edge_sugar_edge",
     TRANS_SUGAR_EDGE_SUGAR_EDGE = "trans_sugar_edge_sugar_edge"
   }
 
   export const types = Object.values(Type);
+
+  export type DirectedType = Extract<Type, Type.CIS_WATSON_CRICK_HOOGSTEEN | Type.CIS_HOOGSTEEN_WATSON_CRICK | Type.TRANS_WATSON_CRICK_HOOGSTEEN | Type.TRANS_HOOGSTEEN_WATSON_CRICK | Type.CIS_WATSON_CRICK_SUGAR_EDGE | Type.CIS_SUGAR_EDGE_WATSON_CRICK | Type.TRANS_WATSON_CRICK_SUGAR_EDGE | Type.TRANS_SUGAR_EDGE_WATSON_CRICK | Type.CIS_HOOGSTEEN_SUGAR_EDGE | Type.CIS_SUGAR_EDGE_HOOGSTEEN | Type.TRANS_HOOGSTEEN_SUGAR_EDGE | Type.TRANS_SUGAR_EDGE_HOOGSTEEN>;
+
+  export const DirectedType = {
+    [Type.CIS_WATSON_CRICK_HOOGSTEEN] : Type.CIS_WATSON_CRICK_HOOGSTEEN,
+    [Type.CIS_HOOGSTEEN_WATSON_CRICK] : Type.CIS_HOOGSTEEN_WATSON_CRICK,
+    [Type.TRANS_WATSON_CRICK_HOOGSTEEN] : Type.TRANS_WATSON_CRICK_HOOGSTEEN,
+    [Type.TRANS_HOOGSTEEN_WATSON_CRICK] : Type.TRANS_HOOGSTEEN_WATSON_CRICK,
+    [Type.CIS_WATSON_CRICK_SUGAR_EDGE] : Type.CIS_WATSON_CRICK_SUGAR_EDGE,
+    [Type.CIS_SUGAR_EDGE_WATSON_CRICK] : Type.CIS_SUGAR_EDGE_WATSON_CRICK,
+    [Type.TRANS_WATSON_CRICK_SUGAR_EDGE] : Type.TRANS_WATSON_CRICK_SUGAR_EDGE,
+    [Type.TRANS_SUGAR_EDGE_WATSON_CRICK] : Type.TRANS_SUGAR_EDGE_WATSON_CRICK,
+    [Type.CIS_HOOGSTEEN_SUGAR_EDGE] : Type.CIS_HOOGSTEEN_SUGAR_EDGE,
+    [Type.CIS_SUGAR_EDGE_HOOGSTEEN] : Type.CIS_SUGAR_EDGE_HOOGSTEEN,
+    [Type.TRANS_HOOGSTEEN_SUGAR_EDGE] : Type.TRANS_HOOGSTEEN_SUGAR_EDGE,
+    [Type.TRANS_SUGAR_EDGE_HOOGSTEEN] : Type.TRANS_SUGAR_EDGE_HOOGSTEEN
+  };
+
+  export const directedTypes = Object.values(DirectedType);
+
+  export const reverseDirectedTypeMap : Record<DirectedType, DirectedType> = {
+    [Type.CIS_WATSON_CRICK_HOOGSTEEN] : Type.CIS_HOOGSTEEN_WATSON_CRICK,
+    [Type.CIS_HOOGSTEEN_WATSON_CRICK] : Type.CIS_WATSON_CRICK_HOOGSTEEN,
+    [Type.TRANS_WATSON_CRICK_HOOGSTEEN] : Type.TRANS_HOOGSTEEN_WATSON_CRICK,
+    [Type.TRANS_HOOGSTEEN_WATSON_CRICK] : Type.TRANS_WATSON_CRICK_HOOGSTEEN,
+    [Type.CIS_WATSON_CRICK_SUGAR_EDGE] : Type.CIS_SUGAR_EDGE_WATSON_CRICK,
+    [Type.CIS_SUGAR_EDGE_WATSON_CRICK] : Type.CIS_WATSON_CRICK_SUGAR_EDGE,
+    [Type.TRANS_WATSON_CRICK_SUGAR_EDGE] : Type.TRANS_SUGAR_EDGE_WATSON_CRICK,
+    [Type.TRANS_SUGAR_EDGE_WATSON_CRICK] : Type.TRANS_WATSON_CRICK_SUGAR_EDGE,
+    [Type.CIS_HOOGSTEEN_SUGAR_EDGE] : Type.CIS_SUGAR_EDGE_HOOGSTEEN,
+    [Type.CIS_SUGAR_EDGE_HOOGSTEEN] : Type.CIS_HOOGSTEEN_SUGAR_EDGE,
+    [Type.TRANS_HOOGSTEEN_SUGAR_EDGE] : Type.TRANS_SUGAR_EDGE_HOOGSTEEN,
+    [Type.TRANS_SUGAR_EDGE_HOOGSTEEN] : Type.TRANS_HOOGSTEEN_SUGAR_EDGE
+  };
+
+  export function isDirectedType(type : Type) : type is DirectedType {
+    return directedTypes.includes(type);
+  }
 
   export type CanonicalType = Extract<Type, Type.CANONICAL | Type.WOBBLE | Type.MISMATCH>;
 
@@ -121,6 +165,20 @@ export namespace BasePair {
 
   const sugarEdgeSugarEdgeScalar = Math.sqrt(3) * 0.5;
   const nonSugarEdgeSugarEdgeScalar = (3 + Math.sqrt(3)) * 0.5;
+
+  type RenderFunction = (props : SimplifiedProps) => JSX.Element;
+
+  function invertDirection(renderFunction : RenderFunction) : RenderFunction {
+    return function(props : SimplifiedProps) {
+      const position0 = props.position0;
+      const position1 = props.position1;
+      return renderFunction({
+        ...props,
+        position0 : position1,
+        position1 : position0
+      });
+    }
+  }
 
   function Line(props : SimplifiedProps) {
     const {
@@ -445,6 +503,8 @@ export namespace BasePair {
     </g>;
   }
 
+  const HoogsteenWatsonCrick = invertDirection(WatsonCrickHoogsteen);
+
   function WatsonCrickSugarEdge(props : SimplifiedProps) {
     const {
       position0,
@@ -602,6 +662,8 @@ export namespace BasePair {
       {elements}
     </g>;
   }
+
+  const SugarEdgeWatsonCrick = invertDirection(WatsonCrickSugarEdge);
 
   function HoogsteenHoogsteen(props : SimplifiedProps) {
     const {
@@ -901,6 +963,8 @@ export namespace BasePair {
     </g>;
   }
 
+  const SugarEdgeHoogsteen = invertDirection(HoogsteenSugarEdge);
+
   function SugarEdgeSugarEdge(props : SimplifiedProps) {
     const {
       position0,
@@ -1015,20 +1079,26 @@ export namespace BasePair {
     </g>;
   }
 
-  const basePairRenderMap : Record<BasePair.Type, (props : SimplifiedProps) => JSX.Element> = {
+  const basePairRenderMap : Record<BasePair.Type, RenderFunction> = {
     [BasePair.Type.CANONICAL] : Line,
     [BasePair.Type.MISMATCH] : Circle,
     [BasePair.Type.WOBBLE] : Circle,
     [BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK] : WatsonCrickWatsonCrick,
     [BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK] : WatsonCrickWatsonCrick,
     [BasePair.Type.CIS_WATSON_CRICK_HOOGSTEEN] : WatsonCrickHoogsteen,
+    [BasePair.Type.CIS_HOOGSTEEN_WATSON_CRICK] : HoogsteenWatsonCrick,
+    [BasePair.Type.TRANS_HOOGSTEEN_WATSON_CRICK] : HoogsteenWatsonCrick,
     [BasePair.Type.TRANS_WATSON_CRICK_HOOGSTEEN] : WatsonCrickHoogsteen,
     [BasePair.Type.CIS_WATSON_CRICK_SUGAR_EDGE] : WatsonCrickSugarEdge,
     [BasePair.Type.TRANS_WATSON_CRICK_SUGAR_EDGE] : WatsonCrickSugarEdge,
+    [BasePair.Type.CIS_SUGAR_EDGE_WATSON_CRICK] : SugarEdgeWatsonCrick,
+    [BasePair.Type.TRANS_SUGAR_EDGE_WATSON_CRICK] : SugarEdgeWatsonCrick,
     [BasePair.Type.CIS_HOOGSTEEN_HOOGSTEEN] : HoogsteenHoogsteen,
     [BasePair.Type.TRANS_HOOGSTEEN_HOOGSTEEN] : HoogsteenHoogsteen,
     [BasePair.Type.CIS_HOOGSTEEN_SUGAR_EDGE] : HoogsteenSugarEdge,
     [BasePair.Type.TRANS_HOOGSTEEN_SUGAR_EDGE] : HoogsteenSugarEdge,
+    [BasePair.Type.CIS_SUGAR_EDGE_HOOGSTEEN] : SugarEdgeHoogsteen,
+    [BasePair.Type.TRANS_SUGAR_EDGE_HOOGSTEEN] : SugarEdgeHoogsteen,
     [BasePair.Type.CIS_SUGAR_EDGE_SUGAR_EDGE] : SugarEdgeSugarEdge,
     [BasePair.Type.TRANS_SUGAR_EDGE_SUGAR_EDGE] : SugarEdgeSugarEdge,
   };
@@ -1057,12 +1127,18 @@ export namespace BasePair {
     [BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK] : strokeDontFill,
     [BasePair.Type.CIS_WATSON_CRICK_HOOGSTEEN] : fill,
     [BasePair.Type.TRANS_WATSON_CRICK_HOOGSTEEN] : strokeDontFill,
+    [BasePair.Type.CIS_HOOGSTEEN_WATSON_CRICK] : fill,
+    [BasePair.Type.TRANS_HOOGSTEEN_WATSON_CRICK] : strokeDontFill,
     [BasePair.Type.CIS_WATSON_CRICK_SUGAR_EDGE] : fill,
     [BasePair.Type.TRANS_WATSON_CRICK_SUGAR_EDGE] : strokeDontFill,
+    [BasePair.Type.CIS_SUGAR_EDGE_WATSON_CRICK] : fill,
+    [BasePair.Type.TRANS_SUGAR_EDGE_WATSON_CRICK] : strokeDontFill,
     [BasePair.Type.CIS_HOOGSTEEN_HOOGSTEEN] : fill,
     [BasePair.Type.TRANS_HOOGSTEEN_HOOGSTEEN] : strokeDontFill,
     [BasePair.Type.CIS_HOOGSTEEN_SUGAR_EDGE] : fill,
     [BasePair.Type.TRANS_HOOGSTEEN_SUGAR_EDGE] : strokeDontFill,
+    [BasePair.Type.CIS_SUGAR_EDGE_HOOGSTEEN] : fill,
+    [BasePair.Type.TRANS_SUGAR_EDGE_HOOGSTEEN] : strokeDontFill,
     [BasePair.Type.CIS_SUGAR_EDGE_SUGAR_EDGE] : fill,
     [BasePair.Type.TRANS_SUGAR_EDGE_SUGAR_EDGE] : strokeDontFill
   };

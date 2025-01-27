@@ -31,25 +31,35 @@ export function insertBasePair(
   const { basePairs } = singularRnaComplexProps;
   const duplicateBasePairKeys = new Array<RnaComplex.BasePairKeys>();
   const basePairsToCreate = [];
+  const basePairInfo0 = {
+    rnaMoleculeName : rnaMoleculeName0,
+    nucleotideIndex : nucleotideIndex0,
+    basePairedRnaMoleculeName : rnaMoleculeName1,
+    basePairedNucleotideIndex : nucleotideIndex1,
+    basePairType : optionalBasePairParameters.basePairType
+  };
+  const basePairInfo1 = {
+    rnaMoleculeName : rnaMoleculeName1,
+    nucleotideIndex : nucleotideIndex1,
+    basePairedRnaMoleculeName : rnaMoleculeName0,
+    basePairedNucleotideIndex : nucleotideIndex0,
+    basePairType : optionalBasePairParameters.basePairType
+  };
+  optionalBasePairParameters = structuredClone(optionalBasePairParameters);
+  delete optionalBasePairParameters.basePairType;
+  if (basePairInfo0.basePairType !== undefined && BasePair.isDirectedType(basePairInfo0.basePairType)) {
+    basePairInfo1.basePairType = BasePair.reverseDirectedTypeMap[basePairInfo0.basePairType];
+  }
   for (let basePairInfo of [
-    {
-      rnaMoleculeName : rnaMoleculeName0,
-      nucleotideIndex : nucleotideIndex0,
-      basePairedRnaMoleculeName : rnaMoleculeName1,
-      basePairedNucleotideIndex : nucleotideIndex1
-    },
-    {
-      rnaMoleculeName : rnaMoleculeName1,
-      nucleotideIndex : nucleotideIndex1,
-      basePairedRnaMoleculeName : rnaMoleculeName0,
-      basePairedNucleotideIndex : nucleotideIndex0
-    }
+    basePairInfo0,
+    basePairInfo1
   ]) {
     const {
       rnaMoleculeName,
       nucleotideIndex,
       basePairedRnaMoleculeName,
-      basePairedNucleotideIndex
+      basePairedNucleotideIndex,
+      basePairType
     } = basePairInfo;
     let basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
     if (basePairsPerRnaMolecule === undefined) {
@@ -91,7 +101,8 @@ export function insertBasePair(
       mappedBasePairInformation : {
         rnaMoleculeName : basePairedRnaMoleculeName,
         nucleotideIndex : basePairedNucleotideIndex,
-        ...optionalBasePairParameters
+        ...optionalBasePairParameters,
+        basePairType
       }
     });
   }
