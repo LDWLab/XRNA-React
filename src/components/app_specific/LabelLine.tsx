@@ -5,6 +5,7 @@ import Color, { toCSS, BLACK } from "../../data_structures/Color";
 import { subtract, scaleUp, orthogonalize, magnitude, add, Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 import { SVG_PROPERTY_XRNA_LABEL_FORMATTED_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
+import { getLineBoundingPath } from "../../utils/Utils";
 
 export namespace LabelLine {
   export type BodySvgRepresentation = SVGPathElement;
@@ -65,14 +66,11 @@ export namespace LabelLine {
       const paths = new Array<string>();
       for (let i = 1; i < points.length; i++) {
         endpoint1 = points[i];
-        const difference = subtract(endpoint1, endpoint0);
-        const scaledOrthogonal = scaleUp(orthogonalize(difference), BOUNDING_PATH_RADIUS / magnitude(difference));
-        const endpoint0TranslatedPositively = add(endpoint0, scaledOrthogonal);
-        const endpoint0TranslatedNegatively = subtract(endpoint0, scaledOrthogonal);
-        const endpoint1TranslatedPositively = add(endpoint1, scaledOrthogonal);
-        const endpoint1TranslatedNegatively = subtract(endpoint1, scaledOrthogonal);
+        paths.push(getLineBoundingPath(
+          endpoint0,
+          endpoint1
+        ));
         endpoint0 = endpoint1;
-        paths.push(`M ${endpoint0TranslatedPositively.x} ${endpoint0TranslatedPositively.y} A 1 1 0 0 0 ${endpoint0TranslatedNegatively.x} ${endpoint0TranslatedNegatively.y} L ${endpoint1TranslatedNegatively.x} ${endpoint1TranslatedNegatively.y} A 1 1 0 0 0 ${endpoint1TranslatedPositively.x} ${endpoint1TranslatedPositively.y} z`);
       }
       setRenderData({
         pathDAttribute : paths.join(" "),

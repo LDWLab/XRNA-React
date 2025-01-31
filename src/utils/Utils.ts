@@ -1,3 +1,5 @@
+import { add, magnitude, orthogonalize, scaleUp, subtract, Vector2D } from "../data_structures/Vector2D";
+
 export const DEFAULT_EPSILON = 1E-7;
 
 export function range(
@@ -225,4 +227,19 @@ export function isEmpty(object : object) {
     return false;
   }
   return true;
+}
+
+export function getLineBoundingPath(
+  v0 : Vector2D,
+  v1 : Vector2D,
+  invertArcsFlag = false,
+  boundingPathRadius = 1
+) : string {
+  const difference = subtract(v1, v0);
+  const scaledOrthogonal = scaleUp(orthogonalize(difference), boundingPathRadius / magnitude(difference));
+  const v0TranslatedPositively = add(v0, scaledOrthogonal);
+  const v0TranslatedNegatively = subtract(v0, scaledOrthogonal);
+  const v1TranslatedPositively = add(v1, scaledOrthogonal);
+  const v1TranslatedNegatively = subtract(v1, scaledOrthogonal);
+  return `M ${v0TranslatedPositively.x} ${v0TranslatedPositively.y} A 1 1 0 0 ${invertArcsFlag ? 1 : 0} ${v0TranslatedNegatively.x} ${v0TranslatedNegatively.y} L ${v1TranslatedNegatively.x} ${v1TranslatedNegatively.y} A 1 1 0 0 ${invertArcsFlag ? 1 : 0} ${v1TranslatedPositively.x} ${v1TranslatedPositively.y} z`;
 }

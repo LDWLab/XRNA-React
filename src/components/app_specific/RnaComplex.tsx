@@ -241,6 +241,7 @@ export namespace RnaComplex {
                 mappedBasePair : mappedBasePair as BasePair.FinalizedMappedBasePair,
                 position0 : singularNucleotideProps,
                 position1 : singularBasePairedNucleotideProps,
+                rnaComplexIndex : index,
                 rnaComplexName : name,
                 rnaMoleculeName0 : rnaMoleculeName,
                 formattedNucleotideIndex0 : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
@@ -326,6 +327,7 @@ export namespace RnaComplex {
                 mappedBasePair : mappedBasePair as BasePair.FinalizedMappedBasePair,
                 position0 : singularNucleotideProps,
                 position1 : singularBasePairedNucleotideProps,
+                rnaComplexIndex : index,
                 rnaComplexName : name,
                 rnaMoleculeName0 : rnaMoleculeName,
                 formattedNucleotideIndex0 : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
@@ -509,9 +511,9 @@ export namespace RnaComplex {
       >
         <>
           <g>
-            <Context.BasePair.Radius.Provider
+            {/* <Context.BasePair.Radius.Provider
               value = {radii}
-            >
+            > */}
               <Context.BasePair.AverageStrokeWidth.Provider
                 value = {averageBasePairStrokeWidth}
               >
@@ -530,7 +532,7 @@ export namespace RnaComplex {
                 />
               */}
               </Context.BasePair.AverageStrokeWidth.Provider>
-            </Context.BasePair.Radius.Provider>
+            {/* </Context.BasePair.Radius.Provider> */}
           </g>
           {flattenedRnaMoleculeProps.map(function(
             [

@@ -1,5 +1,5 @@
 import { createRef, memo, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { FullKeys, HTML_ELEMENT_ID_DELIMITER } from "../../App";
+import { FullKeys, HTML_ELEMENT_ID_DELIMITER, NUCLEOTIDE_CLASS_NAME } from "../../App";
 import { Context } from "../../context/Context";
 import Color, { BLACK, toCSS } from "../../data_structures/Color";
 import Font from "../../data_structures/Font";
@@ -156,7 +156,7 @@ export namespace Nucleotide {
           [SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX] : nucleotideIndex + firstNucleotideIndexInRnaMolecule
         }}
         ref = {symbolReference}
-        className = "nucleotide noselect"
+        className = {`${NUCLEOTIDE_CLASS_NAME} noselect`}
         transform = {`translate(${graphicalAdjustment.x}, ${graphicalAdjustment.y}) scale(1, -1)`}
         fontStyle = {font.style}
         fontWeight = {font.weight}
