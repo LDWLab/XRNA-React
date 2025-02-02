@@ -2794,6 +2794,8 @@ export namespace App {
               value = {outputFileExtension}
               onChange = {function(e) {
                 setOutputFileExtension(e.target.value as OutputFileExtension);
+                // Resolves a save-file bug.
+                setOutputFileHandle(undefined);
               }}
             >
               <option
