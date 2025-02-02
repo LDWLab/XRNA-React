@@ -100,6 +100,9 @@ export namespace Context {
     });
     export const AverageDistances = createContext<Record<RnaComplexKey, AllDistances>>({});
     export const AverageStrokeWidth = createContext<number>(DEFAULT_STROKE_WIDTH);
+    export const OnMouseDownHelper = createContext(function(
+      e : React.MouseEvent
+    ) { /* Do nothing. */ });
   };
 
   export namespace Label {

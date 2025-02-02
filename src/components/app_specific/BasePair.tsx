@@ -1,7 +1,7 @@
 import React, { createElement, memo, useContext } from "react";
 import { Context } from "../../context/Context";
 import Color, { toCSS, BLACK } from "../../data_structures/Color";
-import { Vector2D, add, dotProduct, interpolate, normalize, orthogonalize, scaleUp, subtract } from "../../data_structures/Vector2D";
+import { Vector2D, add, distance, dotProduct, interpolate, normalize, orthogonalize, scaleUp, subtract } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 import { Nucleotide } from "./Nucleotide";
 import { SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0, SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_1, SVG_PROPERTY_XRNA_BASE_PAIR_TYPE, SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
@@ -185,6 +185,7 @@ export namespace BasePair {
     svgPropertiesForXrna : object,
     onMouseOver : () => void,
     onMouseLeave : () => void,
+    onMouseDown : (e : React.MouseEvent<SVGElement>) => void,
     className? : string,
     stroke? : string,
     fill? : string
@@ -210,6 +211,32 @@ export namespace BasePair {
     }
   }
 
+  function interpolatedPositions(
+    position0 : Vector2D,
+    position1 : Vector2D,
+    basePairRadius : number
+  ) {
+    const maximumDistance = distance(
+      position0,
+      position1
+    );
+    const arbitraryScalarForGraphics = 2;
+    const interpolationFactor0 = basePairRadius * arbitraryScalarForGraphics / maximumDistance;
+    const interpolationFactor1 = 1 - interpolationFactor0;
+    return {
+      interpolatedPosition0 : interpolate(
+        position0,
+        position1,
+        interpolationFactor0
+      ),
+      interpolatedPosition1 : interpolate(
+        position0,
+        position1,
+        interpolationFactor1
+      )
+    }
+  }
+
   function Line(props : SimplifiedProps) {
     const {
       position0,
@@ -219,29 +246,43 @@ export namespace BasePair {
       svgPropertiesForXrna,
       onMouseOver,
       onMouseLeave,
+      onMouseDown,
       className
     } = props;
-    const interpolatedPosition0 = interpolate(
+    const basePairRadius = useContext(Context.BasePair.Radius);
+    const {
+      interpolatedPosition0,
+      interpolatedPosition1
+    } = interpolatedPositions(
       position0,
       position1,
-      interpolationFactor0
+      basePairRadius
     );
-    const interpolatedPosition1 = interpolate(
-      position0,
-      position1,
-      interpolationFactor1
-    );
+    // const interpolatedPosition0 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor0
+    // );
+    // const interpolatedPosition1 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor1
+    // );
     return <g>
       <path
         d = {getLineBoundingPath(
           interpolatedPosition0,
           interpolatedPosition1,
-          true
+          true,
+          basePairRadius
         )}
+        fill = "none"
         strokeWidth = {strokeWidth}
         onMouseOver = {onMouseOver}
         onMouseLeave = {onMouseLeave}
+        onMouseDown = {onMouseDown}
         className = {className}
+        pointerEvents = "all"
       />
       <line
         {...svgPropertiesForXrna}
@@ -266,6 +307,7 @@ export namespace BasePair {
       svgPropertiesForXrna,
       onMouseOver,
       onMouseLeave,
+      onMouseDown,
       className
     } = props;
     const center = {
@@ -295,6 +337,7 @@ export namespace BasePair {
         pointerEvents = "all"
         onMouseOver = {onMouseOver}
         onMouseLeave = {onMouseLeave}
+        onMouseDown = {onMouseDown}
       />
     </g>;
   }
@@ -412,19 +455,28 @@ export namespace BasePair {
       strokeWidth,
       onMouseOver,
       onMouseLeave,
+      onMouseDown,
       className
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
-    const interpolatedPosition0 = interpolate(
+    const {
+      interpolatedPosition0,
+      interpolatedPosition1
+    } = interpolatedPositions(
       position0,
       position1,
-      interpolationFactor0
+      basePairRadius
     );
-    const interpolatedPosition1 = interpolate(
-      position0,
-      position1,
-      interpolationFactor1
-    );
+    // const interpolatedPosition0 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor0
+    // );
+    // const interpolatedPosition1 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor1
+    // );
     const strokeForLines = ["none", undefined].includes(stroke) ? fill : stroke;
     const center = scaleUp(
       add(
@@ -489,7 +541,6 @@ export namespace BasePair {
       )
     ];
     const elements = new Array<JSX.Element>();
-    const highlightElements = new Array<JSX.Element>();
     if (dotProduct(
       subtract(
         pointOnLineForCircle0,
@@ -512,20 +563,6 @@ export namespace BasePair {
       };
       elements.push(<line
         {...lineProps}
-      />);
-      highlightElements.push(<path
-        key = {0}
-        fill = "none"
-        strokeWidth = {strokeWidth}
-        d = {getLineBoundingPath(
-          interpolatedPosition0,
-          pointOnLineForCircle0,
-          true
-        )}
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
       />);
     }
     const circleProps = {
@@ -567,36 +604,6 @@ export namespace BasePair {
         {...pathProps}
       />
     );
-    highlightElements.push(
-      <path
-        key = {2}
-        fill = "none"
-        strokeWidth = {strokeWidth}
-        d = {getLineBoundingPath(
-          pointOnLineForCircle1,
-          pointOnLineForSquare0,
-          true
-        )}
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />,
-      <circle
-        {...circleProps}
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />,
-      <path
-        {...pathProps}
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />
-    );
     
     if (dotProduct(
       subtract(
@@ -621,26 +628,26 @@ export namespace BasePair {
       elements.push(<line
         {...lineProps}
       />);
-      highlightElements.unshift(<path
-        key = {4}
-        fill = "none"
-        strokeWidth = {strokeWidth}
-        d = {getLineBoundingPath(
-          pointOnLineForSquare1,
-          interpolatedPosition1,
-          true
-        )}
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />);
     }
     return <g
       {...svgPropertiesForXrna}
     >
       {elements}
-      {highlightElements}
+      <path
+        d = {getLineBoundingPath(
+          interpolatedPosition0,
+          interpolatedPosition1,
+          true,
+          basePairRadius
+        )}
+        fill = "none"
+        strokeWidth = {strokeWidth}
+        onMouseOver = {onMouseOver}
+        onMouseLeave = {onMouseLeave}
+        onMouseDown = {onMouseDown}
+        className = {className}
+        pointerEvents = "all"
+      />
     </g>;
   }
 
@@ -656,19 +663,28 @@ export namespace BasePair {
       strokeWidth,
       className,
       onMouseOver,
-      onMouseLeave
+      onMouseLeave,
+      onMouseDown
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
-    const interpolatedPosition0 = interpolate(
+    const {
+      interpolatedPosition0,
+      interpolatedPosition1
+    } = interpolatedPositions(
       position0,
       position1,
-      interpolationFactor0
+      basePairRadius
     );
-    const interpolatedPosition1 = interpolate(
-      position0,
-      position1,
-      interpolationFactor1
-    );
+    // const interpolatedPosition0 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor0
+    // );
+    // const interpolatedPosition1 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor1
+    // );
     const strokeForLines = ["none", undefined].includes(stroke) ? fill : stroke;
     const center = scaleUp(
       add(
@@ -728,7 +744,6 @@ export namespace BasePair {
       orthogonalDv
     );
     const elements = new Array<JSX.Element>();
-    const highlightElements = new Array<JSX.Element>();
     if (dotProduct(
       subtract(
         pointOnLineForCircle0,
@@ -748,20 +763,6 @@ export namespace BasePair {
         y1 = {interpolatedPosition0.y}
         x2 = {pointOnLineForCircle0.x}
         y2 = {pointOnLineForCircle0.y}
-      />);
-      highlightElements.push(<path
-        key = {0}
-        fill = "none"
-        strokeWidth = {strokeWidth}
-        d = {getLineBoundingPath(
-          interpolatedPosition0,
-          pointOnLineForCircle0,
-          true
-        )}
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
       />);
     }
     const circleProps = {
@@ -800,36 +801,6 @@ export namespace BasePair {
         {...pathProps}
       />
     );
-    highlightElements.push(
-      <path
-        key = {2}
-        d = {getLineBoundingPath(
-          pointOnLineForCircle1,
-          pointOnLineForTriangle0,
-          true
-        )}
-        strokeWidth = {strokeWidth}
-        fill = "none"
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />,
-      <circle
-        {...circleProps}
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />,
-      <path
-        {...pathProps}
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />
-    );
     if (dotProduct(
       subtract(
         pointOnLineForTriangle1,
@@ -850,26 +821,26 @@ export namespace BasePair {
         x2 = {interpolatedPosition1.x}
         y2 = {interpolatedPosition1.y}
       />);
-      highlightElements.unshift(<path
-        key = {4}
-        d = {getLineBoundingPath(
-          pointOnLineForTriangle1,
-          interpolatedPosition1,
-          true
-        )}
-        fill = "none"
-        strokeWidth = {strokeWidth}
-        className = {className}
-        pointerEvents = "all"
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />);
     }
     return <g
       {...svgPropertiesForXrna}
     >
       {elements}
-      {highlightElements}
+      <path
+        d = {getLineBoundingPath(
+          interpolatedPosition0,
+          interpolatedPosition1,
+          true,
+          basePairRadius
+        )}
+        fill = "none"
+        strokeWidth = {strokeWidth}
+        onMouseOver = {onMouseOver}
+        onMouseLeave = {onMouseLeave}
+        onMouseDown = {onMouseDown}
+        className = {className}
+        pointerEvents = "all"
+      />
     </g>;
   }
 
@@ -885,19 +856,28 @@ export namespace BasePair {
       strokeWidth,
       className,
       onMouseOver,
-      onMouseLeave
+      onMouseLeave,
+      onMouseDown
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
-    const interpolatedPosition0 = interpolate(
+    const {
+      interpolatedPosition0,
+      interpolatedPosition1
+    } = interpolatedPositions(
       position0,
       position1,
-      interpolationFactor0
+      basePairRadius
     );
-    const interpolatedPosition1 = interpolate(
-      position0,
-      position1,
-      interpolationFactor1
-    );
+    // const interpolatedPosition0 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor0
+    // );
+    // const interpolatedPosition1 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor1
+    // );
     const strokeForLines = ["none", undefined].includes(stroke) ? fill : stroke;
     const center = scaleUp(
       add(
@@ -945,7 +925,6 @@ export namespace BasePair {
       )
     ];
     const elements = new Array<JSX.Element>();
-    const highlightElements = new Array<JSX.Element>();
     if (dotProduct(
       subtract(
         interpolatedPositionNearCenter0,
@@ -966,20 +945,6 @@ export namespace BasePair {
         x2 = {interpolatedPositionNearCenter0.x}
         y2 = {interpolatedPositionNearCenter0.y}
       />);
-      highlightElements.push(<path
-        key = {0}
-        d = {getLineBoundingPath(
-          interpolatedPosition0,
-          interpolatedPositionNearCenter0,
-          true
-        )}
-        strokeWidth = {strokeWidth}
-        fill = "none"
-        pointerEvents = "all"
-        className = {className}
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />);
     }
     const pathProps = {
       key : 1,
@@ -991,13 +956,6 @@ export namespace BasePair {
     };
     elements.push(<path
       {...pathProps}
-    />);
-    highlightElements.push(<path
-      {...pathProps}
-      pointerEvents = "all"
-      className = {className}
-      onMouseOver = {onMouseOver}
-      onMouseLeave = {onMouseLeave}
     />);
     if (dotProduct(
       subtract(
@@ -1019,26 +977,26 @@ export namespace BasePair {
         x2 = {interpolatedPositionNearCenter1.x}
         y2 = {interpolatedPositionNearCenter1.y}
       />);
-      highlightElements.unshift(<path
-        key = {2}
-        d = {getLineBoundingPath(
-          interpolatedPosition1,
-          interpolatedPositionNearCenter1,
-          true
-        )}
-        strokeWidth = {strokeWidth}
-        fill = "none"
-        pointerEvents = "all"
-        className = {className}
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />);
     }
     return <g
       {...svgPropertiesForXrna}
     >
       {elements}
-      {highlightElements}
+      <path
+        d = {getLineBoundingPath(
+          interpolatedPosition0,
+          interpolatedPosition1,
+          true,
+          basePairRadius
+        )}
+        fill = "none"
+        strokeWidth = {strokeWidth}
+        onMouseOver = {onMouseOver}
+        onMouseLeave = {onMouseLeave}
+        onMouseDown = {onMouseDown}
+        className = {className}
+        pointerEvents = "all"
+      />
     </g>;
   }
 
@@ -1052,19 +1010,28 @@ export namespace BasePair {
       strokeWidth,
       className,
       onMouseOver,
-      onMouseLeave
+      onMouseLeave,
+      onMouseDown
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
-    const interpolatedPosition0 = interpolate(
+    const {
+      interpolatedPosition0,
+      interpolatedPosition1
+    } = interpolatedPositions(
       position0,
       position1,
-      interpolationFactor0
+      basePairRadius
     );
-    const interpolatedPosition1 = interpolate(
-      position0,
-      position1,
-      interpolationFactor1
-    );
+    // const interpolatedPosition0 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor0
+    // );
+    // const interpolatedPosition1 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor1
+    // );
     const strokeForLines = ["none", undefined].includes(stroke) ? fill : stroke;
     const center = scaleUp(
       add(
@@ -1142,7 +1109,6 @@ export namespace BasePair {
       orthogonalDv
     );
     const elements = new Array<JSX.Element>();
-    const highlightElements = new Array<JSX.Element>();
     if (dotProduct(
       subtract(
         pointOnLineForSquare0,
@@ -1162,20 +1128,6 @@ export namespace BasePair {
         y1 = {interpolatedPosition0.y}
         x2 = {pointOnLineForSquare0.x}
         y2 = {pointOnLineForSquare0.y}
-      />);
-      highlightElements.push(<path
-        key = {0}
-        d = {getLineBoundingPath(
-          interpolatedPosition0,
-          pointOnLineForSquare0,
-          true
-        )}
-        strokeWidth = {strokeWidth}
-        fill = "none"
-        pointerEvents = "all"
-        className = {className}
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
       />);
     }
     const pathProps0 = {
@@ -1212,36 +1164,6 @@ export namespace BasePair {
         {...pathProps1}
       />
     );
-    highlightElements.push(
-      <path
-        key = {2}
-        d = {getLineBoundingPath(
-          pointOnLineForSquare1,
-          pointOnLineForTriangle0,
-          true
-        )}
-        fill = "none"
-        strokeWidth = {strokeWidth}
-        pointerEvents = "all"
-        className = {className}
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />,
-      <path
-        {...pathProps0}
-        pointerEvents = "all"
-        className = {className}
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />,
-      <path
-        {...pathProps1}
-        pointerEvents = "all"
-        className = {className}
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />
-    );
     if (dotProduct(
       subtract(
         pointOnLineForTriangle1,
@@ -1262,26 +1184,26 @@ export namespace BasePair {
         x2 = {interpolatedPosition1.x}
         y2 = {interpolatedPosition1.y}
       />);
-      highlightElements.unshift(<path
-        key = {4}
-        d = {getLineBoundingPath(
-          pointOnLineForTriangle1,
-          interpolatedPosition1,
-          true
-        )}
-        strokeWidth = {strokeWidth}
-        fill = "none"
-        pointerEvents = "all"
-        className = {className}
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />);
     }
     return <g
       {...svgPropertiesForXrna}
     >
       {elements}
-      {highlightElements}
+      <path
+        d = {getLineBoundingPath(
+          interpolatedPosition0,
+          interpolatedPosition1,
+          true,
+          basePairRadius
+        )}
+        fill = "none"
+        strokeWidth = {strokeWidth}
+        onMouseOver = {onMouseOver}
+        onMouseLeave = {onMouseLeave}
+        onMouseDown = {onMouseDown}
+        className = {className}
+        pointerEvents = "all"
+      />
     </g>;
   }
 
@@ -1297,19 +1219,28 @@ export namespace BasePair {
       strokeWidth,
       className,
       onMouseOver,
-      onMouseLeave
+      onMouseLeave,
+      onMouseDown
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
-    const interpolatedPosition0 = interpolate(
+    const {
+      interpolatedPosition0,
+      interpolatedPosition1
+    } = interpolatedPositions(
       position0,
       position1,
-      interpolationFactor0
+      basePairRadius
     );
-    const interpolatedPosition1 = interpolate(
-      position0,
-      position1,
-      interpolationFactor1
-    );
+    // const interpolatedPosition0 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor0
+    // );
+    // const interpolatedPosition1 = interpolate(
+    //   position0,
+    //   position1,
+    //   interpolationFactor1
+    // );
     const strokeForLines = ["none", undefined].includes(stroke) ? fill : stroke;
     const center = scaleUp(
       add(
@@ -1347,7 +1278,6 @@ export namespace BasePair {
       orthogonalDv
     );
     const elements = new Array<JSX.Element>();
-    const highlightElements = new Array<JSX.Element>();
     if (dotProduct(
       subtract(
         interpolatedPositionNearCenter0,
@@ -1368,20 +1298,6 @@ export namespace BasePair {
         x2 = {interpolatedPositionNearCenter0.x}
         y2 = {interpolatedPositionNearCenter0.y}
       />);
-      highlightElements.push(<path
-        key = {0}
-        d = {getLineBoundingPath(
-          interpolatedPosition0,
-          interpolatedPositionNearCenter0,
-          true
-        )}
-        strokeWidth = {strokeWidth}
-        fill = "none"
-        pointerEvents = "all"
-        className = {className}
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />);
     }
     const pathProps = {
       key : 1,
@@ -1393,13 +1309,6 @@ export namespace BasePair {
     };
     elements.push(<path
       {...pathProps}
-    />);
-    highlightElements.push(<path
-      {...pathProps}
-      pointerEvents = "all"
-      className = {className}
-      onMouseOver = {onMouseOver}
-      onMouseLeave = {onMouseLeave}
     />);
     if (dotProduct(
       subtract(
@@ -1421,26 +1330,26 @@ export namespace BasePair {
         x2 = {interpolatedPositionNearCenter1.x}
         y2 = {interpolatedPositionNearCenter1.y}
       />);
-      highlightElements.unshift(<path
-        key = {2}
-        d = {getLineBoundingPath(
-          interpolatedPosition1,
-          interpolatedPositionNearCenter1,
-          true
-        )}
-        strokeWidth = {strokeWidth}
-        fill = "none"
-        pointerEvents = "all"
-        className = {className}
-        onMouseOver = {onMouseOver}
-        onMouseLeave = {onMouseLeave}
-      />);
     }
     return <g
       {...svgPropertiesForXrna}
     >
       {elements}
-      {highlightElements}
+      <path
+        d = {getLineBoundingPath(
+          interpolatedPosition0,
+          interpolatedPosition1,
+          true,
+          basePairRadius
+        )}
+        fill = "none"
+        strokeWidth = {strokeWidth}
+        onMouseOver = {onMouseOver}
+        onMouseLeave = {onMouseLeave}
+        onMouseDown = {onMouseDown}
+        className = {className}
+        pointerEvents = "all"
+      />
     </g>;
   }
 
@@ -1524,6 +1433,7 @@ export namespace BasePair {
     const setMouseOverText = useContext(Context.App.SetMouseOverText);
     const className = useContext(Context.BasePair.ClassName);
     const rnaComplexProps = useContext(Context.App.RnaComplexProps);
+    const basePairOnMouseDownHelper = useContext(Context.BasePair.OnMouseDownHelper);
     const singularRnaComplexProps = (rnaComplexProps as RnaComplexProps)[rnaComplexIndex];
     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
@@ -1567,6 +1477,11 @@ export namespace BasePair {
         },
         onMouseLeave : () => {
           setMouseOverText("");
+        },
+        onMouseDown : (e : React.MouseEvent<SVGElement>) => {
+          basePairOnMouseDownHelper(
+            e
+          );
         },
         className,
         ...componentStrokeAndFillRecord[basePairType](colorAsString)
