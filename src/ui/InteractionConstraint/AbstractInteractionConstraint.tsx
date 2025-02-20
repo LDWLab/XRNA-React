@@ -3,20 +3,21 @@ import { BasePairsEditor } from "../../components/app_specific/editors/BasePairs
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../context/Context";
 import { InteractionConstraint } from "./InteractionConstraints";
 
-export const basePairedNucleotideErrorMessage = "Cannot interact with a base-paired nucleotide using this constraint.";
-export const nonBasePairedNucleotideErrorMessage = "Cannot interact with a non-base-paired nucleotide using this constraint.";
-
 export const basePairedNucleotideError : InteractionConstraintError = {
-  errorMessage : basePairedNucleotideErrorMessage
+  errorMessage : "Cannot interact with a base-paired nucleotide using this constraint."
 };
 export const nonBasePairedNucleotideError : InteractionConstraintError = {
-  errorMessage : nonBasePairedNucleotideErrorMessage
+  errorMessage : "Cannot interact with a non-base-paired nucleotide using this constraint."
+};
+export const multipleBasePairsNucleotideError : InteractionConstraintError = {
+  errorMessage : "Cannot apply this constraint to a nucleotide with multiple base pairs. Try right-clicking on a base pair instead."
 };
 
 export abstract class AbstractInteractionConstraint {
   public readonly indicesOfAffectedNucleotides : FullKeysRecord = {};
   protected readonly rnaComplexProps : RnaComplexProps;
-  protected readonly fullKeys : FullKeys;
+  protected readonly fullKeys0 : FullKeys;
+  protected readonly fullKeys1? : FullKeys;
   protected readonly setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void;
   protected readonly setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void;
   protected readonly setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void;
@@ -24,14 +25,16 @@ export abstract class AbstractInteractionConstraint {
 
   constructor(
     rnaComplexProps : RnaComplexProps,
-    fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
-    indicesOfFrozenNucleotides : FullKeysRecord
+    indicesOfFrozenNucleotides : FullKeysRecord,
+    fullKeys0 : FullKeys,
+    fullKeys1? : FullKeys
   ) {
     this.rnaComplexProps = rnaComplexProps;
-    this.fullKeys = fullKeys;
+    this.fullKeys0 = fullKeys0;
+    this.fullKeys1 = fullKeys1;
     this.setNucleotideKeysToRerender = setNucleotideKeysToRerender;
     this.setBasePairKeysToRerender = setBasePairKeysToRerender;
     this.setDebugVisualElements = setDebugVisualElements;
@@ -43,12 +46,12 @@ export abstract class AbstractInteractionConstraint {
   abstract createRightClickMenu(tab : InteractionConstraint.SupportedTab) : JSX.Element;
 
   addFullIndices(...fullKeysSets : Array<FullKeys>) {
-    for (const fullKeys of fullKeysSets) {
+    for (const fullKeys0 of fullKeysSets) {
       const {
         rnaComplexIndex,
         rnaMoleculeName,
         nucleotideIndex
-      } = fullKeys;
+      } = fullKeys0;
       if (!(rnaComplexIndex in this.indicesOfAffectedNucleotides)) {
         this.indicesOfAffectedNucleotides[rnaComplexIndex] = {};
       }

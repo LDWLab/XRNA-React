@@ -162,7 +162,7 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
             nucleotideIndex,
             rnaMoleculeName,
             basePairNucleotideIndex,
-            DuplicateBasePairKeysHandler.THROW_ERROR
+            DuplicateBasePairKeysHandler.DO_NOTHING
           );
         }
         break;
@@ -410,7 +410,7 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
               partialBasePair.nucleotideIndex + i,
               basePairedRnaMoleculeName,
               normalizedBasePairedNucleotideIndex - i,
-              DuplicateBasePairKeysHandler.THROW_ERROR
+              DuplicateBasePairKeysHandler.DO_NOTHING
             );
           }
         });

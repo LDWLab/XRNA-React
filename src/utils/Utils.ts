@@ -243,3 +243,13 @@ export function getLineBoundingPath(
   const v1TranslatedNegatively = subtract(v1, scaledOrthogonal);
   return `M ${v0TranslatedPositively.x} ${v0TranslatedPositively.y} A 1 1 0 0 ${invertArcsFlag ? 1 : 0} ${v0TranslatedNegatively.x} ${v0TranslatedNegatively.y} L ${v1TranslatedNegatively.x} ${v1TranslatedNegatively.y} A 1 1 0 0 ${invertArcsFlag ? 1 : 0} ${v1TranslatedPositively.x} ${v1TranslatedPositively.y} z`;
 }
+
+export function median(numbers : Array<number>) {
+  numbers.sort(subtractNumbers);
+  const middleIndex = numbers.length >> 1;
+  if (numbers.length % 2 == 0) {
+    return (numbers[middleIndex - 1] + numbers[middleIndex]) * 0.5;
+  } else {
+    return numbers[middleIndex];
+  }
+}

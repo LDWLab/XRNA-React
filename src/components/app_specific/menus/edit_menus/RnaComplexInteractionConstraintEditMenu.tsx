@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState } from "react";
-import { RnaComplex } from "../../RnaComplex";
+import { RnaComplex, selectRelevantBasePairKeys } from "../../RnaComplex";
 import { AppSpecificOrientationEditor } from "../../editors/AppSpecificOrientationEditor";
 import { Vector2D } from "../../../../data_structures/Vector2D";
 import { subtractNumbersNegated } from "../../../../utils/Utils";
@@ -67,10 +67,11 @@ export namespace RnaComplexInteractionConstraintEditMenu {
               positions.push(singularNucleotideProps);
             }
             if (nucleotideIndex in basePairsPerRnaMolecule) {
-              const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
+              const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+              const indicesOfBoundingNucleotide1 = basePairsPerNucleotide.reduce(selectRelevantBasePairKeys);
               boundingVectors = {
                 0 : singularNucleotideProps,
-                1 : singularRnaComplexProps.rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName].nucleotideProps[mappedBasePairInformation.nucleotideIndex]
+                1 : singularRnaComplexProps.rnaMoleculeProps[indicesOfBoundingNucleotide1.rnaMoleculeName].nucleotideProps[indicesOfBoundingNucleotide1.nucleotideIndex]
               };
             }
           }

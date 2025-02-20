@@ -4,6 +4,7 @@ import { RnaComplexProps } from "../../../../App";
 import { Vector2D } from "../../../../data_structures/Vector2D";
 import { AppSpecificOrientationEditor } from "../../editors/AppSpecificOrientationEditor";
 import { AllInOneEditor } from "../../../../ui/InteractionConstraint/InteractionConstraints/AllInOneEditor";
+import { selectRelevantBasePairKeys } from "../../RnaComplex";
 
 export namespace EntireSceneInteractionConstraintEditMenu {
   export type Props = {
@@ -90,10 +91,11 @@ export namespace EntireSceneInteractionConstraintEditMenu {
                   rnaMoleculeName,
                   nucleotideIndex
                 });
-                const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
+                const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+                const boundingNucleotide1Indices = basePairsPerNucleotide.reduce(selectRelevantBasePairKeys);
                 boundingVectors = {
                   0 : singularNucleotideProps,
-                  1 : singularRnaComplexProps.rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName].nucleotideProps[mappedBasePairInformation.nucleotideIndex]
+                  1 : singularRnaComplexProps.rnaMoleculeProps[boundingNucleotide1Indices.rnaMoleculeName].nucleotideProps[boundingNucleotide1Indices.nucleotideIndex]
                 };
               }
             }

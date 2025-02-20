@@ -13,7 +13,7 @@ import { isEmpty, sign, subtractNumbers } from './utils/Utils';
 import { Nucleotide } from './components/app_specific/Nucleotide';
 import { LabelContent } from './components/app_specific/LabelContent';
 import { LabelLine } from './components/app_specific/LabelLine';
-import { InteractionConstraint } from './ui/InteractionConstraint/InteractionConstraints';
+import { getInteractionConstraintAndFullKeys, InteractionConstraint } from './ui/InteractionConstraint/InteractionConstraints';
 import { BasePairsEditor } from './components/app_specific/editors/BasePairsEditor';
 import { Collapsible } from './components/generic/Collapsible';
 import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
@@ -566,15 +566,15 @@ export namespace App {
               const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
               try {
                 const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
-                const helper = InteractionConstraint.record[interactionConstraint](
+                const helper = new InteractionConstraint.record[interactionConstraint](
                   rnaComplexProps,
-                  fullKeys,
                   setNucleotideKeysToRerender,
                   setBasePairKeysToRerender,
                   setDebugVisualElements,
                   tab,
                   indicesOfFrozenNucleotides,
-                  interactionConstraintOptions
+                  interactionConstraintOptions,
+                  fullKeys
                 );
                 setRightClickMenuContent(
                   <LabelEditMenu.Component
@@ -811,15 +811,15 @@ export namespace App {
           const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
           const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
           try {
-            const helper = InteractionConstraint.record[interactionConstraint](
+            const helper = new InteractionConstraint.record[interactionConstraint](
               rnaComplexPropsReference.current as RnaComplexProps,
-              fullKeys,
               setNucleotideKeysToRerender,
               setBasePairKeysToRerender,
               setDebugVisualElements,
               tab,
               indicesOfFrozenNucleotides,
-              interactionConstraintOptions
+              interactionConstraintOptions,
+              fullKeys
             );
             const rightClickMenu = helper.createRightClickMenu(tab);
             setResetOrientationDataTrigger(!resetOrientationDataTrigger);
@@ -877,15 +877,15 @@ export namespace App {
               let newDragListener : DragListener = viewportDragListener;
               if (tab === Tab.EDIT) {
                 try {
-                  const helper = InteractionConstraint.record[interactionConstraint](
+                  const helper = new InteractionConstraint.record[interactionConstraint](
                     rnaComplexPropsReference.current as RnaComplexProps,
-                    fullKeys,
                     setNucleotideKeysToRerender,
                     setBasePairKeysToRerender,
                     setDebugVisualElements,
                     tab,
                     indicesOfFrozenNucleotides,
-                    interactionConstraintOptions
+                    interactionConstraintOptions,
+                    fullKeys
                   );
                   const newDragListenerAttempt = helper.drag();
                   newDragListenerAffectedNucleotideIndices = helper.indicesOfAffectedNucleotides;
@@ -919,15 +919,15 @@ export namespace App {
             case MouseButtonIndices.Middle : {
               try {
                 const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
-                const helper = InteractionConstraint.record[interactionConstraint](
+                const helper = new InteractionConstraint.record[interactionConstraint](
                   rnaComplexPropsReference.current as RnaComplexProps,
-                  fullKeys,
                   setNucleotideKeysToRerender,
                   setBasePairKeysToRerender,
                   setDebugVisualElements,
                   tab,
                   indicesOfFrozenNucleotides,
-                  interactionConstraintOptions
+                  interactionConstraintOptions,
+                  fullKeys
                 );
                 const helperIndicesOfAffectedNucleotides = helper.indicesOfAffectedNucleotides;
                 const rightClickMenuAffectedNucleotideIndices = rightClickMenuAffectedNucleotideIndicesReference.current!;
@@ -1033,8 +1033,15 @@ export namespace App {
     const basePairOnMouseDownHelper = useMemo(
       function() {
         return function(
-          e : React.MouseEvent
+          e : React.MouseEvent,
+          fullKeys0 : FullKeys,
+          fullKeys1 : FullKeys
         ) {
+          const interactionConstraint = interactionConstraintReference.current!;
+          const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
+          const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
+          const tab = tabReference.current!;
           switch (e.button) {
             case MouseButtonIndices.Left : {
               let newDragListener : DragListener = viewportDragListener;
@@ -1044,6 +1051,46 @@ export namespace App {
                 newDragListener,
                 newDragListenerAffectedNucleotideIndices
               )
+              break;
+            }
+            case MouseButtonIndices.Right : {
+              if (InteractionConstraint.isSupportedTab(tab)) {
+                try {
+                  const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
+                  const helper = new InteractionConstraint.record[interactionConstraint](
+                    rnaComplexProps,
+                    setNucleotideKeysToRerender,
+                    setBasePairKeysToRerender,
+                    setDebugVisualElements,
+                    tab,
+                    indicesOfFrozenNucleotides,
+                    interactionConstraintOptions,
+                    fullKeys0,
+                    fullKeys1
+                  );
+                  const rightClickMenu = helper.createRightClickMenu(tab);
+                  setResetOrientationDataTrigger(!resetOrientationDataTrigger);
+                  setRightClickMenuContent(
+                    rightClickMenu,
+                    helper.indicesOfAffectedNucleotides
+                  );
+                } catch (error : any) {
+                  if (typeof error === "object" && "errorMessage" in error) {
+                    setRightClickMenuContent(
+                      <b
+                        style = {{
+                          color : "red"
+                        }}
+                      >
+                        {error.errorMessage}
+                      </b>,
+                      {}
+                    );
+                  } else {
+                    throw error;
+                  }
+                }
+              }
               break;
             }
           }
@@ -1067,9 +1114,11 @@ export namespace App {
               continue;
             }
             let basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
-            for (let mappedBasePairInformation of Object.values(basePairsPerRnaMolecule)) {
-              if (mappedBasePairInformation.rnaMoleculeName === oldRnaMoleculeName) {
-                mappedBasePairInformation.rnaMoleculeName = newRnaMoleculeName;
+            for (let basePairsPerNucleotide of Object.values(basePairsPerRnaMolecule)) {
+              for (const basePairPerNucleotide of basePairsPerNucleotide) {
+                if (basePairPerNucleotide.rnaMoleculeName === oldRnaMoleculeName) {
+                  basePairPerNucleotide.rnaMoleculeName = newRnaMoleculeName;
+                }
               }
             }
           }
@@ -1368,7 +1417,6 @@ export namespace App {
                     numberOfBoundingRects++;
                   }
                   const averageBoundingRectHeight = numberOfBoundingRects == 0 ? 1 : (boundingRectHeightsSum / numberOfBoundingRects * 0.25);
-                  console.log("averageBoundingRectHeight", averageBoundingRectHeight);
                   setBasePairRadius(averageBoundingRectHeight);
                   setSceneState(SceneState.DATA_IS_LOADED);
                 },
@@ -2065,76 +2113,67 @@ export namespace App {
             const minY = yCoordinates[0];
             const maxX = xCoordinates[1];
             const maxY = yCoordinates[1];
-            const fullKeysOfCapturedNucleotides = new Array<FullKeys>();
-            const labelsEncounteredKeysRecord : Record<RnaMoleculeKey, Set<NucleotideKey>> = {};
-            const fullKeysOfCapturedLabels = new Array<FullKeys>();
-            const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
-            type Keys = { rnaMoleculeName : RnaMoleculeKey, nucleotideIndex : NucleotideKey };
-            function validateLabel(
-              {
-                rnaMoleculeName,
-                nucleotideIndex
-              } : Keys,
-              {
-                x,
-                y
-              } : Vector2D
-            ) {
-              if (
-                x < minX ||
-                x > maxX ||
-                y < minY ||
-                y > maxY
+            if ((
+              // Attempt to avoid unnecessary click-and-drag, which is unintuitive to users. These metrics are arbitrary.
+              maxX - minX > 0.5 ||
+              maxY - minY > 0.5
+            )) {
+              const fullKeysOfCapturedNucleotides = new Array<FullKeys>();
+              const labelsEncounteredKeysRecord : Record<RnaMoleculeKey, Set<NucleotideKey>> = {};
+              const fullKeysOfCapturedLabels = new Array<FullKeys>();
+              const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+              function validateLabel(
+                {
+                  rnaMoleculeName,
+                  nucleotideIndex
+                } : RnaComplex.BasePairKeys,
+                {
+                  x,
+                  y
+                } : Vector2D
               ) {
-                return false;
+                if (
+                  x < minX ||
+                  x > maxX ||
+                  y < minY ||
+                  y > maxY
+                ) {
+                  return false;
+                }
+    
+                if (!(rnaMoleculeName in labelsEncounteredKeysRecord)) {
+                  labelsEncounteredKeysRecord[rnaMoleculeName] = new Set<NucleotideKey>();
+                }
+                const labelsEncounteredKeysRecordPerRnaMolecule = labelsEncounteredKeysRecord[rnaMoleculeName];
+                if (labelsEncounteredKeysRecordPerRnaMolecule.has(nucleotideIndex)) {
+                  return false;
+                }
+                labelsEncounteredKeysRecordPerRnaMolecule.add(nucleotideIndex);
+                return true;
               }
-  
-              if (!(rnaMoleculeName in labelsEncounteredKeysRecord)) {
-                labelsEncounteredKeysRecord[rnaMoleculeName] = new Set<NucleotideKey>();
-              }
-              const labelsEncounteredKeysRecordPerRnaMolecule = labelsEncounteredKeysRecord[rnaMoleculeName];
-              if (labelsEncounteredKeysRecordPerRnaMolecule.has(nucleotideIndex)) {
-                return false;
-              }
-              labelsEncounteredKeysRecordPerRnaMolecule.add(nucleotideIndex);
-              return true;
-            }
-            for (const [rnaComplexIndexAsString, { rnaMoleculeProps }] of Object.entries(rnaComplexProps)) {
-              const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-              for (const [rnaMoleculeName, { nucleotideProps }] of Object.entries(rnaMoleculeProps)) {
-                for (const [nucleotideIndexAsString, singularNucleotideProps] of Object.entries(nucleotideProps)) {
-                  const { labelContentProps, labelLineProps } = singularNucleotideProps;
-                  const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
-  
-                  const fullKeys = {
-                    rnaComplexIndex,
-                    rnaMoleculeName,
-                    nucleotideIndex
-                  };
-  
-                  if (validateLabel(
-                    fullKeys,
-                    singularNucleotideProps
-                  )) {
-                    fullKeysOfCapturedNucleotides.push(fullKeys);
-                  }
-                  if (labelContentProps !== undefined) {
-                    const absolutePosition = add(
-                      singularNucleotideProps,
-                      labelContentProps
-                    );
+              for (const [rnaComplexIndexAsString, { rnaMoleculeProps }] of Object.entries(rnaComplexProps)) {
+                const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+                for (const [rnaMoleculeName, { nucleotideProps }] of Object.entries(rnaMoleculeProps)) {
+                  for (const [nucleotideIndexAsString, singularNucleotideProps] of Object.entries(nucleotideProps)) {
+                    const { labelContentProps, labelLineProps } = singularNucleotideProps;
+                    const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+    
+                    const fullKeys = {
+                      rnaComplexIndex,
+                      rnaMoleculeName,
+                      nucleotideIndex
+                    };
+    
                     if (validateLabel(
                       fullKeys,
-                      absolutePosition
+                      singularNucleotideProps
                     )) {
-                      fullKeysOfCapturedLabels.push(fullKeys);
+                      fullKeysOfCapturedNucleotides.push(fullKeys);
                     }
-                  }
-                  if (labelLineProps !== undefined) {
-                    for (const point of labelLineProps.points) {
+                    if (labelContentProps !== undefined) {
                       const absolutePosition = add(
                         singularNucleotideProps,
-                        point
+                        labelContentProps
                       );
                       if (validateLabel(
                         fullKeys,
@@ -2143,498 +2182,55 @@ export namespace App {
                         fullKeysOfCapturedLabels.push(fullKeys);
                       }
                     }
+                    if (labelLineProps !== undefined) {
+                      for (const point of labelLineProps.points) {
+                        const absolutePosition = add(
+                          singularNucleotideProps,
+                          point
+                        );
+                        if (validateLabel(
+                          fullKeys,
+                          absolutePosition
+                        )) {
+                          fullKeysOfCapturedLabels.push(fullKeys);
+                        }
+                      }
+                    }
                   }
                 }
               }
-            }
-            function sort(
-              fullKeys0 : FullKeys,
-              fullKeys1 : FullKeys
-            ) {
-              return (
-                (fullKeys0.rnaComplexIndex - fullKeys1.rnaComplexIndex) ||
-                (fullKeys0.rnaMoleculeName.localeCompare(fullKeys1.rnaMoleculeName)) ||
-                (fullKeys0.nucleotideIndex - fullKeys1.nucleotideIndex)
+              let interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(
+                fullKeysOfCapturedNucleotides,
+                rnaComplexProps
               );
-            }
-            type FullKeysAndInteractionConstraint = { fullKeys : FullKeys, interactionConstraint : InteractionConstraint.Enum } | undefined;
-            function getInteractionConstraintAndFullKeys(fullKeysArray : Array<FullKeys>) : FullKeysAndInteractionConstraint {
-              function handleMultipleFullKeys() : FullKeysAndInteractionConstraint {
-                fullKeysArray.sort(sort);
-  
-                const minimumFullKeys = fullKeysArray[0];
-                const maximumFullKeys = fullKeysArray[fullKeysArray.length - 1];
-  
-                let singleRnaComplexFlag = true;
-                let singleRnaMoleculeFlag = true;
-                let dualRnaMoleculesFlag = false;
-                let otherRnaMoleculeName : string | undefined = undefined;
-                for (let i = 1; i < fullKeysArray.length; i++) {
-                  const {
-                    rnaComplexIndex,
-                    rnaMoleculeName,
-                  } = fullKeysArray[i];
-                  if (rnaComplexIndex !== minimumFullKeys.rnaComplexIndex) {
-                    singleRnaComplexFlag = false;
-                  }
-                  if (rnaMoleculeName !== minimumFullKeys.rnaMoleculeName) {
-                    singleRnaMoleculeFlag = false;
-                    if (otherRnaMoleculeName === undefined) {
-                      otherRnaMoleculeName = rnaMoleculeName;
-                      dualRnaMoleculesFlag = true;
-                    } else if (rnaMoleculeName !== otherRnaMoleculeName) {
-                      dualRnaMoleculesFlag = false;
-                    }
-                  }
-                }
-  
-                if (!singleRnaComplexFlag) {
-                  singleRnaMoleculeFlag = false;
-                }
-  
-                let allNucleotidesAreBasePairedFlag = true;
-                let noNucleotidesAreBasePairedFlag = true;
-                const mappedBasePairInformationArray = fullKeysArray.map(function({
-                  rnaComplexIndex,
-                  rnaMoleculeName,
-                  nucleotideIndex
-                }) {
-                  const { basePairs } = rnaComplexProps[rnaComplexIndex];
-                  if (rnaMoleculeName in basePairs) {
-                    const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
-                    if (nucleotideIndex in basePairsPerRnaMolecule) {
-                      noNucleotidesAreBasePairedFlag = false;
-                      return basePairsPerRnaMolecule[nucleotideIndex];
-                    }
-                  }
-                  allNucleotidesAreBasePairedFlag = false;
-                  return undefined;
-                });
-  
-                function isSubdomain() {
-                  // BEGIN DETECTING InteractionConstraint.Enum.RNA_SUB_DOMAIN
-                  if (!singleRnaMoleculeFlag) {
-                    return false;
-                  }
-                  const mappedBasePair0 = mappedBasePairInformationArray[0];
-                  if (
-                    mappedBasePair0 === undefined ||
-                    mappedBasePair0.rnaMoleculeName !== maximumFullKeys.rnaMoleculeName ||
-                    mappedBasePair0.nucleotideIndex !== maximumFullKeys.nucleotideIndex
-                  ) {
-                    return false;
-                  }
-                  const { basePairs } = rnaComplexProps[minimumFullKeys.rnaComplexIndex];
-                  const basePairsPerRnaMolecule = basePairs[minimumFullKeys.rnaMoleculeName];
-                  for (let nucleotideIndex = minimumFullKeys.nucleotideIndex + 1; nucleotideIndex < maximumFullKeys.nucleotideIndex; nucleotideIndex++) {
-                    const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
-                    if (
-                      mappedBasePairInformation !== undefined &&
-                      (
-                        mappedBasePairInformation.rnaMoleculeName !== minimumFullKeys.rnaMoleculeName ||
-                        mappedBasePairInformation.nucleotideIndex < minimumFullKeys.nucleotideIndex || 
-                        mappedBasePairInformation.nucleotideIndex > maximumFullKeys.nucleotideIndex
-                      )
-                    ) {
-                      return false;
-                    }
-                  }
-                  return true;
-                  // FINISH DETECTING InteractionConstraint.Enum.RNA_SUB_DOMAIN
-                }
-  
-                function isStackedHelix() {
-                  // BEGIN DETECTING InteractionConstraint.Enum.RNA_STACKED_HELIX
-                  if (
-                    !singleRnaMoleculeFlag &&
-                    !dualRnaMoleculesFlag
-                  ) {
-                    return false;
-                  }
-                  const { basePairs } = rnaComplexProps[minimumFullKeys.rnaComplexIndex];
-                  const rnaMoleculeNames = new Set<string>();
-                  for (let i = 0; i < fullKeysArray.length; i++) {
-                    rnaMoleculeNames.add(fullKeysArray[i].rnaMoleculeName);
-                    const mappedBasePairInformation = mappedBasePairInformationArray[i];
-                    if (mappedBasePairInformation !== undefined) {
-                      rnaMoleculeNames.add(mappedBasePairInformation.rnaMoleculeName);
-                    }
-                  }
-                  if (rnaMoleculeNames.size > 2) {
-                    return false;
-                  }
-                  let encounteredBreakFlag = false;
-                  let previousFullKeys = fullKeysArray[0];
-                  let previousBasePairedNucleotideIndex : number | undefined = mappedBasePairInformationArray[0]?.nucleotideIndex;
-                  for (let i = 1; i < fullKeysArray.length; i++) {
-                    const currentFullKeys = fullKeysArray[i];
-                    const mappedBasePairInformationI = mappedBasePairInformationArray[i];
-                    if (
-                      currentFullKeys.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
-                      currentFullKeys.nucleotideIndex - previousFullKeys.nucleotideIndex !== 1
-                    ) {
-                      if (encounteredBreakFlag) {
-                        return false;
-                      }
-                      encounteredBreakFlag = true;
-                      if (
-                        mappedBasePairInformationI === undefined ||
-                        mappedBasePairInformationI.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
-                        mappedBasePairInformationI.nucleotideIndex !== previousFullKeys.nucleotideIndex
-                      ) {
-                        return false;
-                      }
-                      previousBasePairedNucleotideIndex = mappedBasePairInformationI.nucleotideIndex;
-                      const mappedBasePairInformationIMinusOne = mappedBasePairInformationArray[i - 1];
-                      if (
-                        mappedBasePairInformationIMinusOne !== undefined &&
-                        (
-                          mappedBasePairInformationI.rnaMoleculeName !== mappedBasePairInformationIMinusOne.rnaMoleculeName ||
-                          Math.abs(mappedBasePairInformationI.nucleotideIndex - mappedBasePairInformationIMinusOne.nucleotideIndex) !== 1
-                        )
-                      ) {
-                        return false;
-                      }
-                    } else if (mappedBasePairInformationI !== undefined) {
-                      const mappedBasePairInformationIMinusOne = mappedBasePairInformationArray[i - 1];
-                      if (
-                        mappedBasePairInformationIMinusOne !== undefined &&
-                        (
-                          mappedBasePairInformationI.rnaMoleculeName !== mappedBasePairInformationIMinusOne.rnaMoleculeName ||
-                          Math.abs(mappedBasePairInformationI.nucleotideIndex - mappedBasePairInformationIMinusOne.nucleotideIndex) !== 1
-                        )
-                      ) {
-                        return false;
-                      }
-                      if (previousBasePairedNucleotideIndex !== undefined) {
-                        const basePairsPerRnaMolecule = basePairs[mappedBasePairInformationI.rnaMoleculeName];
-                        const boundingNucleotides = [
-                          previousBasePairedNucleotideIndex,
-                          mappedBasePairInformationI.nucleotideIndex
-                        ].sort(subtractNumbers);
-                        const minimumNucleotideIndex = boundingNucleotides[0];
-                        const maximumNucleotideIndex = boundingNucleotides[1];
-                        for (let nucleotideIndex = minimumNucleotideIndex + 1; nucleotideIndex < maximumNucleotideIndex; nucleotideIndex++) {
-                          if (nucleotideIndex in basePairsPerRnaMolecule) {
-                            return false;
-                          }
-                        }
-                      }
-                      previousBasePairedNucleotideIndex = mappedBasePairInformationI.nucleotideIndex;
-                    }
-                    previousFullKeys = currentFullKeys;
-                  }
-                  return true;
-                  // FINISH DETECTING InteractionConstraint.Enum.RNA_STACKED_HELIX
-                }
-  
-                function isRnaCycle() {
-                  // BEGIN DETECTING InteractionConstraint.Enum.RNA_CYCLE
-                  if (!singleRnaComplexFlag) {
-                    return false;
-                  }
-                  const keysRecord : Record<RnaMoleculeKey, Set<NucleotideKey>> = {};
-                  for (const { rnaMoleculeName, nucleotideIndex } of fullKeysArray) {
-                    if (!(rnaMoleculeName in keysRecord)) {
-                      keysRecord[rnaMoleculeName] = new Set<NucleotideKey>();
-                    }
-                    const keysPerRnaMolecule = keysRecord[rnaMoleculeName];
-                    keysPerRnaMolecule.add(nucleotideIndex);
-                  }
-                  const { rnaMoleculeProps, basePairs } = rnaComplexProps[minimumFullKeys.rnaComplexIndex];
-                  const encounteredKeysRecord : Record<RnaMoleculeKey, Set<NucleotideKey>> = {};
-                  const queue = new Array<Keys>(minimumFullKeys);
-                  let count = 0;
-                  while (queue.length > 0) {
-                    count++;
-  
-                    const {
-                      rnaMoleculeName,
-                      nucleotideIndex
-                    } = queue.shift() as Keys;
-                    const { nucleotideProps } = rnaMoleculeProps[rnaMoleculeName];
-                    const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
-  
-                    if (!(rnaMoleculeName in encounteredKeysRecord)) {
-                      encounteredKeysRecord[rnaMoleculeName] = new Set<NucleotideKey>();
-                    }
-                    const encounteredKeysPerRnaMolecule = encounteredKeysRecord[rnaMoleculeName];
-                    encounteredKeysPerRnaMolecule.add(nucleotideIndex);
-  
-                    const neighbors = new Array<Keys>();
-                    if (nucleotideIndex - 1 in nucleotideProps) {
-                      neighbors.push({
-                        rnaMoleculeName,
-                        nucleotideIndex : nucleotideIndex - 1
-                      });
-                    }
-                    if (nucleotideIndex + 1 in nucleotideProps) {
-                      neighbors.push({
-                        rnaMoleculeName,
-                        nucleotideIndex : nucleotideIndex + 1
-                      });
-                    }
-                    if (nucleotideIndex in basePairsPerRnaMolecule) {
-                      const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
-                      neighbors.push(mappedBasePairInformation);
-                    }
-                    for (const neighbor of neighbors) {
-                      const {
-                        rnaMoleculeName,
-                        nucleotideIndex
-                      } = neighbor;
-                      if (
-                        rnaMoleculeName in keysRecord &&
-                        keysRecord[rnaMoleculeName].has(nucleotideIndex) && (
-                          !(rnaMoleculeName in encounteredKeysRecord) ||
-                          !encounteredKeysRecord[rnaMoleculeName].has(nucleotideIndex)
-                        )
-                      ) {
-                        queue.push(neighbor);
-                      }
-                    }
-                  }
-                  return count === fullKeysArray.length;
-                  // FINISH DETECTING InteractionConstraint.Enum.RNA_CYCLE
-                }
-  
-                if (noNucleotidesAreBasePairedFlag) {
-                  // BEGIN DETECTING InteractionConstraint.Enum.RNA_SINGLE_STRAND
-                  let singleStrandFlag = true;
-                  let previousFullKeys = fullKeysArray[0];
-                  for (let i = 1; i < fullKeysArray.length; i++) {
-                    const currentFullKeys = fullKeysArray[i];
-                    if (
-                      previousFullKeys.rnaComplexIndex !== currentFullKeys.rnaComplexIndex ||
-                      previousFullKeys.rnaMoleculeName !== currentFullKeys.rnaMoleculeName ||
-                      Math.abs(previousFullKeys.nucleotideIndex - currentFullKeys.nucleotideIndex) !== 1
-                    ) {
-                      singleStrandFlag = false;
-                      break;
-                    }
-                    previousFullKeys = currentFullKeys;
-                  }
-                  if (singleStrandFlag) {
-                    return {
-                      fullKeys : previousFullKeys,
-                      interactionConstraint : InteractionConstraint.Enum.RNA_SINGLE_STRAND
-                    };
-                  }
-                  // FINISH DETECTING InteractionConstraint.Enum.RNA_SINGLE_STRAND
-                } else if (allNucleotidesAreBasePairedFlag) {
-                  // BEGIN DETECTING InteractionConstraint.Enum.RNA_HELIX
-                  if (
-                    singleRnaComplexFlag && 
-                    (singleRnaMoleculeFlag || dualRnaMoleculesFlag)
-                  ) {
-                    let encounteredBreakFlag = false;
-                    let singleHelixFlag = true;
-                    let previousFullKeys = fullKeysArray[0];
-                    for (let i = 1; i < fullKeysArray.length; i++) {
-                      const currentFullKeys = fullKeysArray[i];
-                      const mappedBasePairInformationI = mappedBasePairInformationArray[i];
-                      if (currentFullKeys.nucleotideIndex - previousFullKeys.nucleotideIndex !== 1) {
-                        if (encounteredBreakFlag) {
-                          singleHelixFlag = false;
-                          break;
-                        } else {
-                          encounteredBreakFlag = true;
-                          if (
-                            mappedBasePairInformationI === undefined ||
-                            mappedBasePairInformationI.rnaMoleculeName !== previousFullKeys.rnaMoleculeName ||
-                            mappedBasePairInformationI.nucleotideIndex !== previousFullKeys.nucleotideIndex
-                          ) {
-                            singleHelixFlag = false;
-                            break;
-                          }
-                        }
-                      } else if (mappedBasePairInformationI !== undefined) {
-                        const mappedBasePairInformationIMinusOne = mappedBasePairInformationArray[i - 1];
-                        if (
-                          mappedBasePairInformationIMinusOne !== undefined &&
-                          (
-                            mappedBasePairInformationI.rnaMoleculeName !== mappedBasePairInformationIMinusOne.rnaMoleculeName ||
-                            Math.abs(mappedBasePairInformationI.nucleotideIndex - mappedBasePairInformationIMinusOne.nucleotideIndex) !== 1
-                          )
-                        ) {
-                          singleHelixFlag = false;
-                          break;
-                        }
-                      }
-                      previousFullKeys = currentFullKeys;
-                    }
-                    if (singleHelixFlag) {
-                      return {
-                        fullKeys : minimumFullKeys,
-                        interactionConstraint : InteractionConstraint.Enum.RNA_HELIX
-                      };
-                    }
-                  }
-                  // FINISH DETECTING InteractionConstraint.Enum.RNA_HELIX
-                  if (isSubdomain()) {
-                    return {
-                      fullKeys : minimumFullKeys,
-                      interactionConstraint : InteractionConstraint.Enum.RNA_SUB_DOMAIN
-                    };
-                  }
-                  if (isStackedHelix()) {
-                    return {
-                      fullKeys : minimumFullKeys,
-                      interactionConstraint : InteractionConstraint.Enum.RNA_STACKED_HELIX
-                    };
-                  }
-                } else {
-                  if (isSubdomain()) {
-                    return {
-                      fullKeys : minimumFullKeys,
-                      interactionConstraint : InteractionConstraint.Enum.RNA_SUB_DOMAIN
-                    };
-                  }
-                  if (isStackedHelix()) {
-                    return {
-                      fullKeys : fullKeysArray.find(function(
-                        _fullKeys,
-                        i
-                      ) {
-                        return mappedBasePairInformationArray[i] !== undefined;
-                      }) as FullKeys,
-                      interactionConstraint : InteractionConstraint.Enum.RNA_STACKED_HELIX
-                    };
-                  }
-                  if (isRnaCycle()) {
-                    return {
-                      fullKeys : fullKeysArray.find(function(
-                        _fullKeys,
-                        i
-                      ) {
-                        return mappedBasePairInformationArray[i] === undefined;
-                      }) as FullKeys,
-                      interactionConstraint : InteractionConstraint.Enum.RNA_CYCLE
-                    }
-                  }
-                }
-  
-                if (singleRnaMoleculeFlag) {
-                  return {
-                    fullKeys : minimumFullKeys,
-                    interactionConstraint : InteractionConstraint.Enum.RNA_MOLECULE
-                  };
-                }
-  
-                if (singleRnaComplexFlag) {
-                  return {
-                    fullKeys : minimumFullKeys,
-                    interactionConstraint : InteractionConstraint.Enum.RNA_COMPLEX
-                  };
-                }
-  
-                // BEGIN DETECTING InteractionConstraint.Enum.SINGLE_COLOR
-                const singleColorCandidate = rnaComplexProps[minimumFullKeys.rnaComplexIndex].rnaMoleculeProps[minimumFullKeys.rnaMoleculeName].nucleotideProps[minimumFullKeys.nucleotideIndex].color ?? BLACK;
-                let singleColorFlag = true;
-                for (let i = 1; i < fullKeysArray.length; i++) {
-                  const {
-                    rnaComplexIndex,
-                    rnaMoleculeName,
-                    nucleotideIndex
-                  } = fullKeysArray[i];
-                  const color = rnaComplexProps[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].color ?? BLACK;
-                  if (!areEqual(
-                    singleColorCandidate,
-                    color
-                  )) {
-                    singleColorFlag = false;
-                    break;
-                  }
-                }
-                if (singleColorFlag) {
-                  return {
-                    fullKeys : minimumFullKeys,
-                    interactionConstraint : InteractionConstraint.Enum.SINGLE_COLOR
-                  };
-                }
-                // FINISH DETECTING InteractionConstraint.Enum.SINGLE_COLOR
-  
-                return {
-                  fullKeys : minimumFullKeys,
-                  interactionConstraint : InteractionConstraint.Enum.ENTIRE_SCENE
-                };
-              }
-              switch (fullKeysArray.length) {
-                case 0 : {
-                  return undefined;
-                }
-                case 1 : {
-                  const fullKeys = fullKeysArray[0];
-                  const {
-                    rnaComplexIndex,
-                    rnaMoleculeName,
-                    nucleotideIndex
-                  } = fullKeys;
-                  const { basePairs } = rnaComplexProps[rnaComplexIndex];
-                  let interactionConstraint = InteractionConstraint.Enum.SINGLE_NUCLEOTIDE;
-                  if (rnaMoleculeName in basePairs) {
-                    const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
-                    if (nucleotideIndex in basePairsPerRnaMolecule) {
-                      interactionConstraint = InteractionConstraint.Enum.SINGLE_BASE_PAIR;
-                    }
-                  }
-                  return {
-                    fullKeys,
-                    interactionConstraint 
-                  };
-                }
-                case 2 : {
-                  const fullKeys0 = fullKeysArray[0];
-                  const fullKeys1 = fullKeysArray[1];
-    
-                  const { basePairs } = rnaComplexProps[fullKeys0.rnaComplexIndex];
-                  let basePairsPerRnaMolecule : RnaComplex.BasePairsPerRnaMolecule;
-                  let mappedBasePairInformation : RnaComplex.MappedBasePair;
-                  if (
-                    fullKeys0.rnaComplexIndex === fullKeys1.rnaComplexIndex &&
-                    fullKeys0.rnaMoleculeName in basePairs &&
-                    fullKeys0.nucleotideIndex in (basePairsPerRnaMolecule = basePairs[fullKeys0.rnaMoleculeName]) && 
-                    fullKeys1.rnaMoleculeName === (mappedBasePairInformation = basePairsPerRnaMolecule[fullKeys0.nucleotideIndex]).rnaMoleculeName &&
-                    fullKeys1.nucleotideIndex === mappedBasePairInformation.nucleotideIndex
-                  ) {
-                    return {
-                      fullKeys : fullKeys0,
-                      interactionConstraint : InteractionConstraint.Enum.SINGLE_BASE_PAIR
-                    };
-                  } else {
-                    return handleMultipleFullKeys();
-                  }
-                }
-                default : {
-                  return handleMultipleFullKeys();
-                }
-              }
-            }
-            let interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(fullKeysOfCapturedNucleotides);
-            setAutoDetectedInteractionConstraintMessage("Auto-detected");
-            if (interactionConstraintAndFullKeys !== undefined) {
-              const {
-                fullKeys,
-                interactionConstraint
-              } = interactionConstraintAndFullKeys;
-              setInteractionConstraint(interactionConstraint);
-              nucleotideOnMouseDownRightClickHelper(
-                fullKeys,
-                interactionConstraint,
-                tab as InteractionConstraint.SupportedTab
-              );
-            } else {
-              interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(fullKeysOfCapturedLabels);
+              setAutoDetectedInteractionConstraintMessage("Auto-detected");
               if (interactionConstraintAndFullKeys !== undefined) {
                 const {
                   fullKeys,
                   interactionConstraint
                 } = interactionConstraintAndFullKeys;
                 setInteractionConstraint(interactionConstraint);
-                labelOnMouseDownRightClickHelper(
+                nucleotideOnMouseDownRightClickHelper(
                   fullKeys,
-                  interactionConstraint
+                  interactionConstraint,
+                  tab as InteractionConstraint.SupportedTab
                 );
+              } else {
+                interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(
+                  fullKeysOfCapturedLabels,
+                  rnaComplexProps
+                );
+                if (interactionConstraintAndFullKeys !== undefined) {
+                  const {
+                    fullKeys,
+                    interactionConstraint
+                  } = interactionConstraintAndFullKeys;
+                  setInteractionConstraint(interactionConstraint);
+                  labelOnMouseDownRightClickHelper(
+                    fullKeys,
+                    interactionConstraint
+                  );
+                }
               }
             }
           }
@@ -3387,7 +2983,7 @@ export namespace App {
     );
     const basePairClassName = useMemo(
       function() {
-        return tab === Tab.EDIT ? BASE_PAIR_CLASS_NAME : NO_STROKE_CLASS_NAME;
+        return tab in strokesPerTab ? BASE_PAIR_CLASS_NAME : NO_STROKE_CLASS_NAME;
       },
       [tab]
     );
@@ -3610,7 +3206,10 @@ export namespace App {
           if (!(rnaMoleculeName in nucleotideKeysToRerenderPerRnaComplex)) {
             nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] = [];
           }
-          nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName].push(nucleotideIndex);
+          const nucleotideKeysToRerenderPerRnaComplexPerRnaMolecule = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName];
+          if (!nucleotideKeysToRerenderPerRnaComplexPerRnaMolecule.includes(nucleotideIndex)) {
+            nucleotideKeysToRerenderPerRnaComplexPerRnaMolecule.push(nucleotideIndex);
+          }
         }
         for (const [rnaComplexIndexAsString, basePairKeysToEditPerRnaComplex] of Object.entries(basePairKeysToEdit)) {
           const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
@@ -3620,18 +3219,34 @@ export namespace App {
           const basePairKeysToRerenderPerRnaComplex = basePairKeysToRerender[rnaComplexIndex];
   
           for (const basePairDatumToAdd of basePairKeysToEditPerRnaComplex.add) {
+            const { keys0, keys1 } = basePairDatumToAdd;
             pushNucleotideKeysToRerender(
               nucleotideKeysToRerenderPerRnaComplex,
-              basePairDatumToAdd
+              keys0
             );
-            basePairKeysToRerenderPerRnaComplex.push(basePairDatumToAdd);
+            pushNucleotideKeysToRerender(
+              nucleotideKeysToRerenderPerRnaComplex,
+              keys1
+            );
+            basePairKeysToRerenderPerRnaComplex.push(
+              keys0,
+              keys1
+            );
           }
           for (const basePairDatumToDelete of basePairKeysToEditPerRnaComplex.delete) {
+            const { keys0, keys1 } = basePairDatumToDelete;
             pushNucleotideKeysToRerender(
               nucleotideKeysToRerenderPerRnaComplex,
-              basePairDatumToDelete
+              keys0
             );
-            basePairKeysToRerenderPerRnaComplex.push(basePairDatumToDelete);
+            pushNucleotideKeysToRerender(
+              nucleotideKeysToRerenderPerRnaComplex,
+              keys1
+            );
+            basePairKeysToRerenderPerRnaComplex.push(
+              keys0,
+              keys1
+            );
           }
           
           for (let nucleotideKeysToRerenderPerRnaMolecule of Object.values(nucleotideKeysToRerenderPerRnaComplex)) {
@@ -3663,7 +3278,7 @@ export namespace App {
     );
     useEffect(
       function() {
-        setResetOrientationDataTrigger(!resetOrientationDataTrigger)
+        setResetOrientationDataTrigger(prev => !prev);
       },
       [rightClickMenuContent]
     );

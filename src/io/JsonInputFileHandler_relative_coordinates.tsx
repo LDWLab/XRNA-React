@@ -128,7 +128,7 @@ function parseBasePair(
     residueIndex1,
     rnaMoleculeName1,
     residueIndex2,
-    DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
+    DuplicateBasePairKeysHandler.DO_NOTHING,
     {
       color,
       strokeWidth,

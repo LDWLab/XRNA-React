@@ -135,43 +135,45 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
           const outputBasePairsPerRnaMolecule = new Array<BasePairForJsonPerRnaMolecule>();
           const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
           const flattenedBasePairsPerRnaMolecule = Object.entries(basePairsPerRnaMolecule);
-          for (const [nucleotideIndexAsString, mappedBasePairInformation] of flattenedBasePairsPerRnaMolecule) {
-            const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
-            if (!isRelevantBasePairKeySetInPair(
-              {
-                rnaMoleculeName,
-                nucleotideIndex
-              },
-              mappedBasePairInformation
-            )) {
-              continue;
-            }
-            const basePairType = mappedBasePairInformation.basePairType ?? getBasePairType(
-              singularRnaMoleculeProps.nucleotideProps[nucleotideIndex].symbol,
-              singularRnaComplexProps.rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName].nucleotideProps[mappedBasePairInformation.nucleotideIndex].symbol
-            );
-            handleStrokeCss({
-              strokeWidth : mappedBasePairInformation.strokeWidth ?? DEFAULT_STROKE_WIDTH,
-              stroke : mappedBasePairInformation.color ?? BLACK
-            });
-            basePairsCssClasses[nucleotideIndex] = [
-              strokeCssClassName
-            ];
-            const basePair = {
-              basePairType,
-              classes : basePairsCssClasses[nucleotideIndex],
-              residueIndex1 : singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndex,
-              residueIndex2 : singularRnaMoleculeProps.firstNucleotideIndex + mappedBasePairInformation.nucleotideIndex,
-              points : mappedBasePairInformation.points
-            };
-            if (mappedBasePairInformation.rnaMoleculeName === rnaMoleculeName) {
-              outputBasePairsPerRnaMolecule.push(basePair);
-            } else {
-              outputBasePairsPerRnaComplex.push({
-                ...basePair,
-                rnaMoleculeName1 : rnaMoleculeName,
-                rnaMoleculeName2 : mappedBasePairInformation.rnaMoleculeName
+          for (const [nucleotideIndexAsString, basePairsPerNucleotide] of flattenedBasePairsPerRnaMolecule) {
+            for (const basePairPerNucleotide of basePairsPerNucleotide) {
+              const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+              if (!isRelevantBasePairKeySetInPair(
+                {
+                  rnaMoleculeName,
+                  nucleotideIndex
+                },
+                basePairPerNucleotide
+              )) {
+                continue;
+              }
+              const basePairType = basePairPerNucleotide.basePairType ?? getBasePairType(
+                singularRnaMoleculeProps.nucleotideProps[nucleotideIndex].symbol,
+                singularRnaComplexProps.rnaMoleculeProps[basePairPerNucleotide.rnaMoleculeName].nucleotideProps[basePairPerNucleotide.nucleotideIndex].symbol
+              );
+              handleStrokeCss({
+                strokeWidth : basePairPerNucleotide.strokeWidth ?? DEFAULT_STROKE_WIDTH,
+                stroke : basePairPerNucleotide.color ?? BLACK
               });
+              basePairsCssClasses[nucleotideIndex] = [
+                strokeCssClassName
+              ];
+              const basePair = {
+                basePairType,
+                classes : basePairsCssClasses[nucleotideIndex],
+                residueIndex1 : singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndex,
+                residueIndex2 : singularRnaMoleculeProps.firstNucleotideIndex + basePairPerNucleotide.nucleotideIndex,
+                points : basePairPerNucleotide.points
+              };
+              if (basePairPerNucleotide.rnaMoleculeName === rnaMoleculeName) {
+                outputBasePairsPerRnaMolecule.push(basePair);
+              } else {
+                outputBasePairsPerRnaComplex.push({
+                  ...basePair,
+                  rnaMoleculeName1 : rnaMoleculeName,
+                  rnaMoleculeName2 : basePairPerNucleotide.rnaMoleculeName
+                });
+              }
             }
           };
           let labels = new Array<LabelForJson>();

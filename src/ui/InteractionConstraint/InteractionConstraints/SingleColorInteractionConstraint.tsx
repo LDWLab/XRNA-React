@@ -9,7 +9,7 @@ import { Vector2D, add } from "../../../data_structures/Vector2D";
 import { parseInteger } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { FilterHelicesMode, InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerScene } from "../InteractionConstraints";
+import { InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerScene } from "../InteractionConstraints";
 import { AllInOneEditor } from "./AllInOneEditor";
 
 export class SingleColorInteractionConstraint extends AbstractInteractionConstraint {
@@ -22,26 +22,29 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
-    fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
-    indicesOfFrozenNucleotides : FullKeysRecord
+    indicesOfFrozenNucleotides : FullKeysRecord,
+    interactionConstraintOptions : InteractionConstraint.Options,
+    fullKeys0 : FullKeys,
+    fullKeys1? : FullKeys,
   ) {
     super(
       rnaComplexProps,
-      fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
       setDebugVisualElements,
-      indicesOfFrozenNucleotides
+      indicesOfFrozenNucleotides,
+      fullKeys0,
+      fullKeys1
     );
     const {
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     const allNucleotides = new Array<Vector2D>();
     const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
     const basePairKeysToRerender : BasePairKeysToRerender = {};
@@ -135,27 +138,26 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     };
     const unfilteredInitialBasePairs : Array<BasePairsEditor.BasePair> = [];
     iterateOverFreeNucleotidesAndHelicesPerScene(
-      rnaComplexProps,
-      FilterHelicesMode.COMPARE_ALL_KEYS 
+      rnaComplexProps
     ).forEach(function(helixDataPerRnaComplex) {
       const rnaComplexIndex = helixDataPerRnaComplex.rnaComplexIndex;
       const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
       helixDataPerRnaComplex.helixDataPerRnaMolecules.forEach(function(helixDataPerRnaMolecule) {
-      const rnaMoleculeName0 = helixDataPerRnaMolecule.rnaMoleculeName0;
-      const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
-      unfilteredInitialBasePairs.push(...helixDataPerRnaMolecule.helixData.map(function(helixDatum) {
-        const rnaMoleculeName1 = helixDatum.rnaMoleculeName1;
-        const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
-        return {
-          rnaComplexIndex,
-          rnaMoleculeName0,
-          rnaMoleculeName1 : helixDatum.rnaMoleculeName1,
-          nucleotideIndex0 : helixDatum.start[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
-          nucleotideIndex1 : Math.max(helixDatum.start[1], helixDatum.stop[1]) + singularRnaMoleculeProps1.firstNucleotideIndex,
-          length : Math.abs(helixDatum.start[0] - helixDatum.stop[0]) + 1
-        };
-      }));
-    })
+        const rnaMoleculeName0 = helixDataPerRnaMolecule.rnaMoleculeName0;
+        const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+        unfilteredInitialBasePairs.push(...helixDataPerRnaMolecule.helixData.map(function(helixDatum) {
+          const rnaMoleculeName1 = helixDatum.rnaMoleculeName1;
+          const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+          return {
+            rnaComplexIndex,
+            rnaMoleculeName0,
+            rnaMoleculeName1 : helixDatum.rnaMoleculeName1,
+            nucleotideIndex0 : helixDatum.start[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
+            nucleotideIndex1 : Math.max(helixDatum.start[1], helixDatum.stop[1]) + singularRnaMoleculeProps1.firstNucleotideIndex,
+            length : Math.abs(helixDatum.start[0] - helixDatum.stop[0]) + 1
+          };
+        }));
+      });
     });
     function approveBasePair(basePair : BasePairsEditor.BasePair) {
       const singularRnaComplexProps = rnaComplexProps[basePair.rnaComplexIndex];

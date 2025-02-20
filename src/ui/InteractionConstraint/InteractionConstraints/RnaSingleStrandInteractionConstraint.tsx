@@ -160,27 +160,29 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
 
   constructor(
     rnaComplexProps : RnaComplexProps,
-    fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
     indicesOfFrozenNucleotides : FullKeysRecord,
-    { truncateRnaSingleStrandFlag } : InteractionConstraint.Options
+    { truncateRnaSingleStrandFlag } : InteractionConstraint.Options,
+    fullKeys0 : FullKeys,
+    fullKeys1? : FullKeys
   ) {
     super(
       rnaComplexProps,
-      fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
       setDebugVisualElements,
-      indicesOfFrozenNucleotides
+      indicesOfFrozenNucleotides,
+      fullKeys0,
+      fullKeys1
     );
     const {
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     let indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = new Set<number>();
     if (rnaComplexIndex in indicesOfFrozenNucleotides) {
       const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
@@ -519,7 +521,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     const formattedLowerBoundingNucleotideIndex = this.formattedLowerBoundingNucleotideIndex;
     const formattedUpperBoundingNucleotideIndex = this.formattedUpperBoundingNucleotideIndex;
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];

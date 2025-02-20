@@ -1134,7 +1134,7 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
           nucleotideIndex0,
           rnaMoleculeName1,
           nucleotideIndex1,
-          DuplicateBasePairKeysHandler.THROW_ERROR,
+          DuplicateBasePairKeysHandler.DO_NOTHING,
           {
             basePairType,
             strokeWidth,
@@ -1403,7 +1403,7 @@ export function svgInputFileHandler(
             formattedNucleotideIndex0 - singularRnaMoleculeProps0.firstNucleotideIndex,
             rnaMoleculeName1,
             formattedNucleotideIndex1 - singularRnaMoleculeProps1.firstNucleotideIndex,
-            DuplicateBasePairKeysHandler.THROW_ERROR,
+            DuplicateBasePairKeysHandler.DO_NOTHING,
             {
               basePairType,
               strokeWidth,

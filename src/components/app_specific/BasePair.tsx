@@ -349,7 +349,11 @@ export namespace BasePair {
       svgPropertiesForXrna,
       stroke,
       fill,
-      strokeWidth
+      strokeWidth,
+      onMouseOver,
+      onMouseDown,
+      onMouseLeave,
+      className
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
     const interpolatedPosition0 = interpolate(
@@ -441,6 +445,21 @@ export namespace BasePair {
     return <g
       {...svgPropertiesForXrna}
     >
+      <path
+        d = {getLineBoundingPath(
+          interpolatedPosition0,
+          interpolatedPosition1,
+          true,
+          basePairRadius
+        )}
+        fill = "none"
+        strokeWidth = {strokeWidth}
+        onMouseOver = {onMouseOver}
+        onMouseLeave = {onMouseLeave}
+        onMouseDown = {onMouseDown}
+        className = {className}
+        pointerEvents = "all"
+      />
       {elements}
     </g>;
   }
@@ -1358,7 +1377,7 @@ export namespace BasePair {
     [BasePair.Type.MISMATCH] : Circle,
     [BasePair.Type.WOBBLE] : Circle,
     [BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK] : Line,
-    [BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK] : Line,
+    [BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK] : WatsonCrickWatsonCrick,
     [BasePair.Type.CIS_WATSON_CRICK_HOOGSTEEN] : WatsonCrickHoogsteen,
     [BasePair.Type.CIS_HOOGSTEEN_WATSON_CRICK] : HoogsteenWatsonCrick,
     [BasePair.Type.TRANS_HOOGSTEEN_WATSON_CRICK] : HoogsteenWatsonCrick,
@@ -1437,8 +1456,10 @@ export namespace BasePair {
     const singularRnaComplexProps = (rnaComplexProps as RnaComplexProps)[rnaComplexIndex];
     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
-    const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[formattedNucleotideIndex0 - singularRnaMoleculeProps0.firstNucleotideIndex];
-    const singularNucleotideProps1 = singularRnaMoleculeProps1.nucleotideProps[formattedNucleotideIndex1 - singularRnaMoleculeProps1.firstNucleotideIndex];
+    const nucleotideIndex0 = formattedNucleotideIndex0 - singularRnaMoleculeProps0.firstNucleotideIndex;
+    const nucleotideIndex1 = formattedNucleotideIndex1 - singularRnaMoleculeProps1.firstNucleotideIndex;
+    const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex0];
+    const singularNucleotideProps1 = singularRnaMoleculeProps1.nucleotideProps[nucleotideIndex1];
     const colorAsString = toCSS(mappedBasePair.color ?? BLACK);
     const strokeWidth = mappedBasePair.strokeWidth ?? defaultStrokeWidth;
     if (mappedBasePair.points !== undefined) {
@@ -1480,7 +1501,17 @@ export namespace BasePair {
         },
         onMouseDown : (e : React.MouseEvent<SVGElement>) => {
           basePairOnMouseDownHelper(
-            e
+            e,
+            {
+              rnaComplexIndex,
+              rnaMoleculeName : rnaMoleculeName0,
+              nucleotideIndex : nucleotideIndex0
+            },
+            {
+              rnaComplexIndex,
+              rnaMoleculeName : rnaMoleculeName1,
+              nucleotideIndex : nucleotideIndex1
+            }
           );
         },
         className,

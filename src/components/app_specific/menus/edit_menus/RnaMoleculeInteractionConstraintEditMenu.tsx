@@ -83,13 +83,16 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
                 rnaMoleculeName : initialName,
                 nucleotideIndex
               });
-              const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
-              if (mappedBasePairInformation.rnaMoleculeName !== initialName) {
-                foundBasePairBetweenRnaMoleculesFlag = true;
+              const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+              for (const basePairPerNucleotide of basePairsPerNucleotide) {
+                if (basePairPerNucleotide.rnaMoleculeName !== initialName) {
+                  foundBasePairBetweenRnaMoleculesFlag = true;
+                }
               }
+              const maximumBasePairedNucleotideIndex = basePairsPerNucleotide.reduce((maximumBasePairedNucleotideIndex, basePairPerNucleotide) => Math.max(maximumBasePairedNucleotideIndex, basePairPerNucleotide.nucleotideIndex), Number.NEGATIVE_INFINITY);
               boundingVectors = {
                 0 : singularNucleotideProps,
-                1 : nucleotideProps[mappedBasePairInformation.nucleotideIndex]
+                1 : nucleotideProps[maximumBasePairedNucleotideIndex]
               };
             }
           }

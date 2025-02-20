@@ -6,7 +6,7 @@ import { Vector2D } from "../../../data_structures/Vector2D";
 import { parseInteger, range, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { FilterHelicesMode, InteractionConstraint, iterateOverFreeNucleotidesandHelicesPerRnaMolecule } from "../InteractionConstraints";
+import { InteractionConstraint, iterateOverFreeNucleotidesandHelicesPerRnaMolecule } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
@@ -19,26 +19,29 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
 
   constructor(
     rnaComplexProps : RnaComplexProps,
-    fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
-    indicesOfFrozenNucleotides : FullKeysRecord
+    indicesOfFrozenNucleotides : FullKeysRecord,
+    interactionConstraintOptions : InteractionConstraint.Options,
+    fullKeys0 : FullKeys,
+    fullKeys1? : FullKeys,
   ) {
     super(
       rnaComplexProps,
-      fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
       setDebugVisualElements,
-      indicesOfFrozenNucleotides
+      indicesOfFrozenNucleotides,
+      fullKeys0,
+      fullKeys1
     );
     const {
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
@@ -71,17 +74,19 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
         nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
       }
       if (nucleotideIndex in basePairsPerRnaMolecule) {
-        const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
+        const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
         basePairKeysToRerenderPerRnaComplex.push({
           rnaMoleculeName,
           nucleotideIndex
         });
-        if (rnaMoleculeName !== mappedBasePairInformation.rnaMoleculeName) {
-          this.dragError = {
-            errorMessage : "A base pair with another RNA molecule was found. Cannot drag the clicked-on RNA molecule."
-          };
-          break;
-        }
+        // for (const basePairPerNucleotide of basePairsPerNucleotide) {
+        //   if (rnaMoleculeName !== basePairPerNucleotide.rnaMoleculeName) {
+        //     this.dragError = {
+        //       errorMessage : "A base pair with another RNA molecule was found. Cannot drag the clicked-on RNA molecule."
+        //     };
+        //     break;
+        //   }
+        // }
       }
     }
     this.dragListener = linearDrag(
@@ -95,15 +100,14 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
     this.editMenuProps = {
       initialName : rnaMoleculeName,
       rnaComplexProps : rnaComplexProps,
-      rnaComplexIndex : fullKeys.rnaComplexIndex,
+      rnaComplexIndex : fullKeys0.rnaComplexIndex,
       rnaMoleculeName,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender
     };
     this.initialBasePairs = iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
       singularRnaComplexProps,
-      rnaMoleculeName,
-      FilterHelicesMode.RNA_MOLECULE_MODE 
+      rnaMoleculeName
     ).helixData.map(function(helixDatum) {
       return {
         rnaComplexIndex,
@@ -127,7 +131,7 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
     const {
       rnaComplexIndex,
       rnaMoleculeName
-    } = this.fullKeys;
+    } = this.fullKeys0;
     let header : JSX.Element = <b>
       {tab} RNA molecule "{rnaMoleculeName}":
       <br/>

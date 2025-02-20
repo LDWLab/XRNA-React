@@ -81,8 +81,14 @@ export namespace Context {
     }
     export const Radius = createContext(DEFAULT_RADIUS);
     export type KeysToEditPerRnaComplexType = {
-      add : Array<_RnaComplex.BasePairKeys>,
-      delete : Array<_RnaComplex.BasePairKeys>
+      add : Array<{
+        keys0 : _RnaComplex.BasePairKeys,
+        keys1 : _RnaComplex.BasePairKeys
+      }>,
+      delete : Array<{
+        keys0 : _RnaComplex.BasePairKeys,
+        keys1 : _RnaComplex.BasePairKeys
+      }>
     };
     export const DataToEditPerRnaComplex = createContext<KeysToEditPerRnaComplexType | undefined>({
       add : [],
@@ -101,7 +107,9 @@ export namespace Context {
     export const AverageDistances = createContext<Record<RnaComplexKey, AllDistances>>({});
     export const AverageStrokeWidth = createContext<number>(DEFAULT_STROKE_WIDTH);
     export const OnMouseDownHelper = createContext(function(
-      e : React.MouseEvent
+      e : React.MouseEvent,
+      fullKeys0 : FullKeys,
+      fullKeys1 : FullKeys
     ) { /* Do nothing. */ });
   };
 

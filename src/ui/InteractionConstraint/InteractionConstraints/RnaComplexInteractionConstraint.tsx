@@ -9,7 +9,7 @@ import { Vector2D } from "../../../data_structures/Vector2D";
 import { parseInteger, range } from "../../../utils/Utils";
 import { AbstractInteractionConstraint } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { FilterHelicesMode, InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerRnaComplex } from "../InteractionConstraints";
+import { InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerRnaComplex } from "../InteractionConstraints";
 
 export class RnaComplexInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -18,26 +18,29 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
-    fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
-    indicesOfFrozenNucleotides : FullKeysRecord
+    indicesOfFrozenNucleotides : FullKeysRecord,
+    interactionConstraintOptions : InteractionConstraint.Options,
+    fullKeys0 : FullKeys,
+    fullKeys1? : FullKeys,
   ) {
     super(
       rnaComplexProps,
-      fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
       setDebugVisualElements,
-      indicesOfFrozenNucleotides
+      indicesOfFrozenNucleotides,
+      fullKeys0,
+      fullKeys1
     );
     const {
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     const nucleotideKeysToRerender : NucleotideKeysToRerender = {
       [rnaComplexIndex] : {}
     };
@@ -96,8 +99,7 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
     const initialBasePairs : BasePairsEditor.InitialBasePairs = [];
     iterateOverFreeNucleotidesAndHelicesPerRnaComplex(
       rnaComplexIndex,
-      singularRnaComplexProps,
-      FilterHelicesMode.COMPARE_ALL_KEYS 
+      singularRnaComplexProps
     ).helixDataPerRnaMolecules.forEach(function(helixDataPerRnaMolecule) {
       const rnaMoleculeName0 = helixDataPerRnaMolecule.rnaMoleculeName0;
       const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
@@ -124,7 +126,7 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
   public override createRightClickMenu(tab: InteractionConstraint.SupportedTab) {
     const {
       rnaComplexIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     let header : JSX.Element = <b>
       {tab} RNA complex "{singularRnaComplexProps.name}":

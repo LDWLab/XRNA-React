@@ -139,22 +139,25 @@ export function xrnaFileWriter(
       const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
       Object.entries(basePairsPerRnaMolecule).forEach(function([
         nucleotideIndexAsString,
-        mappedBasePairInformation
+        basePairsPerNucleotide
       ]) {
         const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
-        if (compareBasePairKeys(
-          {
-            nucleotideIndex : nucleotideIndex,
-            rnaMoleculeName
-          },
-          mappedBasePairInformation
-        ) <= 0) {
-          const basePairsElement = xml.createElement("BasePairs");
-          basePairsElement.setAttribute("nucID", (nucleotideIndex + firstNucleotideIndex).toString());
-          basePairsElement.setAttribute("length", "1");
-          basePairsElement.setAttribute("bpNucID", (mappedBasePairInformation.nucleotideIndex + firstNucleotideIndex).toString());
-          basePairsElement.setAttribute("bpName", mappedBasePairInformation.rnaMoleculeName);
-          rnaMoleculeElement.appendChild(basePairsElement);
+        const keys = {
+          nucleotideIndex,
+          rnaMoleculeName
+        };
+        for (const basePairPerNucleotide of basePairsPerNucleotide) {
+          if (compareBasePairKeys(
+            keys,
+            basePairPerNucleotide
+          ) <= 0) {
+            const basePairsElement = xml.createElement("BasePairs");
+            basePairsElement.setAttribute("nucID", (nucleotideIndex + firstNucleotideIndex).toString());
+            basePairsElement.setAttribute("length", "1");
+            basePairsElement.setAttribute("bpNucID", (basePairPerNucleotide.nucleotideIndex + firstNucleotideIndex).toString());
+            basePairsElement.setAttribute("bpName", basePairPerNucleotide.rnaMoleculeName);
+            rnaMoleculeElement.appendChild(basePairsElement);
+          }
         }
       });
     })

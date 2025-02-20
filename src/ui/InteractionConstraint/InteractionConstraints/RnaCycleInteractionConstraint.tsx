@@ -1,7 +1,7 @@
 import { ReactNode, useMemo } from "react";
 import { RnaComplexProps, FullKeys, DragListener, NucleotideKey, RnaMoleculeKey, FullKeysRecord } from "../../../App";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
-import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
+import { AbstractInteractionConstraint, basePairedNucleotideError, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { InteractionConstraint } from "../InteractionConstraints";
 import { RnaCycleInteractionConstraintEditMenu } from "./RnaCycleInteractionConstraintEditMenu";
 import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, magnitude, negate, normalize, orthogonalizeLeft, scaleUp, subtract, toCartesian, toNormalCartesian, toPolar } from "../../../data_structures/Vector2D";
@@ -14,6 +14,10 @@ import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import Color from "../../../data_structures/Color";
 
 const EPSILON = 0.01;
+
+const noCycleFoundError = {
+  errorMessage : "The clicked-on nucleotide is not part of an RNA cycle."
+};
 
 export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint {
   private readonly rnaCycleBoundsText : ReactNode;
@@ -33,26 +37,29 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
-    fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
-    indicesOfFrozenNucleotides : FullKeysRecord
+    indicesOfFrozenNucleotides : FullKeysRecord,
+    interactionConstraintOptions : InteractionConstraint.Options,
+    fullKeys0 : FullKeys,
+    fullKeys1? : FullKeys,
 ) {
     super(
       rnaComplexProps,
-      fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
       setDebugVisualElements,
-      indicesOfFrozenNucleotides
+      indicesOfFrozenNucleotides,
+      fullKeys0,
+      fullKeys1
     );
     const {
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
@@ -60,22 +67,19 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
 
     const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
     const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
-    if (nucleotideIndex in basePairsPerRnaMolecule) {
-      const error : InteractionConstraintError = {
-        errorMessage : "Cannot interact with a base-paired nucleotide."
-      };
-      throw error;
-    }
+    // if (nucleotideIndex in basePairsPerRnaMolecule) {
+    //   throw basePairedNucleotideError;
+    // }
 
-    let nucleotideIndexIncremented = nucleotideIndex + 1;
-    let nucleotideIndexDecremented = nucleotideIndex - 1;
-
-    if (!((nucleotideIndexIncremented in singularRnaMoleculeProps.nucleotideProps) && (nucleotideIndexDecremented in singularRnaMoleculeProps.nucleotideProps))) {
-      const error : InteractionConstraintError = {
-        errorMessage : "The clicked-on nucleotide is not part of an RNA cycle."
-      };
-      throw error;
+    if (
+      !(nucleotideIndex in basePairsPerRnaMolecule) &&
+      !((nucleotideIndex + 1 in singularRnaMoleculeProps.nucleotideProps) && (nucleotideIndex - 1 in singularRnaMoleculeProps.nucleotideProps))
+    ) {
+      throw noCycleFoundError;
     }
+    // if (!((nucleotideIndex + 1 in singularRnaMoleculeProps.nucleotideProps) && (nucleotideIndex - 1 in singularRnaMoleculeProps.nucleotideProps))) {
+    //   throw noCycleFoundError;
+    // }
     const rnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps;
     
     type GraphNode = {
@@ -151,11 +155,13 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
 
       const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
       if (nucleotideIndex in basePairsPerRnaMolecule) {
-        const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
-        neighborNodes.push({
-          rnaMoleculeName : mappedBasePairInformation.rnaMoleculeName,
-          nucleotideIndex : mappedBasePairInformation.nucleotideIndex
-        });
+        const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+        for (const basePairPerNucleotide of basePairsPerNucleotide) {
+          neighborNodes.push({
+            rnaMoleculeName : basePairPerNucleotide.rnaMoleculeName,
+            nucleotideIndex : basePairPerNucleotide.nucleotideIndex
+          });
+        }
       }
 
       for (let neighborNode of neighborNodes) {
@@ -190,10 +196,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     }
 
     if (cycleGraphNodes === undefined) {
-      const error : InteractionConstraintError = {
-        errorMessage : "The clicked-on nucleotide is not part of an RNA cycle."
-      };
-      throw error;
+      throw noCycleFoundError;
     }
     this.cycleIndices = cycleGraphNodes;
     const cycleGraphNucleotides = cycleGraphNodes.map(function(graphNode : GraphNode) {
@@ -222,23 +225,45 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
         boundingVector0ArrayIndex = i;
       }
     }
-    const mappedBasePairInformation = basePairsPerRnaComplex[minimumGraphNode.rnaMoleculeName][minimumGraphNode.nucleotideIndex];
+    /* Proof that the minimum nucleotide in a cycle has a base pair:
+    * Each nucleotide in a cycle is connected to >= 2 nucleotides which are also part of the cycle
+    * If we assume that the minimum nucleotide in a cycle has no basepair, then those two connected nucleotides must be:
+      * the next nucleotide in the RNA molecule
+      * the previous nucleotide in the RNA molecule
+        * Therefore, the previous nucleotide is in the cycle
+        * By definition, this previous nucleotide is < the minimum nucleotide.
+          * Proof by contradiciton.
+    */
+    const basePairsPerNucleotide = basePairsPerRnaComplex[minimumGraphNode.rnaMoleculeName][minimumGraphNode.nucleotideIndex];
+    const filteredBasePairsPerNucleotide = basePairsPerNucleotide.filter(basePairPerNucleotide => (cycleGraphNodes as GraphNode[]).some(cycleGraphNode => basePairPerNucleotide.rnaMoleculeName === cycleGraphNode.rnaMoleculeName && basePairPerNucleotide.nucleotideIndex === cycleGraphNode.nucleotideIndex));
+    const relevantBasePair = filteredBasePairsPerNucleotide.reduce((keys0, keys1) => {
+      const comparison = compareBasePairKeys(
+        keys0,
+        keys1
+      );
+      return comparison < 0 ? keys1 : keys0;
+    });
     const boundingVector0 = cycleGraphNucleotides[boundingVector0ArrayIndex];
-    const boundingVector1 = rnaMoleculeProps[mappedBasePairInformation.rnaMoleculeName].nucleotideProps[mappedBasePairInformation.nucleotideIndex];
+    const boundingVector1 = rnaMoleculeProps[relevantBasePair.rnaMoleculeName].nucleotideProps[relevantBasePair.nucleotideIndex];
     this.boundingVector0 = boundingVector0;
     this.boundingVector1 = boundingVector1;
     const incrementedCycleGraphNode = cycleGraphNodes[(boundingVector0ArrayIndex + 1) % cycleGraphNodes.length];
-    const boundingVectorsIncrementedFlag = incrementedCycleGraphNode.rnaMoleculeName === mappedBasePairInformation.rnaMoleculeName && incrementedCycleGraphNode.nucleotideIndex === mappedBasePairInformation.nucleotideIndex;
+    const boundingVectorsIncrementedFlag = (
+      incrementedCycleGraphNode.rnaMoleculeName === relevantBasePair.rnaMoleculeName &&
+      incrementedCycleGraphNode.nucleotideIndex === relevantBasePair.nucleotideIndex
+    );
     const arrayIndexIncrement = boundingVectorsIncrementedFlag ? -1 : 1;
     const boundingVector1ArrayIndex = (boundingVector0ArrayIndex - arrayIndexIncrement + cycleGraphNodes.length) % cycleGraphNodes.length;
 
-    const minimumRadius = distance(boundingVector0, boundingVector1) * 0.5 + EPSILON;
-    this.minimumRadius = minimumRadius;
-    if (minimumRadius === 0) {
-      const error : InteractionConstraintError = {
+    let minimumRadius = distance(boundingVector0, boundingVector1) * 0.5 + EPSILON;
+    if (areEqual(
+      minimumRadius,
+      0,
+      EPSILON * 2
+    )) {
+      throw {
         errorMessage : "Cannot determine repositioning data for this cycle, because its anchoring vector positions are exactly equal."
       };
-      throw error;
     }
 
     const boundingVectorsMidpoint = scaleUp(
@@ -459,129 +484,102 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
         const positionsToEdit = new Array<PositionToEdit>();
         const nucleotideIndexIncrement0 : number = initialNucleotideIndex0 - cycleGraphNodes[(i - 1 + cycleGraphNodes.length) % cycleGraphNodes.length].nucleotideIndex;
         const nucleotideIndexIncrement1 : number = initialNucleotideIndex1 - cycleGraphNodes[(i + 2) % cycleGraphNodes.length].nucleotideIndex;
-        let nucleotideIndex0 = initialNucleotideIndex0 + nucleotideIndexIncrement0;
-        while (nucleotideIndex0) {
-          if (rnaMoleculeName0 === rnaMoleculeName1 && nucleotideIndex0 === initialNucleotideIndex1) {
-            break;
-          }
-          this.addFullIndices({
-            rnaComplexIndex,
+        const loopKeys = [
+          {
             rnaMoleculeName : rnaMoleculeName0,
-            nucleotideIndex : nucleotideIndex0
-          });
-          const singularNucleotideProps = nucleotideProps0[nucleotideIndex0];
-          const polar = toPolar(subtract(
-            singularNucleotideProps,
-            midpoint
-          ));
-          polar.angle -= normalAngle;
-          let subtractedAnnotationAngle : number | undefined = undefined;
-          const positionsWithMagnitudes = new Array<{position : Vector2D, magnitude : number}>();
-          if (singularNucleotideProps.labelContentProps !== undefined) {
-            subtractedAnnotationAngle = asAngle(singularNucleotideProps.labelContentProps);
-            positionsWithMagnitudes.push({
-              position : singularNucleotideProps.labelContentProps,
-              magnitude : magnitude(singularNucleotideProps.labelContentProps)
-            });
-          }
-          if (singularNucleotideProps.labelLineProps !== undefined) {{
-            const points = singularNucleotideProps.labelLineProps.points;
-            subtractedAnnotationAngle = asAngle(points[0]);
-            positionsWithMagnitudes.push(...points.map(function(point) {
-              return {
-                position : point,
-                magnitude : magnitude(point)
-              };
-            }));
-          }}
-          if (subtractedAnnotationAngle !== undefined) {
-            subtractedAnnotationAngle -= normalAngle;
-          }
-          positionsToEdit.push({
-            singularNucleotideProps,
-            polarWithAngleSubtracted : polar,
-            annotationData : subtractedAnnotationAngle === undefined ? undefined : {
-              subtractedAnnotationAngle,
-              positionsWithMagnitudes
-            }
-          });
-          nucleotideKeysToRerenderPerRnaMolecule0.push(nucleotideIndex0);
-          if (nucleotideIndex0 in basePairsPerRnaMolecule0) {
-            const mappedBasePairInformation = basePairsPerRnaMolecule0[nucleotideIndex0];
-            if (mappedBasePairInformation.rnaMoleculeName !== rnaMoleculeName1 || (mappedBasePairInformation.nucleotideIndex - initialNucleotideIndex1) * nucleotideIndexIncrement1 < 0) {
-              const error : InteractionConstraintError = {
-                errorMessage : "Cannot interact with this RNA cycle; it contains complex base-pair arrangements."
-              };
-              throw error;
-            }
-            basePairKeysToRerenderPerRnaComplex.push({
-              rnaMoleculeName : rnaMoleculeName0,
-              nucleotideIndex : nucleotideIndex0
-            });
-          }
-          nucleotideIndex0 += nucleotideIndexIncrement0;
-        }
-        let nucleotideIndex1 = initialNucleotideIndex1 + nucleotideIndexIncrement1;
-        while (nucleotideIndex1) {
-          if (rnaMoleculeName0 === rnaMoleculeName1 && nucleotideIndex1 === initialNucleotideIndex0) {
-            break;
-          }
-          this.addFullIndices({
-            rnaComplexIndex,
+            nucleotideIndex : initialNucleotideIndex0 + nucleotideIndexIncrement0,
+            otherRnaMoleculeName : rnaMoleculeName1,
+            otherInitialNucleotideIndex : initialNucleotideIndex1,
+            nucleotideProps : nucleotideProps0,
+            nucleotideKeysToRerenderPerRnaMolecule : nucleotideKeysToRerenderPerRnaMolecule0,
+            basePairsPerRnaMolecule : basePairsPerRnaMolecule0,
+            nucleotideIndexIncrement : nucleotideIndexIncrement0,
+            otherNucleotideIndexIncrement : nucleotideIndexIncrement1
+          },
+          {
             rnaMoleculeName : rnaMoleculeName1,
-            nucleotideIndex : nucleotideIndex1
-          });
-          const singularNucleotideProps = nucleotideProps1[nucleotideIndex1];
-          const polar = toPolar(subtract(
-            singularNucleotideProps,
-            midpoint
-          ));
-          polar.angle -= normalAngle;
-          let subtractedAnnotationAngle : number | undefined = undefined;
-          const positionsWithMagnitudes = new Array<{position : Vector2D, magnitude : number}>();
-          if (singularNucleotideProps.labelContentProps !== undefined) {
-            subtractedAnnotationAngle = asAngle(singularNucleotideProps.labelContentProps);
-            positionsWithMagnitudes.push({
-              position : singularNucleotideProps.labelContentProps,
-              magnitude : magnitude(singularNucleotideProps.labelContentProps)
-            });
+            nucleotideIndex : initialNucleotideIndex1 + nucleotideIndexIncrement1,
+            otherRnaMoleculeName : rnaMoleculeName0,
+            otherInitialNucleotideIndex : initialNucleotideIndex0,
+            nucleotideProps : nucleotideProps1,
+            nucleotideKeysToRerenderPerRnaMolecule : nucleotideKeysToRerenderPerRnaMolecule1,
+            basePairsPerRnaMolecule : basePairsPerRnaMolecule1,
+            nucleotideIndexIncrement : nucleotideIndexIncrement1,
+            otherNucleotideIndexIncrement : nucleotideIndexIncrement0
           }
-          if (singularNucleotideProps.labelLineProps !== undefined) {{
-            const points = singularNucleotideProps.labelLineProps.points;
-            subtractedAnnotationAngle = asAngle(points[0]);
-            positionsWithMagnitudes.push(...points.map(function(point) {
-              return {
-                position : point,
-                magnitude : magnitude(point)
-              };
-            }));
-          }}
-          if (subtractedAnnotationAngle !== undefined) {
-            subtractedAnnotationAngle -= normalAngle;
-          }
-          positionsToEdit.push({
-            singularNucleotideProps,
-            polarWithAngleSubtracted : polar,
-            annotationData : subtractedAnnotationAngle === undefined ? undefined : {
-              subtractedAnnotationAngle,
-              positionsWithMagnitudes
+        ];
+        for (let {
+          rnaMoleculeName,
+          nucleotideIndex,
+          otherRnaMoleculeName,
+          otherInitialNucleotideIndex,
+          nucleotideProps,
+          nucleotideKeysToRerenderPerRnaMolecule,
+          basePairsPerRnaMolecule,
+          nucleotideIndexIncrement,
+          otherNucleotideIndexIncrement
+        } of loopKeys) {
+          while (nucleotideIndex) {
+            if (rnaMoleculeName === otherRnaMoleculeName && nucleotideIndex === otherInitialNucleotideIndex) {
+              break;
             }
-          });
-          nucleotideKeysToRerenderPerRnaMolecule1.push(nucleotideIndex1);
-          if (nucleotideIndex1 in basePairsPerRnaMolecule1) {
-            const mappedBasePairInformation = basePairsPerRnaMolecule1[nucleotideIndex1];
-            if (mappedBasePairInformation.rnaMoleculeName !== rnaMoleculeName0 || (mappedBasePairInformation.nucleotideIndex - initialNucleotideIndex0) * nucleotideIndexIncrement0 < 0) {
-              const error : InteractionConstraintError = {
-                errorMessage : "Cannot interact with this RNA cycle; it contains complex base-pair arrangements."
-              };
-              throw error;
+            if (!(nucleotideIndex in nucleotideProps)) {
+              break;
             }
-            basePairKeysToRerenderPerRnaComplex.push({
-              rnaMoleculeName : rnaMoleculeName1,
-              nucleotideIndex : nucleotideIndex1
+            this.addFullIndices({
+              rnaComplexIndex,
+              rnaMoleculeName,
+              nucleotideIndex
             });
+            const singularNucleotideProps = nucleotideProps[nucleotideIndex];
+            const polar = toPolar(subtract(
+              singularNucleotideProps,
+              midpoint
+            ));
+            polar.angle -= normalAngle;
+            let subtractedAnnotationAngle : number | undefined = undefined;
+            const positionsWithMagnitudes = new Array<{position : Vector2D, magnitude : number}>();
+            if (singularNucleotideProps.labelContentProps !== undefined) {
+              subtractedAnnotationAngle = asAngle(singularNucleotideProps.labelContentProps);
+              positionsWithMagnitudes.push({
+                position : singularNucleotideProps.labelContentProps,
+                magnitude : magnitude(singularNucleotideProps.labelContentProps)
+              });
+            }
+            if (singularNucleotideProps.labelLineProps !== undefined) {{
+              const points = singularNucleotideProps.labelLineProps.points;
+              subtractedAnnotationAngle = asAngle(points[0]);
+              positionsWithMagnitudes.push(...points.map(function(point) {
+                return {
+                  position : point,
+                  magnitude : magnitude(point)
+                };
+              }));
+            }}
+            if (subtractedAnnotationAngle !== undefined) {
+              subtractedAnnotationAngle -= normalAngle;
+            }
+            positionsToEdit.push({
+              singularNucleotideProps,
+              polarWithAngleSubtracted : polar,
+              annotationData : subtractedAnnotationAngle === undefined ? undefined : {
+                subtractedAnnotationAngle,
+                positionsWithMagnitudes
+              }
+            });
+            nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
+            // if (nucleotideIndex in basePairsPerRnaMolecule) {
+            //   const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+            //   for (const basePairPerNucleotide of basePairsPerNucleotide) {
+            //     if (basePairPerNucleotide.rnaMoleculeName !== otherRnaMoleculeName || (basePairPerNucleotide.nucleotideIndex - otherInitialNucleotideIndex) * otherNucleotideIndexIncrement < 0) {
+            //       throw {
+            //         errorMessage : "Cannot interact with this RNA cycle; it contains complex base-pair arrangements."
+            //       };
+            //     }
+            //   }
+            // }
+            nucleotideIndex += nucleotideIndexIncrement;
           }
-          nucleotideIndex1 += nucleotideIndexIncrement1;
         }
         branches.push({
           arrayIndex : i,
@@ -820,13 +818,17 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       In RNA complex "{singularRnaComplexProps.name}"
     </>;
     const branchNucleotides = new Array<Nucleotide.ExternalProps>();
-    for (const branch of branches) {
-      const { positionsToEdit } = branch;
+    for (const { positionsToEdit } of branches) {
       for (const positionToEdit of positionsToEdit) {
         const { singularNucleotideProps } = positionToEdit;
         branchNucleotides.push(singularNucleotideProps);
       }
     }
+    minimumRadius = branches.reduce((minimumRadius, { originalBasePairDistanceOverTwo }) => Math.max(
+      minimumRadius,
+      originalBasePairDistanceOverTwo + EPSILON
+    ), minimumRadius);
+    this.minimumRadius = minimumRadius;
     this.editMenuProps = {
       initialRadius,
       minimumRadius,
@@ -871,7 +873,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const {
       rnaComplexIndex,
       rnaMoleculeName
-    } = this.fullKeys;
+    } = this.fullKeys0;
     let menu : JSX.Element;
     switch (tab) {
       case Tab.EDIT : {
@@ -882,7 +884,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       }
       case Tab.FORMAT : {
         throw {
-          errorMessage : "This interaction-constraint does not support the format menu."
+          errorMessage : "This constraint does not support the format menu."
         };
       }
       case Tab.ANNOTATE : {

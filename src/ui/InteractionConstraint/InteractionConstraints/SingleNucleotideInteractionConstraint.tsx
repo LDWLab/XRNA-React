@@ -8,7 +8,7 @@ import { InteractionConstraint } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
-import { RnaComplex, isRelevantBasePairKeySetInPair } from "../../../components/app_specific/RnaComplex";
+import { RnaComplex, isRelevantBasePairKeySetInPair, selectRelevantBasePairKeys } from "../../../components/app_specific/RnaComplex";
 
 export class SingleNucleotideInteractionConstraint extends AbstractInteractionConstraint {
   private readonly singularNucleotideProps : Nucleotide.ExternalProps;
@@ -17,33 +17,36 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
 
   constructor(
     rnaComplexProps : RnaComplexProps,
-    fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
-    indicesOfFrozenNucleotides : FullKeysRecord
+    indicesOfFrozenNucleotides : FullKeysRecord,
+    interactionConstraintOptions : InteractionConstraint.Options,
+    fullKeys0 : FullKeys,
+    fullKeys1? : FullKeys,
   ) {
     super(
       rnaComplexProps,
-      fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
       setDebugVisualElements,
-      indicesOfFrozenNucleotides
+      indicesOfFrozenNucleotides,
+      fullKeys0,
+      fullKeys1
     );
     const {
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const {
       basePairs
     } = singularRnaComplexProps;
     this.singularNucleotideProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
 
-    this.addFullIndices(fullKeys);
+    this.addFullIndices(fullKeys0);
     let basePairsPerRnaMolecule : RnaComplex.BasePairsPerRnaMolecule;
     if (rnaMoleculeName in basePairs && nucleotideIndex in (basePairsPerRnaMolecule = basePairs[rnaMoleculeName])) {
       const mappedBasePairInformation = basePairsPerRnaMolecule[nucleotideIndex];
@@ -54,15 +57,20 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
             [rnaMoleculeName] : [nucleotideIndex]
           }
         });
-        let basePairKeysToRerender = {
+        const keys = {
           rnaMoleculeName,
           nucleotideIndex
         };
-        if (!isRelevantBasePairKeySetInPair(
-          basePairKeysToRerender,
-          mappedBasePairInformation
-        )) {
-          basePairKeysToRerender = mappedBasePairInformation;
+        let basePairKeysToRerender : BasePairKeysToRerender = {
+          [rnaComplexIndex] : []
+        };
+        const basePairKeysToRerenderPerRnaComplex = basePairKeysToRerender[rnaComplexIndex];
+        const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+        for (const basePairPerNucleotide of basePairsPerNucleotide) {
+          basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
+            keys,
+            basePairPerNucleotide
+          ));
         }
         setBasePairKeysToRerender(basePairKeysToRerender);
       }
@@ -114,7 +122,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const rerender = this.rerender;
@@ -137,7 +145,7 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       case Tab.EDIT : {
         menu = <SingleNucleotideInteractionConstraintEditMenu.Component
           rnaComplexProps = {this.rnaComplexProps}
-          fullKeys = {this.fullKeys}
+          fullKeys = {this.fullKeys0}
           triggerRerender = {rerender}
         />;
         break;

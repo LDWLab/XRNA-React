@@ -1,7 +1,7 @@
 import { RnaComplex, compareBasePairKeys, selectRelevantBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { NucleotideKeysToRerender, BasePairKeysToRerender, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
 import { linearDrag } from "../CommonDragListeners";
-import { AbstractInteractionConstraint, InteractionConstraintError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
+import { AbstractInteractionConstraint, InteractionConstraintError, multipleBasePairsNucleotideError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
 import { InteractionConstraint } from "../InteractionConstraints";
 import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../../App";
 import { SingleBasePairInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/SingleBasePairinteractionConstraintEditMenu";
@@ -36,21 +36,23 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
 
   constructor(
     rnaComplexProps : RnaComplexProps,
-    fullKeys : FullKeys,
     setNucleotideKeysToRerender : (nucleotideKeysToRerender : NucleotideKeysToRerender) => void,
     setBasePairKeysToRerender : (basePairKeysToRerender : BasePairKeysToRerender) => void,
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
     indicesOfFrozenNucleotides : FullKeysRecord,
-    { affectHairpinNucleotidesFlag } : InteractionConstraint.Options
+    { affectHairpinNucleotidesFlag } : InteractionConstraint.Options,
+    fullKeys0 : FullKeys,
+    fullKeys1? : FullKeys
   ) {
     super(
       rnaComplexProps,
-      fullKeys,
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
       setDebugVisualElements,
-      indicesOfFrozenNucleotides
+      indicesOfFrozenNucleotides,
+      fullKeys0,
+      fullKeys1
     );
     const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
     const basePairKeysToRerender : BasePairKeysToRerender = {};
@@ -58,7 +60,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
-    } = this.fullKeys;
+    } = this.fullKeys0;
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const {
       basePairs
@@ -70,18 +72,33 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       rnaMoleculeName,
       nucleotideIndex
     };
-    const mappedBasePair = basePairs[rnaMoleculeName][nucleotideIndex];
+    const basePairsPerNucleotide = basePairs[rnaMoleculeName][nucleotideIndex];
+    let basePairPerNucleotide : RnaComplex.MappedBasePair;
+    if (basePairsPerNucleotide.length === 1) {
+      basePairPerNucleotide = basePairsPerNucleotide[0];
+    } else {
+      if (
+        fullKeys1 === undefined
+      ) {
+        throw multipleBasePairsNucleotideError;
+      }
+      basePairPerNucleotide = basePairsPerNucleotide.find(({ rnaMoleculeName, nucleotideIndex }) => (
+        fullKeys1.rnaMoleculeName === rnaMoleculeName &&
+        fullKeys1.nucleotideIndex === nucleotideIndex
+      ))!;
+    }
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
-    const basePairedSingularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[mappedBasePair.rnaMoleculeName];
-    const basePairedSingularNucleotideProps = basePairedSingularRnaMoleculeProps.nucleotideProps[mappedBasePair.nucleotideIndex];
+
+    const basePairedSingularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[basePairPerNucleotide.rnaMoleculeName];
+    const basePairedSingularNucleotideProps = basePairedSingularRnaMoleculeProps.nucleotideProps[basePairPerNucleotide.nucleotideIndex];
     let lesserKeys : RnaComplex.BasePairKeys;
     let greaterKeys : RnaComplex.BasePairKeys;
-    if (compareBasePairKeys(basePairKeys, mappedBasePair) <= 0) {
+    if (compareBasePairKeys(basePairKeys, basePairPerNucleotide) <= 0) {
       lesserKeys = basePairKeys;
-      greaterKeys = mappedBasePair;
+      greaterKeys = basePairPerNucleotide;
     } else {
-      lesserKeys = mappedBasePair;
+      lesserKeys = basePairPerNucleotide;
       greaterKeys = basePairKeys;
     }
     basePairKeysToRerender[rnaComplexIndex] = [
@@ -93,9 +110,9 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       y : singularNucleotideProps.y
     };
     const nucleotideIndex0 = nucleotideIndex;
-    const nucleotideIndex1 = mappedBasePair.nucleotideIndex;
+    const nucleotideIndex1 = basePairPerNucleotide.nucleotideIndex;
     const rnaMoleculeName0 = rnaMoleculeName;
-    const rnaMoleculeName1 = mappedBasePair.rnaMoleculeName;
+    const rnaMoleculeName1 = basePairPerNucleotide.rnaMoleculeName;
     this.indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0 = new Set<number>();
     if (rnaComplexIndex in indicesOfFrozenNucleotides) {
       const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
@@ -223,9 +240,9 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       <br/>
       Base-paired to:
       <br/>
-      Nucleotide #{mappedBasePair.nucleotideIndex + basePairedSingularRnaMoleculeProps.firstNucleotideIndex} ({basePairedSingularNucleotideProps.symbol})
+      Nucleotide #{basePairPerNucleotide.nucleotideIndex + basePairedSingularRnaMoleculeProps.firstNucleotideIndex} ({basePairedSingularNucleotideProps.symbol})
       <br/>
-      In RNA molecule "{mappedBasePair.rnaMoleculeName}"
+      In RNA molecule "{basePairPerNucleotide.rnaMoleculeName}"
       <br/>
       In RNA complex "{singularRnaComplexProps.name}"
       <br/>
@@ -248,7 +265,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       boundingVector0 = singularNucleotideProps;
       boundingVector1 = basePairedSingularNucleotideProps;
     }
-    const basePairType = mappedBasePair.basePairType ?? getBasePairType(
+    const basePairType = basePairPerNucleotide.basePairType ?? getBasePairType(
       singularNucleotideProps.symbol,
       basePairedSingularNucleotideProps.symbol
     );
@@ -284,10 +301,10 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       nucleotideIndex : nucleotideIndex1
     }
     this.addFullIndices(
-      fullKeys,
+      fullKeys0,
       {
         rnaComplexIndex,
-        ...mappedBasePair
+        ...basePairPerNucleotide
       }
     );
   }
@@ -300,8 +317,8 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     const {
       rnaComplexIndex,
       rnaMoleculeName
-    } = this.fullKeys;
-    const fullKeys = this.fullKeys;
+    } = this.fullKeys0;
+    const fullKeys = this.fullKeys0;
     const basePairedKeys = this.basePairedKeys;
     const nucleotideIndices = this.nucleotideIndices;
     let menu : JSX.Element = <></>;

@@ -18,14 +18,16 @@ export function bpseqFileWriter(
         const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
         const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
         if (nucleotideIndex in basePairsPerRnaMolecule) {
-          const basePairPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
-          const basePairedRnaMoleculeName = basePairPerNucleotide.rnaMoleculeName;
-          const singularBasePairedRnaMolecule = singularRnaComplexProps.rnaMoleculeProps[basePairedRnaMoleculeName];
-          let line = `${nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex} ${singularNucleotideProps.symbol} ${basePairPerNucleotide.nucleotideIndex + singularBasePairedRnaMolecule.firstNucleotideIndex}`;
-          if (rnaMoleculeName !== basePairedRnaMoleculeName) {
-            line += ` # RNA molecule "${basePairedRnaMoleculeName}"`;
+          const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+          for (const basePairPerNucleotide of basePairsPerNucleotide) {
+            const basePairedRnaMoleculeName = basePairPerNucleotide.rnaMoleculeName;
+            const singularBasePairedRnaMolecule = singularRnaComplexProps.rnaMoleculeProps[basePairedRnaMoleculeName];
+            let line = `${nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex} ${singularNucleotideProps.symbol} ${basePairPerNucleotide.nucleotideIndex + singularBasePairedRnaMolecule.firstNucleotideIndex}`;
+            if (rnaMoleculeName !== basePairedRnaMoleculeName) {
+              line += ` # RNA molecule "${basePairedRnaMoleculeName}"`;
+            }
+            lines.push(line);
           }
-          lines.push(line);
         } else {
           lines.push(`${nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex} ${singularNucleotideProps.symbol} 0`);
         }
