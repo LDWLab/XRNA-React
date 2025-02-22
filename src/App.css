@@ -1,7 +1,10 @@
-::-webkit-scrollbar {
-    width: 0px;
-    height: 0px;
-    background: transparent; /* make scrollbar transparent */
+html, body {
+  overflow-x : hidden;
+  overflow-y : hidden;
+}
+
+.visible-scrollbar {
+  overflow-y: visible;
 }
 
 .noselect {

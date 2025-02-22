@@ -1400,6 +1400,7 @@ export namespace App {
             }
             setUndoStack([]);
             setRedoStack([]);
+            setBasePairKeysToEdit({});
             setRnaComplexProps(parsedInput.rnaComplexProps);
             if (Object.keys(parsedInput.rnaComplexProps).length > 0) {
               let numSeconds = 2;

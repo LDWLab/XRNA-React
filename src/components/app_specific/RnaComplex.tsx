@@ -219,11 +219,6 @@ export namespace RnaComplex {
     const basePairDataToEditPerRnaComplex = useContext(Context.BasePair.DataToEditPerRnaComplex);
     const basePairAverageRadii = useContext(Context.BasePair.AverageDistances);
     const updateBasePairAverageDistances = useContext(Context.BasePair.UpdateAverageDistances);
-    // Begin state data.
-    const [
-      editedFlattenedBasePairProps,
-      _setEditedFlattenedBasePairProps
-    ] = useState<Array<SingularFlattenedBasePairProps>>([]);
     // Begin memo data.
     const flattenedRnaMoleculeProps = Object.entries(rnaMoleculeProps);
     const flattenedBasePairProps = useMemo(
@@ -330,8 +325,7 @@ export namespace RnaComplex {
       },
       [basePairs]
     );
-    // Begin effects.
-    useEffect(
+    const editedFlattenedBasePairProps = useMemo(
       function() {
         let editedFlattenedBasePairProps = flattenedBasePairProps;
         if (basePairDataToEditPerRnaComplex !== undefined) {
@@ -370,7 +364,7 @@ export namespace RnaComplex {
             } = keys0;
             const basePairsPerNucleotide = basePairs[rnaMoleculeName][nucleotideIndex];
             const basePairPerNucleotide = basePairsPerNucleotide.find((basePairPerNucleotide) => (
-              basePairPerNucleotide.rnaMoleculeName === keys1.rnaMoleculeName,
+              basePairPerNucleotide.rnaMoleculeName === keys1.rnaMoleculeName &&
               basePairPerNucleotide.nucleotideIndex === keys1.nucleotideIndex
             ))!;
             // for (const basePairPerNucleotide of basePairsPerNucleotide) {
@@ -429,14 +423,15 @@ export namespace RnaComplex {
             // }
           }
         }
-        editedFlattenedBasePairProps = [...editedFlattenedBasePairProps];
-        _setEditedFlattenedBasePairProps(editedFlattenedBasePairProps);
+        // editedFlattenedBasePairProps = [...editedFlattenedBasePairProps];
+        return structuredClone(editedFlattenedBasePairProps);
       },
       [
         flattenedBasePairProps,
         basePairDataToEditPerRnaComplex
       ]
     );
+    // Begin effects.
     useEffect(
       function() {
         let averageDistancesData = {} as Record<BasePair.Type, { count : number, distanceSum : number, distances : Array<number> }>;
@@ -590,7 +585,7 @@ export namespace RnaComplex {
               <Context.BasePair.AverageStrokeWidth.Provider
                 value = {averageBasePairStrokeWidth}
               >
-              {editedFlattenedBasePairProps.map(function(props) {
+              {editedFlattenedBasePairProps.map(function(props : SingularFlattenedBasePairProps) {
                 return createElement(
                   BasePair.Component,
                   props
