@@ -219,6 +219,10 @@ export namespace RnaComplex {
     const basePairDataToEditPerRnaComplex = useContext(Context.BasePair.DataToEditPerRnaComplex);
     const basePairAverageRadii = useContext(Context.BasePair.AverageDistances);
     const updateBasePairAverageDistances = useContext(Context.BasePair.UpdateAverageDistances);
+    const [
+      editedFlattenedBasePairProps,
+      _setEditedFlattenedBasePairProps
+    ] = useState<Array<SingularFlattenedBasePairProps>>([]);
     // Begin memo data.
     const flattenedRnaMoleculeProps = Object.entries(rnaMoleculeProps);
     const flattenedBasePairProps = useMemo(
@@ -325,7 +329,7 @@ export namespace RnaComplex {
       },
       [basePairs]
     );
-    const editedFlattenedBasePairProps = useMemo(
+    useEffect(
       function() {
         let editedFlattenedBasePairProps = flattenedBasePairProps;
         if (basePairDataToEditPerRnaComplex !== undefined) {
@@ -423,8 +427,9 @@ export namespace RnaComplex {
             // }
           }
         }
+        editedFlattenedBasePairProps = [...editedFlattenedBasePairProps];
+        _setEditedFlattenedBasePairProps(editedFlattenedBasePairProps);
         // editedFlattenedBasePairProps = [...editedFlattenedBasePairProps];
-        return structuredClone(editedFlattenedBasePairProps);
       },
       [
         flattenedBasePairProps,
