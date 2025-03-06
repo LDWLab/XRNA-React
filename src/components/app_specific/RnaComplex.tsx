@@ -5,7 +5,7 @@ import { Vector2D, add, distance, scaleUp } from "../../data_structures/Vector2D
 import Scaffolding from "../generic/Scaffolding";
 import BasePair, { getBasePairType } from "./BasePair";
 import { RnaMolecule } from "./RnaMolecule";
-import { HandleQueryNotFound, median, sortedArraySplice } from "../../utils/Utils";
+import { binarySearch, HandleQueryNotFound, median, sortedArraySplice } from "../../utils/Utils";
 import { SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 
@@ -219,10 +219,6 @@ export namespace RnaComplex {
     const basePairDataToEditPerRnaComplex = useContext(Context.BasePair.DataToEditPerRnaComplex);
     const basePairAverageRadii = useContext(Context.BasePair.AverageDistances);
     const updateBasePairAverageDistances = useContext(Context.BasePair.UpdateAverageDistances);
-    const [
-      editedFlattenedBasePairProps,
-      _setEditedFlattenedBasePairProps
-    ] = useState<Array<SingularFlattenedBasePairProps>>([]);
     // Begin memo data.
     const flattenedRnaMoleculeProps = Object.entries(rnaMoleculeProps);
     const flattenedBasePairProps = useMemo(
@@ -329,7 +325,7 @@ export namespace RnaComplex {
       },
       [basePairs]
     );
-    useEffect(
+    const editedFlattenedBasePairProps = useMemo(
       function() {
         let editedFlattenedBasePairProps = flattenedBasePairProps;
         if (basePairDataToEditPerRnaComplex !== undefined) {
@@ -371,7 +367,6 @@ export namespace RnaComplex {
               basePairPerNucleotide.rnaMoleculeName === keys1.rnaMoleculeName &&
               basePairPerNucleotide.nucleotideIndex === keys1.nucleotideIndex
             ))!;
-            // for (const basePairPerNucleotide of basePairsPerNucleotide) {
             if (isRelevantBasePairKeySetInPair(
               keys0,
               keys1
@@ -424,16 +419,14 @@ export namespace RnaComplex {
                 HandleQueryNotFound.ADD
               );
             }
-            // }
           }
         }
-        editedFlattenedBasePairProps = [...editedFlattenedBasePairProps];
-        _setEditedFlattenedBasePairProps(editedFlattenedBasePairProps);
-        // editedFlattenedBasePairProps = [...editedFlattenedBasePairProps];
+        return [...editedFlattenedBasePairProps];
       },
       [
         flattenedBasePairProps,
-        basePairDataToEditPerRnaComplex
+        basePairDataToEditPerRnaComplex,
+        basePairKeysToRerenderPerRnaComplex
       ]
     );
     // Begin effects.
@@ -584,28 +577,16 @@ export namespace RnaComplex {
       >
         <>
           <g>
-            {/* <Context.BasePair.Radius.Provider
-              value = {radii}
-            > */}
-              <Context.BasePair.AverageStrokeWidth.Provider
-                value = {averageBasePairStrokeWidth}
-              >
+            <Context.BasePair.AverageStrokeWidth.Provider
+              value = {averageBasePairStrokeWidth}
+            >
               {editedFlattenedBasePairProps.map(function(props : SingularFlattenedBasePairProps) {
                 return createElement(
                   BasePair.Component,
                   props
                 );
               })}
-              {/* 
-                <Scaffolding.Component<BasePairKeys, BasePair.Props>
-                  sortedProps = {editedFlattenedBasePairProps}
-                  childComponent = {BasePair.MemoizedComponent}
-                  propsToRerenderKeys = {basePairKeysToRerenderPerRnaComplex}
-                  comparator = {compareBasePairKeys}
-                />
-              */}
-              </Context.BasePair.AverageStrokeWidth.Provider>
-            {/* </Context.BasePair.Radius.Provider> */}
+            </Context.BasePair.AverageStrokeWidth.Provider>
           </g>
           {flattenedRnaMoleculeProps.map(function(
             [
