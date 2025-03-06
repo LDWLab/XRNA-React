@@ -108,6 +108,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       rnaMoleculeName1,
       nucleotideIndex1,
       allNucleotides,
+      basePairKeysToRerenderPerRnaComplex,
       pushToListOfNucleotideIndices
     );
     const extremaIncremented = helix.stop;

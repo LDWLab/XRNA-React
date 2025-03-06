@@ -161,7 +161,8 @@ export namespace BasePair {
   export type ExternalProps = {
     mappedBasePair : CoreProps,
     position0 : Vector2D,
-    position1 : Vector2D
+    position1 : Vector2D,
+    updateTrigger? : number
   };
 
   export type FinalizedMappedBasePair = CoreProps & Required<Pick<CoreProps, "basePairType">>;
@@ -1520,7 +1521,15 @@ export namespace BasePair {
     );
   }
 
-  export const MemoizedComponent = memo(Component);
+  export const MemoizedComponent = memo(
+    Component,
+    (
+      prevProps,
+      nextProps
+    ) => {
+      return prevProps.updateTrigger === nextProps.updateTrigger;
+    }
+  );
 }
 
 export default BasePair;

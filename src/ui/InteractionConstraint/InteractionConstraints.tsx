@@ -374,6 +374,7 @@ export function populateToBeDraggedWithHelix(
   rnaMoleculeName1 : string,
   nucleotideIndex1 : number,
   toBeDragged : Array<Vector2D>,
+  basePairKeysToRerenderPerRnaComplex? : BasePairKeysToRerenderPerRnaComplex,
   forEachHelper : (
     keys : RnaComplex.BasePairKeys
   ) => void = () => { /* Do nothing. */ },
@@ -393,6 +394,17 @@ export function populateToBeDraggedWithHelix(
       } = keys;
       const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
       toBeDragged.push(singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]);
+      if (basePairKeysToRerenderPerRnaComplex !== undefined) {
+        const { basePairs } = singularRnaComplexProps;
+        const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
+        const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+        for (const basePairPerNucleotide of basePairsPerNucleotide) {
+          basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
+            keys,
+            basePairPerNucleotide
+          ));
+        }
+      }
     },
     sortedBasePairs
   );

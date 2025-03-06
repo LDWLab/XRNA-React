@@ -139,6 +139,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       rnaMoleculeName1,
       nucleotideIndex1,
       allNucleotides,
+      basePairKeysToRerenderPerRnaComplex,
       (keys) => { /* Do nothing. */ },
       sortedBasePairs
     );
@@ -265,6 +266,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
           rnaMoleculeName1,
           nucleotideIndex1,
           allNucleotides,
+          basePairKeysToRerenderPerRnaComplex,
           (keys) => { /* Do nothing. */ },
           sortedBasePairs
         );

@@ -7,7 +7,7 @@ import { RnaCycleInteractionConstraintEditMenu } from "./RnaCycleInteractionCons
 import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, magnitude, negate, normalize, orthogonalizeLeft, scaleUp, subtract, toCartesian, toNormalCartesian, toPolar } from "../../../data_structures/Vector2D";
 import { getBoundingCircle } from "../../../data_structures/Geometry";
 import { areEqual, sign, subtractNumbers } from "../../../utils/Utils";
-import { compareBasePairKeys } from "../../../components/app_specific/RnaComplex";
+import { compareBasePairKeys, selectRelevantBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { Tab } from "../../../app_data/Tab";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
@@ -403,8 +403,14 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
 
       if (rnaMoleculeName in basePairsPerRnaComplex) {
         const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
-        if (nucleotideIndex in basePairsPerRnaMolecule && !(rnaMoleculeName in basePairKeysToRerenderPerRnaComplex)) {
-          basePairKeysToRerenderPerRnaComplex.push(graphNode);
+        if (nucleotideIndex in basePairsPerRnaMolecule) {
+          const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+          for (const basePairPerNucleotide of basePairsPerNucleotide) {
+            basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
+              graphNode,
+              basePairPerNucleotide
+            ));
+          }
         }
       }
     }
@@ -568,6 +574,19 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
               }
             });
             nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
+            if (nucleotideIndex in basePairsPerRnaMolecule) {
+              const keys0 = {
+                rnaMoleculeName,
+                nucleotideIndex
+              };
+              const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+              for (const basePairPerNucleotide of basePairsPerNucleotide) {
+                basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
+                  keys0,
+                  basePairPerNucleotide
+                ));
+              }
+            }
             // if (nucleotideIndex in basePairsPerRnaMolecule) {
             //   const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
             //   for (const basePairPerNucleotide of basePairsPerNucleotide) {

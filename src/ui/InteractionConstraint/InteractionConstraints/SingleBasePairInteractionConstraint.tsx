@@ -54,13 +54,15 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       fullKeys0,
       fullKeys1
     );
-    const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
-    const basePairKeysToRerender : BasePairKeysToRerender = {};
     const {
       rnaComplexIndex,
       rnaMoleculeName,
       nucleotideIndex
     } = this.fullKeys0;
+    const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
+    const basePairKeysToRerender : BasePairKeysToRerender = {
+      [rnaComplexIndex] : []
+    };
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const {
       basePairs
@@ -72,17 +74,17 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       rnaMoleculeName,
       nucleotideIndex
     };
-    const basePairsPerNucleotide = basePairs[rnaMoleculeName][nucleotideIndex];
+    const basePairsPerNucleotide0 = basePairs[rnaMoleculeName][nucleotideIndex];
     let basePairPerNucleotide : RnaComplex.MappedBasePair;
-    if (basePairsPerNucleotide.length === 1) {
-      basePairPerNucleotide = basePairsPerNucleotide[0];
+    if (basePairsPerNucleotide0.length === 1) {
+      basePairPerNucleotide = basePairsPerNucleotide0[0];
     } else {
       if (
         fullKeys1 === undefined
       ) {
         throw multipleBasePairsNucleotideError;
       }
-      basePairPerNucleotide = basePairsPerNucleotide.find(({ rnaMoleculeName, nucleotideIndex }) => (
+      basePairPerNucleotide = basePairsPerNucleotide0.find(({ rnaMoleculeName, nucleotideIndex }) => (
         fullKeys1.rnaMoleculeName === rnaMoleculeName &&
         fullKeys1.nucleotideIndex === nucleotideIndex
       ))!;
@@ -92,19 +94,30 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
 
     const basePairedSingularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[basePairPerNucleotide.rnaMoleculeName];
     const basePairedSingularNucleotideProps = basePairedSingularRnaMoleculeProps.nucleotideProps[basePairPerNucleotide.nucleotideIndex];
-    let lesserKeys : RnaComplex.BasePairKeys;
-    let greaterKeys : RnaComplex.BasePairKeys;
-    if (compareBasePairKeys(basePairKeys, basePairPerNucleotide) <= 0) {
-      lesserKeys = basePairKeys;
-      greaterKeys = basePairPerNucleotide;
-    } else {
-      lesserKeys = basePairPerNucleotide;
-      greaterKeys = basePairKeys;
-    }
-    basePairKeysToRerender[rnaComplexIndex] = [
-      lesserKeys
-    ];
+    const basePairsPerNucleotide1 = basePairs[basePairPerNucleotide.rnaMoleculeName][basePairPerNucleotide.nucleotideIndex];
+
     const basePairKeysToRerenderPerRnaComplex = basePairKeysToRerender[rnaComplexIndex];
+    const array = [
+      {
+        keys0 : basePairKeys,
+        basePairsPerNucleotide : basePairsPerNucleotide0
+      }, {
+        keys0 : basePairPerNucleotide,
+        basePairsPerNucleotide : basePairsPerNucleotide1
+      }
+    ];
+    for (const { keys0, basePairsPerNucleotide } of array) {
+      for (const keys1 of basePairsPerNucleotide) {
+        const relevantKeys = selectRelevantBasePairKeys(
+          keys0,
+          keys1
+        );
+        basePairKeysToRerenderPerRnaComplex.push(relevantKeys);
+      }
+    }
+    basePairKeysToRerenderPerRnaComplex.sort(compareBasePairKeys);
+    const [lesserKeys, greaterKeys] = [basePairKeys, basePairPerNucleotide].sort(compareBasePairKeys);
+
     const initialDrag = {
       x : singularNucleotideProps.x,
       y : singularNucleotideProps.y

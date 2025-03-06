@@ -109,7 +109,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       nucleotideIndex0,
       rnaMoleculeName1,
       nucleotideIndex1,
-      allNucleotides
+      allNucleotides,
+      basePairKeysToRerenderPerRnaComplex
     );
     const extrema0 = helix.start;
     const extrema1 = helix.stop;

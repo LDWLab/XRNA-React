@@ -10,6 +10,7 @@ import { InteractionConstraint, iterateOverFreeNucleotidesandHelicesPerRnaMolecu
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
+import { compareBasePairKeys, selectRelevantBasePairKeys } from "../../../components/app_specific/RnaComplex";
 
 export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -75,10 +76,16 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
       }
       if (nucleotideIndex in basePairsPerRnaMolecule) {
         const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
-        basePairKeysToRerenderPerRnaComplex.push({
+        const keys0 = {
           rnaMoleculeName,
           nucleotideIndex
-        });
+        };
+        for (const basePairPerNucleotide of basePairsPerNucleotide) {
+          basePairKeysToRerenderPerRnaComplex.push(selectRelevantBasePairKeys(
+            keys0,
+            basePairPerNucleotide
+          ));
+        }
         // for (const basePairPerNucleotide of basePairsPerNucleotide) {
         //   if (rnaMoleculeName !== basePairPerNucleotide.rnaMoleculeName) {
         //     this.dragError = {
@@ -89,6 +96,7 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
         // }
       }
     }
+    basePairKeysToRerenderPerRnaComplex.sort(compareBasePairKeys);
     this.dragListener = linearDrag(
       structuredClone(singularNucleotideProps),
       toBeDragged,
