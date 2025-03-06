@@ -104,13 +104,17 @@ export namespace OrientationEditor {
       setFlipPositionsFlag
     ] = useState(false);
     const [
-      scaleChangedFlag,
-      setScaleChangedFlag
+      updatedPositionsFlag,
+      setUpdatedPositionsFlag
     ] = useState(false);
-    const [
-      flippedFlag,
-      setFlippedFlag
-    ] = useState(false);
+    // const [
+    //   scaleChangedFlag,
+    //   setScaleChangedFlag
+    // ] = useState(false);
+    // const [
+    //   flippedFlag,
+    //   setFlippedFlag
+    // ] = useState(false);
     // Begin reference data.
     const scaleReference = useRef<number>();
     scaleReference.current = scale;
@@ -121,6 +125,10 @@ export namespace OrientationEditor {
       scale : number,
       flipPositions : boolean
     ) {
+      if (!updatedPositionsFlag) {
+        pushToUndoStack();
+        setUpdatedPositionsFlag(true);
+      }
       const angleDelta = angle - initialAngleNullCoalesced;
       const totalScale = scale * initialScaleNullCoalescedReciprocal;
       const cartesianCenter = {
@@ -193,7 +201,7 @@ export namespace OrientationEditor {
           }
         }
       }
-      onUpdatePositions(!flipPositions && scale === scaleReference.current!);
+      onUpdatePositions(false);
     }
     // Begin effects.
     useEffect(
@@ -286,10 +294,10 @@ export namespace OrientationEditor {
         <InputWithValidator.Number
           value = {scale}
           setValue = {function(newScale : number) {
-            if (!scaleChangedFlag) {
-              pushToUndoStack();
-              setScaleChangedFlag(true);
-            }
+            // if (!scaleChangedFlag) {
+            //   pushToUndoStack();
+            //   setScaleChangedFlag(true);
+            // }
             updatePositionsHelper(
               centerX,
               centerY,
@@ -305,10 +313,10 @@ export namespace OrientationEditor {
       <br/>
       <button
         onClick = {function() {
-          if (!flippedFlag) {
-            pushToUndoStack();
-            setFlippedFlag(true);
-          }
+          // if (!flippedFlag) {
+          //   pushToUndoStack();
+          //   setFlippedFlag(true);
+          // }
           const newFlipPositionsFlag = !flipPositionsFlag;
           setFlipPositionsFlag(newFlipPositionsFlag)
           updatePositionsHelper(

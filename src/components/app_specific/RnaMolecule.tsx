@@ -221,14 +221,6 @@ export namespace RnaMolecule {
             finalizedProps
           );
         })}
-        {/* <Scaffolding.Component<number, Nucleotide.ExternalProps>
-          sortedProps = {flattenedNucleotideProps}
-          childComponent = {Nucleotide.Component}
-          propsToRerenderKeys = {nucleotideKeysToRerender}
-          comparator = {function(nucleotideIndex0, nucleotideIndex1) {
-            return nucleotideIndex0 - nucleotideIndex1;
-          }}
-        /> */}
       </Context.RnaMolecule.FirstNucleotideIndex.Provider>}
     </g>;
   }
