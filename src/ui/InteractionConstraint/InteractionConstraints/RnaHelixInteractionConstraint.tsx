@@ -13,6 +13,7 @@ import { BasePairsEditor } from "../../../components/app_specific/editors/BasePa
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import { AllInOneEditor } from "./AllInOneEditor";
 import { BLACK, areEqual } from "../../../data_structures/Color";
+import BasePair from "../../../components/app_specific/BasePair";
 
 export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint {
   private readonly dragListener : DragListener;
@@ -27,7 +28,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
     indicesOfFrozenNucleotides : FullKeysRecord,
-    interactionConstraintOptions : InteractionConstraint.Options,
+    { treatNoncanonicalBasePairsAsUnpairedFlag } : InteractionConstraint.Options,
     fullKeys0 : FullKeys,
     fullKeys1? : FullKeys,
   ) {
@@ -50,13 +51,21 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex];
-    if (!(rnaMoleculeName0 in basePairsPerRnaComplex)) {
+    if (!BasePair.isNucleotideBasePaired(
+      basePairsPerRnaComplex,
+      rnaMoleculeName,
+      nucleotideIndex,
+      treatNoncanonicalBasePairsAsUnpairedFlag
+    )) {
       throw nonBasePairedNucleotideError;
     }
+    // if (!(rnaMoleculeName0 in basePairsPerRnaComplex)) {
+    //   throw nonBasePairedNucleotideError;
+    // }
     const basePairsPerRnaMolecule0 = basePairsPerRnaComplex[rnaMoleculeName0];
-    if (!(nucleotideIndex in basePairsPerRnaMolecule0)) {
-      throw nonBasePairedNucleotideError;
-    }
+    // if (!(nucleotideIndex in basePairsPerRnaMolecule0)) {
+    //   throw nonBasePairedNucleotideError;
+    // }
     const basePairsPerNucleotide = basePairsPerRnaMolecule0[nucleotideIndex];
     let basePairPerNucleotide : RnaComplex.MappedBasePair;
     if (basePairsPerNucleotide.length === 1) {
@@ -71,6 +80,12 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
         fullKeys1.rnaMoleculeName === rnaMoleculeName &&
         fullKeys1.nucleotideIndex === nucleotideIndex
       ))!;
+      if (!BasePair.isEnabledBasePair(
+        basePairPerNucleotide,
+        treatNoncanonicalBasePairsAsUnpairedFlag
+      )) {
+        throw nonBasePairedNucleotideError;
+      }
     }
     const rnaMoleculeName1 = basePairPerNucleotide.rnaMoleculeName;
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
@@ -110,6 +125,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       rnaMoleculeName1,
       nucleotideIndex1,
       allNucleotides,
+      treatNoncanonicalBasePairsAsUnpairedFlag,
       basePairKeysToRerenderPerRnaComplex
     );
     const extrema0 = helix.start;
@@ -152,7 +168,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
           basePairsPerRnaMolecule0,
           allNucleotides,
           singularRnaMoleculeProps0,
-          nucleotideKeysToRerenderPerRnaMolecule0
+          nucleotideKeysToRerenderPerRnaMolecule0,
+          treatNoncanonicalBasePairsAsUnpairedFlag
         );
         if (extrema0[0] !== extrema1[0]) {
           // This check removes duplicates from toBeDragged.
@@ -161,7 +178,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
             basePairsPerRnaMolecule0,
             allNucleotides,
             singularRnaMoleculeProps0,
-            nucleotideKeysToRerenderPerRnaMolecule0
+            nucleotideKeysToRerenderPerRnaMolecule0,
+            treatNoncanonicalBasePairsAsUnpairedFlag
           );
         }
       } else if (extremaMagnitudeDifference < 0) {
@@ -170,7 +188,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
           basePairsPerRnaMolecule0,
           allNucleotides,
           singularRnaMoleculeProps0,
-          nucleotideKeysToRerenderPerRnaMolecule0
+          nucleotideKeysToRerenderPerRnaMolecule0,
+          treatNoncanonicalBasePairsAsUnpairedFlag
         );
       } else {
         checkExtremaForSingleStrand(
@@ -178,7 +197,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
           basePairsPerRnaMolecule0,
           allNucleotides,
           singularRnaMoleculeProps0,
-          nucleotideKeysToRerenderPerRnaMolecule0
+          nucleotideKeysToRerenderPerRnaMolecule0,
+          treatNoncanonicalBasePairsAsUnpairedFlag
         );
       }
     }

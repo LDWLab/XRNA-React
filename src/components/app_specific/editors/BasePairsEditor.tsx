@@ -1,4 +1,4 @@
-import { FunctionComponent, createElement, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ForwardRefExoticComponent, FunctionComponent, RefAttributes, createElement, forwardRef, useContext, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { NucleotideKey, RnaComplexKey, RnaComplexProps } from "../../../App";
 import { Context, NucleotideKeysToRerender } from "../../../context/Context";
 import { DuplicateBasePairKeysHandler, RnaComplex, compareBasePairKeys, compareFullBasePairKeys, insertBasePair } from "../RnaComplex";
@@ -58,8 +58,769 @@ export namespace BasePairsEditor {
   export function isEditorType(candidateEditorType : string) : candidateEditorType is EditorType {
     return (editorTypes as Array<string>).includes(candidateEditorType);
   }
+  
+  export const TextBasedEditor = forwardRef<EditorHandle, EditorProps>((
+    props : EditorProps,
+    ref : React.Ref<EditorHandle>
+  ) => {
+    const {
+      rnaComplexProps,
+      setBasePairs,
+      approveBasePairs,
+      initialBasePairs,
+      defaultRnaComplexIndex,
+      defaultRnaMoleculeName0,
+      defaultRnaMoleculeName1
+    } = props;
+    // Begin state data.
+    const [
+      text,
+      setText
+    ] = useState("");
+    const [
+      textAreaLineCount,
+      _setTextAreaLineCount
+    ] = useState(0);
+    function setTextAreaLineCount(unboundTextAreaLineCount : number) {
+      _setTextAreaLineCount(Math.min(unboundTextAreaLineCount, 5));
+    }
+     // Begin memo data.
+     const rnaComplexNames = useMemo(
+      function() {
+        return Object.values(rnaComplexProps).map(function(singularRnaComplexProps) {
+          return singularRnaComplexProps.name;
+        });
+      },
+      [rnaComplexProps]
+    );
+    // Begin effects.
+    useEffect(
+      function() {
+        if (initialBasePairs === undefined) {
+          setText("");
+          return;
+        }
+        let newText = initialBasePairs.map(function({
+          rnaComplexIndex,
+          rnaMoleculeName0,
+          rnaMoleculeName1,
+          nucleotideIndex0,
+          nucleotideIndex1,
+          length,
+          type
+        }) {
+          const elements : Array<any> = [
+            nucleotideIndex0 ?? "#",
+            nucleotideIndex1 ?? "#",
+            length ?? "#"
+          ];
+          if (rnaComplexIndex === undefined) {
+            const undefinedFlag0 = rnaMoleculeName0 === undefined;
+            const undefinedFlag1 = rnaMoleculeName1 === undefined;
+            if (undefinedFlag0 && !undefinedFlag1) {
+              elements.push("\"" + rnaMoleculeName1 + "\"");
+            } else if (!undefinedFlag0 && undefinedFlag1) {
+              elements.push("\"" + rnaMoleculeName0 + "\"");
+            } else if (!undefinedFlag0 && !undefinedFlag1) {
+              elements.push(
+                "\"" + rnaMoleculeName0 + "\"",
+                "\"" + rnaMoleculeName1 + "\""
+              );
+            }
+          } else {
+            elements.push(
+             "\"" + (rnaMoleculeName0 ?? "") + "\"",
+             "\"" + (rnaMoleculeName1 ?? "") + "\"",
+             "\"" + rnaComplexProps[rnaComplexIndex].name + "\""
+            );
+            if (type !== undefined) {
+              elements.push(`"${type}"`);
+            }
+          }
+          return elements.join(" ");
+        }).join("\n");
+        setText(newText);
+        setTextAreaLineCount(initialBasePairs.length + 1);
+      },
+      [initialBasePairs]
+    );
 
-  const editorTypeToEditorMap : Record<EditorType, FunctionComponent<EditorProps>> = {
+    useImperativeHandle(ref, function() {
+      return {
+        updateAll : function() {
+          const lines = text.split("\n");
+          const trimmedLines = lines.map(function(line) {
+            return line.trim();
+          });
+          const filteredLines = trimmedLines.filter(function(line) {
+            return line.length > 0;
+          });
+          try {
+            const basePairs = filteredLines.map(function(
+              line : string,
+              lineIndex : number
+            ) {
+              const match = line.match(/^(-?\d+)\s+(-?\d+)\s+(\d+)(?:\s+("[^"]*"))?(?:\s+("[^"]*"))?(?:\s+("[^"]*"))?(?:\s+("[^"]*"))?$/);
+              if (match === null) {
+                throw `line #${lineIndex + 1} had an unrecognized format.`;
+              }
+              const stringsSeparatedByWhitespace = match.slice(1).filter(function(_string) {
+                return _string !== undefined && _string.length > 0;
+              });
+              // const stringsSeparatedByWhitespace = line.split(/\s+/).filter(function(_string) {
+              //   return _string.length > 0;
+              // });
+              // Format: nucleotideIndex0 nucleotideIndex1 length rnaMoleculeName0? rnaMoleculeName1? rnaComplexName?
+              if (stringsSeparatedByWhitespace.length < 3) {
+                throw `Too few arguments were found in line #${lineIndex + 1}`;
+              }
+              const nucleotideIndex0String = stringsSeparatedByWhitespace[0];
+              const nucleotideIndex0 = Number.parseInt(nucleotideIndex0String);
+              const nucleotideIndex0ErrorMessage = `The provided nucleotide index #1 in line #${lineIndex + 1} is not an integer.`;
+              if (!/^-?\d+$/.test(nucleotideIndex0String)) {
+                throw nucleotideIndex0ErrorMessage;
+              }
+              if (Number.isNaN(nucleotideIndex0)) {
+                throw nucleotideIndex0ErrorMessage;
+              }
+              const nucleotideIndex1String = stringsSeparatedByWhitespace[1];
+              const nucleotideIndex1 = Number.parseInt(nucleotideIndex1String);
+              const nucleotideIndex1ErrorMessage = `The provided nucleotide index #2 in line #${lineIndex + 1} is not an integer.`;
+              if (!/^-?\d+$/.test(nucleotideIndex1String)) {
+                throw nucleotideIndex1ErrorMessage;
+              }
+              if (Number.isNaN(nucleotideIndex1)) {
+                throw nucleotideIndex1ErrorMessage;
+              }
+              const lengthString = stringsSeparatedByWhitespace[2];
+              const lengthErrorMessage = `The provided helix length in line #${lineIndex + 1} is not a non-negative integer.`;
+              if (!/^\d+$/.test(lengthString)) {
+                throw lengthErrorMessage;
+              }
+              const length = Number.parseInt(lengthString);
+              if (Number.isNaN(length)) {
+                throw lengthErrorMessage;
+              }
+              function getFormattedName(unformattedName : string) {
+                const match = /^"(.*)"$/.exec(unformattedName);
+                if (match !== null) {
+                  unformattedName = match[1];
+                }
+                return unformattedName;
+              }
+              let rnaComplexIndex : number;
+              if (stringsSeparatedByWhitespace.length < 6) {
+                if (defaultRnaComplexIndex === undefined) {
+                  throw `No name was provided for the RNA complex in line #${lineIndex + 1}.`;
+                }
+                rnaComplexIndex = defaultRnaComplexIndex;
+              } else {
+                const rnaComplexName = getFormattedName(stringsSeparatedByWhitespace[5]);
+                rnaComplexIndex = rnaComplexNames.findIndex(function(rnaComplexNameI) {
+                  return rnaComplexName === rnaComplexNameI;
+                });
+                if (rnaComplexIndex === -1) {
+                  throw `The provided RNA complex name in line #${lineIndex + 1} does not match any existing RNA complex's name.`;
+                }
+              }
+              const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+              let rnaMoleculeName0 : string;
+              if (stringsSeparatedByWhitespace.length < 4) {
+                if (defaultRnaMoleculeName0 === undefined) {
+                  throw `No name was provided for RNA-molecule #1 in line #${lineIndex + 1}.`;
+                }
+                rnaMoleculeName0 = defaultRnaMoleculeName0;
+              } else {
+                rnaMoleculeName0 = getFormattedName(stringsSeparatedByWhitespace[3]);
+              }
+              if (!(rnaMoleculeName0 in singularRnaComplexProps.rnaMoleculeProps)) {
+                throw `The name provided for RNA molecule #1 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
+              }
+              let rnaMoleculeName1 : string;
+              if (stringsSeparatedByWhitespace.length < 5) {
+                if (defaultRnaMoleculeName1 === undefined) {
+                  throw `No name was provided for RNA-molecule #2 in line #${lineIndex + 1}.`;
+                }
+                rnaMoleculeName1 = defaultRnaMoleculeName1;
+              } else {
+                rnaMoleculeName1 = getFormattedName(stringsSeparatedByWhitespace[4]);
+              }
+              if (!(rnaMoleculeName1 in singularRnaComplexProps.rnaMoleculeProps)) {
+                throw `The name provided for RNA molecule #2 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
+              }
+              const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+              const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+              for (let i = 0; i < length; i++) {
+                const formattedNucleotideIndex0 = nucleotideIndex0 + i;
+                const formattedNucleotideIndex1 = nucleotideIndex1 - i;
+                if (!(formattedNucleotideIndex0 in singularRnaMoleculeProps0.nucleotideProps)) {
+                  throw `The provided helix data includes a non-existent nucleotide at nucleotide index #${formattedNucleotideIndex0}.`;
+                }
+                if (!(formattedNucleotideIndex1 in singularRnaMoleculeProps1.nucleotideProps)) {
+                  throw `The provided helix data includes a non-existent nucleotide at nucleotide index #${formattedNucleotideIndex1}.`;
+                }
+              }
+              let type : string | undefined = undefined;
+              let inputType : string | undefined = stringsSeparatedByWhitespace[6];
+              if (inputType !== undefined) {
+                inputType = getFormattedName(inputType).toLocaleLowerCase();
+                type = _BasePair.types.find(function(typeI : _BasePair.Type) {
+                  return typeI.toLocaleLowerCase() === inputType;
+                });
+                if (type === undefined) {
+                  throw `The provided base-pair type "${type}" in line #${lineIndex + 1} was not recognized.`;
+                }
+              }
+              return {
+                rnaComplexIndex,
+                rnaMoleculeName0,
+                rnaMoleculeName1,
+                nucleotideIndex0,
+                nucleotideIndex1,
+                length,
+                type : type as _BasePair.Type | undefined
+              };
+            });
+            approveBasePairs(basePairs);
+            setBasePairs(basePairs);
+          } catch (error) {
+            if (typeof error === "string") {
+              alert(error);
+              return;
+            } else {
+              throw error;
+            }
+          }
+        }
+      };
+    });
+
+    return <textarea
+      style = {{
+        width : "99%",
+        height : `${fontSize * textAreaLineCount}px`,
+        fontSize : `${fontSize}px`
+      }}
+      value = {text}
+      onInput = {function(e : React.ChangeEvent<HTMLTextAreaElement>) {
+        const newText = e.target.value;
+        setTextAreaLineCount((newText.match(/\n/g)?.length ?? -1) + 2);
+      }}
+      onChange = {function(e) {
+        const newText = e.target.value;
+        setText(newText);
+      }}
+    />;
+  });
+
+  export const TableBasedEditor = forwardRef<EditorHandle, EditorProps>((
+    props,
+    ref : React.Ref<EditorHandle>
+  ) => {
+    const {
+      rnaComplexProps,
+      setBasePairs : setBasePairsHelper,
+      approveBasePairs,
+      initialBasePairs,
+      defaultRnaComplexIndex,
+      defaultRnaMoleculeName0,
+      defaultRnaMoleculeName1,
+      setBasePairKeysToEdit,
+      populateBasePairKeysToEdit,
+      // approveBasePairEdit
+    } = props;
+    useImperativeHandle(ref, function() {
+      return {
+        updateAll : function() {
+          setBasePairs(
+            basePairs as Array<BasePair>,
+            new Set<number>()
+          );
+        }
+      };
+    });
+    // Begin state data.
+    const [
+      basePairs,
+      _setBasePairs
+    ] = useState<Array<BasePair>>([]);
+    const [
+      partialBasePairs,
+      setPartialBasePairs
+    ] = useState<Array<Partial<BasePair>>>([]);
+    function setBasePairs(
+      basePairs : Array<BasePair>,
+      avoidRepositioningIndicesSet : Set<number>
+    ) {
+      try {
+        approveBasePairs(basePairs);
+        const actualNewBasePairs = setBasePairsHelper(
+          basePairs,
+          avoidRepositioningIndicesSet
+        );
+        _setBasePairs(actualNewBasePairs);
+      } catch (error) {
+        if (typeof error === "string") {
+          alert(error);
+          return;
+        } else {
+          throw error;
+        }
+      }
+    }
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
+    // Begin memo data
+    const flattenedRnaComplexProps : Array<SingularFlattenedRnaComplexProps> = useMemo(
+      function() {
+        return Object.entries(rnaComplexProps).map(function([rnaComplexIndexAsString, singularRnaComplexProps]) {
+          return {
+            rnaComplexIndex : Number.parseInt(rnaComplexIndexAsString),
+            singularRnaComplexProps
+          };
+        });
+      },
+      [rnaComplexProps]
+    );
+    // Begin effects.
+    useEffect(
+      function() {
+        const _basePairs = new Array<BasePair>();
+        const _partialBasePairs = new Array<Partial<BasePair>>();
+        for (const _initialBasePair of initialBasePairs ?? []) {
+          const initialBasePair = {
+            rnaComplexIndex : defaultRnaComplexIndex,
+            rnaMoleculeName0 : defaultRnaMoleculeName0,
+            rnaMoleculeName1 : defaultRnaMoleculeName1,
+            ..._initialBasePair
+          };
+          if (
+            initialBasePair.rnaComplexIndex === undefined ||
+            initialBasePair.rnaMoleculeName0 === undefined ||
+            initialBasePair.rnaMoleculeName1 === undefined ||
+            initialBasePair.nucleotideIndex0 === undefined ||
+            initialBasePair.nucleotideIndex1 === undefined ||
+            initialBasePair.length === undefined
+          ) {
+            _partialBasePairs.push(initialBasePair);
+          } else {
+            _basePairs.push(initialBasePair as BasePair);
+          }
+        }
+        _setBasePairs(_basePairs);
+        if (_partialBasePairs.length === 0) {
+          _partialBasePairs.push({});
+        }
+        setPartialBasePairs(_partialBasePairs);
+      },
+      [initialBasePairs]
+    );
+    return <div
+      className = "visible-scrollbar"
+      style = {{
+        overflow : "scroll",
+        overflowX : "hidden",
+        background : "inherit",
+        position : "sticky"
+      }}
+    >
+      <table
+        style = {{
+          border : "inherit",
+          borderCollapse : "collapse",
+          borderSpacing : 0,
+          width : "auto",
+          position : "sticky",
+          top : 0,
+          boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+          background : "inherit"
+        }}
+      >
+        <thead
+          style = {{
+            border : "1px solid black",
+            position : "sticky",
+            top : -1,
+            boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+            background : "inherit"
+          }}
+        >
+          <tr
+            style = {{
+              border : "inherit",
+              position : "sticky",
+              top : 0,
+              background : "inherit"
+            }}
+          >
+            <th
+              style = {{
+                border : "inherit",
+                position : "sticky",
+                top : 0,
+                boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+                background : "inherit"
+              }}
+            >
+              RNA complex
+            </th>
+            <th
+              style = {{
+                border : "inherit",
+                position : "sticky",
+                top : 0,
+                boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+                background : "inherit"
+              }}
+            >
+              RNA molecule #1
+            </th>
+            <th
+              style = {{
+                border : "inherit",
+                position : "sticky",
+                top : 0,
+                boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+                background : "inherit"
+              }}
+            >
+              Nucleotide #1
+            </th>
+            <th
+              style = {{
+                border : "inherit",
+                position : "sticky",
+                top : 0,
+                boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+                background : "inherit"
+              }}
+            >
+              RNA molecule #2
+            </th>
+            <th
+              style = {{
+                border : "inherit",
+                position : "sticky",
+                top : 0,
+                boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+                background : "inherit"
+              }}
+            >
+              Nucleotide #2
+            </th>
+            <th
+              style = {{
+                border : "inherit",
+                position : "sticky",
+                top : 0,
+                boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+                background : "inherit"
+              }}
+            >
+              Length
+            </th>
+            <th
+              style = {{
+                border : "inherit",
+                position : "sticky",
+                top : 0,
+                boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+                background : "inherit"
+              }}
+            >
+              Type
+            </th>
+            <th
+              style = {{
+                border : "inherit",
+                position : "sticky",
+                top : 0,
+                boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+                background : "inherit"
+              }}
+            >
+              Edit
+            </th>
+            <th
+              style = {{
+                border : "inherit",
+                position : "sticky",
+                top : 0,
+                boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
+                background : "inherit"
+              }}
+            >
+              Add / Delete
+            </th>
+          </tr>
+        </thead>
+        <tbody
+          style = {{
+            border : "inherit"
+          }}
+        >
+          {basePairs.map(function(basePair, basePairIndex) {
+            const {
+              rnaComplexIndex,
+              rnaMoleculeName0,
+              rnaMoleculeName1,
+              nucleotideIndex0,
+              nucleotideIndex1,
+              length,
+              type
+            } = basePair;
+            const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+            return <tr
+              key = {basePairIndex}
+              style = {{
+                textAlign : "center"
+              }}
+            >
+              <td
+                style = {{
+                  border : "1px solid black",
+                  textAlign : "center"
+                }}
+              >
+                {singularRnaComplexProps.name}
+              </td>
+              <td
+                style = {{
+                  border : "1px solid black",
+                  textAlign : "center"
+                }}
+              >
+                {rnaMoleculeName0}
+              </td>
+              <td
+                style = {{
+                  border : "1px solid black",
+                  textAlign : "center"
+                }}
+              >
+                {nucleotideIndex0}
+              </td>
+              <td
+                style = {{
+                  border : "1px solid black",
+                  textAlign : "center"
+                }}
+              >
+                {rnaMoleculeName1}
+              </td>
+              <td
+                style = {{
+                  border : "1px solid black",
+                  textAlign : "center"
+                }}
+              >
+                {nucleotideIndex1}
+              </td>
+              <td
+                style = {{
+                  border : "1px solid black",
+                  textAlign : "center"
+                }}
+              >
+                {length}
+              </td>
+              <td
+                style = {{
+                  border : "1px solid black",
+                  textAlign : "center"
+                }}
+              >
+                {type ?? "auto"}
+              </td>
+              <td
+                style = {{
+                  border : "1px solid black",
+                  textAlign : "center"
+                }}
+              >
+                <button
+                  style = {{
+                    width : "100%",
+                    height : "100%"
+                  }}
+                  onClick = {function() {
+                    pushToUndoStack();
+                    const partialBasePair0 = partialBasePairs[0];
+                    if (
+                      partialBasePair0.rnaComplexIndex === undefined &&
+                      partialBasePair0.rnaMoleculeName0 === undefined &&
+                      partialBasePair0.rnaMoleculeName1 === undefined &&
+                      partialBasePair0.nucleotideIndex0 === undefined &&
+                      partialBasePair0.nucleotideIndex1 === undefined &&
+                      partialBasePair0.length === undefined &&
+                      partialBasePair0.type === undefined
+                    ) {
+                      setPartialBasePairs([basePair]);
+                    } else {
+                      setPartialBasePairs([
+                        ...partialBasePairs,
+                        basePair
+                      ]);
+                    }
+                    _setBasePairs([
+                    ...basePairs.slice(0, basePairIndex),
+                    ...basePairs.slice(basePairIndex + 1)
+                    ]);
+                    const basePairKeysToEdit : Context.BasePair.KeysToEdit = {};
+                    populateBasePairKeysToEdit(
+                      basePair,
+                      basePairKeysToEdit,
+                      "delete"
+                    );
+                    setBasePairKeysToEdit(basePairKeysToEdit);
+                  }}
+                >
+                  Edit
+                </button>
+              </td>
+              <td
+                style = {{
+                  border : "1px solid black",
+                  textAlign : "center"
+                }}
+              >
+                <button
+                  style = {{
+                    width : "100%",
+                    height : "100%"
+                  }}
+                  onClick = {function() {
+                    pushToUndoStack();
+                    const avoidRepositioningIndicesSet = new Set<number>();
+                    for (let index = 0; index < basePairs.length; index++) {
+                      avoidRepositioningIndicesSet.add(index);
+                    }
+                    setBasePairs(
+                      [
+                        ...basePairs.slice(0, basePairIndex),
+                        ...basePairs.slice(basePairIndex + 1)
+                      ],
+                      avoidRepositioningIndicesSet
+                    ); 
+                  }}
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>;
+          })}
+          <tr
+            style = {{
+              border : "1px solid black",
+              background : "black",
+              height : 10
+            }}
+          >
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          {partialBasePairs.map(function(partialBasePair, partialBasePairIndex) {
+            function updateBasePairs() {
+              const avoidRepositioningIndicesSet = new Set<number>();
+              for (let index = 0; index < basePairs.length - 1; index++) {
+                avoidRepositioningIndicesSet.add(index);
+              }
+              const newBasePairs = [...basePairs];
+              const newBasePair = structuredClone(partialBasePair as BasePair);
+              sortedArraySplice(
+                newBasePairs,
+                ({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, nucleotideIndex0, nucleotideIndex1 }) => (
+                  (rnaComplexIndex - newBasePair.rnaComplexIndex) ||
+                  (rnaMoleculeName0.localeCompare(newBasePair.rnaMoleculeName0)) ||
+                  (rnaMoleculeName1.localeCompare(newBasePair.rnaMoleculeName1)) ||
+                  (nucleotideIndex0 - newBasePair.nucleotideIndex0) ||
+                  (nucleotideIndex1 - newBasePair.nucleotideIndex1)
+                ),
+                0,
+                [newBasePair],
+                HandleQueryNotFound.ADD
+              );
+              setBasePairs(
+                newBasePairs,
+                avoidRepositioningIndicesSet
+              );
+            }
+            const addButtonOnClick = partialBasePairIndex === 0 ? function() {
+              pushToUndoStack();
+              updateBasePairs();
+              partialBasePair.rnaComplexIndex = undefined;
+              partialBasePair.rnaMoleculeName0 = undefined;
+              partialBasePair.rnaMoleculeName1 = undefined;
+              partialBasePair.nucleotideIndex0 = undefined;
+              partialBasePair.nucleotideIndex1 = undefined;
+              partialBasePair.length = undefined;
+              partialBasePair.type = undefined;
+              setPartialBasePairs([...partialBasePairs]);
+            } : function() {
+              pushToUndoStack();
+              updateBasePairs();
+              setPartialBasePairs([
+                ...partialBasePairs.slice(0, partialBasePairIndex),
+                ...partialBasePairs.slice(partialBasePairIndex + 1)
+              ]);
+            };
+            return <TableRow
+              key = {partialBasePairIndex}
+              {...partialBasePair}
+              setRnaComplexIndex = {function(newRnaComplexIndex) {
+                partialBasePair.rnaComplexIndex = newRnaComplexIndex;
+                partialBasePair.rnaMoleculeName0 = undefined;
+                partialBasePair.rnaMoleculeName1 = undefined;
+                partialBasePair.nucleotideIndex0 = undefined;
+                partialBasePair.nucleotideIndex1 = undefined;
+                setPartialBasePairs([...partialBasePairs]);
+              }}
+              setRnaMoleculeName0 = {function(newRnaMoleculeName0) {
+                partialBasePair.rnaMoleculeName0 = newRnaMoleculeName0;
+                partialBasePair.nucleotideIndex0 = undefined;
+                setPartialBasePairs([...partialBasePairs]);
+              }}
+              setRnaMoleculeName1 = {function(newRnaMoleculeName1) {
+                partialBasePair.rnaMoleculeName1 = newRnaMoleculeName1;
+                partialBasePair.nucleotideIndex1 = undefined;
+                setPartialBasePairs([...partialBasePairs]);
+              }}
+              setNucleotideIndex0 = {function(newNucleotideIndex0) {
+                partialBasePair.nucleotideIndex0 = newNucleotideIndex0;
+                setPartialBasePairs([...partialBasePairs]);
+              }}
+              setNucleotideIndex1 = {function(newNucleotideIndex1) {
+                partialBasePair.nucleotideIndex1 = newNucleotideIndex1;
+                setPartialBasePairs([...partialBasePairs]);
+              }}
+              setLength = {function(newLength) {
+                partialBasePair.length = newLength;
+                setPartialBasePairs([...partialBasePairs]);
+              }}
+              setType = {function(newType) {
+                partialBasePair.type = newType;
+                setPartialBasePairs([...partialBasePairs]);
+              }}
+              rnaComplexProps = {rnaComplexProps}
+              flattenedRnaComplexProps = {flattenedRnaComplexProps}
+              addButtonOnClick = {addButtonOnClick}
+            />;
+          })}
+        </tbody>
+      </table>
+    </div>;
+  });
+
+  const editorTypeToEditorMap: Record<
+    EditorType,
+    ForwardRefExoticComponent<EditorProps & RefAttributes<EditorHandle>>
+  > = {
     [EditorType.TEXT_BASED] : TextBasedEditor,
     [EditorType.TABLE_BASED] : TableBasedEditor,
     // [EditorType.GRAPHICS_BASED] : GraphicsBasedEditor
@@ -879,6 +1640,17 @@ export namespace BasePairsEditor {
           }
         )}
       </Collapsible.Component>
+      <button
+        onClick = {function() {
+          pushToUndoStack();
+          setBasePairs(
+            [...basePairs],
+            new Set<number>()
+          );
+        }}
+      >
+        Update all
+      </button>
     </>;
   }
 
@@ -924,752 +1696,14 @@ export namespace BasePairsEditor {
     }
   }
 
-  export function TextBasedEditor(props : EditorProps) {
-    const {
-      rnaComplexProps,
-      setBasePairs,
-      approveBasePairs,
-      initialBasePairs,
-      defaultRnaComplexIndex,
-      defaultRnaMoleculeName0,
-      defaultRnaMoleculeName1
-    } = props;
-    // Begin state data.
-    const [
-      text,
-      setText
-    ] = useState("");
-    const [
-      textAreaLineCount,
-      _setTextAreaLineCount
-    ] = useState(0);
-    function setTextAreaLineCount(unboundTextAreaLineCount : number) {
-      _setTextAreaLineCount(Math.min(unboundTextAreaLineCount, 5));
-    }
-    // Begin memo data.
-    const rnaComplexNames = useMemo(
-      function() {
-        return Object.values(rnaComplexProps).map(function(singularRnaComplexProps) {
-          return singularRnaComplexProps.name;
-        });
-      },
-      [rnaComplexProps]
-    );
-    // Begin effects.
-    useEffect(
-      function() {
-        if (initialBasePairs === undefined) {
-          setText("");
-          return;
-        }
-        let newText = initialBasePairs.map(function({
-          rnaComplexIndex,
-          rnaMoleculeName0,
-          rnaMoleculeName1,
-          nucleotideIndex0,
-          nucleotideIndex1,
-          length,
-          type
-        }) {
-          const elements : Array<any> = [
-            nucleotideIndex0 ?? "#",
-            nucleotideIndex1 ?? "#",
-            length ?? "#"
-          ];
-          if (rnaComplexIndex === undefined) {
-            const undefinedFlag0 = rnaMoleculeName0 === undefined;
-            const undefinedFlag1 = rnaMoleculeName1 === undefined;
-            if (undefinedFlag0 && !undefinedFlag1) {
-              elements.push("\"" + rnaMoleculeName1 + "\"");
-            } else if (!undefinedFlag0 && undefinedFlag1) {
-              elements.push("\"" + rnaMoleculeName0 + "\"");
-            } else if (!undefinedFlag0 && !undefinedFlag1) {
-              elements.push(
-                "\"" + rnaMoleculeName0 + "\"",
-                "\"" + rnaMoleculeName1 + "\""
-              );
-            }
-          } else {
-            elements.push(
-             "\"" + (rnaMoleculeName0 ?? "") + "\"",
-             "\"" + (rnaMoleculeName1 ?? "") + "\"",
-             "\"" + rnaComplexProps[rnaComplexIndex].name + "\""
-            );
-            if (type !== undefined) {
-              elements.push(`"${type}"`);
-            }
-          }
-          return elements.join(" ");
-        }).join("\n");
-        setText(newText);
-        setTextAreaLineCount(initialBasePairs.length + 1);
-      },
-      [initialBasePairs]
-    );
-    return <>
-      <textarea
-        style = {{
-          width : "99%",
-          height : `${fontSize * textAreaLineCount}px`,
-          fontSize : `${fontSize}px`
-        }}
-        value = {text}
-        onInput = {function(e : React.ChangeEvent<HTMLTextAreaElement>) {
-          const newText = e.target.value;
-          setTextAreaLineCount((newText.match(/\n/g)?.length ?? -1) + 2);
-        }}
-        onChange = {function(e) {
-          const newText = e.target.value;
-          setText(newText);
-        }}
-      />
-      <br/>
-      <button
-        onClick = {function() {
-          const lines = text.split("\n");
-          const trimmedLines = lines.map(function(line) {
-            return line.trim();
-          });
-          const filteredLines = trimmedLines.filter(function(line) {
-            return line.length > 0;
-          });
-          try {
-            const basePairs = filteredLines.map(function(
-              line : string,
-              lineIndex : number
-            ) {
-              const match = line.match(/^(-?\d+)\s+(-?\d+)\s+(\d+)(?:\s+("[^"]*"))?(?:\s+("[^"]*"))?(?:\s+("[^"]*"))?(?:\s+("[^"]*"))?$/);
-              if (match === null) {
-                throw `line #${lineIndex + 1} had an unrecognized format.`;
-              }
-              const stringsSeparatedByWhitespace = match.slice(1).filter(function(_string) {
-                return _string !== undefined && _string.length > 0;
-              });
-              // const stringsSeparatedByWhitespace = line.split(/\s+/).filter(function(_string) {
-              //   return _string.length > 0;
-              // });
-              // Format: nucleotideIndex0 nucleotideIndex1 length rnaMoleculeName0? rnaMoleculeName1? rnaComplexName?
-              if (stringsSeparatedByWhitespace.length < 3) {
-                throw `Too few arguments were found in line #${lineIndex + 1}`;
-              }
-              const nucleotideIndex0String = stringsSeparatedByWhitespace[0];
-              const nucleotideIndex0 = Number.parseInt(nucleotideIndex0String);
-              const nucleotideIndex0ErrorMessage = `The provided nucleotide index #1 in line #${lineIndex + 1} is not an integer.`;
-              if (!/^-?\d+$/.test(nucleotideIndex0String)) {
-                throw nucleotideIndex0ErrorMessage;
-              }
-              if (Number.isNaN(nucleotideIndex0)) {
-                throw nucleotideIndex0ErrorMessage;
-              }
-              const nucleotideIndex1String = stringsSeparatedByWhitespace[1];
-              const nucleotideIndex1 = Number.parseInt(nucleotideIndex1String);
-              const nucleotideIndex1ErrorMessage = `The provided nucleotide index #2 in line #${lineIndex + 1} is not an integer.`;
-              if (!/^-?\d+$/.test(nucleotideIndex1String)) {
-                throw nucleotideIndex1ErrorMessage;
-              }
-              if (Number.isNaN(nucleotideIndex1)) {
-                throw nucleotideIndex1ErrorMessage;
-              }
-              const lengthString = stringsSeparatedByWhitespace[2];
-              const lengthErrorMessage = `The provided helix length in line #${lineIndex + 1} is not a non-negative integer.`;
-              if (!/^\d+$/.test(lengthString)) {
-                throw lengthErrorMessage;
-              }
-              const length = Number.parseInt(lengthString);
-              if (Number.isNaN(length)) {
-                throw lengthErrorMessage;
-              }
-              function getFormattedName(unformattedName : string) {
-                const match = /^"(.*)"$/.exec(unformattedName);
-                if (match !== null) {
-                  unformattedName = match[1];
-                }
-                return unformattedName;
-              }
-              let rnaComplexIndex : number;
-              if (stringsSeparatedByWhitespace.length < 6) {
-                if (defaultRnaComplexIndex === undefined) {
-                  throw `No name was provided for the RNA complex in line #${lineIndex + 1}.`;
-                }
-                rnaComplexIndex = defaultRnaComplexIndex;
-              } else {
-                const rnaComplexName = getFormattedName(stringsSeparatedByWhitespace[5]);
-                rnaComplexIndex = rnaComplexNames.findIndex(function(rnaComplexNameI) {
-                  return rnaComplexName === rnaComplexNameI;
-                });
-                if (rnaComplexIndex === -1) {
-                  throw `The provided RNA complex name in line #${lineIndex + 1} does not match any existing RNA complex's name.`;
-                }
-              }
-              const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-              let rnaMoleculeName0 : string;
-              if (stringsSeparatedByWhitespace.length < 4) {
-                if (defaultRnaMoleculeName0 === undefined) {
-                  throw `No name was provided for RNA-molecule #1 in line #${lineIndex + 1}.`;
-                }
-                rnaMoleculeName0 = defaultRnaMoleculeName0;
-              } else {
-                rnaMoleculeName0 = getFormattedName(stringsSeparatedByWhitespace[3]);
-              }
-              if (!(rnaMoleculeName0 in singularRnaComplexProps.rnaMoleculeProps)) {
-                throw `The name provided for RNA molecule #1 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
-              }
-              let rnaMoleculeName1 : string;
-              if (stringsSeparatedByWhitespace.length < 5) {
-                if (defaultRnaMoleculeName1 === undefined) {
-                  throw `No name was provided for RNA-molecule #2 in line #${lineIndex + 1}.`;
-                }
-                rnaMoleculeName1 = defaultRnaMoleculeName1;
-              } else {
-                rnaMoleculeName1 = getFormattedName(stringsSeparatedByWhitespace[4]);
-              }
-              if (!(rnaMoleculeName1 in singularRnaComplexProps.rnaMoleculeProps)) {
-                throw `The name provided for RNA molecule #2 in line #${lineIndex + 1} does not match any existing RNA molecule's name.`;
-              }
-              const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
-              const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
-              for (let i = 0; i < length; i++) {
-                const formattedNucleotideIndex0 = nucleotideIndex0 + i;
-                const formattedNucleotideIndex1 = nucleotideIndex1 - i;
-                if (!(formattedNucleotideIndex0 in singularRnaMoleculeProps0.nucleotideProps)) {
-                  throw `The provided helix data includes a non-existent nucleotide at nucleotide index #${formattedNucleotideIndex0}.`;
-                }
-                if (!(formattedNucleotideIndex1 in singularRnaMoleculeProps1.nucleotideProps)) {
-                  throw `The provided helix data includes a non-existent nucleotide at nucleotide index #${formattedNucleotideIndex1}.`;
-                }
-              }
-              let type : string | undefined = stringsSeparatedByWhitespace[6];
-              if (type !== undefined) {
-                type = getFormattedName(type);
-                type = type.toLocaleLowerCase();
-                type = _BasePair.types.find(function(typeI : _BasePair.Type) {
-                  return typeI.toLocaleLowerCase() === type;
-                });
-                if (type === undefined) {
-                  throw `The provided base-pair type "${type}" in line #${lineIndex + 1} was not recognized.`;
-                }
-              }
-              return {
-                rnaComplexIndex,
-                rnaMoleculeName0,
-                rnaMoleculeName1,
-                nucleotideIndex0,
-                nucleotideIndex1,
-                length,
-                type : type as _BasePair.Type | undefined
-              };
-            });
-            approveBasePairs(basePairs);
-            setBasePairs(basePairs);
-          } catch (error) {
-            if (typeof error === "string") {
-              alert(error);
-              return;
-            } else {
-              throw error;
-            }
-          }
-        }}
-      >
-        Update base pairs
-      </button>
-    </>;
+  interface EditorHandle {
+    updateAll : () => void
   }
 
   type SingularFlattenedRnaComplexProps = {
     rnaComplexIndex : number,
     singularRnaComplexProps : RnaComplex.ExternalProps
   };
-
-  export function TableBasedEditor(props : EditorProps) {
-    const {
-      rnaComplexProps,
-      setBasePairs : setBasePairsHelper,
-      approveBasePairs,
-      initialBasePairs,
-      defaultRnaComplexIndex,
-      defaultRnaMoleculeName0,
-      defaultRnaMoleculeName1,
-      setBasePairKeysToEdit,
-      populateBasePairKeysToEdit,
-      // approveBasePairEdit
-    } = props;
-    // Begin state data.
-    const [
-      basePairs,
-      _setBasePairs
-    ] = useState<Array<BasePair>>([]);
-    const [
-      partialBasePairs,
-      setPartialBasePairs
-    ] = useState<Array<Partial<BasePair>>>([]);
-    function setBasePairs(
-      basePairs : Array<BasePair>,
-      avoidRepositioningIndicesSet : Set<number>
-    ) {
-      try {
-        approveBasePairs(basePairs);
-        const actualNewBasePairs = setBasePairsHelper(
-          basePairs,
-          avoidRepositioningIndicesSet
-        );
-        _setBasePairs(actualNewBasePairs);
-      } catch (error) {
-        if (typeof error === "string") {
-          alert(error);
-          return;
-        } else {
-          throw error;
-        }
-      }
-    }
-    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
-    // Begin memo data
-    const flattenedRnaComplexProps : Array<SingularFlattenedRnaComplexProps> = useMemo(
-      function() {
-        return Object.entries(rnaComplexProps).map(function([rnaComplexIndexAsString, singularRnaComplexProps]) {
-          return {
-            rnaComplexIndex : Number.parseInt(rnaComplexIndexAsString),
-            singularRnaComplexProps
-          };
-        });
-      },
-      [rnaComplexProps]
-    );
-    // Begin effects.
-    useEffect(
-      function() {
-        const _basePairs = new Array<BasePair>();
-        const _partialBasePairs = new Array<Partial<BasePair>>();
-        for (const _initialBasePair of initialBasePairs ?? []) {
-          const initialBasePair = {
-            rnaComplexIndex : defaultRnaComplexIndex,
-            rnaMoleculeName0 : defaultRnaMoleculeName0,
-            rnaMoleculeName1 : defaultRnaMoleculeName1,
-            ..._initialBasePair
-          };
-          if (
-            initialBasePair.rnaComplexIndex === undefined ||
-            initialBasePair.rnaMoleculeName0 === undefined ||
-            initialBasePair.rnaMoleculeName1 === undefined ||
-            initialBasePair.nucleotideIndex0 === undefined ||
-            initialBasePair.nucleotideIndex1 === undefined ||
-            initialBasePair.length === undefined
-          ) {
-            _partialBasePairs.push(initialBasePair);
-          } else {
-            _basePairs.push(initialBasePair as BasePair);
-          }
-        }
-        _setBasePairs(_basePairs);
-        if (_partialBasePairs.length === 0) {
-          _partialBasePairs.push({});
-        }
-        setPartialBasePairs(_partialBasePairs);
-      },
-      [initialBasePairs]
-    );
-    return <div
-        className = "visible-scrollbar"
-        style = {{
-          overflow : "scroll",
-          background : "inherit",
-          position : "sticky"
-        }}
-      >
-        <table
-          style = {{
-            border : "inherit",
-            borderCollapse : "collapse",
-            borderSpacing : 0,
-            width : "auto",
-            position : "sticky",
-            top : 0,
-            boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-            background : "inherit"
-          }}
-        >
-          <thead
-            style = {{
-              border : "1px solid black",
-              position : "sticky",
-              top : -1,
-              boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-              background : "inherit"
-            }}
-          >
-            <tr
-              style = {{
-                border : "inherit",
-                position : "sticky",
-                top : 0,
-                background : "inherit"
-              }}
-            >
-              <th
-                style = {{
-                  border : "inherit",
-                  position : "sticky",
-                  top : 0,
-                  boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-                  background : "inherit"
-                }}
-              >
-                RNA complex
-              </th>
-              <th
-                style = {{
-                  border : "inherit",
-                  position : "sticky",
-                  top : 0,
-                  boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-                  background : "inherit"
-                }}
-              >
-                RNA molecule #1
-              </th>
-              <th
-                style = {{
-                  border : "inherit",
-                  position : "sticky",
-                  top : 0,
-                  boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-                  background : "inherit"
-                }}
-              >
-                Nucleotide #1
-              </th>
-              <th
-                style = {{
-                  border : "inherit",
-                  position : "sticky",
-                  top : 0,
-                  boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-                  background : "inherit"
-                }}
-              >
-                RNA molecule #2
-              </th>
-              <th
-                style = {{
-                  border : "inherit",
-                  position : "sticky",
-                  top : 0,
-                  boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-                  background : "inherit"
-                }}
-              >
-                Nucleotide #2
-              </th>
-              <th
-                style = {{
-                  border : "inherit",
-                  position : "sticky",
-                  top : 0,
-                  boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-                  background : "inherit"
-                }}
-              >
-                Length
-              </th>
-              <th
-                style = {{
-                  border : "inherit",
-                  position : "sticky",
-                  top : 0,
-                  boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-                  background : "inherit"
-                }}
-              >
-                Type
-              </th>
-              <th
-                style = {{
-                  border : "inherit",
-                  position : "sticky",
-                  top : 0,
-                  boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-                  background : "inherit"
-                }}
-              >
-                Edit
-              </th>
-              <th
-                style = {{
-                  border : "inherit",
-                  position : "sticky",
-                  top : 0,
-                  boxShadow : "0 2px 2px -1px rgba(0, 0, 0, 0.4)",
-                  background : "inherit"
-                }}
-              >
-                Add / Delete
-              </th>
-            </tr>
-          </thead>
-          <tbody
-            style = {{
-              border : "inherit"
-            }}
-          >
-            {basePairs.map(function(basePair, basePairIndex) {
-              const {
-                rnaComplexIndex,
-                rnaMoleculeName0,
-                rnaMoleculeName1,
-                nucleotideIndex0,
-                nucleotideIndex1,
-                length,
-                type
-              } = basePair;
-              const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-              return <tr
-                key = {basePairIndex}
-                style = {{
-                  textAlign : "center"
-                }}
-              >
-                <td
-                  style = {{
-                    border : "1px solid black",
-                    textAlign : "center"
-                  }}
-                >
-                  {singularRnaComplexProps.name}
-                </td>
-                <td
-                  style = {{
-                    border : "1px solid black",
-                    textAlign : "center"
-                  }}
-                >
-                  {rnaMoleculeName0}
-                </td>
-                <td
-                  style = {{
-                    border : "1px solid black",
-                    textAlign : "center"
-                  }}
-                >
-                  {nucleotideIndex0}
-                </td>
-                <td
-                  style = {{
-                    border : "1px solid black",
-                    textAlign : "center"
-                  }}
-                >
-                  {rnaMoleculeName1}
-                </td>
-                <td
-                  style = {{
-                    border : "1px solid black",
-                    textAlign : "center"
-                  }}
-                >
-                  {nucleotideIndex1}
-                </td>
-                <td
-                  style = {{
-                    border : "1px solid black",
-                    textAlign : "center"
-                  }}
-                >
-                  {length}
-                </td>
-                <td
-                  style = {{
-                    border : "1px solid black",
-                    textAlign : "center"
-                  }}
-                >
-                  {type ?? "auto"}
-                </td>
-                <td
-                  style = {{
-                    border : "1px solid black",
-                    textAlign : "center"
-                  }}
-                >
-                  <button
-                    style = {{
-                      width : "100%",
-                      height : "100%"
-                    }}
-                    onClick = {function() {
-                      pushToUndoStack();
-                      const partialBasePair0 = partialBasePairs[0];
-                      if (
-                        partialBasePair0.rnaComplexIndex === undefined &&
-                        partialBasePair0.rnaMoleculeName0 === undefined &&
-                        partialBasePair0.rnaMoleculeName1 === undefined &&
-                        partialBasePair0.nucleotideIndex0 === undefined &&
-                        partialBasePair0.nucleotideIndex1 === undefined &&
-                        partialBasePair0.length === undefined &&
-                        partialBasePair0.type === undefined
-                      ) {
-                        setPartialBasePairs([basePair]);
-                      } else {
-                        setPartialBasePairs([
-                          ...partialBasePairs,
-                          basePair
-                        ]);
-                      }
-                      _setBasePairs([
-                      ...basePairs.slice(0, basePairIndex),
-                      ...basePairs.slice(basePairIndex + 1)
-                      ]);
-                      const basePairKeysToEdit : Context.BasePair.KeysToEdit = {};
-                      populateBasePairKeysToEdit(
-                        basePair,
-                        basePairKeysToEdit,
-                        "delete"
-                      );
-                      setBasePairKeysToEdit(basePairKeysToEdit);
-                    }}
-                  >
-                    Edit
-                  </button>
-                </td>
-                <td
-                  style = {{
-                    border : "1px solid black",
-                    textAlign : "center"
-                  }}
-                >
-                  <button
-                    style = {{
-                      width : "100%",
-                      height : "100%"
-                    }}
-                    onClick = {function() {
-                      pushToUndoStack();
-                      const avoidRepositioningIndicesSet = new Set<number>();
-                      for (let index = 0; index < basePairs.length; index++) {
-                        avoidRepositioningIndicesSet.add(index);
-                      }
-                      setBasePairs(
-                        [
-                          ...basePairs.slice(0, basePairIndex),
-                          ...basePairs.slice(basePairIndex + 1)
-                        ],
-                        avoidRepositioningIndicesSet
-                      ); 
-                    }}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>;
-            })}
-            <tr
-              style = {{
-                border : "1px solid black",
-                background : "black",
-                height : 10
-              }}
-            >
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-              <td></td>
-            </tr>
-            {partialBasePairs.map(function(partialBasePair, partialBasePairIndex) {
-              function updateBasePairs() {
-                const avoidRepositioningIndicesSet = new Set<number>();
-                for (let index = 0; index < basePairs.length - 1; index++) {
-                  avoidRepositioningIndicesSet.add(index);
-                }
-                const newBasePairs = [...basePairs];
-                const newBasePair = structuredClone(partialBasePair as BasePair);
-                sortedArraySplice(
-                  newBasePairs,
-                  ({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, nucleotideIndex0, nucleotideIndex1 }) => (
-                    (rnaComplexIndex - newBasePair.rnaComplexIndex) ||
-                    (rnaMoleculeName0.localeCompare(newBasePair.rnaMoleculeName0)) ||
-                    (rnaMoleculeName1.localeCompare(newBasePair.rnaMoleculeName1)) ||
-                    (nucleotideIndex0 - newBasePair.nucleotideIndex0) ||
-                    (nucleotideIndex1 - newBasePair.nucleotideIndex1)
-                  ),
-                  0,
-                  [newBasePair],
-                  HandleQueryNotFound.ADD
-                );
-                setBasePairs(
-                  newBasePairs,
-                  avoidRepositioningIndicesSet
-                );
-              }
-              const addButtonOnClick = partialBasePairIndex === 0 ? function() {
-                pushToUndoStack();
-                updateBasePairs();
-                partialBasePair.rnaComplexIndex = undefined;
-                partialBasePair.rnaMoleculeName0 = undefined;
-                partialBasePair.rnaMoleculeName1 = undefined;
-                partialBasePair.nucleotideIndex0 = undefined;
-                partialBasePair.nucleotideIndex1 = undefined;
-                partialBasePair.length = undefined;
-                partialBasePair.type = undefined;
-                setPartialBasePairs([...partialBasePairs]);
-              } : function() {
-                pushToUndoStack();
-                updateBasePairs();
-                setPartialBasePairs([
-                  ...partialBasePairs.slice(0, partialBasePairIndex),
-                  ...partialBasePairs.slice(partialBasePairIndex + 1)
-                ]);
-              };
-              return <TableRow
-                key = {partialBasePairIndex}
-                {...partialBasePair}
-                setRnaComplexIndex = {function(newRnaComplexIndex) {
-                  partialBasePair.rnaComplexIndex = newRnaComplexIndex;
-                  partialBasePair.rnaMoleculeName0 = undefined;
-                  partialBasePair.rnaMoleculeName1 = undefined;
-                  partialBasePair.nucleotideIndex0 = undefined;
-                  partialBasePair.nucleotideIndex1 = undefined;
-                  setPartialBasePairs([...partialBasePairs]);
-                }}
-                setRnaMoleculeName0 = {function(newRnaMoleculeName0) {
-                  partialBasePair.rnaMoleculeName0 = newRnaMoleculeName0;
-                  partialBasePair.nucleotideIndex0 = undefined;
-                  setPartialBasePairs([...partialBasePairs]);
-                }}
-                setRnaMoleculeName1 = {function(newRnaMoleculeName1) {
-                  partialBasePair.rnaMoleculeName1 = newRnaMoleculeName1;
-                  partialBasePair.nucleotideIndex1 = undefined;
-                  setPartialBasePairs([...partialBasePairs]);
-                }}
-                setNucleotideIndex0 = {function(newNucleotideIndex0) {
-                  partialBasePair.nucleotideIndex0 = newNucleotideIndex0;
-                  setPartialBasePairs([...partialBasePairs]);
-                }}
-                setNucleotideIndex1 = {function(newNucleotideIndex1) {
-                  partialBasePair.nucleotideIndex1 = newNucleotideIndex1;
-                  setPartialBasePairs([...partialBasePairs]);
-                }}
-                setLength = {function(newLength) {
-                  partialBasePair.length = newLength;
-                  setPartialBasePairs([...partialBasePairs]);
-                }}
-                setType = {function(newType) {
-                  partialBasePair.type = newType;
-                  setPartialBasePairs([...partialBasePairs]);
-                }}
-                rnaComplexProps = {rnaComplexProps}
-                flattenedRnaComplexProps = {flattenedRnaComplexProps}
-                addButtonOnClick = {addButtonOnClick}
-              />;
-            })}
-          </tbody>
-        </table>
-    </div>;
-  }
 
   export function TableRow(props : Partial<BasePair> & {
     flattenedRnaComplexProps : Array<SingularFlattenedRnaComplexProps>,

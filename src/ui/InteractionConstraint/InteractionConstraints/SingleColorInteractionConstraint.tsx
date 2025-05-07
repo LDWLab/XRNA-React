@@ -27,7 +27,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
     indicesOfFrozenNucleotides : FullKeysRecord,
-    interactionConstraintOptions : InteractionConstraint.Options,
+    { treatNoncanonicalBasePairsAsUnpairedFlag } : InteractionConstraint.Options,
     fullKeys0 : FullKeys,
     fullKeys1? : FullKeys,
   ) {
@@ -138,7 +138,8 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     };
     const unfilteredInitialBasePairs : Array<BasePairsEditor.BasePair> = [];
     iterateOverFreeNucleotidesAndHelicesPerScene(
-      rnaComplexProps
+      rnaComplexProps,
+      treatNoncanonicalBasePairsAsUnpairedFlag
     ).forEach(function(helixDataPerRnaComplex) {
       const rnaComplexIndex = helixDataPerRnaComplex.rnaComplexIndex;
       const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];

@@ -1,12 +1,13 @@
 import React, { createElement, memo, useContext } from "react";
 import { Context } from "../../context/Context";
-import Color, { toCSS, BLACK } from "../../data_structures/Color";
+import Color, { toCSS, BLACK, BRIGHT_GRAY } from "../../data_structures/Color";
 import { Vector2D, add, distance, dotProduct, interpolate, normalize, orthogonalize, scaleUp, subtract } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 import { Nucleotide } from "./Nucleotide";
 import { SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0, SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_0, SVG_PROPERTY_XRNA_BASE_PAIR_RNA_MOLECULE_NAME_1, SVG_PROPERTY_XRNA_BASE_PAIR_TYPE, SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 import { getLineBoundingPath } from "../../utils/Utils";
-import { RnaComplexProps } from "../../App";
+import { NucleotideKey, RnaComplexProps, RnaMoleculeKey } from "../../App";
+import { RnaComplex } from "./RnaComplex";
 
 export function getBasePairType(symbol0 : Nucleotide.Symbol, symbol1 : Nucleotide.Symbol) : BasePair.CanonicalType {
   if (symbol0 > symbol1) {
@@ -120,15 +121,55 @@ export namespace BasePair {
     return directedTypes.includes(type);
   }
 
-  export type CanonicalType = Extract<Type, Type.CANONICAL | Type.WOBBLE | Type.MISMATCH>;
+  export type CanonicalType = Extract<Type, Type.CANONICAL | Type.WOBBLE | Type.MISMATCH | Type.CIS_WATSON_CRICK_WATSON_CRICK | Type.TRANS_WATSON_CRICK_WATSON_CRICK>;
 
   export const CanonicalType = {
     [Type.CANONICAL] : Type.CANONICAL,
     [Type.WOBBLE] : Type.WOBBLE,
-    [Type.MISMATCH] : Type.MISMATCH
+    [Type.MISMATCH] : Type.MISMATCH,
+    [Type.CIS_WATSON_CRICK_WATSON_CRICK] : Type.CIS_WATSON_CRICK_WATSON_CRICK,
+    [Type.TRANS_WATSON_CRICK_WATSON_CRICK] : Type.TRANS_WATSON_CRICK_WATSON_CRICK
   };
 
   export const canonicalTypes = Object.values(CanonicalType);
+
+  export function isCanonicalType(type : Type) : type is CanonicalType {
+    return canonicalTypes.includes(type);
+  }
+
+  export function isEnabledBasePair(
+    basePair : RnaComplex.MappedBasePair,
+    treatNoncanonicalBasePairsAsUnpairedFlag : boolean
+  ) {
+    return (
+      !treatNoncanonicalBasePairsAsUnpairedFlag || (
+        basePair.basePairType !== undefined &&
+        BasePair.isCanonicalType(basePair.basePairType)
+      )
+    );
+  }
+
+  export function isNucleotideBasePaired(
+    basePairsPerRnaComplex : RnaComplex.BasePairs,
+    rnaMoleculeName : RnaMoleculeKey,
+    nucleotideIndex : NucleotideKey,
+    treatNoncanonicalBasePairsAsUnpairedFlag : boolean
+  ) : boolean {
+    if (!(rnaMoleculeName in basePairsPerRnaComplex)) {
+      return false;
+    }
+    const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
+    if (!(nucleotideIndex in basePairsPerRnaMolecule)) {
+      return false;
+    }
+    const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+    return basePairsPerNucleotide.filter(
+      (basePair) => isEnabledBasePair(
+        basePair,
+        treatNoncanonicalBasePairsAsUnpairedFlag
+      )
+    ).length > 0;
+  }
 
   export const typeRecord : Partial<Record<Nucleotide.Symbol, Partial<Record<Nucleotide.Symbol, CanonicalType>>>> = {
     [Nucleotide.Symbol.A] : {
@@ -1449,6 +1490,7 @@ export namespace BasePair {
       rnaMoleculeName1,
       formattedNucleotideIndex1
     } = props;
+    const basePairType = mappedBasePair.basePairType;
     const defaultStrokeWidth = useContext(Context.BasePair.AverageStrokeWidth);
     const setMouseOverText = useContext(Context.App.SetMouseOverText);
     const className = useContext(Context.BasePair.ClassName);
@@ -1461,7 +1503,9 @@ export namespace BasePair {
     const nucleotideIndex1 = formattedNucleotideIndex1 - singularRnaMoleculeProps1.firstNucleotideIndex;
     const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex0];
     const singularNucleotideProps1 = singularRnaMoleculeProps1.nucleotideProps[nucleotideIndex1];
-    const colorAsString = toCSS(mappedBasePair.color ?? BLACK);
+    const colorAsString = toCSS(mappedBasePair.color ?? (
+      isCanonicalType(basePairType) ? BLACK : BRIGHT_GRAY
+    ));
     const strokeWidth = mappedBasePair.strokeWidth ?? defaultStrokeWidth;
     if (mappedBasePair.points !== undefined) {
       const points = mappedBasePair.points.map(function({ x, y }) {
@@ -1475,7 +1519,6 @@ export namespace BasePair {
         fill = "none"
       />;
     }
-    const basePairType = mappedBasePair.basePairType;
     const svgPropertiesForXrna = {
       [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.BASE_PAIR,
       [SVG_PROPERTY_XRNA_COMPLEX_NAME] : rnaComplexName,

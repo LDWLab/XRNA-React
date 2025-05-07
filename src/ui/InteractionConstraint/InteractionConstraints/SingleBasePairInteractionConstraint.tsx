@@ -41,7 +41,10 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
     indicesOfFrozenNucleotides : FullKeysRecord,
-    { affectHairpinNucleotidesFlag } : InteractionConstraint.Options,
+    { 
+      affectHairpinNucleotidesFlag,
+      treatNoncanonicalBasePairsAsUnpairedFlag
+    } : InteractionConstraint.Options,
     fullKeys0 : FullKeys,
     fullKeys1? : FullKeys
   ) {
@@ -67,9 +70,17 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     const {
       basePairs
     } = singularRnaComplexProps;
-    if (!(rnaMoleculeName in basePairs && nucleotideIndex in basePairs[rnaMoleculeName])) {
+    if (!BasePair.isNucleotideBasePaired(
+      basePairs,
+      rnaMoleculeName,
+      nucleotideIndex,
+      treatNoncanonicalBasePairsAsUnpairedFlag
+    )) {
       throw nonBasePairedNucleotideError;
     }
+    // if (!(rnaMoleculeName in basePairs && nucleotideIndex in basePairs[rnaMoleculeName])) {
+    //   throw nonBasePairedNucleotideError;
+    // }
     const basePairKeys = {
       rnaMoleculeName,
       nucleotideIndex
@@ -88,6 +99,12 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
         fullKeys1.rnaMoleculeName === rnaMoleculeName &&
         fullKeys1.nucleotideIndex === nucleotideIndex
       ))!;
+      if (!BasePair.isEnabledBasePair(
+        basePairPerNucleotide,
+        treatNoncanonicalBasePairsAsUnpairedFlag
+      )) {
+        throw nonBasePairedNucleotideError;
+      }
     }
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];

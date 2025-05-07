@@ -65,6 +65,12 @@ export const BLACK : Color = {
   blue : 0,
   alpha : DEFAULT_ALPHA
 };
+export const BRIGHT_GRAY : Color = {
+  red : 192,
+  green : 192,
+  blue : 192,
+  alpha : DEFAULT_ALPHA
+};
 export const CHARCOAL_GRAY : Color = {
   red : 54,
   green : 64,

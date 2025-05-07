@@ -1,5 +1,6 @@
 import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../../App";
 import { Tab } from "../../../app_data/Tab";
+import BasePair from "../../../components/app_specific/BasePair";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { RnaComplex, compareBasePairKeys, isRelevantBasePairKeySetInPair, selectRelevantBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
@@ -32,7 +33,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     setDebugVisualElements : (debugVisualElements : Array<JSX.Element>) => void,
     tab : Tab,
     indicesOfFrozenNucleotides : FullKeysRecord,
-    interactionConstraintOptions : InteractionConstraint.Options,
+    { treatNoncanonicalBasePairsAsUnpairedFlag } : InteractionConstraint.Options,
     fullKeys0 : FullKeys,
     fullKeys1? : FullKeys,
   ) {
@@ -56,9 +57,17 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularNucleotideProps0 = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
     const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
-    if (!(rnaMoleculeName0 in basePairsPerRnaComplex) || !(nucleotideIndex in basePairsPerRnaComplex[rnaMoleculeName0])) {
-      throw nonBasePairedNucleotideError;
+    if (!BasePair.isNucleotideBasePaired(
+      basePairsPerRnaComplex,
+      rnaMoleculeName0,
+      nucleotideIndex0,
+      treatNoncanonicalBasePairsAsUnpairedFlag
+    )) {
+      throw nonBasePairedNucleotideError;      
     }
+    // if (!(rnaMoleculeName0 in basePairsPerRnaComplex) || !(nucleotideIndex in basePairsPerRnaComplex[rnaMoleculeName0])) {
+    //   throw nonBasePairedNucleotideError;
+    // }
     const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName0];
     const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
     let basePairPerNucleotide : RnaComplex.MappedBasePair;
@@ -108,6 +117,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       rnaMoleculeName1,
       nucleotideIndex1,
       allNucleotides,
+      treatNoncanonicalBasePairsAsUnpairedFlag,
       basePairKeysToRerenderPerRnaComplex,
       pushToListOfNucleotideIndices
     );
@@ -247,7 +257,8 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       singularRnaComplexProps,
       rnaMoleculeName,
       this.minimumNucleotideIndex,
-      this.maximumNucleotideIndex
+      this.maximumNucleotideIndex,
+      treatNoncanonicalBasePairsAsUnpairedFlag
     );
     const initialBasePairs : Array<BasePairsEditor.BasePair> = helixData.helixData.map(function(helixDatum) {
       return {

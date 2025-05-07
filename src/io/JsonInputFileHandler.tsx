@@ -35,7 +35,7 @@ function parseBasePair(
   basePair : any,
   cssClasses : Array<any>,
   singularRnaComplexProps : RnaComplex.ExternalProps,
-  stroke : Color,
+  stroke : undefined | Color,
   strokeWidth : number,
   rnaMoleculeName0? : string,
   rnaMoleculeName1? : string
@@ -51,6 +51,12 @@ function parseBasePair(
     basePairType = basePair.basePairType;
   } else {
     throw "Unrecognized base-pair type.";
+  }
+  if ("stroke" in basePair) {
+    if (typeof basePair.stroke !== "string") {
+      throw "Base-pair \"stroke\" variable should be a string.";
+    }
+    stroke = fromCssString(basePair.stroke);
   }
   let color = structuredClone(stroke);
   const classes = basePair.classes;
@@ -474,9 +480,9 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
           };
         }
       });
-      const parsedClassesForBasePairs = {
+      const parsedClassesForBasePairs : { strokeWidth : number, stroke : undefined | Color } = {
         strokeWidth : DEFAULT_STROKE_WIDTH,
-        stroke : structuredClone(BLACK)
+        stroke : undefined
       };
       const classesForBasePairs = inputRnaMolecule.classesForBasePairs;
       if (classesForBasePairs !== undefined) {
@@ -533,9 +539,9 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
         throw `The basePairs property of each input RNA complex should be an array.`;
       }
       for (const basePair of inputRnaComplex.basePairs) {
-        const parsedClassesForBasePairs = {
+        const parsedClassesForBasePairs : { strokeWidth : number, stroke : undefined | Color } = {
           strokeWidth : DEFAULT_STROKE_WIDTH,
-          stroke : structuredClone(BLACK)
+          stroke : undefined
         };
         const classesForBasePairs = inputRnaComplex.classesForBasePairs;
         if (classesForBasePairs !== undefined) {

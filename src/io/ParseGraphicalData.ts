@@ -969,8 +969,10 @@ export function parseGraphicalData(
     const basePairTypeHandlingOrderOrdinals : Record<BasePair.CanonicalType | "undefined", number> = {
       [BasePair.Type.WOBBLE] : 0,
       [BasePair.Type.CANONICAL] : 1,
-      [BasePair.Type.MISMATCH] : 2,
-      ["undefined"] : 3
+      [BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK] : 2,
+      [BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK] : 3,
+      [BasePair.Type.MISMATCH] : 4,
+      ["undefined"] : 5
     };
     // This order minimizes ambiguous base pairs.
     const basePairTypeHandlingOrder = Object.entries(basePairTypeHandlingOrderOrdinals).sort(function(
@@ -999,6 +1001,14 @@ export function parseGraphicalData(
         centers : []
       },
       [BasePair.Type.WOBBLE] : {
+        lines : [],
+        centers : []
+      },
+      [BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK] : {
+        lines : [],
+        centers : []
+      },
+      [BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK] : {
         lines : [],
         centers : []
       }

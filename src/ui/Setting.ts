@@ -16,7 +16,8 @@ export enum Setting {
   REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE = "replace_nucleotides_with_contour_line",
   CONTOUR_LINE_WIDTH = "contour_line_width",
   DARK_MODE = "dark_mode",
-  DISABLE_NAVIGATE_AWAY_PROMPT = "disable_navigate_away_prompt"
+  DISABLE_NAVIGATE_AWAY_PROMPT = "disable_navigate_away_prompt",
+  TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED = "treat_non_canonical_base_pairs_as_unpaired"
 }
 
 export const settings = Object.values(Setting);
@@ -36,7 +37,8 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : "Replace nucleotides with contour line",
   [Setting.CONTOUR_LINE_WIDTH] : "Contour-line width",
   [Setting.DARK_MODE] : "Dark mode",
-  [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the navigate-away prompt"
+  [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the navigate-away prompt",
+  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Treat non-canonical base pairs as unpaired"
 };
 
 export const settingsLongDescriptionsMap : Record<Setting, string> = {
@@ -54,7 +56,8 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : "Display only a countour line per RNA molecule, instead of individual nucleotides",
   [Setting.CONTOUR_LINE_WIDTH] : "Width of the contour line (applied when replacing nucleotides with a contour line)",
   [Setting.DARK_MODE] : "Change background colors and scene colors to darken the scene",
-  [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the prompt asking you to save your work, when you navigate away from this page"
+  [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the prompt asking you to save your work, when you navigate away from this page",
+  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Disable editing and formatting of non-canonical base pairs."
 };
 
 export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairsEditorType"> = {
@@ -72,7 +75,8 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairs
   [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : "boolean",
   [Setting.CONTOUR_LINE_WIDTH] : "number",
   [Setting.DARK_MODE] : "boolean",
-  [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "boolean"
+  [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "boolean",
+  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "boolean"
 };
 
 export function isSetting(candidateSetting : string) : candidateSetting is Setting {
@@ -98,5 +102,6 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] : false,
   [Setting.CONTOUR_LINE_WIDTH] : DEFAULT_STROKE_WIDTH,
   [Setting.DARK_MODE] : false,
-  [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : false
+  [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : false,
+  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : true
 };

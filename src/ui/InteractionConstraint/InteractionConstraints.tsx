@@ -22,6 +22,7 @@ import { areEqual, BLACK } from "../../data_structures/Color";
 import { subtractNumbers } from "../../utils/Utils";
 import { BasePairsEditor } from "../../components/app_specific/editors/BasePairsEditor";
 import BasePair from "../../components/app_specific/BasePair";
+import { DEFAULT_SETTINGS, Setting } from "../Setting";
 
 export type Extrema = {
   0 : number,
@@ -57,7 +58,10 @@ type SortedBasePairKeys = Array<AllKeys & {
   mappedBasePair : RnaComplex.MappedBasePair
 }>;
 
-export function getSortedBasePairs(basePairsPerRnaComplex : RnaComplex.BasePairs) : SortedBasePairKeys {
+export function getSortedBasePairs(
+  basePairsPerRnaComplex : RnaComplex.BasePairs,
+  treatNoncanonicalBasePairsAsUnpairedFlag : boolean
+) : SortedBasePairKeys {
   const sortedBasePairs : SortedBasePairKeys = [];
   for (const rnaMoleculeName of Object.keys(basePairsPerRnaComplex)) {
     const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
@@ -69,6 +73,12 @@ export function getSortedBasePairs(basePairsPerRnaComplex : RnaComplex.BasePairs
       };
       const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
       for (const basePairPerNucleotide of basePairsPerNucleotide) {
+        if (!BasePair.isEnabledBasePair(
+          basePairPerNucleotide,
+          treatNoncanonicalBasePairsAsUnpairedFlag
+        )) {
+          continue;
+        }
         // Eliminate duplicates.
         if (isRelevantBasePairKeySetInPair(
           keys0,
@@ -97,16 +107,21 @@ export function getSortedBasePairs(basePairsPerRnaComplex : RnaComplex.BasePairs
 }
 
 export function iterateOverFreeNucleotidesAndHelicesPerScene(
-  rnaComplexProps : RnaComplexProps
+  rnaComplexProps : RnaComplexProps,
+  treatNoncanonicalBasePairsAsUnpairedFlag : boolean
 ) : Array<HelixDataPerRnaComplex> {
   const helixDataPerScene : Array<HelixDataPerRnaComplex> = [];
   for (const rnaComplexIndexAsString in rnaComplexProps) {
     const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
     const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-    const sortedBasePairs : SortedBasePairKeys = getSortedBasePairs(singularRnaComplexProps.basePairs)
+    const sortedBasePairs : SortedBasePairKeys = getSortedBasePairs(
+      singularRnaComplexProps.basePairs,
+      treatNoncanonicalBasePairsAsUnpairedFlag
+    );
     helixDataPerScene.push(iterateOverFreeNucleotidesAndHelicesPerRnaComplex(
       rnaComplexIndex,
       rnaComplexProps[rnaComplexIndex],
+      treatNoncanonicalBasePairsAsUnpairedFlag,
       sortedBasePairs
     ));
   }
@@ -116,13 +131,18 @@ export function iterateOverFreeNucleotidesAndHelicesPerScene(
 export function iterateOverFreeNucleotidesAndHelicesPerRnaComplex(
   rnaComplexIndex : number,
   singularRnaComplexProps : RnaComplex.ExternalProps,
-  sortedBasePairs : SortedBasePairKeys = getSortedBasePairs(singularRnaComplexProps.basePairs)
+  treatNoncanonicalBasePairsAsUnpairedFlag : boolean,
+  sortedBasePairs : SortedBasePairKeys = getSortedBasePairs(
+    singularRnaComplexProps.basePairs,
+    treatNoncanonicalBasePairsAsUnpairedFlag
+  )
 ) : HelixDataPerRnaComplex {
   const helixDataPerRnaMolecules : Array<HelixDataPerRnaMolecule> = [];
   for (let rnaMoleculeName in singularRnaComplexProps.rnaMoleculeProps) {
     const helixDatumPerRnaMolecule = iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
       singularRnaComplexProps,
       rnaMoleculeName,
+      treatNoncanonicalBasePairsAsUnpairedFlag,
       sortedBasePairs
     );
     helixDataPerRnaMolecules.push(helixDatumPerRnaMolecule);
@@ -136,7 +156,11 @@ export function iterateOverFreeNucleotidesAndHelicesPerRnaComplex(
 export function iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
   singularRnaComplexProps : RnaComplex.ExternalProps,
   rnaMoleculeName0 : string,
-  sortedBasePairs : SortedBasePairKeys = getSortedBasePairs(singularRnaComplexProps.basePairs)
+  treatNoncanonicalBasePairsAsUnpairedFlag : boolean,
+  sortedBasePairs : SortedBasePairKeys = getSortedBasePairs(
+    singularRnaComplexProps.basePairs,
+    treatNoncanonicalBasePairsAsUnpairedFlag
+  )
 ) : HelixDataPerRnaMolecule {
   const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
   let minimumNucleotideIndex = Number.POSITIVE_INFINITY;
@@ -155,6 +179,7 @@ export function iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
     rnaMoleculeName0,
     minimumNucleotideIndex,
     maximumNucleotideIndex,
+    treatNoncanonicalBasePairsAsUnpairedFlag,
     sortedBasePairs
   );
 }
@@ -164,7 +189,11 @@ export function iterateOverFreeNucleotidesAndHelicesPerNucleotideRange(
   rnaMoleculeName : string,
   minimumNucleotideIndex : number,
   maximumNucleotideIndex : number,
-  sortedBasePairs : SortedBasePairKeys = getSortedBasePairs(singularRnaComplexProps.basePairs)
+  treatNoncanonicalBasePairsAsUnpairedFlag : boolean,
+  sortedBasePairs : SortedBasePairKeys = getSortedBasePairs(
+    singularRnaComplexProps.basePairs,
+    treatNoncanonicalBasePairsAsUnpairedFlag
+  )
 ) : HelixDataPerRnaMolecule {
   const helixData : HelixData = [];
   const helixDataMap : HelixDataMap = {};
@@ -269,7 +298,8 @@ export function checkExtremaForSingleStrand(
   basePairsPerRnaMolecule : RnaComplex.BasePairsPerRnaMolecule,
   toBeDragged : Array<Vector2D>,
   singularRnaMoleculeProps : RnaMolecule.ExternalProps,
-  nucleotideKeysToRerenderPerRnaMolecule : NucleotideKeysToRerenderPerRnaMolecule
+  nucleotideKeysToRerenderPerRnaMolecule : NucleotideKeysToRerenderPerRnaMolecule,
+  treatNoncanonicalBasePairsAsUnpairedFlag : boolean
 ) {
   const toBeDraggedNucleotideIndices = [];
   let minimumNucleotideIndex;
@@ -283,7 +313,13 @@ export function checkExtremaForSingleStrand(
   }
   let singleStrandFlag = true;
   for (let nucleotideIndexI = minimumNucleotideIndex + 1; nucleotideIndexI < maximumNucleotideIndex; nucleotideIndexI++) {
-    if (basePairsPerRnaMolecule[nucleotideIndexI]) {
+    if (
+      nucleotideIndexI in basePairsPerRnaMolecule &&
+      basePairsPerRnaMolecule[nucleotideIndexI].some((basePair) => BasePair.isEnabledBasePair(
+        basePair,
+        treatNoncanonicalBasePairsAsUnpairedFlag
+      )
+    )) {
       singleStrandFlag = false;
       break;
     }
@@ -307,14 +343,19 @@ export function findHelix(
   nucleotideIndex0 : number,
   rnaMoleculeName1 : string,
   nucleotideIndex1 : number,
+  treatNoncanonicalBasePairsAsUnpairedFlag : boolean,
   forEachHelper : (
     keys : RnaComplex.BasePairKeys
   ) => void = () => { /* Do nothing. */ },
-  sortedBasePairs = getSortedBasePairs(singularRnaComplexProps.basePairs)
+  sortedBasePairs = getSortedBasePairs(
+    singularRnaComplexProps.basePairs,
+    treatNoncanonicalBasePairsAsUnpairedFlag
+  )
 ) : HelixDatum {
   const { helixData } = iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
     singularRnaComplexProps,
     rnaMoleculeName0,
+    treatNoncanonicalBasePairsAsUnpairedFlag,
     sortedBasePairs
   );
   const [
@@ -374,11 +415,15 @@ export function populateToBeDraggedWithHelix(
   rnaMoleculeName1 : string,
   nucleotideIndex1 : number,
   toBeDragged : Array<Vector2D>,
+  treatNoncanonicalBasePairsAsUnpairedFlag : boolean,
   basePairKeysToRerenderPerRnaComplex? : BasePairKeysToRerenderPerRnaComplex,
   forEachHelper : (
     keys : RnaComplex.BasePairKeys
   ) => void = () => { /* Do nothing. */ },
-  sortedBasePairs = getSortedBasePairs(singularRnaComplexProps.basePairs)
+  sortedBasePairs = getSortedBasePairs(
+    singularRnaComplexProps.basePairs,
+    treatNoncanonicalBasePairsAsUnpairedFlag
+  )
 ) {
   return findHelix(
     singularRnaComplexProps,
@@ -386,6 +431,7 @@ export function populateToBeDraggedWithHelix(
     nucleotideIndex0,
     rnaMoleculeName1,
     nucleotideIndex1,
+    treatNoncanonicalBasePairsAsUnpairedFlag,
     (keys) => {
       forEachHelper(keys);
       const {
@@ -710,12 +756,14 @@ export namespace InteractionConstraint {
 
   export const DEFAULT_OPTIONS : Options = {
     affectHairpinNucleotidesFlag : true,
-    truncateRnaSingleStrandFlag : true
+    truncateRnaSingleStrandFlag : true,
+    treatNoncanonicalBasePairsAsUnpairedFlag : DEFAULT_SETTINGS[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean
   };
 
   export type Options = {
     affectHairpinNucleotidesFlag : boolean,
-    truncateRnaSingleStrandFlag : boolean
+    truncateRnaSingleStrandFlag : boolean,
+    treatNoncanonicalBasePairsAsUnpairedFlag : boolean
   };
 
   export const optionsMenuRecord : Partial<Record<
@@ -739,7 +787,8 @@ function sort(
 export type InteractionConstraintAndFullKeys = { fullKeys : FullKeys, interactionConstraint : InteractionConstraint.Enum } | undefined;
 export function getInteractionConstraintAndFullKeys(
   fullKeysArray : Array<FullKeys>,
-  rnaComplexProps : RnaComplexProps
+  rnaComplexProps : RnaComplexProps,
+  treatNoncanonicalBasePairsAsUnpairedFlag : boolean
 ) : InteractionConstraintAndFullKeys {
   function handleMultipleFullKeys() : InteractionConstraintAndFullKeys {
     fullKeysArray.sort(sort);
@@ -785,8 +834,14 @@ export function getInteractionConstraintAndFullKeys(
       if (rnaMoleculeName in basePairs) {
         const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
         if (nucleotideIndex in basePairsPerRnaMolecule) {
-          noNucleotidesAreBasePairedFlag = false;
-          return basePairsPerRnaMolecule[nucleotideIndex];
+          const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+          if (basePairsPerNucleotide.some((basePair) => BasePair.isEnabledBasePair(
+            basePair,
+            treatNoncanonicalBasePairsAsUnpairedFlag
+          ))) {
+            noNucleotidesAreBasePairedFlag = false;
+            return basePairsPerRnaMolecule[nucleotideIndex];
+          }
         }
       }
       allNucleotidesAreBasePairedFlag = false;
@@ -1036,7 +1091,12 @@ export function getInteractionConstraintAndFullKeys(
           });
         }
         if (nucleotideIndex in basePairsPerRnaMolecule) {
-          const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
+          const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex].filter(
+            (basePair) => BasePair.isEnabledBasePair(
+              basePair,
+              treatNoncanonicalBasePairsAsUnpairedFlag
+            )
+          );
           for (const basePairPerNucleotide of basePairsPerNucleotide) {
             neighbors.push(basePairPerNucleotide);
           }
@@ -1264,7 +1324,12 @@ export function getInteractionConstraintAndFullKeys(
       let interactionConstraint = InteractionConstraint.Enum.SINGLE_NUCLEOTIDE;
       if (rnaMoleculeName in basePairs) {
         const basePairsPerRnaMolecule = basePairs[rnaMoleculeName];
-        if (nucleotideIndex in basePairsPerRnaMolecule) {
+        if (
+          nucleotideIndex in basePairsPerRnaMolecule && basePairsPerRnaMolecule[nucleotideIndex].some((basePair) => BasePair.isEnabledBasePair(
+            basePair,
+            treatNoncanonicalBasePairsAsUnpairedFlag
+          ))
+        ) {
           interactionConstraint = InteractionConstraint.Enum.SINGLE_BASE_PAIR;
         }
       }
@@ -1286,8 +1351,11 @@ export function getInteractionConstraintAndFullKeys(
         fullKeys0.rnaMoleculeName in basePairs &&
         fullKeys0.nucleotideIndex in (basePairsPerRnaMolecule = basePairs[fullKeys0.rnaMoleculeName]) && 
         (basePairsPerNucleotide0 = basePairsPerRnaMolecule[fullKeys0.nucleotideIndex]).some(({ rnaMoleculeName, nucleotideIndex }) => (
-          fullKeys1.rnaMoleculeName === rnaMoleculeName,
-          fullKeys1.nucleotideIndex === nucleotideIndex
+          fullKeys1.rnaMoleculeName === rnaMoleculeName &&
+          fullKeys1.nucleotideIndex === nucleotideIndex && BasePair.isEnabledBasePair(
+            { rnaMoleculeName, nucleotideIndex },
+            treatNoncanonicalBasePairsAsUnpairedFlag
+          )
         ))
       ) {
         return {

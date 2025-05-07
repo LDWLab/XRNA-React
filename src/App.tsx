@@ -2083,6 +2083,8 @@ export namespace App {
     const onMouseUp = useMemo(
       function() {
         return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
+          const settingsRecord = settingsRecordReference.current!;
+          const treatNoncanonicalBasePairsAsUnpairedFlag = settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean;
           const dragListener = dragListenerReference.current as DragListener | null;
           if (dragListener !== null) {
             if (dragListener.terminateDrag !== undefined) {
@@ -2202,7 +2204,8 @@ export namespace App {
               }
               let interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(
                 fullKeysOfCapturedNucleotides,
-                rnaComplexProps
+                rnaComplexProps,
+                treatNoncanonicalBasePairsAsUnpairedFlag
               );
               setAutoDetectedInteractionConstraintMessage("Auto-detected");
               if (interactionConstraintAndFullKeys !== undefined) {
@@ -2219,7 +2222,8 @@ export namespace App {
               } else {
                 interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(
                   fullKeysOfCapturedLabels,
-                  rnaComplexProps
+                  rnaComplexProps,
+                  treatNoncanonicalBasePairsAsUnpairedFlag
                 );
                 if (interactionConstraintAndFullKeys !== undefined) {
                   const {
@@ -3334,6 +3338,16 @@ export namespace App {
         }
       },
       [dragListener]
+    );
+    useEffect(
+      function() {
+        const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
+        setInteractionConstraintOptions({
+          ...interactionConstraintOptions,
+          treatNoncanonicalBasePairsAsUnpairedFlag : settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean
+        });
+      },
+      [settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED]]
     );
     return <Context.BasePair.OnMouseDownHelper.Provider
       value = {basePairOnMouseDownHelper}
