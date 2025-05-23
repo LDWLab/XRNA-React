@@ -38,7 +38,7 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.CONTOUR_LINE_WIDTH] : "Contour-line width",
   [Setting.DARK_MODE] : "Dark mode",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the navigate-away prompt",
-  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Treat non-canonical base pairs as unpaired"
+  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Treat non-canonical base pairs as unpaired (for editing and formatting)"
 };
 
 export const settingsLongDescriptionsMap : Record<Setting, string> = {
