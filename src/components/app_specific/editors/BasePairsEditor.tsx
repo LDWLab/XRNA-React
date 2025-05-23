@@ -1649,7 +1649,7 @@ export namespace BasePairsEditor {
           );
         }}
       >
-        Update all
+        Re-format all
       </button>
     </>;
   }
