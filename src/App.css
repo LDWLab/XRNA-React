@@ -1,6 +1,8 @@
+
+/* Layout and viewport */
 html, body {
-  overflow-x : hidden;
-  overflow-y : hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 .visible-scrollbar {
@@ -9,20 +11,692 @@ html, body {
 
 .noselect {
   -webkit-touch-callout: none; /* iOS Safari */
-    -webkit-user-select: none; /* Safari */
-     -khtml-user-select: none; /* Konqueror HTML */
-       -moz-user-select: none; /* Old versions of Firefox */
-        -ms-user-select: none; /* Internet Explorer/Edge */
-            user-select: none; /* Non-prefixed version, currently
-                                  supported by Chrome, Edge, Opera and Firefox */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Old versions of Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
 }
 
+.btn {
+  @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden;
+  background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1), 0 10px 20px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(0);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn:hover::before {
+  left: 100%;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.15), 0 15px 30px -5px rgba(0, 0, 0, 0.1);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-primary-600 via-primary-500 to-primary-600 text-white shadow-primary-500/25;
+  background-size: 200% 100%;
+  animation: gradientShift 3s ease infinite;
+}
+
+.btn-primary:hover {
+  @apply shadow-primary-500/40;
+  background-position: right center;
+}
+
+.btn-primary:focus {
+  @apply ring-primary-500/50;
+}
+
+.btn-secondary {
+  @apply bg-gradient-to-r from-secondary-100 via-secondary-50 to-secondary-100 text-secondary-800 border-secondary-300/50;
+  background-size: 200% 100%;
+}
+
+.btn-secondary:hover {
+  @apply bg-gradient-to-r from-secondary-200 via-secondary-100 to-secondary-200 border-secondary-400/50;
+  background-position: right center;
+}
+
+.btn-accent {
+  @apply bg-gradient-to-r from-accent-600 via-accent-500 to-accent-600 text-white shadow-accent-500/25;
+  background-size: 200% 100%;
+  animation: gradientShift 3s ease infinite;
+}
+
+.btn-accent:hover {
+  @apply shadow-accent-500/40;
+  background-position: right center;
+}
+
+.btn-success {
+  @apply bg-gradient-to-r from-success-600 via-success-500 to-success-600 text-white shadow-success-500/25;
+}
+
+.btn-warning {
+  @apply bg-gradient-to-r from-warning-600 via-warning-500 to-warning-600 text-white shadow-warning-500/25;
+}
+
+.btn-error {
+  @apply bg-gradient-to-r from-error-600 via-error-500 to-error-600 text-white shadow-error-500/25;
+}
+
+.btn-ghost {
+  @apply bg-transparent text-secondary-700 border-transparent hover:bg-secondary-100/50 hover:border-secondary-300/50;
+  backdrop-filter: blur(4px);
+}
+
+.btn-sm {
+  @apply px-4 py-2 text-xs rounded-lg;
+}
+
+.btn-lg {
+  @apply px-8 py-4 text-base rounded-2xl;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: left center;
+  }
+  50% {
+    background-position: right center;
+  }
+}
+
+/* Enhanced modern form elements */
+.form-input {
+  @apply block w-full px-4 py-3 text-sm border border-secondary-300/50 rounded-xl bg-white/80 placeholder-secondary-400 focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500/50 transition-all duration-300 backdrop-blur-sm;
+  box-shadow: 0 2px 10px -3px rgba(0, 0, 0, 0.05), inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.form-input:hover {
+  @apply border-secondary-400/50;
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1), inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.form-input:focus {
+  @apply border-primary-500/50 bg-white/90;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1), 0 4px 15px -3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input:invalid {
+  @apply border-error-500/50 focus:ring-error-500/20 focus:border-error-500/50;
+}
+
+.form-input:disabled {
+  @apply bg-secondary-50/80 text-secondary-500 cursor-not-allowed border-secondary-200/50;
+}
+
+.form-label {
+  @apply block text-sm font-semibold text-secondary-800 mb-2;
+}
+
+.form-error {
+  @apply text-sm text-error-600 mt-2 font-medium;
+}
+
+.form-help {
+  @apply text-sm text-secondary-500 mt-2;
+}
+
+.card {
+  @apply bg-white/90 rounded-2xl border border-secondary-200/50 overflow-hidden relative;
+  backdrop-filter: blur(16px);
+  box-shadow: 
+    0 4px 25px -5px rgba(0, 0, 0, 0.1), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 10px 40px -10px rgba(0, 0, 0, 0.15), 
+    0 4px 25px -5px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.card-header {
+  @apply px-8 py-6 border-b border-secondary-200/50 relative;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+}
+
+.card-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(203, 213, 225, 0.5), transparent);
+}
+
+.card-body {
+  @apply px-8 py-6;
+}
+
+.card-footer {
+  @apply px-8 py-6 border-t border-secondary-200/50 relative;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+}
+
+.card-title {
+  @apply text-xl font-bold text-secondary-900 mb-2;
+  background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-subtitle {
+  @apply text-sm text-secondary-600 font-medium;
+}
+
+/* Enhanced modern collapsible styles */
+.collapsible {
+  @apply w-full px-6 py-4 text-left bg-white/80 border border-secondary-200/50 rounded-xl hover:bg-white/90 focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500/50 transition-all duration-300 relative overflow-hidden;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+}
+
+.collapsible::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+}
+
+.collapsible:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.collapsible-content {
+  @apply mt-3 p-6 bg-secondary-50/80 rounded-xl border border-secondary-200/50 animate-slide-down;
+  backdrop-filter: blur(8px);
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Enhanced modern panel styles */
+.panel {
+  @apply bg-white/90 rounded-2xl border border-secondary-200/50 overflow-hidden relative;
+  backdrop-filter: blur(16px);
+  box-shadow: 
+    0 10px 40px -10px rgba(0, 0, 0, 0.15), 
+    0 4px 25px -5px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.panel-header {
+  @apply px-8 py-6 relative;
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.8) 0%, rgba(253, 244, 255, 0.8) 100%);
+  border-bottom: 1px solid rgba(203, 213, 225, 0.5);
+}
+
+.panel-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0ea5e9, #d946ef);
+}
+
+.panel-title {
+  @apply text-2xl font-bold text-secondary-900;
+  background: linear-gradient(135deg, #0ea5e9 0%, #d946ef 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.panel-body {
+  @apply p-8;
+}
+
+/* Enhanced modern tab styles */
+.tab-list {
+  @apply flex space-x-2 bg-secondary-100/80 p-2 rounded-xl backdrop-blur-sm;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+.tab-button {
+  @apply flex-1 px-6 py-3 text-sm font-semibold text-secondary-700 rounded-lg hover:text-secondary-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all duration-300 relative overflow-hidden;
+}
+
+.tab-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tab-button.active {
+  @apply bg-white text-primary-700 shadow-soft;
+  box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.1), 0 10px 20px -2px rgba(0, 0, 0, 0.05);
+}
+
+.tab-button.active::before {
+  opacity: 1;
+}
+
+.tab-panel {
+  @apply mt-6 p-6 bg-white/80 rounded-xl border border-secondary-200/50 backdrop-blur-sm;
+  box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+}
+
+/* Enhanced modern modal styles */
+.modal-overlay {
+  @apply fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal {
+  @apply bg-white/95 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden relative;
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.2), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0ea5e9, #d946ef);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  @apply px-8 py-6 border-b border-secondary-200/50 relative;
+  background: linear-gradient(135deg, rgba(240, 249, 255, 0.6) 0%, rgba(253, 244, 255, 0.6) 100%);
+}
+
+.modal-title {
+  @apply text-2xl font-bold text-secondary-900;
+  background: linear-gradient(135deg, #0ea5e9 0%, #d946ef 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.modal-body {
+  @apply px-8 py-6 overflow-y-auto;
+}
+
+.modal-footer {
+  @apply px-8 py-6 border-t border-secondary-200/50 flex justify-end space-x-4 relative;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.6) 0%, rgba(241, 245, 249, 0.6) 100%);
+}
+
+/* Enhanced modern tooltip styles */
+.tooltip {
+  @apply absolute z-50 px-4 py-2 text-sm text-white rounded-lg pointer-events-none;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.2), 0 10px 20px -2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tooltip::before {
+  content: '';
+  @apply absolute w-2 h-2 transform rotate-45;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Enhanced modern loading states */
+.loading-spinner {
+  @apply inline-block w-6 h-6 border-2 border-secondary-300/50 border-t-primary-600 rounded-full;
+  animation: spin 1s linear infinite;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+.loading-skeleton {
+  @apply bg-gradient-to-r from-secondary-200 via-secondary-100 to-secondary-200 rounded animate-pulse;
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Enhanced modern status indicators */
+.status-dot {
+  @apply inline-block w-3 h-3 rounded-full relative;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.status-dot::before {
+  content: '';
+  @apply absolute inset-0 rounded-full animate-ping;
+  background: currentColor;
+  opacity: 0.3;
+}
+
+.status-online {
+  @apply bg-success-500 text-success-500;
+}
+
+.status-offline {
+  @apply bg-secondary-400 text-secondary-400;
+}
+
+.status-error {
+  @apply bg-error-500 text-error-500;
+}
+
+.status-warning {
+  @apply bg-warning-500 text-warning-500;
+}
+
+/* Enhanced scientific/molecular visualization styles */
+.molecular-canvas {
+  @apply rounded-2xl border border-secondary-200/50 relative overflow-hidden;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(240, 249, 255, 0.8) 100%);
+  backdrop-filter: blur(12px);
+  box-shadow: 
+    0 10px 40px -10px rgba(0, 0, 0, 0.1), 
+    0 4px 25px -5px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.molecular-canvas::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+}
+
+.nucleotide {
+  @apply transition-all duration-300 hover:drop-shadow-lg cursor-pointer;
+  filter: brightness(1);
+}
+
+.nucleotide:hover {
+  filter: brightness(1.15) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+  transform: scale(1.05);
+}
+
+.nucleotide.selected {
+  filter: brightness(1.2) drop-shadow(0 0 15px rgba(59, 130, 246, 0.6));
+  animation: nucleotideGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes nucleotideGlow {
+  from {
+    filter: brightness(1.2) drop-shadow(0 0 15px rgba(59, 130, 246, 0.6));
+  }
+  to {
+    filter: brightness(1.3) drop-shadow(0 0 20px rgba(59, 130, 246, 0.8));
+  }
+}
+
+.base-pair {
+  @apply transition-all duration-300;
+  stroke-width: 2;
+}
+
+.base-pair:hover {
+  stroke-width: 3;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+.base-pair.highlighted {
+  stroke-width: 4;
+  filter: drop-shadow(0 0 10px rgba(217, 70, 239, 0.6));
+  animation: basePairPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes basePairPulse {
+  from {
+    stroke-width: 4;
+    filter: drop-shadow(0 0 10px rgba(217, 70, 239, 0.6));
+  }
+  to {
+    stroke-width: 5;
+    filter: drop-shadow(0 0 15px rgba(217, 70, 239, 0.8));
+  }
+}
+
+.label {
+  @apply text-sm font-semibold transition-all duration-300;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.label:hover {
+  font-weight: 700;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.no-stroke {
+  stroke: none;
+}
+
+/* Enhanced right-click menu styles */
 #closeRightClickMenuButton {
-  background-color : darkgray;
-  border : none;
+  @apply bg-gradient-to-r from-secondary-600 to-secondary-700 text-white border-none px-4 py-2 rounded-lg hover:from-error-600 hover:to-error-700 transition-all duration-300 text-sm font-medium;
+  box-shadow: 0 2px 10px -3px rgba(0, 0, 0, 0.2);
 }
 
 #closeRightClickMenuButton:hover {
-  background-color : maroon;
-  color : white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px -3px rgba(239, 68, 68, 0.3);
+}
+
+/* Enhanced scrollbar for specific elements */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.5) rgba(248, 250, 252, 0.8);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-secondary-100/80 rounded-full;
+  backdrop-filter: blur(4px);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply rounded-full;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(217, 70, 239, 0.6));
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(217, 70, 239, 0.8));
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+/* Enhanced responsive design improvements */
+@media (max-width: 768px) {
+  .card,
+  .panel,
+  .modal {
+    @apply rounded-xl;
+  }
+  
+  .modal {
+    @apply mx-4 max-w-none;
+  }
+  
+  .btn {
+    @apply text-xs px-4 py-2;
+  }
+  
+  .panel-header,
+  .panel-body,
+  .card-header,
+  .card-body,
+  .modal-header,
+  .modal-body {
+    @apply px-4 py-4;
+  }
+  
+  .card-title,
+  .panel-title,
+  .modal-title {
+    @apply text-lg;
+  }
+}
+
+/* Enhanced high contrast mode improvements */
+@media (prefers-contrast: high) {
+  .btn-primary,
+  .btn-accent {
+    @apply bg-blue-800 border-2 border-blue-900;
+    background-image: none;
+  }
+  
+  .btn-secondary {
+    @apply border-2 border-secondary-800;
+    background-image: none;
+  }
+  
+  .form-input {
+    @apply border-2 border-secondary-800;
+    backdrop-filter: none;
+  }
+  
+  .card,
+  .panel,
+  .modal {
+    @apply border-2 border-secondary-800;
+    backdrop-filter: none;
+    background: white;
+  }
+  
+  .glass-effect,
+  .glass-effect-strong {
+    backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.95);
+  }
+}
+
+/* Enhanced print styles */
+@media print {
+  .btn,
+  .modal-overlay,
+  .tooltip,
+  .loading-spinner {
+    @apply hidden;
+  }
+  
+  .card,
+  .panel {
+    @apply shadow-none border border-secondary-400;
+    backdrop-filter: none;
+    background: white;
+  }
+  
+  .molecular-canvas {
+    backdrop-filter: none;
+    background: white;
+  }
+}
+
+/* Enhanced animation performance optimization */
+@media (prefers-reduced-motion: reduce) {
+  .collapsible,
+  .btn,
+  .form-input,
+  .nucleotide,
+  .base-pair,
+  .label,
+  .card,
+  .panel,
+  .modal {
+    transition: none !important;
+    animation: none !important;
+  }
+  
+  .btn::before,
+  .card::before,
+  .panel-header::before,
+  .modal::before {
+    display: none !important;
+  }
+  
+  .nucleotide.selected,
+  .base-pair.highlighted {
+    animation: none !important;
+  }
 }

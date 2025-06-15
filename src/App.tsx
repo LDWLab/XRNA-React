@@ -1,4 +1,5 @@
 import React, { createElement, createRef, Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
+import { Dna, SquareScissors, Atom, Wrench, BarChart3 } from 'lucide-react';
 import { DEFAULT_TAB, Tab, tabs } from './app_data/Tab';
 import { add, scaleDown, subtract, Vector2D } from './data_structures/Vector2D';
 import { useResizeDetector } from 'react-resize-detector';
@@ -24,8 +25,9 @@ import { areEqual, BLACK } from './data_structures/Color';
 import { RnaMolecule } from './components/app_specific/RnaMolecule';
 import { LabelEditMenu } from './components/app_specific/menus/edit_menus/LabelEditMenu';
 import BasePair from './components/app_specific/BasePair';
-import { multiplyAffineMatrices, parseAffineMatrix } from './data_structures/AffineMatrix';
 import "./App.css";
+import "./components.css";
+import { PhotoshopSidebar } from './components/layout/VerticleSideBar';
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -179,7 +181,7 @@ export namespace App {
     const [
       tab,
       setTab
-    ] = useState(DEFAULT_TAB);
+    ] = useState<Tab | null>(DEFAULT_TAB);
     const [
       interactionConstraint,
       setInteractionConstraint
@@ -350,7 +352,7 @@ export namespace App {
     const errorMessageResizeDetector = useResizeDetector();
     const interactionConstraintReference = useRef<InteractionConstraint.Enum | undefined>(interactionConstraint);
     interactionConstraintReference.current = interactionConstraint;
-    const tabReference = useRef<Tab>();
+    const tabReference = useRef<Tab | null>();
     tabReference.current = tab;
     const viewportTranslateXReference = useRef<number>(NaN);
     viewportTranslateXReference.current = viewportTranslateX;
@@ -571,7 +573,7 @@ export namespace App {
                   setNucleotideKeysToRerender,
                   setBasePairKeysToRerender,
                   setDebugVisualElements,
-                  tab,
+                  tab || DEFAULT_TAB,
                   indicesOfFrozenNucleotides,
                   interactionConstraintOptions,
                   fullKeys
@@ -2384,7 +2386,7 @@ export namespace App {
               {SAVE_ROW_TEXT}:&nbsp;
               <input
                 type = "text"
-                placeholder = "save_file_name"
+                placeholder = "File Name"
                 value = {outputFileName}
                 onChange = {function(e) {
                   setOutputFileName(e.target.value);
@@ -2405,7 +2407,7 @@ export namespace App {
                 }}
                 value = {""}
               >
-                .file_extension
+                Extension
               </option>
               {outputFileExtensions.map(function(outputFileExtension : OutputFileExtension, index : number) {
                 return <option
@@ -2678,6 +2680,7 @@ export namespace App {
             >
               <Collapsible.Component
                 title = "Getting Started"
+                initialCollapsedFlag = {true}
               >
                 <ol
                   style = {{
@@ -2720,6 +2723,7 @@ export namespace App {
                 </ol>
                 <Collapsible.Component
                   title = "Demo"
+                  initialCollapsedFlag = {true}
                 >
                   <iframe
                     src = "https://youtube.com/embed/h56dluFPR3w"
@@ -2731,6 +2735,7 @@ export namespace App {
               </Collapsible.Component>
               <Collapsible.Component
                 title = "Tabs"
+                initialCollapsedFlag = {true}
               >
                 {tabs.map(function(tabI) {
                   let content = <></>;
@@ -2750,6 +2755,7 @@ export namespace App {
               </Collapsible.Component>
               <Collapsible.Component
                 title = "Constraints"
+                initialCollapsedFlag = {true}
               >
                 {InteractionConstraint.all.map(function(interactionConstraint) {
                   return <Collapsible.Component
@@ -2762,6 +2768,7 @@ export namespace App {
               </Collapsible.Component>
               <Collapsible.Component
                 title = "Tips and Tricks"
+                initialCollapsedFlag = {true}
               >
                 Hotkey combinations:
                 <ul
@@ -2789,6 +2796,7 @@ export namespace App {
                 </ul>
                 <Collapsible.Component
                   title = "Demo"
+                  initialCollapsedFlag = {true}
                 >
                   <iframe
                     src = "https://youtube.com/embed/5QiSc445DyU"
@@ -2814,6 +2822,7 @@ export namespace App {
                 </ol>
                 <Collapsible.Component
                   title = "Demo"
+                  initialCollapsedFlag = {true}
                 >
                   <iframe
                     src = "https://youtube.com/embed/5QiSc445DyU?start=130"
@@ -2825,6 +2834,7 @@ export namespace App {
               </Collapsible.Component>
               <Collapsible.Component
                 title = "Important File Formats"
+                initialCollapsedFlag = {true}
               >
                 <iframe
                   src = "https://youtube.com/embed/lwlfTPwrD8Q"
@@ -2835,11 +2845,13 @@ export namespace App {
               </Collapsible.Component>
               <Collapsible.Component
                 title = "How to cite XRNA"
+                initialCollapsedFlag = {true}
               >
                 XRNA.js is currently unpublished; once it becomes published, citation instructions will replace this text block.
               </Collapsible.Component>
               <Collapsible.Component
                 title = "Contact us"
+                initialCollapsedFlag = {true}
               >
                 <a
                   href = "https://www.linkedin.com/in/caedenmeade/"
@@ -2988,7 +3000,7 @@ export namespace App {
     );
     const basePairClassName = useMemo(
       function() {
-        return tab in strokesPerTab ? BASE_PAIR_CLASS_NAME : NO_STROKE_CLASS_NAME;
+        return (tab && tab in strokesPerTab) ? BASE_PAIR_CLASS_NAME : NO_STROKE_CLASS_NAME;
       },
       [tab]
     );
@@ -3024,7 +3036,7 @@ export namespace App {
       function() {
         return function() {
           const flattenedRnaComplexProps = flattenedRnaComplexPropsReference.current as Array<[string, RnaComplex.ExternalProps]>;
-          const tab = tabReference.current as Tab;
+          const tab = tabReference.current || DEFAULT_TAB;
           let rightClickPrompt = "";
           if (flattenedRnaComplexProps.length === 0) {
             const promptStart = "You must load a non-empty input file before attempting to ";
@@ -3404,277 +3416,339 @@ export namespace App {
                                         id = {PARENT_DIV_HTML_ID}
                                         onKeyDown = {onKeyDown}
                                         ref = {parentDivResizeDetector.ref}
+                                        className = "photoshop-layout"
                                         style = {{
-                                          position : "absolute",
-                                          display : "block",
-                                          width : "100%",
-                                          height : "100%",
-                                          overflow : "hidden",
-                                          background : "white",
-                                          color : "black",
                                           filter : filterInvert,
                                           marginLeft : `${MARGIN_LEFT}px`
                                         }}
                                         onMouseUp = {function() {
                                           setListenForResizeFlag(false);
                                         }}
-                                        // onMouseLeave = {function() {
-                                        //   setListenForResizeFlag(false);
-                                        // }}
                                       >
-                                        {/* Tools div */}
-                                        <div
-                                          tabIndex = {0}
-                                          ref = {toolsDivResizeDetector.ref}
-                                          style = {{
-                                            position : "absolute",
-                                            width : toolsDivWidthAttribute,
-                                            height : "100%",
-                                            display : "block",
-                                            borderRight : `5px solid black`,
-                                            background : "inherit"
-                                          }}
+                                        <Context.App.ComplexDocumentName.Provider
+                                          value = {complexDocumentName}
                                         >
-                                          {/* Top tools div */}
-                                          <div
-                                            ref = {userDrivenResizeDetector.ref}
-                                            style = {{
-                                              width : toolsDivWidthAttribute,
-                                              minWidth : "inherit",
-                                              maxHeight : "100%",
-                                              height : topToolsDivHeightAttribute,
-                                              display : "inline-block",
-                                              overflowX : "auto",
-                                              overflowY : "auto",
-                                              top : 0,
-                                              left : 0,
-                                              background : "inherit",
-                                              resize : "both",
-                                              borderBottom : `2px solid black`,
-                                              whiteSpace : "nowrap"
-                                            }}
-                                            onMouseDown = {function() {
-                                              setListenForResizeFlag(true);
-                                            }}
+                                          <Context.App.SetComplexDocumentName.Provider
+                                            value = {setComplexDocumentName}
                                           >
-                                            <div
-                                              ref = {topToolsDivResizeDetector.ref}
-                                              style = {{
-                                                width : "auto",
-                                                height : "inherit",
-                                                display : "inline-block"
-                                              }}
+                                            <Context.OrientationEditor.ResetDataTrigger.Provider
+                                              value = {resetOrientationDataTrigger}
                                             >
-                                              {renderedTabs}
-                                              {sceneState === SceneState.NO_DATA && <>
-                                                <b
-                                                  style = {{
-                                                    color : "red"
-                                                  }}
-                                                >
-                                                  No data to display.
-                                                </b>
-                                              </>}
-                                              {/* undoStack.length {undoStack.length} redoStack.length {redoStack.length} */}
-                                            </div>
-                                          </div>
-                                          {/* Bottom tools div */}
-                                          <div
-                                            style = {{
-                                              width : "100%",
-                                              height : "100%",
-                                              maxHeight : (parentDivResizeDetector.height ?? 0) - (topToolsDivResizeDetector.height ?? 0),
-                                              display : "inline-block",
-                                              overflowX : "hidden",
-                                              overflowY : "auto",
-                                              top : (topToolsDivResizeDetector.height ?? 0) + DIV_BUFFER_DIMENSION,
-                                              left : 0,
-                                              background : "inherit",
-                                              position : "absolute",
-                                              whiteSpace : "nowrap"
-                                            }}
-                                          >
-                                            {sceneState === SceneState.DATA_LOADING_FAILED && <>
-                                              <div
-                                                style = {{
-                                                  display : "inline-block",
-                                                  width : "auto"
-                                                }}
-                                                ref = {errorMessageResizeDetector.ref}
+                                              <Context.Collapsible.Width.Provider
+                                                value = {toolsDivWidthAttribute}
                                               >
-                                                <b
-                                                  style = {{
-                                                    color : "red",
+                                                {/* Photoshop-style Sidebar */}
+                                                <PhotoshopSidebar
+                                                  tabs={tabs}
+                                                  activeTab={tab}
+                                                  onTabChange={(newTab: Tab) => {
+                                                    // Toggle functionality: if clicking on the already active tab, close it
+                                                    if (tab === newTab) {
+                                                      setTab(null);
+                                                    } else {
+                                                      setTab(newTab);
+                                                    }
                                                   }}
-                                                >
-                                                  Parsing the provided input file failed.&nbsp;{dataLoadingFailedErrorMessage ? dataLoadingFailedErrorMessage : "Try another file, or report a bug."}
-                                                </b>
-                                                &nbsp;
-                                                <a
-                                                  href = "https://github.com/LDWLab/XRNA-React/issues"
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                >
-                                                  Report a bug
-                                                </a>
-                                              </div>
-                                              <br/>
-                                            </>}
-                                            <Context.App.ComplexDocumentName.Provider
-                                              value = {complexDocumentName}
-                                            >
-                                              <Context.App.SetComplexDocumentName.Provider
-                                                value = {setComplexDocumentName}
-                                              >
-                                                <Context.OrientationEditor.ResetDataTrigger.Provider
-                                                  value = {resetOrientationDataTrigger}
-                                                >
-                                                  <Context.Collapsible.Width.Provider
-                                                    value = {toolsDivWidthAttribute}
-                                                  >
-                                                    {rightClickMenuContent}
-                                                    {Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0 && <button
-                                                      id = "closeRightClickMenuButton"
-                                                      style = {{
-                                                        position : "absolute",
-                                                        left : `${(toolsDivResizeDetector.width ?? 0) - 100}px`,
-                                                        width : "100px",
-                                                        overflow : "visible"
-                                                      }}
-                                                      onClick = {function() {
-                                                        setRightClickMenuContent(
-                                                          <></>,
-                                                          {}
-                                                        );
-                                                      }}
-                                                    >
-                                                      X
-                                                    </button>}
-                                                  </Context.Collapsible.Width.Provider>
-                                                </Context.OrientationEditor.ResetDataTrigger.Provider>
-                                              </Context.App.SetComplexDocumentName.Provider>
-                                            </Context.App.ComplexDocumentName.Provider>
-                                          </div>
-                                        </div>
-                                        <svg
-                                          id = {SVG_ELEMENT_HTML_ID}
-                                          style = {{
-                                            top : 0,
-                                            left : typeof toolsDivWidthAttribute === "number" ? (toolsDivWidthAttribute + DIV_BUFFER_DIMENSION) : toolsDivWidthAttribute,
-                                            position : "absolute"
-                                          }}
-                                          xmlns = "http://www.w3.org/2000/svg"
-                                          viewBox = {`0 0 ${svgWidth} ${parentDivResizeDetector.height ?? 0}`}
-                                          tabIndex = {1}
-                                          onMouseDown = {onMouseDown}
-                                          onMouseMove = {onMouseMove}
-                                          onMouseUp = {onMouseUp}
-                                          onMouseLeave = {onMouseLeave}
-                                          onContextMenu = {function(event) {
-                                            event.preventDefault();
-                                          }}
-                                          onWheel = {onWheel}
-                                          fill = "white"
-                                          stroke = {InteractionConstraint.isSupportedTab(tab) ? strokesPerTab[tab] : "none"}
-                                          filter = "none"
+                                                  tabContent={tabRenderRecord}
+                                                  panels={[
+                                                    {
+                                                      id: 'tools',
+                                                      title: 'Tools',
+                                                      icon: <Wrench size={16} />,
+                                                      content: (
+                                                        <div>
+                                                          {sceneState === SceneState.DATA_LOADING_FAILED && (
+                                                            <div ref={errorMessageResizeDetector.ref}>
+                                                              <div className="alert alert-error">
+                                                                <strong>Error:</strong> Parsing the provided input file failed.&nbsp;
+                                                                {dataLoadingFailedErrorMessage ? dataLoadingFailedErrorMessage : "Try another file, or report a bug."}
+                                                                <br />
+                                                                <a
+                                                                  href="https://github.com/LDWLab/XRNA-React/issues"
+                                                                  target="_blank"
+                                                                  rel="noopener noreferrer"
+                                                                  className="btn btn-sm btn-secondary"
+                                                                >
+                                                                  Report a bug
+                                                                </a>
+                                                              </div>
+                                                            </div>
+                                                          )}
+                                                          {rightClickMenuContent}
+                                                          {Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0 && (
+                                                            <button
+                                                              id="closeRightClickMenuButton"
+                                                              className="btn btn-sm btn-danger"
+                                                              style={{
+                                                                position: 'absolute',
+                                                                top: '1rem',
+                                                                right: '1rem',
+                                                                zIndex: 1000
+                                                              }}
+                                                              onClick={function() {
+                                                                setRightClickMenuContent(<></>, {});
+                                                              }}
+                                                            >
+                                                              ✕
+                                                            </button>
+                                                          )}
+                                                        </div>
+                                                      ),
+                                                      defaultOpen: true
+                                                    },
+                                                    {
+                                                      id: 'status',
+                                                      title: 'Status',
+                                                      icon: <BarChart3 size={16} />,
+                                                      content: (
+                                                        <div className="status-panel">
+                                                          {sceneState === SceneState.NO_DATA && (
+                                                            <div className="alert alert-warning">
+                                                              <strong>No data to display.</strong>
+                                                              <br />
+                                                              Please load an input file to begin.
+                                                            </div>
+                                                          )}
+                                                          <div className="status-info">
+                                                            <div className="status-item">
+                                                              <span className="status-label">Scene State:</span>
+                                                              <span className="status-value">{sceneState}</span>
+                                                            </div>
+                                                            <div className="status-item">
+                                                              <span className="status-label">Complexes:</span>
+                                                              <span className="status-value">{flattenedRnaComplexPropsLength}</span>
+                                                            </div>
+                                                            <div className="status-item">
+                                                              <span className="status-label">Document:</span>
+                                                              <span className="status-value">{complexDocumentName || 'Untitled'}</span>
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                      ),
+                                                      defaultOpen: false
+                                                    }
+                                                  ]}
+                                                  minSidebarWidth={280}
+                                                  maxSidebarWidth={600}
+                                                  defaultSidebarWidth={350}
+                                                />
+
+                                                {/* Main Content Area */}
+                                                <div className="photoshop-main-content">
+                                                  {/* Molecular Visualization Toolbar */}
+                                                  <div className="photoshop-toolbar molecular-toolbar">
+                                                    <div className="toolbar-section">
+                                                      <span className="molecular-logo"><SquareScissors size={38} /></span>
+                                                      <div className="toolbar-title-group">
+                                                        <span className="toolbar-title">XRNA Molecular Visualization</span>
+                                                        <span className="toolbar-subtitle">RNA Structure Analysis & Visualization</span>
+                                                      </div>
+                                                    </div>
+                                                    <div className="toolbar-section">
+                                                      {sceneState === SceneState.DATA_IS_LOADING && (
+                                                        <div className="loading-indicator molecular-loading">
+                                                          <div className="loading-spinner molecular-spinner"></div>
+                                                          <span>Analyzing molecular structure...</span>
+                                                        </div>
+                                                      )}
+                                                      {sceneState === SceneState.DATA_IS_LOADED && (
+                                                        <div className="molecular-stats">
+                                                          <span className="stat-item">
+                                                            <span className="stat-icon"><Atom size={16} /></span>
+                                                            <span className="stat-value">{flattenedRnaComplexPropsLength}</span>
+                                                            <span className="stat-label">Complexes</span>
+                                                          </span>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  </div>
+
+                                                                                    {/* Viewport */}
+                                  <div className="photoshop-viewport" ref={toolsDivResizeDetector.ref}>
+                                    {/* Zoom Controls */}
+                                    <div className="zoom-controls">
+                                      <button 
+                                        className="zoom-btn zoom-in" 
+                                        onClick={() => {
+                                          const flattenedRnaComplexPropsLength = flattenedRnaComplexPropsLengthReference.current;
+                                          if (flattenedRnaComplexPropsLength === 0) return;
+                                          
+                                          const viewportScaleExponent = viewportScaleExponentReference.current as number;
+                                          let newScaleExponent = viewportScaleExponent + 1;
+                                          let newScale = newScaleExponent in viewportScalePowPrecalculation ? viewportScalePowPrecalculation[newScaleExponent] : Math.pow(SCALE_BASE, newScaleExponent);
+                                          setViewportScale(newScale);
+                                          setViewportScaleExponent(newScaleExponent);
+                                        }}
+                                        title="Zoom In"
+                                      >
+                                        +
+                                      </button>
+                                      <button 
+                                        className="zoom-btn zoom-out" 
+                                        onClick={() => {
+                                          const flattenedRnaComplexPropsLength = flattenedRnaComplexPropsLengthReference.current;
+                                          if (flattenedRnaComplexPropsLength === 0) return;
+                                          
+                                          const viewportScaleExponent = viewportScaleExponentReference.current as number;
+                                          let newScaleExponent = viewportScaleExponent - 1;
+                                          let newScale = newScaleExponent in viewportScalePowPrecalculation ? viewportScalePowPrecalculation[newScaleExponent] : Math.pow(SCALE_BASE, newScaleExponent);
+                                          setViewportScale(newScale);
+                                          setViewportScaleExponent(newScaleExponent);
+                                        }}
+                                        title="Zoom Out"
+                                      >
+                                        −
+                                      </button>
+                                      <button 
+                                        className="zoom-btn reset-view" 
+                                        onClick={() => {
+                                          const flattenedRnaComplexPropsLength = flattenedRnaComplexPropsLengthReference.current;
+                                          if (flattenedRnaComplexPropsLength === 0) return;
+                                          
+                                          // Use the same logic as the original resetViewport function
+                                          resetViewport();
+                                        }}
+                                        title="Reset View"
+                                      >
+                                        ↻
+                                      </button>
+                                    </div>
+                                    <svg
+                                      id = {SVG_ELEMENT_HTML_ID}
+                                      style = {{
+                                        width: '100%',
+                                        height: '100%'
+                                      }}
+                                      xmlns = "http://www.w3.org/2000/svg"
+                                      viewBox = {`0 0 ${svgWidth} ${parentDivResizeDetector.height ?? 0}`}
+                                      tabIndex = {1}
+                                      onMouseDown = {onMouseDown}
+                                      onMouseMove = {onMouseMove}
+                                      onMouseUp = {onMouseUp}
+                                      onMouseLeave = {onMouseLeave}
+                                      onContextMenu = {function(event) {
+                                        event.preventDefault();
+                                      }}
+                                      onWheel = {onWheel}
+                                      fill = "white"
+                                      stroke = {tab && InteractionConstraint.isSupportedTab(tab) ? strokesPerTab[tab] : "none"}
+                                      filter = "none"
+                                    >
+                                      {/* Having this here, rather than in an external App.css file, allows these to be directly exported to .SVG files. */}
+                                      <style>{`
+                                        .${NUCLEOTIDE_CLASS_NAME} { stroke:none; }
+                                        .${NUCLEOTIDE_CLASS_NAME}:hover { stroke:inherit; }
+                                        .${BASE_PAIR_CLASS_NAME} { stroke:none; }
+                                        .${BASE_PAIR_CLASS_NAME}:hover { stroke:inherit; stroke-dasharray:0.5,0.5;}
+                                        .${LABEL_CLASS_NAME} { stroke:none; }
+                                        .${NO_STROKE_CLASS_NAME} { stroke:none; }
+                                      `}</style>
+                                      <rect
+                                        id = {SVG_BACKGROUND_HTML_ID}
+                                        width = "100%"
+                                        height = "100%"
+                                        stroke = "none"
+                                        onMouseDown = {function(e) {
+                                          switch (e.button) {
+                                            case MouseButtonIndices.Left : {
+                                              setDragListener(
+                                                viewportDragListener,
+                                                {}
+                                              );
+                                              break;
+                                            }
+                                          }
+                                        }}
+                                      />
+                                      <g
+                                        style = {{
+                                          visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
+                                        }}
+                                        id = {VIEWPORT_SCALE_GROUP_0_HTML_ID}
+                                        transform = {totalScale.asTransform[0]}
+                                      >
+                                        <g
+                                          id = {VIEWPORT_SCALE_GROUP_1_HTML_ID}
+                                          transform = {totalScale.asTransform[1]}
                                         >
-                                          {/* Having this here, rather than in an external App.css file, allows these to be directly exported to .SVG files. */}
-                                          <style>{`
-                                            .${NUCLEOTIDE_CLASS_NAME} { stroke:none; }
-                                            .${NUCLEOTIDE_CLASS_NAME}:hover { stroke:inherit; }
-                                            .${BASE_PAIR_CLASS_NAME} { stroke:none; }
-                                            .${BASE_PAIR_CLASS_NAME}:hover { stroke:inherit; stroke-dasharray:0.5,0.5;}
-                                            .${LABEL_CLASS_NAME} { stroke:none; }
-                                            .${LABEL_CLASS_NAME}:hover { stroke:inherit; }
-                                            .${NO_STROKE_CLASS_NAME} { stroke:none; }
-                                          `}</style>
-                                          <rect
-                                            id = {SVG_BACKGROUND_HTML_ID}
-                                            width = "100%"
-                                            height = "100%"
-                                            stroke = "none"
-                                            onMouseDown = {function(e) {
-                                              switch (e.button) {
-                                                case MouseButtonIndices.Left : {
-                                                  setDragListener(
-                                                    viewportDragListener,
-                                                    {}
-                                                  );
-                                                  break;
-                                                }
-                                              }
-                                            }}
-                                          />
                                           <g
-                                            style = {{
-                                              visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
-                                            }}
-                                            id = {VIEWPORT_SCALE_GROUP_0_HTML_ID}
-                                            transform = {totalScale.asTransform[0]}
+                                            id = {VIEWPORT_TRANSLATE_GROUP_0_HTML_ID}
+                                            transform = {"scale(1, -1) " + transformTranslate0.asString}
                                           >
                                             <g
-                                              id = {VIEWPORT_SCALE_GROUP_1_HTML_ID}
-                                              transform = {totalScale.asTransform[1]}
+                                              id = {VIEWPORT_TRANSLATE_GROUP_1_HTML_ID}
+                                              transform = {transformTranslate1.asString}
                                             >
-                                              <g
-                                                id = {VIEWPORT_TRANSLATE_GROUP_0_HTML_ID}
-                                                transform = {"scale(1, -1) " + transformTranslate0.asString}
-                                              >
-                                                <g
-                                                  id = {VIEWPORT_TRANSLATE_GROUP_1_HTML_ID}
-                                                  transform = {transformTranslate1.asString}
-                                                >
-                                                  {debugVisualElements}
-                                                  {renderedRnaComplexes}
-                                                </g>
-                                              </g>
+                                              {debugVisualElements}
+                                              {renderedRnaComplexes}
                                             </g>
                                           </g>
-                                          <g
-                                            id = {MOUSE_OVER_TEXT_HTML_ID}
-                                          >
-                                            <rect
-                                              x = {0}
-                                              y = {(parentDivResizeDetector.height ?? 0) - mouseOverTextDimensions.height}
-                                              width = {mouseOverTextDimensions.width}
-                                              height = {mouseOverTextDimensions.height}
-                                              fill = "white"
-                                              stroke = "none"
-                                            />
-                                            <text
-                                              fill = "black"
-                                              stroke = "none"
-                                              x = {0}
-                                              y = {(parentDivResizeDetector.height ?? 0) - mouseOverTextDimensions.height * 0.25}
-                                              ref = {mouseOverTextSvgTextElementReference}
-                                              fontFamily = "Arial"
-                                              fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
-                                            >
-                                              {mouseOverText}
-                                            </text>
-                                          </g>
-                                        </svg>
-                                        {sceneState === SceneState.DATA_IS_LOADING && <img
-                                          style = {{
-                                            top : (parentDivResizeDetector.height ?? 0) * 0.5 - 100,
-                                            left : ((toolsDivResizeDetector.width ?? 0) + (parentDivResizeDetector.width ?? 0)) * 0.5 - 50,
-                                            position : "absolute"
-                                          }}
-                                          src = {loadingGif}
-                                          alt = "Loading..."
-                                        />}
-                                        <div
-                                          style = {{
-                                            position : "absolute",
-                                            visibility : "hidden",
-                                            height : "auto",
-                                            width : "auto",
-                                            whiteSpace : "nowrap",
-                                            background : "inherit"
-                                          }}
-                                          id = {TEST_SPACE_ID}
+                                        </g>
+                                      </g>
+                                      <g
+                                        id = {MOUSE_OVER_TEXT_HTML_ID}
+                                      >
+                                        <rect
+                                          x = {0}
+                                          y = {(parentDivResizeDetector.height ?? 0) - mouseOverTextDimensions.height}
+                                          width = {mouseOverTextDimensions.width}
+                                          height = {mouseOverTextDimensions.height}
+                                          fill = "white"
+                                          stroke = "none"
                                         />
-                                      </div>
+                                        <text
+                                          fill = "black"
+                                          stroke = "none"
+                                          x = {0}
+                                          y = {(parentDivResizeDetector.height ?? 0) - mouseOverTextDimensions.height * 0.25}
+                                          ref = {mouseOverTextSvgTextElementReference}
+                                          fontFamily = "Arial"
+                                          fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
+                                        >
+                                          {mouseOverText}
+                                        </text>
+                                      </g>
+                                    </svg>
+                                  </div>
+
+                                  {/* Status Bar */}
+                                  <div className="photoshop-status-bar">
+                                    <span>Ready</span>
+                                    <span>|</span>
+                                    <span>Scale: {(viewportScale * 100).toFixed(1)}%</span>
+                                    <span>|</span>
+                                    <span>Position: ({viewportTranslateX.toFixed(1)}, {viewportTranslateY.toFixed(1)})</span>
+                                  </div>
+                                </div>
+
+                                {/* Loading overlay */}
+                                {sceneState === SceneState.DATA_IS_LOADING && (
+                                  <div className="loading-overlay">
+                                    <img
+                                      src={loadingGif}
+                                      alt="Loading..."
+                                      className="loading-image"
+                                    />
+                                  </div>
+                                )}
+
+                                {/* Hidden test space */}
+                                <div
+                                  style = {{
+                                    position : "absolute",
+                                    visibility : "hidden",
+                                    height : "auto",
+                                    width : "auto",
+                                    whiteSpace : "nowrap",
+                                    background : "inherit"
+                                  }}
+                                  id = {TEST_SPACE_ID}
+                                />
+                              </Context.Collapsible.Width.Provider>
+                            </Context.OrientationEditor.ResetDataTrigger.Provider>
+                          </Context.App.SetComplexDocumentName.Provider>
+                        </Context.App.ComplexDocumentName.Provider>
+                      </div>
                                     </Context.BasePair.SetKeysToEdit.Provider>
                                   </Context.App.UpdateRnaMoleculeNameHelper.Provider>
                                 </Context.App.Settings.Provider>
