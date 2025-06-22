@@ -1,5 +1,5 @@
 import React, { createElement, createRef, Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
-import { Dna, SquareScissors, Atom, Wrench, BarChart3 } from 'lucide-react';
+import { Dna, SquareScissors, Atom, Wrench } from 'lucide-react';
 import { DEFAULT_TAB, Tab, tabs } from './app_data/Tab';
 import { add, scaleDown, subtract, Vector2D } from './data_structures/Vector2D';
 import { useResizeDetector } from 'react-resize-detector';
@@ -46,7 +46,7 @@ export const VIEWPORT_TRANSLATE_GROUP_0_HTML_ID = "viewport_translate_group_0";
 export const VIEWPORT_TRANSLATE_GROUP_1_HTML_ID = "viewport_translate_group_1";
 export const SVG_BACKGROUND_HTML_ID = "svg_background";
 export const SVG_SCENE_GROUP_HTML_ID = "svg_scene_group";
-export const MARGIN_LEFT = 7;
+export const MARGIN_LEFT = 0;
 
 export const NUCLEOTIDE_CLASS_NAME = "nucleotide";
 export const BASE_PAIR_CLASS_NAME = "basePair";
@@ -1981,8 +1981,11 @@ export namespace App {
               />
             </Collapsible.Component>
           </>,
-          // Show nothing.
-          [Tab.ABOUT] : <></>
+          [Tab.ABOUT] : <>
+            <span style={{ whiteSpace: "normal" }}>
+              <p>About content will be shown in the main tab render section below.</p>
+            </span>
+          </>
         };
       },
       []
@@ -3456,7 +3459,7 @@ export namespace App {
                                                       title: 'Tools',
                                                       icon: <Wrench size={16} />,
                                                       content: (
-                                                        <div>
+                                                        <div className="tools-panel-content">
                                                           {sceneState === SceneState.DATA_LOADING_FAILED && (
                                                             <div ref={errorMessageResizeDetector.ref}>
                                                               <div className="alert alert-error">
@@ -3474,7 +3477,9 @@ export namespace App {
                                                               </div>
                                                             </div>
                                                           )}
-                                                          {rightClickMenuContent}
+                                                          <div className="tools-content-container">
+                                                            {rightClickMenuContent}
+                                                          </div>
                                                           {Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0 && (
                                                             <button
                                                               id="closeRightClickMenuButton"
@@ -3495,37 +3500,6 @@ export namespace App {
                                                         </div>
                                                       ),
                                                       defaultOpen: true
-                                                    },
-                                                    {
-                                                      id: 'status',
-                                                      title: 'Status',
-                                                      icon: <BarChart3 size={16} />,
-                                                      content: (
-                                                        <div className="status-panel">
-                                                          {sceneState === SceneState.NO_DATA && (
-                                                            <div className="alert alert-warning">
-                                                              <strong>No data to display.</strong>
-                                                              <br />
-                                                              Please load an input file to begin.
-                                                            </div>
-                                                          )}
-                                                          <div className="status-info">
-                                                            <div className="status-item">
-                                                              <span className="status-label">Scene State:</span>
-                                                              <span className="status-value">{sceneState}</span>
-                                                            </div>
-                                                            <div className="status-item">
-                                                              <span className="status-label">Complexes:</span>
-                                                              <span className="status-value">{flattenedRnaComplexPropsLength}</span>
-                                                            </div>
-                                                            <div className="status-item">
-                                                              <span className="status-label">Document:</span>
-                                                              <span className="status-value">{complexDocumentName || 'Untitled'}</span>
-                                                            </div>
-                                                          </div>
-                                                        </div>
-                                                      ),
-                                                      defaultOpen: false
                                                     }
                                                   ]}
                                                   minSidebarWidth={280}
@@ -3538,7 +3512,7 @@ export namespace App {
                                                   {/* Molecular Visualization Toolbar */}
                                                   <div className="photoshop-toolbar molecular-toolbar">
                                                     <div className="toolbar-section">
-                                                      <span className="molecular-logo"><SquareScissors size={38} /></span>
+                                                      {/* <span className="molecular-logo"><SquareScissors size={38} /></span> */}
                                                       <div className="toolbar-title-group">
                                                         <span className="toolbar-title">XRNA Molecular Visualization</span>
                                                         <span className="toolbar-subtitle">RNA Structure Analysis & Visualization</span>

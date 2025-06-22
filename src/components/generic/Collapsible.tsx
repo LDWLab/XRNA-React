@@ -25,12 +25,14 @@ export namespace Collapsible {
     const [
       collapsedFlag,
       setCollapsedFlag
-    ] = useState(initialCollapsedFlag ?? true);
+    ] = useState(initialCollapsedFlag ?? false);
     return <>
       <button
         className = "collapsible"
         style = {{
-          width : widthAttribute,
+          display : "flex",
+          alignItems : "center",
+          justifyContent : "space-between",
           ...buttonStyle
         }}
         onClick = {function() {
@@ -40,19 +42,17 @@ export namespace Collapsible {
       >
         <span
           style = {{
-            display : "inline-block",
+            flex : 1,
             textAlign : "left",
-            width : "50%",
-            whiteSpace : "nowrap"
+            whiteSpace : "normal"
           }}
         >
           {title}
         </span>
         <span
           style = {{
-            display : "inline-block",
-            textAlign : "right",
-            width : "50%"
+            marginLeft : "1rem",
+            textAlign : "right"
           }}
         >
           {collapsedFlag ? "+" : "-"}

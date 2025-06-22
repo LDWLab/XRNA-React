@@ -182,34 +182,34 @@ export const PhotoshopSidebar: React.FC<PhotoshopSidebarProps> = ({
             {/* Molecular Analysis Panels */}
             {panels.length > 0 && (
               <div className="side-panels molecular-panels">
-                <div className="panels-header">
+                {/* <div className="panels-header">
                   <h4 className="panels-title">
                     <span className="panels-icon"><TestTube size={16} /></span>
                     Molecular Analysis
                   </h4>
-                </div>
+                </div> */}
                 <div className="panels-content">
-                  {panels.map((panel) => (
-                    <div key={panel.id} className="side-panel molecular-panel">
-                      <button
-                        className={`panel-header molecular-panel-header ${openPanels.has(panel.id) ? 'open' : ''}`}
-                        onClick={() => togglePanel(panel.id)}
-                      >
-                        <span className="panel-title molecular-panel-title">
-                          {panel.icon && <span className="panel-icon molecular-panel-icon">{panel.icon}</span>}
-                          {panel.title}
-                        </span>
-                        <span className="panel-toggle molecular-toggle">
-                          {openPanels.has(panel.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                        </span>
-                      </button>
-                      {openPanels.has(panel.id) && (
-                        <div className="panel-content molecular-panel-content custom-scrollbar">
-                          {panel.content}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                                  {panels.map((panel) => (
+                  <div key={panel.id} className="side-panel molecular-panel" data-panel-id={panel.id}>
+                    <button
+                      className={`panel-header molecular-panel-header ${openPanels.has(panel.id) ? 'open' : ''}`}
+                      onClick={() => togglePanel(panel.id)}
+                    >
+                      <span className="panel-title molecular-panel-title">
+                        {panel.icon && <span className="panel-icon molecular-panel-icon">{panel.icon}</span>}
+                        {panel.title}
+                      </span>
+                      <span className="panel-toggle molecular-toggle">
+                        {openPanels.has(panel.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      </span>
+                    </button>
+                    {openPanels.has(panel.id) && (
+                      <div className="panel-content molecular-panel-content custom-scrollbar">
+                        {panel.content}
+                      </div>
+                    )}
+                  </div>
+                ))}
                 </div>
               </div>
             )}

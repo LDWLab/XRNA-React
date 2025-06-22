@@ -1,4 +1,3 @@
-
 /* Layout and viewport */
 html, body {
   overflow-x: hidden;
@@ -20,31 +19,19 @@ html, body {
 
 .btn {
   @apply inline-flex items-center justify-center px-6 py-3 text-sm font-semibold rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden;
-  background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1), 0 10px 20px -2px rgba(0, 0, 0, 0.05);
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.1);
   transform: translateY(0);
 }
 
 .btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.btn:hover::before {
-  left: 100%;
+  content: none;
 }
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.15), 0 15px 30px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.15);
 }
 
 .btn:active {
@@ -52,14 +39,11 @@ html, body {
 }
 
 .btn-primary {
-  @apply bg-gradient-to-r from-primary-600 via-primary-500 to-primary-600 text-white shadow-primary-500/25;
-  background-size: 200% 100%;
-  animation: gradientShift 3s ease infinite;
+  @apply bg-primary-600 text-white shadow-primary-500/25;
 }
 
 .btn-primary:hover {
-  @apply shadow-primary-500/40;
-  background-position: right center;
+  @apply bg-primary-700 shadow-primary-500/40;
 }
 
 .btn-primary:focus {
@@ -67,41 +51,35 @@ html, body {
 }
 
 .btn-secondary {
-  @apply bg-gradient-to-r from-secondary-100 via-secondary-50 to-secondary-100 text-secondary-800 border-secondary-300/50;
-  background-size: 200% 100%;
+  @apply bg-secondary-100 text-secondary-800 border-secondary-300/50;
 }
 
 .btn-secondary:hover {
-  @apply bg-gradient-to-r from-secondary-200 via-secondary-100 to-secondary-200 border-secondary-400/50;
-  background-position: right center;
+  @apply bg-secondary-200 border-secondary-400/50;
 }
 
 .btn-accent {
-  @apply bg-gradient-to-r from-accent-600 via-accent-500 to-accent-600 text-white shadow-accent-500/25;
-  background-size: 200% 100%;
-  animation: gradientShift 3s ease infinite;
+  @apply bg-accent-600 text-white shadow-accent-500/25;
 }
 
 .btn-accent:hover {
-  @apply shadow-accent-500/40;
-  background-position: right center;
+  @apply bg-accent-700 shadow-accent-500/40;
 }
 
 .btn-success {
-  @apply bg-gradient-to-r from-success-600 via-success-500 to-success-600 text-white shadow-success-500/25;
+  @apply bg-success-600 text-white shadow-success-500/25;
 }
 
 .btn-warning {
-  @apply bg-gradient-to-r from-warning-600 via-warning-500 to-warning-600 text-white shadow-warning-500/25;
+  @apply bg-warning-600 text-white shadow-warning-500/25;
 }
 
 .btn-error {
-  @apply bg-gradient-to-r from-error-600 via-error-500 to-error-600 text-white shadow-error-500/25;
+  @apply bg-error-600 text-white shadow-error-500/25;
 }
 
 .btn-ghost {
   @apply bg-transparent text-secondary-700 border-transparent hover:bg-secondary-100/50 hover:border-secondary-300/50;
-  backdrop-filter: blur(4px);
 }
 
 .btn-sm {
@@ -113,12 +91,7 @@ html, body {
 }
 
 @keyframes gradientShift {
-  0%, 100% {
-    background-position: left center;
-  }
-  50% {
-    background-position: right center;
-  }
+  /* Animation removed */
 }
 
 /* Enhanced modern form elements */
@@ -158,46 +131,31 @@ html, body {
 }
 
 .card {
-  @apply bg-white/90 rounded-2xl border border-secondary-200/50 overflow-hidden relative;
-  backdrop-filter: blur(16px);
+  @apply bg-white rounded-2xl border border-secondary-200/50 overflow-hidden relative;
   box-shadow: 
     0 4px 25px -5px rgba(0, 0, 0, 0.1), 
-    0 10px 10px -5px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+  content: none;
 }
 
 .card:hover {
   transform: translateY(-4px);
   box-shadow: 
     0 10px 40px -10px rgba(0, 0, 0, 0.15), 
-    0 4px 25px -5px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 4px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
   @apply px-8 py-6 border-b border-secondary-200/50 relative;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+  background: #f8fafc;
 }
 
 .card-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(203, 213, 225, 0.5), transparent);
+  content: none;
 }
 
 .card-body {
@@ -206,15 +164,11 @@ html, body {
 
 .card-footer {
   @apply px-8 py-6 border-t border-secondary-200/50 relative;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+  background: #f8fafc;
 }
 
 .card-title {
   @apply text-xl font-bold text-secondary-900 mb-2;
-  background: linear-gradient(135deg, #0f172a 0%, #475569 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .card-subtitle {
@@ -223,64 +177,41 @@ html, body {
 
 /* Enhanced modern collapsible styles */
 .collapsible {
-  @apply w-full px-6 py-4 text-left bg-white/80 border border-secondary-200/50 rounded-xl hover:bg-white/90 focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500/50 transition-all duration-300 relative overflow-hidden;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  @apply w-full px-6 py-4 text-left bg-white border border-secondary-200/50 rounded-xl hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500/50 transition-all duration-300 relative overflow-hidden;
+  box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07);
 }
 
 .collapsible::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.3), transparent);
+  content: none;
 }
 
 .collapsible:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .collapsible-content {
-  @apply mt-3 p-6 bg-secondary-50/80 rounded-xl border border-secondary-200/50 animate-slide-down;
-  backdrop-filter: blur(8px);
+  @apply mt-3 p-6 bg-secondary-50 rounded-xl border border-secondary-200/50 animate-slide-down;
   box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
 }
 
 /* Enhanced modern panel styles */
 .panel {
-  @apply bg-white/90 rounded-2xl border border-secondary-200/50 overflow-hidden relative;
-  backdrop-filter: blur(16px);
-  box-shadow: 
-    0 10px 40px -10px rgba(0, 0, 0, 0.15), 
-    0 4px 25px -5px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  @apply bg-white/95 rounded-xl border border-secondary-200/50 overflow-hidden;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
 }
 
 .panel-header {
-  @apply px-8 py-6 relative;
-  background: linear-gradient(135deg, rgba(240, 249, 255, 0.8) 0%, rgba(253, 244, 255, 0.8) 100%);
-  border-bottom: 1px solid rgba(203, 213, 225, 0.5);
+  @apply px-6 py-4 border-b border-secondary-200/50;
 }
 
 .panel-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #0ea5e9, #d946ef);
+  content: none;
 }
 
 .panel-title {
-  @apply text-2xl font-bold text-secondary-900;
-  background: linear-gradient(135deg, #0ea5e9 0%, #d946ef 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  @apply text-lg font-bold text-secondary-800;
 }
 
 .panel-body {
@@ -294,33 +225,29 @@ html, body {
 }
 
 .tab-button {
-  @apply flex-1 px-6 py-3 text-sm font-semibold text-secondary-700 rounded-lg hover:text-secondary-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all duration-300 relative overflow-hidden;
+  @apply px-6 py-3 font-semibold text-secondary-600 border-b-2 border-transparent hover:text-primary-600 hover:border-primary-300/50 transition-all duration-300 relative focus:outline-none;
 }
 
 .tab-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
-  opacity: 0;
-  transition: opacity 0.3s;
+  content: none;
+}
+
+.tab-button:hover {
+  @apply text-primary-600;
 }
 
 .tab-button.active {
-  @apply bg-white text-primary-700 shadow-soft;
-  box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.1), 0 10px 20px -2px rgba(0, 0, 0, 0.05);
+  @apply text-primary-700 border-primary-500;
 }
 
 .tab-button.active::before {
-  opacity: 1;
+  content: none;
 }
 
 .tab-panel {
-  @apply mt-6 p-6 bg-white/80 rounded-xl border border-secondary-200/50 backdrop-blur-sm;
-  box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+  @apply p-6 bg-white/50 rounded-b-xl;
+  border: 1px solid var(--border-light);
+  border-top: none;
 }
 
 /* Enhanced modern modal styles */
@@ -331,24 +258,14 @@ html, body {
 }
 
 .modal {
-  @apply bg-white/95 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden relative;
-  backdrop-filter: blur(20px);
-  box-shadow: 
-    0 20px 25px -5px rgba(0, 0, 0, 0.2), 
-    0 10px 10px -5px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  @apply bg-white/95 rounded-2xl w-full max-w-lg m-8 relative overflow-hidden;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.2);
+  animation: modalSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .modal::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, #0ea5e9, #d946ef);
+  content: none;
 }
 
 @keyframes modalSlideIn {
@@ -363,186 +280,137 @@ html, body {
 }
 
 .modal-header {
-  @apply px-8 py-6 border-b border-secondary-200/50 relative;
-  background: linear-gradient(135deg, rgba(240, 249, 255, 0.6) 0%, rgba(253, 244, 255, 0.6) 100%);
+  @apply p-6 border-b border-secondary-200/50;
 }
 
 .modal-title {
   @apply text-2xl font-bold text-secondary-900;
-  background: linear-gradient(135deg, #0ea5e9 0%, #d946ef 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .modal-body {
-  @apply px-8 py-6 overflow-y-auto;
+  @apply p-6;
 }
 
 .modal-footer {
-  @apply px-8 py-6 border-t border-secondary-200/50 flex justify-end space-x-4 relative;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.6) 0%, rgba(241, 245, 249, 0.6) 100%);
+  @apply px-6 py-4 bg-secondary-50/80 border-t border-secondary-200/50 flex justify-end items-center space-x-4;
 }
 
 /* Enhanced modern tooltip styles */
 .tooltip {
-  @apply absolute z-50 px-4 py-2 text-sm text-white rounded-lg pointer-events-none;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.2), 0 10px 20px -2px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: tooltipFadeIn 0.2s ease-out;
+  @apply bg-secondary-800 text-white px-3 py-1.5 text-sm rounded-lg shadow-lg relative;
+  animation: tooltipFadeIn 0.2s ease-in-out;
 }
 
 @keyframes tooltipFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .tooltip::before {
-  content: '';
-  @apply absolute w-2 h-2 transform rotate-45;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  content: none;
 }
 
 /* Enhanced modern loading states */
 .loading-spinner {
-  @apply inline-block w-6 h-6 border-2 border-secondary-300/50 border-t-primary-600 rounded-full;
-  animation: spin 1s linear infinite;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  @apply w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin;
 }
 
 .loading-skeleton {
-  @apply bg-gradient-to-r from-secondary-200 via-secondary-100 to-secondary-200 rounded animate-pulse;
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+  @apply bg-secondary-200/80 rounded-md;
+  animation: shimmer 1.5s infinite linear;
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
 }
 
 /* Enhanced modern status indicators */
 .status-dot {
-  @apply inline-block w-3 h-3 rounded-full relative;
-  box-shadow: 0 0 10px currentColor;
+  @apply w-3 h-3 rounded-full relative;
 }
 
 .status-dot::before {
-  content: '';
-  @apply absolute inset-0 rounded-full animate-ping;
-  background: currentColor;
-  opacity: 0.3;
+  content: none;
 }
 
 .status-online {
-  @apply bg-success-500 text-success-500;
+  @apply bg-green-500;
 }
 
 .status-offline {
-  @apply bg-secondary-400 text-secondary-400;
+  @apply bg-gray-400;
 }
 
 .status-error {
-  @apply bg-error-500 text-error-500;
+  @apply bg-red-500;
 }
 
 .status-warning {
-  @apply bg-warning-500 text-warning-500;
+  @apply bg-yellow-500;
 }
 
 /* Enhanced scientific/molecular visualization styles */
 .molecular-canvas {
-  @apply rounded-2xl border border-secondary-200/50 relative overflow-hidden;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(240, 249, 255, 0.8) 100%);
+  @apply w-full h-full rounded-lg overflow-hidden relative bg-white/70;
   backdrop-filter: blur(12px);
-  box-shadow: 
-    0 10px 40px -10px rgba(0, 0, 0, 0.1), 
-    0 4px 25px -5px rgba(0, 0, 0, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-inner);
 }
 
 .molecular-canvas::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+  content: none;
 }
 
 .nucleotide {
-  @apply transition-all duration-300 hover:drop-shadow-lg cursor-pointer;
-  filter: brightness(1);
+  @apply transition-all duration-300 cursor-pointer;
+  stroke-width: 2;
+  stroke: var(--color-secondary-300);
 }
 
 .nucleotide:hover {
-  filter: brightness(1.15) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
-  transform: scale(1.05);
+  stroke: var(--color-primary-500);
+  stroke-width: 3;
 }
 
 .nucleotide.selected {
-  filter: brightness(1.2) drop-shadow(0 0 15px rgba(59, 130, 246, 0.6));
-  animation: nucleotideGlow 2s ease-in-out infinite alternate;
+  stroke: #ffd700;
+  stroke-width: 1px;
+  fill: none;
+  animation: none;
 }
 
 @keyframes nucleotideGlow {
-  from {
-    filter: brightness(1.2) drop-shadow(0 0 15px rgba(59, 130, 246, 0.6));
-  }
-  to {
-    filter: brightness(1.3) drop-shadow(0 0 20px rgba(59, 130, 246, 0.8));
-  }
+  /* Animation removed */
 }
 
 .base-pair {
-  @apply transition-all duration-300;
-  stroke-width: 2;
+  @apply transition-all duration-200;
+  stroke: var(--color-secondary-200);
+  stroke-width: 1;
 }
 
 .base-pair:hover {
-  stroke-width: 3;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  stroke: var(--color-primary-400);
+  stroke-width: 2;
 }
 
 .base-pair.highlighted {
-  stroke-width: 4;
-  filter: drop-shadow(0 0 10px rgba(217, 70, 239, 0.6));
-  animation: basePairPulse 1.5s ease-in-out infinite alternate;
+  stroke: var(--color-accent-400);
+  stroke-width: 3;
+  animation: none;
 }
 
 @keyframes basePairPulse {
-  from {
-    stroke-width: 4;
-    filter: drop-shadow(0 0 10px rgba(217, 70, 239, 0.6));
-  }
-  to {
-    stroke-width: 5;
-    filter: drop-shadow(0 0 15px rgba(217, 70, 239, 0.8));
-  }
+  /* Animation removed */
 }
 
 .label {
-  @apply text-sm font-semibold transition-all duration-300;
-  font-family: 'JetBrains Mono', monospace;
+  @apply text-xs font-semibold fill-current text-secondary-700;
 }
 
 .label:hover {
-  font-weight: 700;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  @apply text-primary-600;
 }
 
 .no-stroke {
