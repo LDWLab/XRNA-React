@@ -1960,3 +1960,32 @@ button:active {
 .tab-content-body:hover::-webkit-scrollbar-thumb {
   background: var(--brand-primary-light);
 }
+
+.file-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.file-tab {
+  padding: 0.25rem 0.5rem;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.file-tab.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+.file-tab.add {
+  background: transparent;
+  border: 1px dashed #d1d5db;
+  color: #3b82f6;
+}
+.file-tab.add:hover {
+  background: #e0e7ff;
+}

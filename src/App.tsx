@@ -1,5 +1,5 @@
 import React, { createElement, createRef, Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
-import { Dna, SquareScissors, Atom, Wrench } from 'lucide-react';
+import { Dna, SquareScissors, Wrench, Plus, X } from 'lucide-react';
 import { DEFAULT_TAB, Tab, tabs } from './app_data/Tab';
 import { add, scaleDown, subtract, Vector2D } from './data_structures/Vector2D';
 import { useResizeDetector } from 'react-resize-detector';
@@ -1429,6 +1429,25 @@ export namespace App {
               setSceneState(SceneState.NO_DATA);
             }
             setComplexDocumentName(parsedInput.complexDocumentName);
+            // ==== Manage open file tabs ====
+            const fileNameForTab = inputFileNameAndExtensionReference.current || `File ${(openFilesReference.current?.length ?? 0) + 1}`;
+            setOpenFiles(prev => {
+              const existingIndex = prev.findIndex(f => f.fileName === fileNameForTab);
+              const newEntry = {
+                fileName: fileNameForTab,
+                rnaComplexProps: parsedInput.rnaComplexProps,
+                complexDocumentName: parsedInput.complexDocumentName,
+              };
+              const updated = [...prev];
+              if (existingIndex >= 0) {
+                updated[existingIndex] = newEntry;
+                setActiveFileIndex(existingIndex);
+              } else {
+                updated.push(newEntry);
+                setActiveFileIndex(updated.length - 1);
+              }
+              return updated;
+            });
           } catch (error) {
             setSceneState(SceneState.DATA_LOADING_FAILED);
             if (typeof error === "string") {
@@ -1557,7 +1576,6 @@ export namespace App {
           {INTERACTION_CONSTRAINT_TEXT}:&nbsp;
           <select
             value = {interactionConstraint}
-            // value = {interactionConstraintReference.current}
             onChange = {function(e) {
               const newInteractionConstraint = e.target.value as InteractionConstraint.Enum;
               setInteractionConstraint(newInteractionConstraint);
@@ -1572,23 +1590,30 @@ export namespace App {
                 setRightClickMenuOptionsMenu(<></>);
               }
             }}
+            className = "form-input w-64 truncate"
           >
-            <option
-              style = {{
-                display : "none"
-              }}
-              value = {undefined}
-            >
-              Select a constraint.
+            {/* Placeholder */}
+            <option disabled hidden value = {undefined}>
+              Select a constraint
             </option>
-            {InteractionConstraint.all.map(function(interactionConstraint : InteractionConstraint.Enum) {
-              return (<option
-                key = {interactionConstraint}
-                value = {interactionConstraint}
-              >
-                {interactionConstraint}
-              </option>);
-            })}
+            {/* Grouped constraints for better scanning */}
+            <optgroup label="Single elements">
+              <option value={InteractionConstraint.Enum.SINGLE_NUCLEOTIDE}>{InteractionConstraint.Enum.SINGLE_NUCLEOTIDE}</option>
+              <option value={InteractionConstraint.Enum.SINGLE_BASE_PAIR}>{InteractionConstraint.Enum.SINGLE_BASE_PAIR}</option>
+              <option value={InteractionConstraint.Enum.SINGLE_COLOR}>{InteractionConstraint.Enum.SINGLE_COLOR}</option>
+            </optgroup>
+            <optgroup label="Nucleotide regions">
+              <option value={InteractionConstraint.Enum.RNA_SINGLE_STRAND}>{InteractionConstraint.Enum.RNA_SINGLE_STRAND}</option>
+              <option value={InteractionConstraint.Enum.RNA_HELIX}>{InteractionConstraint.Enum.RNA_HELIX}</option>
+              <option value={InteractionConstraint.Enum.RNA_SUB_DOMAIN}>{InteractionConstraint.Enum.RNA_SUB_DOMAIN}</option>
+              <option value={InteractionConstraint.Enum.RNA_STACKED_HELIX}>{InteractionConstraint.Enum.RNA_STACKED_HELIX}</option>
+              <option value={InteractionConstraint.Enum.RNA_CYCLE}>{InteractionConstraint.Enum.RNA_CYCLE}</option>
+            </optgroup>
+            <optgroup label="Molecule / Scene level">
+              <option value={InteractionConstraint.Enum.RNA_MOLECULE}>{InteractionConstraint.Enum.RNA_MOLECULE}</option>
+              <option value={InteractionConstraint.Enum.RNA_COMPLEX}>{InteractionConstraint.Enum.RNA_COMPLEX}</option>
+              <option value={InteractionConstraint.Enum.ENTIRE_SCENE}>{InteractionConstraint.Enum.ENTIRE_SCENE}</option>
+            </optgroup>
           </select>
           <span
             style = {{
@@ -2372,92 +2397,97 @@ export namespace App {
         const inputFileNameAndExtension = inputFileNameAndExtensionReference.current as string;
         
         const tabRenderRecord : Record<Tab, JSX.Element> = {
-          [Tab.INPUT_OUTPUT] : <>
-            {uploadInputFileUI}
-            <button
-              onClick = {function(e) {
-                (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
-              }}
-            >
-              {OPEN_BUTTON_TEXT}
-            </button>
-            <em>
-              {inputFileNameAndExtension}
-            </em>
-            <br/>
-            <label>
-              {SAVE_ROW_TEXT}:&nbsp;
+          [Tab.INPUT_OUTPUT] : <div className="card p-6 space-y-4 max-w-full">
+            {/* ========================= OPEN FILE ROW ========================= */}
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Hidden file input & visible label */}
+              {uploadInputFileUI}
+              {/* Trigger */}
+              <button
+                className="btn btn-primary"
+                onClick = {function() {
+                  (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
+                }}
+              >
+                {OPEN_BUTTON_TEXT}
+              </button>
+              {/* Selected file name */}
+              {inputFileNameAndExtension && <span className="text-sm text-secondary-600 truncate max-w-xs">{inputFileNameAndExtension}</span>}
+            </div>
+
+            {/* ========================= SAVE FILE ROW ========================= */}
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="form-label">
+                {SAVE_ROW_TEXT}:
+              </label>
               <input
                 type = "text"
+                className="form-input flex-grow min-w-[10rem]"
                 placeholder = "File Name"
                 value = {outputFileName}
                 onChange = {function(e) {
                   setOutputFileName(e.target.value);
                 }}
               />
-            </label>
-            <select
-              value = {outputFileExtension}
-              onChange = {function(e) {
-                setOutputFileExtension(e.target.value as OutputFileExtension);
-                // Resolves a save-file bug.
-                setOutputFileHandle(undefined);
-              }}
-            >
-              <option
-                style = {{
-                  display : "none"
+              <select
+                className="form-input w-36"
+                value = {outputFileExtension}
+                onChange = {function(e) {
+                  setOutputFileExtension(e.target.value as OutputFileExtension);
+                  // Resolves a save-file bug.
+                  setOutputFileHandle(undefined);
                 }}
-                value = {""}
               >
-                Extension
-              </option>
-              {outputFileExtensions.map(function(outputFileExtension : OutputFileExtension, index : number) {
-                return <option
-                  key = {index}
-                  value = {outputFileExtension}
-                >
-                  .{outputFileExtension}
-                </option>;
-              })}
-            </select>
-            <button
-              ref = {function(htmlButtonElement : HTMLButtonElement) {
-                downloadOutputFileHtmlButtonReference.current = htmlButtonElement;
-              }}
-              onClick = {async function() {
-                const outputFileHandle = outputFileHandleReference.current!;
-                let localOutputFileHandle = outputFileHandle;
-                if (outputFileHandle === undefined) {
-                  localOutputFileHandle = await getOutputFileHandle();
+                <option disabled hidden value = {""}>Extension</option>
+                {outputFileExtensions.map(function(outputFileExtension : OutputFileExtension, index : number) {
+                  return <option
+                    key = {index}
+                    value = {outputFileExtension}
+                  >
+                    .{outputFileExtension}
+                  </option>;
+                })}
+              </select>
+              <button
+                ref = {function(htmlButtonElement : HTMLButtonElement) {
+                  downloadOutputFileHtmlButtonReference.current = htmlButtonElement;
+                }}
+                className="btn btn-primary"
+                onClick = {async function() {
+                  const outputFileHandle = outputFileHandleReference.current!;
+                  let localOutputFileHandle = outputFileHandle;
+                  if (outputFileHandle === undefined) {
+                    localOutputFileHandle = await getOutputFileHandle();
+                    setOutputFileHandle(localOutputFileHandle);
+                  }
+                  saveFile(localOutputFileHandle);
+                }}
+                disabled = {downloadButtonErrorMessage !== ""}
+                title = {downloadButtonErrorMessage}
+              >
+                {SAVE_BUTTON_TEXT}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick = {async function() {
+                  const localOutputFileHandle = await getOutputFileHandle();
                   setOutputFileHandle(localOutputFileHandle);
-                }
-                saveFile(localOutputFileHandle);
-              }}
-              disabled = {downloadButtonErrorMessage !== ""}
-              title = {downloadButtonErrorMessage}
-            >
-              {SAVE_BUTTON_TEXT}
-            </button>
-            <button
-              onClick = {async function() {
-                const localOutputFileHandle = await getOutputFileHandle();
-                setOutputFileHandle(localOutputFileHandle);
-                saveFile(localOutputFileHandle);
-              }}
-              disabled = {downloadButtonErrorMessage !== ""}
-              title = {downloadButtonErrorMessage}
-            >
-              Save As
-            </button>
+                  saveFile(localOutputFileHandle);
+                }}
+                disabled = {downloadButtonErrorMessage !== ""}
+                title = {downloadButtonErrorMessage}
+              >
+                Save As
+              </button>
+            </div>
+
+            {/* Hidden anchor used for browser downloads */}
             <a
               ref = {downloadOutputFileHtmlAnchorReference}
-              style = {{
-                display : "none"
-              }}
+              style = {{ display : "none" }}
               download = {`${outputFileName}.${outputFileExtension}`}
             />
-          </>,
+          </div>,
           [Tab.VIEWPORT] : <>
             <b>
               {TRANSLATION_TEXT}:
@@ -3364,6 +3394,75 @@ export namespace App {
       },
       [settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED]]
     );
+    const [openFiles, setOpenFiles] = useState<Array<{fileName: string, rnaComplexProps: RnaComplexProps, complexDocumentName: string}>>([]);
+    const [activeFileIndex, setActiveFileIndex] = useState<number>(-1);
+    const openFilesReference = useRef<typeof openFiles>();
+    openFilesReference.current = openFiles;
+
+    const activateFile = (index : number) => {
+      const files = openFilesReference.current ?? [];
+      if (index < 0 || index >= files.length) {
+        return;
+      }
+      const file = files[index];
+      setActiveFileIndex(index);
+      setRnaComplexProps(structuredClone(file.rnaComplexProps));
+      setComplexDocumentName(file.complexDocumentName);
+      setBasePairKeysToEdit({});
+      setIndicesOfFrozenNucleotides({});
+      setUndoStack([]);
+      setRedoStack([]);
+      setSceneState(SceneState.DATA_IS_LOADED);
+    };
+
+    const closeFile = (index : number) => {
+      setOpenFiles(prevFiles => {
+        const newFiles = [...prevFiles];
+        if (index < 0 || index >= newFiles.length) {
+          return prevFiles;
+        }
+        newFiles.splice(index, 1);
+        if (index === activeFileIndex) {
+          if (newFiles.length === 0) {
+            setActiveFileIndex(-1);
+            setRnaComplexProps({});
+            setComplexDocumentName("");
+            setSceneState(SceneState.NO_DATA);
+          } else {
+            const newActive = Math.max(0, index - 1);
+            const newFile = newFiles[newActive];
+            setActiveFileIndex(newActive);
+            setRnaComplexProps(structuredClone(newFile.rnaComplexProps));
+            setComplexDocumentName(newFile.complexDocumentName);
+            setSceneState(SceneState.DATA_IS_LOADED);
+          }
+        } else if (index < activeFileIndex) {
+          setActiveFileIndex(activeFileIndex - 1);
+        }
+        setBasePairKeysToEdit({});
+        setIndicesOfFrozenNucleotides({});
+        setUndoStack([]);
+        setRedoStack([]);
+        return newFiles;
+      });
+    };
+
+    useEffect(
+      function() {
+        if (activeFileIndex >= 0 && activeFileIndex < openFiles.length) {
+          setOpenFiles(prev => {
+            const updated = [...prev];
+            updated[activeFileIndex] = {
+              ...updated[activeFileIndex],
+              rnaComplexProps : rnaComplexPropsReference.current as RnaComplexProps
+            };
+            return updated;
+          });
+        }
+      },
+      [rnaComplexProps]
+    );
+
     return <Context.BasePair.OnMouseDownHelper.Provider
       value = {basePairOnMouseDownHelper}
     >
@@ -3526,11 +3625,29 @@ export namespace App {
                                                         </div>
                                                       )}
                                                       {sceneState === SceneState.DATA_IS_LOADED && (
-                                                        <div className="molecular-stats">
-                                                          <span className="stat-item">
-                                                            <span className="stat-icon"><Atom size={16} /></span>
-                                                            <span className="stat-value">{flattenedRnaComplexPropsLength}</span>
-                                                            <span className="stat-label">Complexes</span>
+                                                        <div className="file-tabs">
+                                                          {openFiles.map((file, idx) => (
+                                                            <span
+                                                              key={idx}
+                                                              className={`file-tab ${idx === activeFileIndex ? 'active' : ''}`}
+                                                              onClick={() => activateFile(idx)}
+                                                            >
+                                                              {file.fileName}
+                                                              <X
+                                                                size={12}
+                                                                style={{ marginLeft: 4, cursor: 'pointer' }}
+                                                                onClick={(e) => {
+                                                                  e.stopPropagation();
+                                                                  closeFile(idx);
+                                                                }}
+                                                              />
+                                                            </span>
+                                                          ))}
+                                                          <span
+                                                            className="file-tab add"
+                                                            onClick={() => (uploadInputFileHtmlInputReference.current as HTMLInputElement).click()}
+                                                          >
+                                                            <Plus size={12} />
                                                           </span>
                                                         </div>
                                                       )}
