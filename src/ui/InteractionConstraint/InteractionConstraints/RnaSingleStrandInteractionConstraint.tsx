@@ -200,15 +200,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     // }
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName] ?? {};
-    if (
-      (nucleotideIndex in basePairsPerRnaMolecule) &&
-      basePairsPerRnaMolecule[nucleotideIndex].some(
-        basePair => BasePair.isEnabledBasePair(
-          basePair,
-          treatNoncanonicalBasePairsAsUnpairedFlag
-        )
-      )
-    ) {
+    if (nucleotideIndex in basePairsPerRnaMolecule) {
       throw basePairedNucleotideError;
     }
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
