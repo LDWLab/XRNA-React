@@ -1,0 +1,1 @@
+how main:src/ui/InteractionConstraint/InteractionConstraints/RnaSingleStrandInteractionConstraint.tsx
