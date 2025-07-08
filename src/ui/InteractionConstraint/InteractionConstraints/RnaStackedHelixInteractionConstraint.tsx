@@ -1,6 +1,6 @@
 import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../../App";
 import { Tab } from "../../../app_data/Tab";
-import BasePair from "../../../components/app_specific/BasePair";
+import BasePair, { getBasePairType } from "../../../components/app_specific/BasePair";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { RnaComplex, compareBasePairKeys, selectRelevantBasePairKeys } from "../../../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../../../components/app_specific/RnaMolecule";
@@ -12,7 +12,7 @@ import { Vector2D, add, asAngle, orthogonalizeLeft, scaleUp, subtract } from "..
 import { range, sign, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError, multipleBasePairsNucleotideError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { Extrema, InteractionConstraint, HelixData, populateToBeDraggedWithHelix, getSortedBasePairs, iterateOverFreeNucleotidesAndHelicesPerRnaComplex, iterateOverFreeNucleotidesandHelicesPerRnaMolecule } from "../InteractionConstraints";
+import { Extrema, InteractionConstraint, iterateOverFreeNucleotidesandHelicesPerRnaMolecule } from "../InteractionConstraints";
 import { AllInOneEditor } from "./AllInOneEditor";
 
 export class RnaStackedHelixInteractionConstraint extends AbstractInteractionConstraint {
@@ -52,7 +52,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
     }
     const basePairsPerNucleotide0 = basePairsPerRnaMolecule0[fullKeys0.nucleotideIndex].filter(
       (basePair) => BasePair.isEnabledBasePair(
-        basePair,
+        basePair.basePairType ?? getBasePairType(
+          singularRnaComplexProps.rnaMoleculeProps[fullKeys0.rnaMoleculeName].nucleotideProps[fullKeys0.nucleotideIndex].symbol,
+          singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+        ),
         treatNoncanonicalBasePairsAsUnpairedFlag
       )
     );
@@ -125,7 +128,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
           adjacent.nucleotideIndex in singularRnaComplexProps.basePairs[adjacent.rnaMoleculeName] &&
           (enabledBasePairs = singularRnaComplexProps.basePairs[adjacent.rnaMoleculeName][adjacent.nucleotideIndex]).filter((basePair) => (
             BasePair.isEnabledBasePair(
-              basePair,
+              basePair.basePairType ?? getBasePairType(
+                singularRnaComplexProps.rnaMoleculeProps[adjacent.rnaMoleculeName].nucleotideProps[adjacent.nucleotideIndex].symbol,
+                singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+              ),
               treatNoncanonicalBasePairsAsUnpairedFlag
             )
           )).length > 0
@@ -150,7 +156,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
             basePair.rnaMoleculeName === this.rnaMoleculeName1
           ) &&
           BasePair.isEnabledBasePair(
-            basePair,
+            basePair.basePairType ?? getBasePairType(
+              singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].symbol,
+              singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+            ),
             treatNoncanonicalBasePairsAsUnpairedFlag
           )
         )));
@@ -181,7 +190,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
         return (
           (nucleotideIndex in singularRnaComplexProps.basePairs[rnaMoleculeName]) &&
           singularRnaComplexProps.basePairs[rnaMoleculeName][nucleotideIndex].some((basePair) => BasePair.isEnabledBasePair(
-            basePair,
+            basePair.basePairType ?? getBasePairType(
+              singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].symbol,
+              singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+            ),
             treatNoncanonicalBasePairsAsUnpairedFlag
           ))
         );
@@ -263,7 +275,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       ) &&
       finalizedIndices[basePair.rnaMoleculeName].includes(basePair.nucleotideIndex) &&
       BasePair.isEnabledBasePair(
-        basePair,
+        basePair.basePairType ?? getBasePairType(
+          singularRnaComplexProps.rnaMoleculeProps[indicesOfBoundingNucleotide0.rnaMoleculeName].nucleotideProps[indicesOfBoundingNucleotide0.nucleotideIndex].symbol,
+          singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+        ),
         treatNoncanonicalBasePairsAsUnpairedFlag
       )
     ));
@@ -329,7 +344,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       }
       const basePairsPerNucleotide = basePairsPerRnaMolecule0[nucleotideIndex].filter(
         (basePair) => BasePair.isEnabledBasePair(
-          basePair,
+          basePair.basePairType ?? getBasePairType(
+            singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0].nucleotideProps[nucleotideIndex].symbol,
+            singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+          ),
           treatNoncanonicalBasePairsAsUnpairedFlag
         ) && 
         basePair.rnaMoleculeName === rnaMoleculeName1 &&

@@ -13,7 +13,7 @@ import { BasePairsEditor } from "../../../components/app_specific/editors/BasePa
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import Color, { BLACK, areEqual } from "../../../data_structures/Color";
 import Font from "../../../data_structures/Font";
-import BasePair from "../../../components/app_specific/BasePair";
+import BasePair, { getBasePairType } from "../../../components/app_specific/BasePair";
 import { compareBasePairKeys, selectRelevantBasePairKeys } from "../../../components/app_specific/RnaComplex";
 
 export const TWO_PI = 2 * Math.PI;
@@ -200,11 +200,15 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     // }
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName] ?? {};
+    const currentSymbol = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].symbol;
     if (
       (nucleotideIndex in basePairsPerRnaMolecule) &&
       basePairsPerRnaMolecule[nucleotideIndex].some(
         basePair => BasePair.isEnabledBasePair(
-          basePair,
+          basePair.basePairType ?? getBasePairType(
+            currentSymbol,
+            singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+          ),
           treatNoncanonicalBasePairsAsUnpairedFlag
         )
       )
@@ -248,7 +252,10 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
           decremented in basePairsPerRnaMolecule &&
           basePairsPerRnaMolecule[decremented].some(
             (basePair) => BasePair.isEnabledBasePair(
-              basePair,
+              basePair.basePairType ?? getBasePairType(
+                singularNucleotideProps.symbol,
+                singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+              ),
               treatNoncanonicalBasePairsAsUnpairedFlag
             )
           )
@@ -290,7 +297,10 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
           incremented in basePairsPerRnaMolecule &&
           basePairsPerRnaMolecule[incremented].some(
             (basePair) => BasePair.isEnabledBasePair(
-              basePair,
+              basePair.basePairType ?? getBasePairType(
+                singularNucleotideProps.symbol,
+                singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+              ),
               treatNoncanonicalBasePairsAsUnpairedFlag
             )
           )

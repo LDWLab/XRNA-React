@@ -12,7 +12,7 @@ import { Tab } from "../../../app_data/Tab";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import Color from "../../../data_structures/Color";
-import BasePair from "../../../components/app_specific/BasePair";
+import BasePair, { getBasePairType } from "../../../components/app_specific/BasePair";
 import { get } from "http";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 
@@ -87,7 +87,10 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       if (nucleotideIndex in basePairsPerRnaMolecule) {
         const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
         const enabledBasePairsPerNucleotide = basePairsPerNucleotide.filter(basePair => BasePair.isEnabledBasePair(
-          basePair,
+          basePair.basePairType ?? getBasePairType(
+            singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].symbol,
+            singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+          ),
           treatNoncanonicalBasePairsAsUnpairedFlag
         ));
         neighbors.push(...enabledBasePairsPerNucleotide);
@@ -210,7 +213,10 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           * Proof by contradiciton.
     */
     const basePairsOfBoundingGraphNode0 = basePairsPerRnaComplex[boundingGraphNode0.rnaMoleculeName][boundingGraphNode0.nucleotideIndex].filter(basePair => BasePair.isEnabledBasePair(
-      basePair,
+      basePair.basePairType ?? getBasePairType(
+        singularRnaComplexProps.rnaMoleculeProps[boundingGraphNode0.rnaMoleculeName].nucleotideProps[boundingGraphNode0.nucleotideIndex].symbol,
+        singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+      ),
       treatNoncanonicalBasePairsAsUnpairedFlag
     ));
     const relevantBasePairsOfBoundingGraphNode0 = basePairsOfBoundingGraphNode0.filter(

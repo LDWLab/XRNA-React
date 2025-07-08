@@ -71,6 +71,8 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       basePairs
     } = singularRnaComplexProps;
     if (!BasePair.isNucleotideBasePaired(
+      singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].symbol,
+      singularRnaComplexProps,
       basePairs,
       rnaMoleculeName,
       nucleotideIndex,
@@ -100,7 +102,10 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
         fullKeys1.nucleotideIndex === nucleotideIndex
       ))!;
       if (!BasePair.isEnabledBasePair(
-        basePairPerNucleotide,
+        basePairPerNucleotide.basePairType ?? getBasePairType(
+          singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].symbol,
+          singularRnaComplexProps.rnaMoleculeProps[basePairPerNucleotide.rnaMoleculeName].nucleotideProps[basePairPerNucleotide.nucleotideIndex].symbol
+        ),
         treatNoncanonicalBasePairsAsUnpairedFlag
       )) {
         throw nonBasePairedNucleotideError;

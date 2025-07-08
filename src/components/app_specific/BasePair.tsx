@@ -138,18 +138,18 @@ export namespace BasePair {
   }
 
   export function isEnabledBasePair(
-    basePair : RnaComplex.MappedBasePair,
+    basePairType : Type,
     treatNoncanonicalBasePairsAsUnpairedFlag : boolean
   ) {
     return (
-      !treatNoncanonicalBasePairsAsUnpairedFlag || (
-        basePair.basePairType !== undefined &&
-        BasePair.isCanonicalType(basePair.basePairType)
-      )
+      !treatNoncanonicalBasePairsAsUnpairedFlag ||
+      BasePair.isCanonicalType(basePairType)
     );
   }
 
   export function isNucleotideBasePaired(
+    symbol : Nucleotide.Symbol,
+    singularRnaComplexProps : RnaComplex.ExternalProps,
     basePairsPerRnaComplex : RnaComplex.BasePairs,
     rnaMoleculeName : RnaMoleculeKey,
     nucleotideIndex : NucleotideKey,
@@ -165,7 +165,10 @@ export namespace BasePair {
     const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
     return basePairsPerNucleotide.filter(
       (basePair) => isEnabledBasePair(
-        basePair,
+        basePair.basePairType ?? getBasePairType(
+          symbol,
+          singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+        ),
         treatNoncanonicalBasePairsAsUnpairedFlag
       )
     ).length > 0;

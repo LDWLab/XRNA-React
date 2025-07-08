@@ -58,6 +58,8 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     const singularNucleotideProps0 = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];
     const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
     if (!BasePair.isNucleotideBasePaired(
+      singularNucleotideProps0.symbol,
+      singularRnaComplexProps,
       basePairsPerRnaComplex,
       rnaMoleculeName0,
       nucleotideIndex0,
