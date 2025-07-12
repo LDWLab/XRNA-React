@@ -3452,6 +3452,7 @@ export namespace App {
                                             onConstraintChange = {setInteractionConstraint}
                                             rnaComplexProps = {rnaComplexProps}
                                             approveBasePairs = {function() {/* TODO integrate real approve function */}}
+                                            propertiesContent = {rightClickMenuContent}
                                           />
                                         </div>
 

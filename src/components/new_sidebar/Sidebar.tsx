@@ -6,9 +6,11 @@ import {
 } from './panels/QuickActionsPanel';
 import { ToolPalettePanel, ToolPaletteCallbacks } from './panels/ToolPalettePanel';
 import { BasePairEditorPanel, BasePairEditorProps } from './panels/BasePairEditorPanel';
-import { PropertiesPanel } from './panels/PropertiesPanel';
+import { PropertiesPanel, PropertiesPanelProps } from './panels/PropertiesPanel';
 
-export type SidebarProps = QuickActionsCallbacks & ToolPaletteCallbacks & BasePairEditorProps;
+export type SidebarProps = QuickActionsCallbacks & ToolPaletteCallbacks & BasePairEditorProps & {
+  propertiesContent?: JSX.Element;
+};
 
 export const Sidebar: React.FC<SidebarProps> = (props) => {
   const {
@@ -25,6 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     initialBasePairs,
     rnaComplexProps,
     approveBasePairs,
+    propertiesContent,
   } = props;
 
   return (
@@ -48,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
         approveBasePairs={approveBasePairs}
         initialBasePairs={initialBasePairs}
       />
-      <PropertiesPanel />
+      <PropertiesPanel content={propertiesContent} />
     </SidebarLayout>
   );
 }; 

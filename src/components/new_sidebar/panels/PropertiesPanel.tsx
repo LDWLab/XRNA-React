@@ -1,9 +1,13 @@
 import { PanelContainer } from '../layout/PanelContainer';
 
-export const PropertiesPanel: React.FC = () => {
+export interface PropertiesPanelProps {
+  content?: JSX.Element;
+}
+
+export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => {
   return (
     <PanelContainer title="Properties">
-      <span>Select an element to see its properties.</span>
+      {content ?? <span>Select an element to see its properties.</span>}
     </PanelContainer>
   );
 }; 

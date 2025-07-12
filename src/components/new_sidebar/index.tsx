@@ -4,4 +4,5 @@ export { PanelContainer } from './layout/PanelContainer';
 export { QuickActionsPanel } from './panels/QuickActionsPanel';
 export { ToolPalettePanel } from './panels/ToolPalettePanel';
 export { BasePairEditorPanel } from './panels/BasePairEditorPanel';
-export { PropertiesPanel } from './panels/PropertiesPanel'; 
+export { PropertiesPanel } from './panels/PropertiesPanel';
+export type { PropertiesPanelProps } from './panels/PropertiesPanel'; 
