@@ -26,6 +26,7 @@ import { LabelEditMenu } from './components/app_specific/menus/edit_menus/LabelE
 import BasePair from './components/app_specific/BasePair';
 import { multiplyAffineMatrices, parseAffineMatrix } from './data_structures/AffineMatrix';
 import "./App.css";
+import { Sidebar } from './components/new_sidebar';
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -3422,6 +3423,38 @@ export namespace App {
                                         //   setListenForResizeFlag(false);
                                         // }}
                                       >
+                                        {/* NEW Sidebar */}
+                                        <div
+                                          style = {{
+                                            position : "absolute",
+                                            top : 0,
+                                            left : 500,
+                                            height : "100%",
+                                            zIndex : 1000
+                                          }}
+                                        >
+                                          <Sidebar
+                                            onOpenFile = {function() {
+                                              (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
+                                            }}
+                                            onSave = {function() {
+                                              (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click();
+                                            }}
+                                            onExport = {function() {
+                                              (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click();
+                                            }}
+                                            onUndo = {undo}
+                                            onRedo = {redo}
+                                            onResetViewport = {resetViewport}
+                                            mode = {tab}
+                                            onModeChange = {setTab}
+                                            constraint = {interactionConstraint}
+                                            onConstraintChange = {setInteractionConstraint}
+                                            rnaComplexProps = {rnaComplexProps}
+                                            approveBasePairs = {function() {/* TODO integrate real approve function */}}
+                                          />
+                                        </div>
+
                                         {/* Tools div */}
                                         <div
                                           tabIndex = {0}
