@@ -10,4 +10,4 @@ export enum Tab {
   
   export const tabs = Object.values(Tab);
   
-  export const DEFAULT_TAB = Tab.INPUT_OUTPUT;
+  export const DEFAULT_TAB = Tab.EDIT;

@@ -27,6 +27,10 @@ import BasePair from './components/app_specific/BasePair';
 import { multiplyAffineMatrices, parseAffineMatrix } from './data_structures/AffineMatrix';
 import "./App.css";
 import { Sidebar } from './components/new_sidebar';
+import { BasePairEditorDrawer } from './components/new_sidebar';
+import { PropertiesDrawer } from './components/new_sidebar';
+import { ElementInfo } from './components/new_sidebar';
+import { extractElementInfo } from './utils/ElementInfoExtractor';
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -321,10 +325,10 @@ export namespace App {
       outputFileHandle,
       setOutputFileHandle
     ] = useState<any>(undefined);
-    const [
-      basePairRadius,
-      setBasePairRadius
-    ] = useState<number>(0);
+    const [basePairRadius, setBasePairRadius] = useState<number>(0);
+    const [basePairDrawerOpen, setBasePairDrawerOpen] = useState(false);
+    const [propertiesDrawerOpen, setPropertiesDrawerOpen] = useState(false);
+    const [selectedElementInfo, setSelectedElementInfo] = useState<ElementInfo | undefined>(undefined);
     // Begin state-relevant helper functions.
     function setDragListener(
       dragListener : DragListener | null,
@@ -1210,6 +1214,42 @@ export namespace App {
         {rightClickMenuContent}
       </div>);
       setRightClickMenuAffectedNucleotideIndices(rightClickMenuAffectedNucleotides);
+      
+      // Extract element information from the first affected nucleotide
+      if (Object.keys(rightClickMenuAffectedNucleotides).length > 0) {
+        try {
+          const rnaComplexIndex = parseInt(Object.keys(rightClickMenuAffectedNucleotides)[0]);
+          const rnaMoleculeName = Object.keys(rightClickMenuAffectedNucleotides[rnaComplexIndex])[0];
+          const nucleotideIndices = Array.from(rightClickMenuAffectedNucleotides[rnaComplexIndex][rnaMoleculeName]);
+          
+          if (nucleotideIndices.length > 0) {
+            const fullKeys = {
+              rnaComplexIndex,
+              rnaMoleculeName,
+              nucleotideIndex: nucleotideIndices[0]
+            };
+            
+            // Determine element type based on context
+            let elementType: 'nucleotide' | 'basepair' | 'label' = 'nucleotide';
+            // Check if this is a base pair interaction by looking at the right-click menu content
+            const menuString = rightClickMenuContent.toString();
+            if (menuString.includes('basepair') || menuString.includes('BasePair')) {
+              elementType = 'basepair';
+            }
+            
+            const elementInfo = extractElementInfo(fullKeys, rnaComplexProps, elementType);
+            setSelectedElementInfo(elementInfo);
+          }
+        } catch (error) {
+          console.warn('Error extracting element info:', error);
+          setSelectedElementInfo(undefined);
+        }
+        
+        // Automatically open Properties drawer when right-click menu content is set
+        setPropertiesDrawerOpen(true);
+      } else {
+        setSelectedElementInfo(undefined);
+      }
     }
     const renderedRnaComplexes = useMemo(
       function() {
@@ -3401,6 +3441,7 @@ export namespace App {
                                     <Context.BasePair.SetKeysToEdit.Provider
                                       value = {setBasePairKeysToEdit}
                                     >
+                        
                                       <div
                                         id = {PARENT_DIV_HTML_ID}
                                         onKeyDown = {onKeyDown}
@@ -3419,16 +3460,14 @@ export namespace App {
                                         onMouseUp = {function() {
                                           setListenForResizeFlag(false);
                                         }}
-                                        // onMouseLeave = {function() {
-                                        //   setListenForResizeFlag(false);
-                                        // }}
+                                        
                                       >
                                         {/* NEW Sidebar */}
-                                        <div
+                                      <div
                                           style = {{
                                             position : "absolute",
                                             top : 0,
-                                            left : 500,
+                                            left : 420,
                                             height : "100%",
                                             zIndex : 1000
                                           }}
@@ -3440,7 +3479,10 @@ export namespace App {
                                             onSave = {function() {
                                               (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click();
                                             }}
-                                            onExport = {function() {
+                                            onExportWithFormat = {function(filename, format) {
+                                              // Ensure the App state is up to date before exporting
+                                              setOutputFileName(filename);
+                                              setOutputFileExtension(format as OutputFileExtension);
                                               (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click();
                                             }}
                                             onUndo = {undo}
@@ -3450,12 +3492,17 @@ export namespace App {
                                             onModeChange = {setTab}
                                             constraint = {interactionConstraint}
                                             onConstraintChange = {setInteractionConstraint}
-                                            rnaComplexProps = {rnaComplexProps}
-                                            approveBasePairs = {function() {/* TODO integrate real approve function */}}
-                                            propertiesContent = {rightClickMenuContent}
+                                            fileName={outputFileName}
+                                            onFileNameChange={setOutputFileName}
+                                            exportFormats={outputFileExtensions.map(ext => ({ value: ext, label: ext.toUpperCase() }))}
+                                            exportFormat={outputFileExtension}
+                                            onExportFormatChange={(format) => setOutputFileExtension(format as OutputFileExtension)}
+                                            onToggleBasePairEditor={() => setBasePairDrawerOpen(prev => !prev)}
+                                            onTogglePropertiesDrawer={() => setPropertiesDrawerOpen(prev => !prev)}
+                                            elementInfo={selectedElementInfo}
                                           />
                                         </div>
-
+                                        
                                         {/* Tools div */}
                                         <div
                                           tabIndex = {0}
@@ -3566,24 +3613,7 @@ export namespace App {
                                                   <Context.Collapsible.Width.Provider
                                                     value = {toolsDivWidthAttribute}
                                                   >
-                                                    {rightClickMenuContent}
-                                                    {Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0 && <button
-                                                      id = "closeRightClickMenuButton"
-                                                      style = {{
-                                                        position : "absolute",
-                                                        left : `${(toolsDivResizeDetector.width ?? 0) - 100}px`,
-                                                        width : "100px",
-                                                        overflow : "visible"
-                                                      }}
-                                                      onClick = {function() {
-                                                        setRightClickMenuContent(
-                                                          <></>,
-                                                          {}
-                                                        );
-                                                      }}
-                                                    >
-                                                      X
-                                                    </button>}
+                                                    {/* Right-click menu content is now displayed in Properties drawer */}
                                                   </Context.Collapsible.Width.Provider>
                                                 </Context.OrientationEditor.ResetDataTrigger.Provider>
                                               </Context.App.SetComplexDocumentName.Provider>
@@ -3707,6 +3737,25 @@ export namespace App {
                                             background : "inherit"
                                           }}
                                           id = {TEST_SPACE_ID}
+                                        />
+                                        {/* Base-Pair Editor Drawer */}
+                                        <BasePairEditorDrawer
+                                          open={basePairDrawerOpen}
+                                          onClose={() => setBasePairDrawerOpen(false)}
+                                          rnaComplexProps={rnaComplexProps}
+                                          approveBasePairs={function(){}}
+                                        />
+                                        
+                                        {/* Properties Drawer */}
+                                        <PropertiesDrawer
+                                          open={propertiesDrawerOpen}
+                                          onClose={() => {
+                                            setPropertiesDrawerOpen(false);
+                                            // Clear right-click menu content and element info when Properties drawer is closed
+                                            setRightClickMenuContent(<></>, {});
+                                            setSelectedElementInfo(undefined);
+                                          }}
+                                          content={rightClickMenuContent}
                                         />
                                       </div>
                                     </Context.BasePair.SetKeysToEdit.Provider>

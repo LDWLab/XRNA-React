@@ -5,18 +5,25 @@ import {
   QuickActionsCallbacks,
 } from './panels/QuickActionsPanel';
 import { ToolPalettePanel, ToolPaletteCallbacks } from './panels/ToolPalettePanel';
-import { BasePairEditorPanel, BasePairEditorProps } from './panels/BasePairEditorPanel';
-import { PropertiesPanel, PropertiesPanelProps } from './panels/PropertiesPanel';
+import { InformationPanel, ElementInfo } from './panels/InformationPanel';
 
-export type SidebarProps = QuickActionsCallbacks & ToolPaletteCallbacks & BasePairEditorProps & {
-  propertiesContent?: JSX.Element;
+export type SidebarProps = QuickActionsCallbacks & ToolPaletteCallbacks & {
+  fileName?: string;
+  onFileNameChange?: (filename: string) => void;
+  exportFormats?: Array<{ value: string; label: string }>;
+  exportFormat?: string;
+  onExportFormatChange?: (format: string) => void;
+  onExportWithFormat?: (filename: string, format: string) => void;
+  onToggleBasePairEditor?: () => void;
+  onTogglePropertiesDrawer?: () => void;
+  elementInfo?: ElementInfo;
 };
 
 export const Sidebar: React.FC<SidebarProps> = (props) => {
   const {
     onOpenFile,
     onSave,
-    onExport,
+    onExportWithFormat,
     onUndo,
     onRedo,
     onResetViewport,
@@ -24,34 +31,46 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     onModeChange,
     constraint,
     onConstraintChange,
-    initialBasePairs,
-    rnaComplexProps,
-    approveBasePairs,
-    propertiesContent,
+    fileName,
+    onFileNameChange,
+    exportFormats,
+    exportFormat,
+    onExportFormatChange,
+    onToggleBasePairEditor,
+    onTogglePropertiesDrawer,
+    elementInfo,
   } = props;
 
   return (
     <SidebarLayout>
-      <QuickActionsPanel
-        onOpenFile={onOpenFile}
-        onSave={onSave}
-        onExport={onExport}
-        onUndo={onUndo}
-        onRedo={onRedo}
-        onResetViewport={onResetViewport}
-      />
-      <ToolPalettePanel
-        mode={mode}
-        onModeChange={onModeChange}
-        constraint={constraint}
-        onConstraintChange={onConstraintChange}
-      />
-      <BasePairEditorPanel
-        rnaComplexProps={rnaComplexProps}
-        approveBasePairs={approveBasePairs}
-        initialBasePairs={initialBasePairs}
-      />
-      <PropertiesPanel content={propertiesContent} />
+      {/* IO & Actions - Always visible, compact */}
+      <div>
+        <QuickActionsPanel
+          onOpenFile={onOpenFile}
+          onSave={onSave}
+          onExportWithFormat={onExportWithFormat}
+          fileName={fileName}
+          onFileNameChange={onFileNameChange}
+          exportFormats={exportFormats}
+          exportFormat={exportFormat}
+          onExportFormatChange={onExportFormatChange}
+          onToggleBasePairEditor={onToggleBasePairEditor}
+          onTogglePropertiesDrawer={onTogglePropertiesDrawer}
+        />
+      </div>
+      {/* Tools - Smart grouped interface */}
+      <div style={{ flex: 0, display: 'flex', flexDirection: 'column' }}>
+        <ToolPalettePanel
+          mode={mode}
+          onModeChange={onModeChange}
+          constraint={constraint}
+          onConstraintChange={onConstraintChange}
+          onUndo={onUndo}
+          onRedo={onRedo}
+          onResetViewport={onResetViewport}
+        />
+        {/* <InformationPanel elementInfo={elementInfo} /> */}
+      </div>
     </SidebarLayout>
   );
 }; 
