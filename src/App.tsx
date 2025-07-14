@@ -83,6 +83,7 @@ export type UndoRedoStack = Array<{
 }>
 
 enum SceneState {
+  URL_PARSING_ERROR = "URL parsing error",
   NO_DATA = "No data",
   DATA_IS_LOADING = "Data is loading",
   DATA_IS_LOADED = "Data is loaded",
@@ -247,6 +248,10 @@ export namespace App {
     const [
       downloadButtonErrorMessage,
       setDownloadButtonErrorMessage
+    ] = useState<string>("");
+    const [
+      urlParsingErrorMessage,
+      setUrlParsingErrorMessage
     ] = useState<string>("");
     const [
       dataLoadingFailedErrorMessage,
@@ -3155,6 +3160,18 @@ export namespace App {
           if (url_key in params) {
             parseJson(params[url_key]);
           }
+          let tab_key = "tab";
+          if (tab_key in params) {
+            const tab = params[tab_key];
+            const lowercase_tab = tab.toLocaleLowerCase();
+            const foundTab = tabs.find(tabI => tabI.toLocaleLowerCase() === lowercase_tab);
+            if (foundTab === undefined) {
+              setUrlParsingErrorMessage(`"${tab}" is not a valid, recognized Tab value.`);
+              setSceneState(SceneState.URL_PARSING_ERROR);
+            } else {
+              setTab(foundTab);
+            }
+          }
         }
       },
       []
@@ -3466,6 +3483,15 @@ export namespace App {
                                               }}
                                             >
                                               {renderedTabs}
+                                              {sceneState === SceneState.URL_PARSING_ERROR && <>
+                                                <b
+                                                  style = {{
+                                                    color : "red"
+                                                  }}
+                                                >
+                                                  {urlParsingErrorMessage ? urlParsingErrorMessage : "An error occurred while parsing the URL."}
+                                                </b>
+                                              </>}
                                               {sceneState === SceneState.NO_DATA && <>
                                                 <b
                                                   style = {{
