@@ -200,19 +200,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     // }
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const basePairsPerRnaMolecule = singularRnaComplexProps.basePairs[rnaMoleculeName] ?? {};
-    const currentSymbol = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].symbol;
-    if (
-      (nucleotideIndex in basePairsPerRnaMolecule) &&
-      basePairsPerRnaMolecule[nucleotideIndex].some(
-        basePair => BasePair.isEnabledBasePair(
-          basePair.basePairType ?? getBasePairType(
-            currentSymbol,
-            singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
-          ),
-          treatNoncanonicalBasePairsAsUnpairedFlag
-        )
-      )
-    ) {
+    if (nucleotideIndex in basePairsPerRnaMolecule) {
       throw basePairedNucleotideError;
     }
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
@@ -247,21 +235,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         break;
       }
       const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[decremented];
-      if (
-        (
-          decremented in basePairsPerRnaMolecule &&
-          basePairsPerRnaMolecule[decremented].some(
-            (basePair) => BasePair.isEnabledBasePair(
-              basePair.basePairType ?? getBasePairType(
-                singularNucleotideProps.symbol,
-                singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
-              ),
-              treatNoncanonicalBasePairsAsUnpairedFlag
-            )
-          )
-        ) ||
-        (truncateRnaSingleStrandFlag && indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(decremented))
-      ) {
+      if (decremented in basePairsPerRnaMolecule || (truncateRnaSingleStrandFlag && indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(decremented))) {
         lowerBoundingNucleotidePosition = singularNucleotideProps;
         lowerTerminalIsBasePairedFlag = true;
         break;
@@ -292,21 +266,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         break;
       }
       const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[incremented];
-      if (
-        (
-          incremented in basePairsPerRnaMolecule &&
-          basePairsPerRnaMolecule[incremented].some(
-            (basePair) => BasePair.isEnabledBasePair(
-              basePair.basePairType ?? getBasePairType(
-                singularNucleotideProps.symbol,
-                singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
-              ),
-              treatNoncanonicalBasePairsAsUnpairedFlag
-            )
-          )
-        ) ||
-        (truncateRnaSingleStrandFlag && indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(incremented))
-      ) {
+      if (incremented in basePairsPerRnaMolecule || (truncateRnaSingleStrandFlag && indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(incremented))) {
         upperBoundingNucleotidePosition = singularNucleotideProps;
         upperTerminalIsBasePairedFlag = true;
         break;
