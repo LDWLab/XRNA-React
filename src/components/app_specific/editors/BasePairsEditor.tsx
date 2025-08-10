@@ -1159,7 +1159,7 @@ export namespace BasePairsEditor {
                   formattedNucleotideIndex1,
                   overrideConflictingBasePairsFlag ? DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING : DuplicateBasePairKeysHandler.DO_NOTHING,
                   {
-                    basePairType : type ?? types === undefined ? undefined : types[i]
+                    basePairType : type ?? (types === undefined ? undefined : types[i])
                   }
                 );
                 basePairKeysToDeletePerRnaComplex.push(
@@ -1376,7 +1376,8 @@ export namespace BasePairsEditor {
                 rnaMoleculeName1,
                 nucleotideIndex0 : nucleotideIndex0 + previousSkippedBasePairIndex + 1,
                 nucleotideIndex1 : nucleotideIndex1 - (previousSkippedBasePairIndex + 1),
-                length : length - previousSkippedBasePairIndex - 1
+                length : length - previousSkippedBasePairIndex - 1,
+                type
               });
             }
           }
