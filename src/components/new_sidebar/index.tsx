@@ -10,3 +10,5 @@ export type { SidebarProps } from './Sidebar';
 export { BasePairEditorDrawer } from './drawer/BasePairEditorDrawer';
 export { PropertiesDrawer } from './drawer/PropertiesDrawer';
 export { InformationPanel, type ElementInfo } from './panels/InformationPanel'; 
+export { SettingsDrawer } from './drawer/SettingsDrawer';
+export { AboutDrawer } from './drawer/AboutDrawer';

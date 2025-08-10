@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 
 type SidebarLayoutProps = {
   width?: number | string;
@@ -13,9 +13,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: '#f1f5f9',
-        borderRight: '1px solid #e2e8f0',
-        boxShadow: '4px 0 20px rgba(0, 0, 0, 0.08)',
+        background: '#f8fafc',
+        borderRight: '1px solid #e5e7eb',
+        boxShadow: '4px 0 20px rgba(0, 0, 0, 0.06)',
         position: 'relative',
         overflow: 'hidden',
       }}
@@ -33,14 +33,14 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
         }}
       />
       
-      {/* Main content area - NO SCROLLING */}
+      {/* Main content area */}
       <div
         style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          padding: '24px 20px 20px 20px',
-          overflow: 'hidden', // Prevent any scrolling
+          padding: '16px 14px 14px 14px',
+          overflow: 'auto',
         }}
       >
         {children}

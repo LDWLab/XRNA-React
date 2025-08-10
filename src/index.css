@@ -5,9 +5,31 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #f8fafc;
+  color: #0f172a;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Global modern UI polish */
+button { border-radius: 8px; border: 1px solid transparent; }
+button:hover { filter: brightness(0.98); }
+button:active { transform: translateY(0.5px); }
+
+input, select, textarea {
+  border-radius: 6px;
+}
+
+/* Remove focus outlines only to replace with better visible ones */
+*:focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+/* Subtle scrollbars */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }

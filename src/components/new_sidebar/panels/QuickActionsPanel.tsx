@@ -2,20 +2,10 @@ import React from 'react';
 import { PanelContainer } from '../layout/PanelContainer';
 
 export type QuickActionsCallbacks = {
-  onOpenFile?: () => void;
-  onSave?: () => void;
-  onExport?: () => void;
-  onExportWithFormat?: (filename: string, format: string) => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  onResetViewport?: () => void;
-  fileName?: string;
-  exportFormat?: string;
-  exportFormats?: Array<{ value: string; label: string }>;
-  onFileNameChange?: (filename: string) => void;
-  onExportFormatChange?: (format: string) => void;
   onToggleBasePairEditor?: () => void;
   onTogglePropertiesDrawer?: () => void;
+  onToggleSettingsDrawer?: () => void;
+  onToggleAboutDrawer?: () => void;
 };
 
 export const CompactButton: React.FC<{
@@ -98,118 +88,21 @@ export const CompactButton: React.FC<{
 };
 
 export const QuickActionsPanel: React.FC<QuickActionsCallbacks> = ({
-  onOpenFile,
-  onSave,
-  onExportWithFormat,
-  fileName = '',
-  exportFormat = '',
-  exportFormats = [],
-  onFileNameChange,
-  onExportFormatChange,
   onToggleBasePairEditor,
   onTogglePropertiesDrawer,
+  onToggleSettingsDrawer,
+  onToggleAboutDrawer,
 }) => {
   return (
-    <PanelContainer title="File Operations" borderRadius={0}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* IO Section */}
-        <div>
-          <div style={{ fontSize: '10px', fontWeight: '600', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            File Operations
-          </div>
-          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
-            <CompactButton
-              onClick={onOpenFile}
-              disabled={!onOpenFile}
-              variant="primary"
-              icon={
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 2.5A1.5 1.5 0 013.5 1h2.086a1 1 0 01.707.293l1.414 1.414a1 1 0 00.707.293H9.5A1.5 1.5 0 0111 4.5v5A1.5 1.5 0 019.5 11h-6A1.5 1.5 0 012 9.5v-7z" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-                </svg>
-              }
-              label="Open"
-            />
-            <CompactButton
-              onClick={onSave}
-              disabled={!onSave}
-              icon={
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M9 1H3a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V3a2 2 0 00-2-2z" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-                  <path d="M7 1v2H5V1M5 7h2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                </svg>
-              }
-              label="Save"
-            />
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <input
-              type="text"
-              value={fileName}
-              onChange={e => onFileNameChange?.(e.target.value)}
-              style={{
-                flex: 2,
-                fontSize: '11px',
-                padding: '7px 10px',
-                border: '1px solid #e2e8f0',
-                borderRadius: '4px',
-                background: '#f8fafc',
-                color: '#475569',
-                fontWeight: 500,
-                outline: 'none',
-                minWidth: 0,
-              }}
-              placeholder="Filename"
-            />
-            <select
-              value={exportFormat}
-              onChange={e => onExportFormatChange?.(e.target.value)}
-              style={{
-                flex: 1,
-                fontSize: '11px',
-                padding: '7px 10px',
-                border: '1px solid #e2e8f0',
-                borderRadius: '4px',
-                background: '#f8fafc',
-                color: '#475569',
-                fontWeight: 500,
-                outline: 'none',
-                minWidth: 0,
-              }}
-            >
-              {exportFormats.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-            <CompactButton
-              onClick={() => onExportWithFormat?.(fileName, exportFormat)}
-              disabled={!fileName || !exportFormat}
-              icon={
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M6 1v6m0 0l2-2m-2 2L4 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M2 9h8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                </svg>
-              }
-              label="Export"
-            />
-          </div>
-        </div>
-      </div>
-      {/* Editor Section */}
+    <PanelContainer title="Utilities" borderRadius={8}>
       {(onToggleBasePairEditor || onTogglePropertiesDrawer) && (
-        <div style={{ marginTop: '12px' }}>
+        <div>
           <div
-            style={{
-              fontSize: '10px',
-              fontWeight: '600',
-              color: '#64748b',
-              marginBottom: '6px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}
+            style={{ fontSize: 11, fontWeight: 700, color: '#334155', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}
           >
             Editors
           </div>
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {onToggleBasePairEditor && (
               <CompactButton
                 onClick={onToggleBasePairEditor}
@@ -232,6 +125,40 @@ export const QuickActionsPanel: React.FC<QuickActionsCallbacks> = ({
                   </svg>
                 }
                 label="Properties"
+              />
+            )}
+          </div>
+        </div>
+      )}
+      {(onToggleSettingsDrawer || onToggleAboutDrawer) && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#334155', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            App
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {onToggleSettingsDrawer && (
+              <CompactButton
+                onClick={onToggleSettingsDrawer}
+                icon={
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M5 1h2l.3 1.2a3.5 3.5 0 011 .6l1.2-.3 1 1- .3 1.2c.2.3.4.7.6 1l1.2.3v2l-1.2.3a3.5 3.5 0 01-.6 1l.3 1.2-1 1-1.2-.3a3.5 3.5 0 01-1 .6L7 11H5l-.3-1.2a3.5 3.5 0 01-1-.6L2.5 9.5l-1-1 .3-1.2a3.5 3.5 0 01-.6-1L0 5V3l1.2-.3a3.5 3.5 0 01.6-1L1.5.5l1-1 1.2.3a3.5 3.5 0 011-.6L5 1z" stroke="currentColor" strokeWidth="1" fill="none"/>
+                    <circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="1" fill="none"/>
+                  </svg>
+                }
+                label="Settings"
+              />
+            )}
+            {onToggleAboutDrawer && (
+              <CompactButton
+                onClick={onToggleAboutDrawer}
+                icon={
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+                    <path d="M6 4v4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                    <circle cx="6" cy="3" r=".7" fill="currentColor"/>
+                  </svg>
+                }
+                label="About"
               />
             )}
           </div>

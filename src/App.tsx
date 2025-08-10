@@ -29,8 +29,10 @@ import "./App.css";
 import { Sidebar } from './components/new_sidebar';
 import { BasePairEditorDrawer } from './components/new_sidebar';
 import { PropertiesDrawer } from './components/new_sidebar';
+import { RightDrawer } from './components/new_sidebar/drawer/RightDrawer';
 import { ElementInfo } from './components/new_sidebar';
 import { extractElementInfo } from './utils/ElementInfoExtractor';
+import { Topbar, TOPBAR_HEIGHT } from './components/new_sidebar/layout/Topbar';
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -331,8 +333,9 @@ export namespace App {
       setOutputFileHandle
     ] = useState<any>(undefined);
     const [basePairRadius, setBasePairRadius] = useState<number>(0);
-    const [basePairDrawerOpen, setBasePairDrawerOpen] = useState(false);
-    const [propertiesDrawerOpen, setPropertiesDrawerOpen] = useState(false);
+    type DrawerKind = 'none' | 'properties' | 'basepair' | 'settings' | 'about';
+    const [drawerKind, setDrawerKind] = useState<DrawerKind>('none');
+    const [rightDrawerTitle, setRightDrawerTitle] = useState<string>("");
     const [selectedElementInfo, setSelectedElementInfo] = useState<ElementInfo | undefined>(undefined);
     // Begin state-relevant helper functions.
     function setDragListener(
@@ -405,6 +408,7 @@ export namespace App {
     const settingsRecordReference = useRef<SettingsRecord>();
     settingsRecordReference.current = settingsRecord;
     const tabInstructionsRecordReference = useRef<Record<Tab, JSX.Element>>();
+    const tabRenderRecordReference = useRef<Record<Tab, JSX.Element>>();
     const outputFileNameReference = useRef<string>();
     outputFileNameReference.current = outputFileName;
     const outputFileExtensionReference = useRef<OutputFileExtension | undefined>();
@@ -467,11 +471,10 @@ export namespace App {
     );
     const svgWidth = useMemo(
       function() {
-        return Math.max((parentDivResizeDetector.width ?? 0) - (toolsDivResizeDetector.width ?? 0), 0);
+        return Math.max((parentDivResizeDetector.width ?? 0) - 420, 0);
       },
       [
-        parentDivResizeDetector.width,
-        toolsDivResizeDetector.width
+        parentDivResizeDetector.width
       ]
     );
     const sceneDimensionsReciprocals = useMemo(
@@ -1250,8 +1253,9 @@ export namespace App {
           setSelectedElementInfo(undefined);
         }
         
-        // Automatically open Properties drawer when right-click menu content is set
-        setPropertiesDrawerOpen(true);
+        // Automatically open unified Properties drawer
+        setRightDrawerTitle('Properties');
+        setDrawerKind('properties');
       } else {
         setSelectedElementInfo(undefined);
       }
@@ -2933,7 +2937,10 @@ export namespace App {
             return <button
               style = {{
                 border : `1px solid ${color}`,
-                backgroundColor : color
+                backgroundColor : color,
+                borderRadius : 6,
+                padding : '6px 10px',
+                marginRight : 4
               }}
               key = {tabI}
               onClick = {function() {
@@ -3479,29 +3486,18 @@ export namespace App {
                                         }}
                                         
                                       >
-                                        {/* NEW Sidebar */}
-                                      <div
-                                          style = {{
-                                            position : "absolute",
-                                            top : 0,
-                                            left : 420,
-                                            height : "100%",
-                                            zIndex : 1000
+                                        {/* NEW Sidebar - docked left */}
+                                        <div
+                                          style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            height: '100%',
+                                            width: 420,
+                                            zIndex: 1000,
                                           }}
                                         >
                                           <Sidebar
-                                            onOpenFile = {function() {
-                                              (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
-                                            }}
-                                            onSave = {function() {
-                                              (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click();
-                                            }}
-                                            onExportWithFormat = {function(filename, format) {
-                                              // Ensure the App state is up to date before exporting
-                                              setOutputFileName(filename);
-                                              setOutputFileExtension(format as OutputFileExtension);
-                                              (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click();
-                                            }}
                                             onUndo = {undo}
                                             onRedo = {redo}
                                             onResetViewport = {resetViewport}
@@ -3509,27 +3505,45 @@ export namespace App {
                                             onModeChange = {setTab}
                                             constraint = {interactionConstraint}
                                             onConstraintChange = {setInteractionConstraint}
-                                            fileName={outputFileName}
-                                            onFileNameChange={setOutputFileName}
-                                            exportFormats={outputFileExtensions.map(ext => ({ value: ext, label: ext.toUpperCase() }))}
-                                            exportFormat={outputFileExtension}
-                                            onExportFormatChange={(format) => setOutputFileExtension(format as OutputFileExtension)}
-                                            onToggleBasePairEditor={() => setBasePairDrawerOpen(prev => !prev)}
-                                            onTogglePropertiesDrawer={() => setPropertiesDrawerOpen(prev => !prev)}
+                                            onToggleBasePairEditor={() => { setRightClickMenuContent(<></>, {}); setRightDrawerTitle('Base-Pair Editor'); setDrawerKind('basepair'); }}
+                                            onTogglePropertiesDrawer={() => { setRightDrawerTitle('Properties'); setDrawerKind('properties'); }}
+                                            onToggleSettingsDrawer={() => { setRightClickMenuContent(<></>, {}); setRightDrawerTitle('Settings'); setDrawerKind('settings'); }}
+                                            onToggleAboutDrawer={() => { setRightClickMenuContent(<></>, {}); setRightDrawerTitle('About XRNA'); setDrawerKind('about'); }}
                                             elementInfo={selectedElementInfo}
                                           />
                                         </div>
                                         
+                                        {/* Topbar */}
+                                        <Topbar
+                                          onOpenFile={function() { (uploadInputFileHtmlInputReference.current as HTMLInputElement).click(); }}
+                                          onSave={function() { (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click(); }}
+                                          onExportWithFormat={function(filename, format) {
+                                            setOutputFileName(filename);
+                                            setOutputFileExtension(format as OutputFileExtension);
+                                            (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click();
+                                          }}
+                                          onUndo={undo}
+                                          onRedo={redo}
+                                          onResetViewport={resetViewport}
+                                          fileName={outputFileName}
+                                          onFileNameChange={setOutputFileName}
+                                          exportFormats={outputFileExtensions.map(ext => ({ value: ext, label: ext.toUpperCase() }))}
+                                          exportFormat={outputFileExtension}
+                                          onExportFormatChange={(format) => setOutputFileExtension(format as OutputFileExtension)}
+                                        />
+
                                         {/* Tools div */}
                                         <div
                                           tabIndex = {0}
                                           ref = {toolsDivResizeDetector.ref}
                                           style = {{
                                             position : "absolute",
+                                            left: 420,
+                                            top: TOPBAR_HEIGHT,
                                             width : toolsDivWidthAttribute,
-                                            height : "100%",
+                                            height : `calc(100% - ${TOPBAR_HEIGHT}px)`,
                                             display : "block",
-                                            borderRight : `5px solid black`,
+                                            borderRight : `1px solid #e2e8f0`,
                                             background : "inherit"
                                           }}
                                         >
@@ -3545,7 +3559,7 @@ export namespace App {
                                               overflowX : "auto",
                                               overflowY : "auto",
                                               top : 0,
-                                              left : 0,
+                                              left : 420,
                                               background : "inherit",
                                               resize : "both",
                                               borderBottom : `2px solid black`,
@@ -3595,7 +3609,7 @@ export namespace App {
                                               overflowX : "hidden",
                                               overflowY : "auto",
                                               top : (topToolsDivResizeDetector.height ?? 0) + DIV_BUFFER_DIMENSION,
-                                              left : 0,
+                                            left : 420,
                                               background : "inherit",
                                               position : "absolute",
                                               whiteSpace : "nowrap"
@@ -3649,12 +3663,12 @@ export namespace App {
                                         <svg
                                           id = {SVG_ELEMENT_HTML_ID}
                                           style = {{
-                                            top : 0,
-                                            left : typeof toolsDivWidthAttribute === "number" ? (toolsDivWidthAttribute + DIV_BUFFER_DIMENSION) : toolsDivWidthAttribute,
+                                            top : TOPBAR_HEIGHT,
+                                          left : 420,
                                             position : "absolute"
                                           }}
                                           xmlns = "http://www.w3.org/2000/svg"
-                                          viewBox = {`0 0 ${svgWidth} ${parentDivResizeDetector.height ?? 0}`}
+                                          viewBox = {`0 0 ${Math.max((parentDivResizeDetector.width ?? 0) - 420, 0)} ${Math.max((parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT, 0)}`}
                                           tabIndex = {1}
                                           onMouseDown = {onMouseDown}
                                           onMouseMove = {onMouseMove}
@@ -3732,7 +3746,7 @@ export namespace App {
                                               stroke = "none"
                                             />
                                             <text
-                                              fill = "black"
+                                              fill = "#1f2937"
                                               stroke = "none"
                                               x = {0}
                                               y = {(parentDivResizeDetector.height ?? 0) - mouseOverTextDimensions.height * 0.25}
@@ -3764,25 +3778,148 @@ export namespace App {
                                           }}
                                           id = {TEST_SPACE_ID}
                                         />
-                                        {/* Base-Pair Editor Drawer */}
-                                        <BasePairEditorDrawer
-                                          open={basePairDrawerOpen}
-                                          onClose={() => setBasePairDrawerOpen(false)}
-                                          rnaComplexProps={rnaComplexProps}
-                                          approveBasePairs={function(){}}
-                                        />
-                                        
-                                        {/* Properties Drawer */}
-                                        <PropertiesDrawer
-                                          open={propertiesDrawerOpen}
+                                        {/* Unified Right Drawer */}
+                                        <RightDrawer
+                                          open={drawerKind !== 'none'}
                                           onClose={() => {
-                                            setPropertiesDrawerOpen(false);
-                                            // Clear right-click menu content and element info when Properties drawer is closed
+                                            setDrawerKind('none');
                                             setRightClickMenuContent(<></>, {});
                                             setSelectedElementInfo(undefined);
                                           }}
-                                          content={rightClickMenuContent}
-                                        />
+                                          title={rightDrawerTitle}
+                                          startWidth={drawerKind === 'about' ? 720 : drawerKind === 'settings' ? 560 : 480}
+                                        >
+                                          {drawerKind === 'properties' && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                              <div style={{ padding: '12px 10px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: '#334155' }}>Selected Element</div>
+                                              <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
+                                                {rightClickMenuContent}
+                                              </div>
+                                            </div>
+                                          )}
+                                          {drawerKind === 'basepair' && (
+                                            <div style={{ height: '100%', overflow: 'auto' }}>
+                                              <BasePairsEditor.Component
+                                                rnaComplexProps={rnaComplexProps}
+                                                approveBasePairs={function(){}}
+                                              />
+                                            </div>
+                                          )}
+                                          {drawerKind === 'settings' && (
+                                            <div>
+                                              {/* Inline settings panel styled */}
+                                              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                                                <button onClick={() => (settingsFileUploadHtmlInputReference.current as HTMLInputElement).click()} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontSize: 12, fontWeight: 600, color: '#334155' }}>Upload JSON</button>
+                                                <button onClick={() => {
+                                                  const anchor = settingsFileDownloadHtmlAnchorReference.current as HTMLAnchorElement;
+                                                  let derived: Partial<SettingsRecord> = {};
+                                                  const flattened = flattenedRnaComplexPropsReference.current as Array<[string, RnaComplex.ExternalProps]>;
+                                                  if (flattened && flattened.length > 0) {
+                                                    const rnaComplexIndex = Number.parseInt(flattened[0][0]);
+                                                    const { helixDistance, distances } = basePairAverageDistances[rnaComplexIndex] ?? {} as any;
+                                                    if (helixDistance != null && distances) {
+                                                      derived[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] = helixDistance as any;
+                                                      derived[Setting.CANONICAL_BASE_PAIR_DISTANCE] = distances[BasePair.Type.CANONICAL] as any;
+                                                      derived[Setting.MISMATCH_BASE_PAIR_DISTANCE] = distances[BasePair.Type.MISMATCH] as any;
+                                                      derived[Setting.WOBBLE_BASE_PAIR_DISTANCE] = distances[BasePair.Type.WOBBLE] as any;
+                                                    }
+                                                  }
+                                                  const obj: Partial<SettingsRecord> = { ...derived };
+                                                  for (const key of Object.keys(settingsRecord) as Array<Setting>) {
+                                                    const value = settingsRecord[key];
+                                                    obj[key] = (typeof value === 'number' && Number.isNaN(value)) ? 1 as any : value;
+                                                  }
+                                                  anchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(JSON.stringify(obj))}`;
+                                                  anchor.click();
+                                                }} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #4338ca', background: '#4f46e5', fontSize: 12, fontWeight: 600, color: '#fff' }}>Download JSON</button>
+                                              </div>
+                                              <input
+                                                ref={settingsFileUploadHtmlInputReference}
+                                                type="file"
+                                                accept=".json"
+                                                style={{ display: 'none' }}
+                                                onChange={function(e) {
+                                                  let files = e.target.files;
+                                                  if (files === null || files.length === 0) { return; }
+                                                  let reader = new FileReader();
+                                                  reader.addEventListener("load", function(event) {
+                                                    try {
+                                                      let settingsJson = JSON.parse((event.target as FileReader).result as string);
+                                                      let keys = Object.keys(settingsJson);
+                                                      let formatCheckPassedFlag = true;
+                                                      for (let key of keys) {
+                                                        const value = settingsJson[key];
+                                                        if (!isSetting(key) || (typeof value !== settingsTypeMap[key] && !(settingsTypeMap[key] === "BasePairsEditorType" && BasePairsEditor.isEditorType(value)))) {
+                                                          formatCheckPassedFlag = false;
+                                                          break;
+                                                        }
+                                                      }
+                                                      if (formatCheckPassedFlag) {
+                                                        let updatedSettings : Partial<SettingsRecord> = {};
+                                                        for (let key of keys) {
+                                                          updatedSettings[key as Setting] = settingsJson[key];
+                                                        }
+                                                        setSettingsRecord({ ...settingsRecord, ...updatedSettings });
+                                                      }
+                                                    } catch {}
+                                                  });
+                                                  reader.readAsText(files[0] as File);
+                                                }}
+                                              />
+                                              <a ref={settingsFileDownloadHtmlAnchorReference} style={{ display: 'none' }} download={`xrna_settings.json`} />
+                                              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 10, columnGap: 10, marginTop: 12 }}>
+                                                {settings.map(function(setting : Setting, index : number) {
+                                                  let input : JSX.Element = <></>;
+                                                  switch (settingsTypeMap[setting]) {
+                                                    case "boolean" : {
+                                                      input = <input type="checkbox" checked={settingsRecord[setting] as boolean} onChange={function() { setSettingsRecord({ ...settingsRecord, [setting] : !settingsRecord[setting] }); }} />;
+                                                      break;
+                                                    }
+                                                    case "number" : {
+                                                      input = <InputWithValidator.Number value={settingsRecord[setting] as number} setValue={function(newValue : number) { setSettingsRecord({ ...settingsRecord, [setting] : newValue }); }} />;
+                                                      break;
+                                                    }
+                                                    case "BasePairsEditorType" : {
+                                                      input = <BasePairsEditor.EditorTypeSelector.Component editorType={settingsRecord[setting] as BasePairsEditor.EditorType} onChange={function(newEditorType : BasePairsEditor.EditorType) { setSettingsRecord({ ...settingsRecord, [setting] : newEditorType }); }} />;
+                                                      break;
+                                                    }
+                                                    default : { break; }
+                                                  }
+                                                  return <Fragment key={index}>
+                                                    <label title={settingsLongDescriptionsMap[setting]} style={{ color: '#334155', fontSize: 13, lineHeight: 1.2 }}>{settingsShortDescriptionsMap[setting]}</label>
+                                                    <div>{input}</div>
+                                                  </Fragment>;
+                                                })}
+                                              </div>
+                                            </div>
+                                          )}
+                                          {drawerKind === 'about' && (
+                                            <div style={{ whiteSpace: 'normal' }}>
+                                              <Collapsible.Component title="What is XRNA?">
+                                                XRNA.js is an interactive web app for editing, formatting, and annotating 2D RNA diagrams with precision.
+                                              </Collapsible.Component>
+                                              <Collapsible.Component title="Getting Started">
+                                                <ol style={{ margin: 0 }}>
+                                                  <li>Download a sample input file from the Input/Output area.</li>
+                                                  <li>Upload it via the File panel in the left sidebar.</li>
+                                                  <li>Use Edit/Format/Annotate tools for operations on nucleotides and base pairs.</li>
+                                                </ol>
+                                              </Collapsible.Component>
+                                              <Collapsible.Component title="Shortcuts">
+                                                <ul style={{ margin: 0 }}>
+                                                  <li>Ctrl + O — Open file</li>
+                                                  <li>Ctrl + S — Save file</li>
+                                                  <li>Ctrl + 0 — Reset viewport</li>
+                                                  <li>Ctrl + Z — Undo</li>
+                                                  <li>Ctrl + Shift + Z / Ctrl + Y — Redo</li>
+                                                </ul>
+                                              </Collapsible.Component>
+                                              <Collapsible.Component title="Contact">
+                                                <a href="https://github.com/LDWLab/XRNA-React/issues" target="_blank" rel="noopener noreferrer">Report a bug</a>
+                                              </Collapsible.Component>
+                                            </div>
+                                          )}
+                                        </RightDrawer>
                                       </div>
                                     </Context.BasePair.SetKeysToEdit.Provider>
                                   </Context.App.UpdateRnaMoleculeNameHelper.Provider>

@@ -16,14 +16,13 @@ export type SidebarProps = QuickActionsCallbacks & ToolPaletteCallbacks & {
   onExportWithFormat?: (filename: string, format: string) => void;
   onToggleBasePairEditor?: () => void;
   onTogglePropertiesDrawer?: () => void;
+  onToggleSettingsDrawer?: () => void;
+  onToggleAboutDrawer?: () => void;
   elementInfo?: ElementInfo;
 };
 
 export const Sidebar: React.FC<SidebarProps> = (props) => {
   const {
-    onOpenFile,
-    onSave,
-    onExportWithFormat,
     onUndo,
     onRedo,
     onResetViewport,
@@ -31,14 +30,11 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     onModeChange,
     constraint,
     onConstraintChange,
-    fileName,
-    onFileNameChange,
-    exportFormats,
-    exportFormat,
-    onExportFormatChange,
     onToggleBasePairEditor,
     onTogglePropertiesDrawer,
     elementInfo,
+    onToggleSettingsDrawer,
+    onToggleAboutDrawer,
   } = props;
 
   return (
@@ -46,16 +42,10 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
       {/* IO & Actions - Always visible, compact */}
       <div>
         <QuickActionsPanel
-          onOpenFile={onOpenFile}
-          onSave={onSave}
-          onExportWithFormat={onExportWithFormat}
-          fileName={fileName}
-          onFileNameChange={onFileNameChange}
-          exportFormats={exportFormats}
-          exportFormat={exportFormat}
-          onExportFormatChange={onExportFormatChange}
           onToggleBasePairEditor={onToggleBasePairEditor}
           onTogglePropertiesDrawer={onTogglePropertiesDrawer}
+          onToggleSettingsDrawer={onToggleSettingsDrawer}
+          onToggleAboutDrawer={onToggleAboutDrawer}
         />
       </div>
       {/* Tools - Smart grouped interface */}
@@ -69,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
           onRedo={onRedo}
           onResetViewport={onResetViewport}
         />
-        {/* <InformationPanel elementInfo={elementInfo} /> */}
+        {/* Space for info panel if needed in future */}
       </div>
     </SidebarLayout>
   );
