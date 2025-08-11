@@ -173,7 +173,13 @@ export namespace Nucleotide {
           );
         }}
         onMouseOver = {function(e : React.MouseEvent<Nucleotide.SvgRepresentation>) {
-          setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
+          const idx = firstNucleotideIndexInRnaMolecule + nucleotideIndex;
+          setMouseOverText(
+            `nucleotide: ${idx}\n` +
+            `symbol:     ${symbol}\n` +
+            `molecule:   ${rnaMoleculeName}\n` +
+            `complex:    ${rnaComplexName}`
+          );
         }}
         onMouseLeave = {function() {
           setMouseOverText("");

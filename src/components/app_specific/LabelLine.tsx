@@ -134,7 +134,13 @@ export namespace LabelLine {
             );
           }}
           onMouseOver = {function(e) {
-            setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
+            const idx = firstNucleotideIndexInRnaMolecule + nucleotideIndex;
+            setMouseOverText(
+              `nucleotide: ${idx}\n` +
+              `symbol:     ${symbol}\n` +
+              `molecule:   ${rnaMoleculeName}\n` +
+              `complex:    ${rnaComplexName}`
+            );
           }}
           onMouseLeave = {function() {
             setMouseOverText("");
@@ -156,7 +162,13 @@ export namespace LabelLine {
           e.preventDefault();
         }}
         onMouseOver = {function(e) {
-          setMouseOverText(`Nucleotide #${firstNucleotideIndexInRnaMolecule + nucleotideIndex} (${symbol}) in RNA molecule "${rnaMoleculeName}" in RNA complex "${rnaComplexName}"`);
+          const idx = firstNucleotideIndexInRnaMolecule + nucleotideIndex;
+          setMouseOverText(
+            `nucleotide: ${idx}\n` +
+            `symbol:     ${symbol}\n` +
+            `molecule:   ${rnaMoleculeName}\n` +
+            `complex:    ${rnaComplexName}`
+          );
         }}
         onMouseLeave = {function() {
           setMouseOverText("");

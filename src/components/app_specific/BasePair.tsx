@@ -115,7 +115,31 @@ export namespace BasePair {
     [Type.TRANS_SUGAR_EDGE_HOOGSTEEN] : "tSH",
     [Type.CIS_SUGAR_EDGE_SUGAR_EDGE] : "cSS",
     [Type.TRANS_SUGAR_EDGE_SUGAR_EDGE] : "tSS"
-  }
+  };
+
+  export const fullTypeNameMap : Record<Type, string> = {
+    [Type.CANONICAL] : "canonical",
+    [Type.WOBBLE] : "wobble",
+    [Type.MISMATCH] : "mismatch",
+    [Type.CIS_WATSON_CRICK_WATSON_CRICK] : "cis Watson–Crick/Watson–Crick",
+    [Type.TRANS_WATSON_CRICK_WATSON_CRICK] : "trans Watson–Crick/Watson–Crick",
+    [Type.CIS_WATSON_CRICK_HOOGSTEEN] : "cis Watson–Crick/Hoogsteen",
+    [Type.CIS_HOOGSTEEN_WATSON_CRICK] : "cis Hoogsteen/Watson–Crick",
+    [Type.TRANS_WATSON_CRICK_HOOGSTEEN] : "trans Watson–Crick/Hoogsteen",
+    [Type.TRANS_HOOGSTEEN_WATSON_CRICK] : "trans Hoogsteen/Watson–Crick",
+    [Type.CIS_WATSON_CRICK_SUGAR_EDGE] : "cis Watson–Crick/Sugar edge",
+    [Type.CIS_SUGAR_EDGE_WATSON_CRICK] : "cis Sugar edge/Watson–Crick",
+    [Type.TRANS_WATSON_CRICK_SUGAR_EDGE] : "trans Watson–Crick/Sugar edge",
+    [Type.TRANS_SUGAR_EDGE_WATSON_CRICK] : "trans Sugar edge/Watson–Crick",
+    [Type.CIS_HOOGSTEEN_HOOGSTEEN] : "cis Hoogsteen/Hoogsteen",
+    [Type.TRANS_HOOGSTEEN_HOOGSTEEN] : "trans Hoogsteen/Hoogsteen",
+    [Type.CIS_HOOGSTEEN_SUGAR_EDGE] : "cis Hoogsteen/Sugar edge",
+    [Type.CIS_SUGAR_EDGE_HOOGSTEEN] : "cis Sugar edge/Hoogsteen",
+    [Type.TRANS_HOOGSTEEN_SUGAR_EDGE] : "trans Hoogsteen/Sugar edge",
+    [Type.TRANS_SUGAR_EDGE_HOOGSTEEN] : "trans Sugar edge/Hoogsteen",
+    [Type.CIS_SUGAR_EDGE_SUGAR_EDGE] : "cis Sugar edge/Sugar edge",
+    [Type.TRANS_SUGAR_EDGE_SUGAR_EDGE] : "trans Sugar edge/Sugar edge"
+  };
 
   export function isDirectedType(type : Type) : type is DirectedType {
     return directedTypes.includes(type);
@@ -1531,7 +1555,11 @@ export namespace BasePair {
       [SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1] : formattedNucleotideIndex1,
       [SVG_PROPERTY_XRNA_BASE_PAIR_TYPE] : basePairType
     };
-    const mouseOverText = `Base pair: ${formattedNucleotideIndex0}${singularNucleotideProps0.symbol} - ${formattedNucleotideIndex1}${singularNucleotideProps1.symbol} (${shortenedTypeNameMap[basePairType]})`;
+    const mouseOverText = [
+      `base pair:`,
+      `  nts:  ${formattedNucleotideIndex0}${singularNucleotideProps0.symbol} - ${formattedNucleotideIndex1}${singularNucleotideProps1.symbol}`,
+      `  type: ${fullTypeNameMap[basePairType]}`
+    ].join("\n");
     return createElement(
       basePairRenderMap[basePairType],
       {

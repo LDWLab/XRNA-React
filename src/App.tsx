@@ -29,7 +29,7 @@ import "./App.css";
 import { Sidebar } from './components/new_sidebar';
 import { BasePairEditorDrawer } from './components/new_sidebar';
 import { PropertiesDrawer } from './components/new_sidebar';
-import { BasePairBottomSheet } from './components/new_sidebar';
+import { BasePairBottomSheet, CommandTerminal } from './components/new_sidebar';
 import { RightDrawer } from './components/new_sidebar/drawer/RightDrawer';
 import { ElementInfo } from './components/new_sidebar';
 import { extractElementInfo } from './utils/ElementInfoExtractor';
@@ -227,6 +227,10 @@ export namespace App {
       width : 0,
       height : 0
     });
+    const [
+      mouseUIPosition,
+      setMouseUIPosition
+    ] = useState<Vector2D>({ x : 0, y : 0 });
     const [
       originOfDrag,
       setOriginOfDrag
@@ -2041,6 +2045,13 @@ export namespace App {
     const onMouseMove = useMemo(
       function() {
         return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
+          // Track UI-space mouse position relative to the SVG for tooltip placement
+          const boundingRect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
+          setMouseUIPosition({
+            x : e.clientX - boundingRect.left,
+            y : e.clientY - boundingRect.top
+          });
+
           const flattenedRnaComplexPropsLength = flattenedRnaComplexPropsLengthReference.current;
           if (flattenedRnaComplexPropsLength === 0) {
             return;
@@ -2305,6 +2316,8 @@ export namespace App {
           );
           setDebugVisualElements([]);
           setDataSpaceOriginOfDrag(undefined);
+          // Hide hover tooltip when leaving the SVG
+          setMouseOverText("");
         };
       },
       []
@@ -3186,11 +3199,31 @@ export namespace App {
         const btn = document.getElementById('__hidden_reformat_button__') as HTMLButtonElement | null;
         btn?.click();
       }
+      function onTriggerReformatRange(e: CustomEvent<{ start?: number; end?: number }>) {
+        const range = e.detail || {};
+        // Build a minimal BasePairs array to request a positioning update for the desired range.
+        // We will reuse BasePairsEditor.setBasePairs by synthesizing a selection spanning start..end.
+        // If either bound is missing, we fall back to full reformat via the existing hook.
+        if (range.start === undefined || range.end === undefined) {
+          onTriggerReformatAll();
+          return;
+        }
+        const start = Math.min(range.start, range.end);
+        const end = Math.max(range.start, range.end);
+        const btn = document.getElementById('__hidden_reformat_button__') as HTMLButtonElement | null;
+        // Fallback to full if hidden hook is not available
+        if (!btn) { onTriggerReformatAll(); return; }
+        // We cannot directly pass a range to BasePairsEditor’s hidden hook without refactoring; do full for now.
+        // This keeps UI consistent and avoids partial repositioning bugs.
+        btn.click();
+      }
       window.addEventListener('openBasepairBottomSheet', onOpenSheet as any);
       window.addEventListener('triggerReformatAll', onTriggerReformatAll as any);
+      window.addEventListener('triggerReformatRange', onTriggerReformatRange as any);
       return () => {
         window.removeEventListener('openBasepairBottomSheet', onOpenSheet as any);
         window.removeEventListener('triggerReformatAll', onTriggerReformatAll as any);
+        window.removeEventListener('triggerReformatRange', onTriggerReformatRange as any);
       };
     }, []);
     // Begin effects.
@@ -3708,6 +3741,11 @@ export namespace App {
                                             .${LABEL_CLASS_NAME}:hover { stroke:inherit; }
                                             .${NO_STROKE_CLASS_NAME} { stroke:none; }
                                           `}</style>
+                                          <defs>
+                                            <filter id="xrTooltipShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.20" />
+                                            </filter>
+                                          </defs>
                                           <rect
                                             id = {SVG_BACKGROUND_HTML_ID}
                                             width = "100%"
@@ -3752,25 +3790,47 @@ export namespace App {
                                           </g>
                                           <g
                                             id = {MOUSE_OVER_TEXT_HTML_ID}
+                                            style = {{
+                                              display : mouseOverText.length > 0 ? "inline" : "none",
+                                              filter : 'url(#xrTooltipShadow)'
+                                            }}
+                                            transform = {`translate(${Math.max(
+                                              0,
+                                              Math.min(
+                                                mouseUIPosition.x + 12,
+                                                Math.max((parentDivResizeDetector.width ?? 0) - 420, 0) - (mouseOverTextDimensions.width + 12)
+                                              )
+                                            )}, ${Math.max(
+                                              0,
+                                              Math.min(
+                                                mouseUIPosition.y + 12,
+                                                Math.max((parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT, 0) - (mouseOverTextDimensions.height + 12)
+                                              )
+                                            )})`}
                                           >
                                             <rect
                                               x = {0}
-                                              y = {(parentDivResizeDetector.height ?? 0) - mouseOverTextDimensions.height}
-                                              width = {mouseOverTextDimensions.width}
-                                              height = {mouseOverTextDimensions.height}
-                                              fill = "white"
-                                              stroke = "none"
+                                              y = {0}
+                                              width = {mouseOverTextDimensions.width + 16}
+                                              height = {mouseOverTextDimensions.height + 16}
+                                              fill = "#ffffff"
+                                              stroke = "#e5e7eb"
+                                              rx = {6}
+                                              ry = {6}
                                             />
                                             <text
-                                              fill = "#1f2937"
+                                              fill = "#111827"
                                               stroke = "none"
-                                              x = {0}
-                                              y = {(parentDivResizeDetector.height ?? 0) - mouseOverTextDimensions.height * 0.25}
+                                              x = {8}
+                                              y = {8 + MOUSE_OVER_TEXT_FONT_SIZE}
                                               ref = {mouseOverTextSvgTextElementReference}
-                                              fontFamily = "Arial"
+                                              xmlSpace = "preserve"
+                                              fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
                                               fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
                                             >
-                                              {mouseOverText}
+                                              {mouseOverText.split('\n').map((line, idx) => (
+                                                <tspan key={idx} x={8} dy={idx === 0 ? 0 : MOUSE_OVER_TEXT_FONT_SIZE * 1.25}>{line}</tspan>
+                                              ))}
                                             </text>
                                           </g>
                                         </svg>
@@ -3952,6 +4012,9 @@ export namespace App {
                                           rnaComplexProps={rnaComplexProps}
                                           selected={rightClickMenuAffectedNucleotideIndices}
                                         />
+
+                                        {/* Bottom-docked command terminal (hidden by default, toggle with ~) */}
+                                        <CommandTerminal rnaComplexProps={rnaComplexProps} />
                                       </div>
                                     </Context.BasePair.SetKeysToEdit.Provider>
                                   </Context.App.UpdateRnaMoleculeNameHelper.Provider>

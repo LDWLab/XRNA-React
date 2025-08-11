@@ -13,3 +13,4 @@ export { InformationPanel, type ElementInfo } from './panels/InformationPanel';
 export { SettingsDrawer } from './drawer/SettingsDrawer';
 export { AboutDrawer } from './drawer/AboutDrawer';
 export { default as BasePairBottomSheet } from './bottomsheet/BasePairBottomSheet';
+export { default as CommandTerminal } from './dock/CommandTerminal';

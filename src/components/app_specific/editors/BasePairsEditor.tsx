@@ -1446,11 +1446,22 @@ export namespace BasePairsEditor {
                     singularNucleotideProps1.symbol
                   )
                 }
+                // Respect range reformat, if provided via reformatRangeRef
+                let allowRepositioningFlag = !avoidRepositioningIndicesSet.has(indexOfHelix);
+                const rr = reformatRangeRef.current;
+                if (rr) {
+                  const abs0 = formattedNucleotideIndex0 + singularRnaMoleculeProps0.firstNucleotideIndex;
+                  const abs1 = formattedNucleotideIndex1 + singularRnaMoleculeProps1.firstNucleotideIndex;
+                  const within0 = (rr.start === undefined || abs0 >= rr.start) && (rr.end === undefined || abs0 <= rr.end);
+                  const within1 = (rr.start === undefined || abs1 >= rr.start) && (rr.end === undefined || abs1 <= rr.end);
+                  allowRepositioningFlag = within0 || within1;
+                }
+
                 nucleotideProps.push({
                   0 : singularNucleotideProps0,
                   1 : singularNucleotideProps1,
                   basePairType,
-                  allowRepositioningFlag : !avoidRepositioningIndicesSet.has(indexOfHelix)
+                  allowRepositioningFlag
                 });
               }
               
@@ -1589,6 +1600,21 @@ export namespace BasePairsEditor {
       },
       []
     );
+    // Begin range reformat listener
+    const reformatRangeRef = useRef<{ start?: number; end?: number } | null>(null);
+    useEffect(function() {
+      function onTriggerReformatRange(e: CustomEvent<{ start?: number; end?: number }>) {
+        reformatRangeRef.current = e.detail || {};
+        pushToUndoStack();
+        setBasePairs(
+          [...basePairs],
+          new Set<number>()
+        );
+      }
+      window.addEventListener('triggerReformatRange', onTriggerReformatRange as any);
+      return () => window.removeEventListener('triggerReformatRange', onTriggerReformatRange as any);
+    }, [basePairs]);
+
     // Begin effects.
     useEffect(
       function() {

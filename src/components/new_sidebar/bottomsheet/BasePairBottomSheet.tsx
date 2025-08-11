@@ -609,7 +609,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
           <button
             onClick={() => setShowAdd(!showAdd)}
             style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#ffffff', fontSize: 12, fontWeight: 600, color: '#0f172a' }}
-          >{showAdd ? 'Close Add' : 'Add Base Pair'}</button>
+          >{showAdd ? 'Cancel' : 'Add Base Pair'}</button>
         </div>
         {showAdd && (
           <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0' }}>
