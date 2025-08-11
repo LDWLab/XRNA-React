@@ -29,6 +29,7 @@ import "./App.css";
 import { Sidebar } from './components/new_sidebar';
 import { BasePairEditorDrawer } from './components/new_sidebar';
 import { PropertiesDrawer } from './components/new_sidebar';
+import { BasePairBottomSheet } from './components/new_sidebar';
 import { RightDrawer } from './components/new_sidebar/drawer/RightDrawer';
 import { ElementInfo } from './components/new_sidebar';
 import { extractElementInfo } from './utils/ElementInfoExtractor';
@@ -335,6 +336,7 @@ export namespace App {
     const [basePairRadius, setBasePairRadius] = useState<number>(0);
     type DrawerKind = 'none' | 'properties' | 'basepair' | 'settings' | 'about';
     const [drawerKind, setDrawerKind] = useState<DrawerKind>('none');
+    const [basepairSheetOpen, setBasepairSheetOpen] = useState<boolean>(false);
     const [rightDrawerTitle, setRightDrawerTitle] = useState<string>("");
     const [selectedElementInfo, setSelectedElementInfo] = useState<ElementInfo | undefined>(undefined);
     // Begin state-relevant helper functions.
@@ -3177,6 +3179,20 @@ export namespace App {
       },
       []
     );
+    // Global event hooks for bottom-sheet UX
+    useEffect(() => {
+      function onOpenSheet() { setBasepairSheetOpen(true); }
+      function onTriggerReformatAll() {
+        const btn = document.getElementById('__hidden_reformat_button__') as HTMLButtonElement | null;
+        btn?.click();
+      }
+      window.addEventListener('openBasepairBottomSheet', onOpenSheet as any);
+      window.addEventListener('triggerReformatAll', onTriggerReformatAll as any);
+      return () => {
+        window.removeEventListener('openBasepairBottomSheet', onOpenSheet as any);
+        window.removeEventListener('triggerReformatAll', onTriggerReformatAll as any);
+      };
+    }, []);
     // Begin effects.
     useEffect(
       function() {
@@ -3505,7 +3521,7 @@ export namespace App {
                                             onModeChange = {setTab}
                                             constraint = {interactionConstraint}
                                             onConstraintChange = {setInteractionConstraint}
-                                            onToggleBasePairEditor={() => { setRightClickMenuContent(<></>, {}); setRightDrawerTitle('Base-Pair Editor'); setDrawerKind('basepair'); }}
+                                            onToggleBasePairEditor={() => { setRightClickMenuContent(<></>, {}); setBasepairSheetOpen(true); }}
                                             onTogglePropertiesDrawer={() => { setRightDrawerTitle('Properties'); setDrawerKind('properties'); }}
                                             onToggleSettingsDrawer={() => { setRightClickMenuContent(<></>, {}); setRightDrawerTitle('Settings'); setDrawerKind('settings'); }}
                                             onToggleAboutDrawer={() => { setRightClickMenuContent(<></>, {}); setRightDrawerTitle('About XRNA'); setDrawerKind('about'); }}
@@ -3920,6 +3936,22 @@ export namespace App {
                                             </div>
                                           )}
                                         </RightDrawer>
+
+                                        {/* Hidden Base-Pairs Editor host (for global reformat trigger) */}
+                                        <div style={{ display: 'none' }}>
+                                          <BasePairsEditor.Component
+                                            rnaComplexProps={rnaComplexProps}
+                                            approveBasePairs={function(){}}
+                                          />
+                                        </div>
+
+                                        {/* Bottom Sheet: Base-Pair Editor */}
+                                        <BasePairBottomSheet
+                                          open={basepairSheetOpen}
+                                          onClose={() => setBasepairSheetOpen(false)}
+                                          rnaComplexProps={rnaComplexProps}
+                                          selected={rightClickMenuAffectedNucleotideIndices}
+                                        />
                                       </div>
                                     </Context.BasePair.SetKeysToEdit.Provider>
                                   </Context.App.UpdateRnaMoleculeNameHelper.Provider>

@@ -1682,95 +1682,7 @@ export namespace BasePairsEditor {
     );
     // Begin render.
     return <>
-      <Collapsible.Component
-        title = "Settings"
-      >
-        <label>
-          Override conflicting base pairs:&nbsp;
-          <input
-            type = "checkbox"
-            checked = {overrideConflictingBasePairsFlag}
-            onChange = {function() {
-              setOverrideConflictingBasePairsFlag(!overrideConflictingBasePairsFlag);
-            }}
-          />
-        </label>
-        <br/>
-        <label>
-          Reposition nucleotides along base-pair axis:&nbsp;
-          <input
-            type = "checkbox"
-            checked = {repositionNucleotidesAlongBasePairAxisFlag}
-            onChange = {function() {
-              setRepositionNucleotidesAlongBasePairAxisFlag(!repositionNucleotidesAlongBasePairAxisFlag);
-            }}
-          />
-        </label>
-        <br/>
-        {repositionNucleotidesAlongBasePairAxisFlag && <>
-          <ul
-            style = {{
-              margin : 0
-            }}
-          >
-            <li>
-              <label>
-              Canonical base-pair distance:&nbsp;
-              <InputWithValidator.Number
-                value = {canonicalBasePairDistance}
-                setValue = {setCanonicalBasePairDistance}
-              />
-              </label>
-            </li>
-            <li>
-              <label>
-                Mismatch base-pair distance:&nbsp;
-                <InputWithValidator.Number
-                  value = {mismatchBasePairDistance}
-                  setValue = {setMismatchBasePairDistance}
-                />
-              </label>
-            </li>
-            <li>
-              <label>
-                Wobble base-pair distance:&nbsp;
-                <InputWithValidator.Number
-                  value = {wobbleBasePairDistance}
-                  setValue = {setWobbleBasePairDistance}
-                />
-              </label>
-            </li>
-          </ul>
-        </>}
-        <label>
-          Reposition nucleotides along helix axis:&nbsp;
-          <input
-            type = "checkbox"
-            checked = {repositionNucleotidesAlongHelixAxisFlag}
-            onChange = {function() {
-              setRepositionNucleotidesAlongHelixAxisFlag(!repositionNucleotidesAlongHelixAxisFlag)
-            }}
-          />
-        </label>
-        <br/>
-        {repositionNucleotidesAlongHelixAxisFlag && <>
-          <ul
-            style = {{
-              margin : 0
-            }}
-          >
-            <li>
-              <label>
-                Distance between contiguous base pairs:&nbsp;
-                <InputWithValidator.Number
-                  value = {distanceBetweenContiguousBasePairs}
-                  setValue = {setDistanceBetweenContiguousBasePairs}
-                />
-              </label>
-            </li>
-          </ul>
-        </>}
-      </Collapsible.Component>
+      {/* Settings moved out of here per new bottom-sheet UX */}
       <Collapsible.Component
         title = "Base-pairs editor"
       >
@@ -1797,17 +1709,19 @@ export namespace BasePairsEditor {
           }
         )}
       </Collapsible.Component>
-      <button
-        onClick = {function() {
-          pushToUndoStack();
-          setBasePairs(
-            [...basePairs],
-            new Set<number>()
-          );
-        }}
-      >
-        Re-format all
-      </button>
+      {/* Re-format button placed at the top bar of the bottom sheet; also keep a hidden hook for programmatic trigger */}
+      <div style={{ display: 'none' }}>
+        <button
+          id="__hidden_reformat_button__"
+          onClick = {function() {
+            pushToUndoStack();
+            setBasePairs(
+              [...basePairs],
+              new Set<number>()
+            );
+          }}
+        >Re-format all</button>
+      </div>
     </>;
   }
 
