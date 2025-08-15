@@ -27,12 +27,12 @@ export const OUTPUT_MIDPOINT = {
 export type OutputFileExtension = Extract<FileExtension, FileExtension.XRNA | FileExtension.JSON | FileExtension.CSV | FileExtension.BPSEQ | FileExtension.TR | FileExtension.SVG>;
 
 export const OutputFileExtension = {
-  [FileExtension.XRNA] : FileExtension.XRNA,
   [FileExtension.JSON] : FileExtension.JSON,
+  [FileExtension.SVG] : FileExtension.SVG,
+  [FileExtension.XRNA] : FileExtension.XRNA,
   [FileExtension.CSV] : FileExtension.CSV,
-  [FileExtension.BPSEQ] : FileExtension.BPSEQ,
   [FileExtension.TR] : FileExtension.TR,
-  [FileExtension.SVG] : FileExtension.SVG
+  [FileExtension.BPSEQ] : FileExtension.BPSEQ
 } as const;
 
 export const outputFileExtensions = Object.values(OutputFileExtension);

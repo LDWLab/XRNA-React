@@ -1,11 +1,11 @@
 export enum FileExtension {
-  XRNA = "xrna",
   XML = "xml",
   JSON = "json",
-  TR = "tr",
-  CSV = "csv",
-  BPSEQ = "bpseq",
   SVG = "svg",
+  XRNA = "xrna",
+  CSV = "csv",
+  TR = "tr",
+  BPSEQ = "bpseq",
   STR = "str",
 }
 
