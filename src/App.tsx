@@ -343,6 +343,7 @@ export namespace App {
     const [basepairSheetOpen, setBasepairSheetOpen] = useState<boolean>(false);
     const [rightDrawerTitle, setRightDrawerTitle] = useState<string>("");
     const [selectedElementInfo, setSelectedElementInfo] = useState<ElementInfo | undefined>(undefined);
+    const [basePairUpdateTriggers, setBasePairUpdateTriggers] = useState<Record<number, number>>({});
     // Begin state-relevant helper functions.
     function setDragListener(
       dragListener : DragListener | null,
@@ -1320,9 +1321,11 @@ export namespace App {
                               value = {basePairKeysToEdit[rnaComplexIndex]}
                             >
                               <RnaComplex.Component
+                                key = {rnaComplexIndex}
                                 {...singularRnaComplexProps}
                                 nucleotideKeysToRerenderPerRnaComplex = {nucleotideKeysToRerender[rnaComplexIndex] ?? {}}
                                 basePairKeysToRerenderPerRnaComplex = {basePairKeysToRerender[rnaComplexIndex] ?? []}
+                                basePairUpdateTrigger = {basePairUpdateTriggers[rnaComplexIndex] ?? 0}
                               />
                             </Context.BasePair.DataToEditPerRnaComplex.Provider>
                           </Context.RnaComplex.Index.Provider>;
@@ -1341,7 +1344,8 @@ export namespace App {
         nucleotideKeysToRerender,
         basePairKeysToRerender,
         labelsOnlyFlag && tab == Tab.EDIT,
-        basePairKeysToEdit
+        basePairKeysToEdit,
+        basePairUpdateTriggers
       ]
     );
     const triggerRightClickMenuFlag = useMemo(
@@ -3213,7 +3217,7 @@ export namespace App {
         const btn = document.getElementById('__hidden_reformat_button__') as HTMLButtonElement | null;
         // Fallback to full if hidden hook is not available
         if (!btn) { onTriggerReformatAll(); return; }
-        // We cannot directly pass a range to BasePairsEditor’s hidden hook without refactoring; do full for now.
+        // We cannot directly pass a range to BasePairsEditor's hidden hook without refactoring; do full for now.
         // This keeps UI consistent and avoids partial repositioning bugs.
         btn.click();
       }
@@ -3312,6 +3316,7 @@ export namespace App {
     // );
     useEffect(
       function() {
+        if (Object.keys(basePairKeysToEdit).length === 0) return;
         const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
         const basePairKeysToRerender : BasePairKeysToRerender = {};
         function pushNucleotideKeysToRerender(
@@ -3374,8 +3379,17 @@ export namespace App {
           basePairKeysToRerenderPerRnaComplex.sort(compareBasePairKeys);
         }
         setBasePairKeysToRerender(basePairKeysToRerender);
+        const newTriggers = { ...basePairUpdateTriggers };
+        for (const rnaComplexIndexAsString of Object.keys(basePairKeysToEdit)) {
+          const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+          newTriggers[rnaComplexIndex] = (newTriggers[rnaComplexIndex] ?? 0) + 1;
+        }
+        setBasePairUpdateTriggers(newTriggers);
+        setNucleotideKeysToRerender({});
+        setBasePairKeysToRerender({});
+        setBasePairKeysToEdit({});
       },
-      [basePairKeysToEdit]
+      [basePairKeysToEdit, basePairUpdateTriggers] // Add basePairUpdateTriggers to deps if needed
     );
     useEffect(
       function() {
@@ -3743,7 +3757,7 @@ export namespace App {
                                           `}</style>
                                           <defs>
                                             <filter id="xrTooltipShadow" x="-20%" y="-20%" width="140%" height="140%">
-                                              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.20" />
+                                              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.20" />
                                             </filter>
                                           </defs>
                                           <rect

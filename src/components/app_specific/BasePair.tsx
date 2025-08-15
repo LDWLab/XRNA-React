@@ -1596,13 +1596,7 @@ export namespace BasePair {
   }
 
   export const MemoizedComponent = memo(
-    Component,
-    (
-      prevProps,
-      nextProps
-    ) => {
-      return prevProps.updateTrigger === nextProps.updateTrigger;
-    }
+    Component
   );
 }
 

@@ -190,7 +190,8 @@ export namespace RnaComplex {
 
   export type Props = ExternalProps & {
     nucleotideKeysToRerenderPerRnaComplex : NucleotideKeysToRerenderPerRnaComplex,
-    basePairKeysToRerenderPerRnaComplex : BasePairKeysToRerenderPerRnaComplex
+    basePairKeysToRerenderPerRnaComplex : BasePairKeysToRerenderPerRnaComplex,
+    basePairUpdateTrigger : number
   };
 
   function createKey(
@@ -212,7 +213,8 @@ export namespace RnaComplex {
       rnaMoleculeProps,
       basePairs,
       nucleotideKeysToRerenderPerRnaComplex,
-      basePairKeysToRerenderPerRnaComplex
+      basePairKeysToRerenderPerRnaComplex,
+      basePairUpdateTrigger
     } = props;
     // Begin context data.
     const index = useContext(Context.RnaComplex.Index);
@@ -303,7 +305,7 @@ export namespace RnaComplex {
         });
         return flattenedBasePairProps;
       },
-      [basePairs]
+      [basePairs, basePairUpdateTrigger]
     );
     const averageBasePairStrokeWidth = useMemo(
       function() {
@@ -328,7 +330,7 @@ export namespace RnaComplex {
     );
     const editedFlattenedBasePairProps = useMemo(
       function() {
-        let editedFlattenedBasePairProps = flattenedBasePairProps;
+        let editedFlattenedBasePairProps = [...flattenedBasePairProps];
         if (basePairDataToEditPerRnaComplex !== undefined) {
           for (const basePairDatumToDelete of basePairDataToEditPerRnaComplex.delete) {
             const {
