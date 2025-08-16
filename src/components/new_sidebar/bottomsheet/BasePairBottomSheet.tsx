@@ -4,6 +4,7 @@ import { RnaComplexProps, RnaMoleculeKey, NucleotideKey, RnaComplexKey } from '.
 import { BasePair as _BasePair } from '../../app_specific/BasePair';
 import { RnaComplex, compareBasePairKeys, insertBasePair, DuplicateBasePairKeysHandler } from '../../app_specific/RnaComplex';
 import { Context } from '../../../context/Context';
+import { Pencil, Check, Trash2, X } from 'lucide-react';
 
 export type FullKeysRecord = Record<RnaComplexKey, Record<RnaMoleculeKey, Set<NucleotideKey>>>;
 
@@ -539,14 +540,18 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
       position: 'sticky',
       top: 0,
       zIndex: 1,
-      textAlign: 'left',
-      fontSize: 11,
+      textAlign: 'center',
+      fontSize: 13,
       textTransform: 'uppercase',
       letterSpacing: 0.3,
       padding: '10px 12px',
       minWidth: width,
       maxWidth: width,
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+      background: theme.colors.surfaceHover,
+      borderBottom: `1px solid ${theme.colors.border}`,
+      borderInline: `1px solid ${theme.colors.border}`,
+      color: theme.colors.text
     };
   }
 
@@ -559,6 +564,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
       fontSize: 12,
+      textAlign: 'center',
       color: theme.colors.text
     };
   }
@@ -639,13 +645,17 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
       alignItems: 'center',
       justifyContent: 'center'
     };
-    let glyph = '✎';
-    if (kind === 'delete') glyph = '🗑';
-    if (kind === 'save') glyph = '✔';
-    if (kind === 'cancel') glyph = '✕';
+    const iconMap = {
+      edit: Pencil,
+      delete: Trash2,
+      save: Check,
+      cancel: X,
+    };
+
+    const Icon = iconMap[kind];
     return (
       <button title={title} onClick={onClick} style={base}>
-        <span style={{ fontSize: 12 }}>{glyph}</span>
+        <Icon size={16} />
       </button>
     );
   }
@@ -748,12 +758,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
 
       {/* Table and controls */}
       <div style={{ flex: 1, overflow: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '8px 12px', gap: 8 }}>
-          <button
-            onClick={() => setShowAdd(!showAdd)}
-            style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${theme.colors.border}`, background: theme.colors.background, fontSize: 12, fontWeight: 600, color: theme.colors.text }}
-          >{showAdd ? 'Cancel' : 'Add Base Pair'}</button>
-        </div>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 8 }}>
         {showAdd && (
           <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', borderTop: `1px dashed ${theme.colors.border}`, borderBottom: `1px dashed ${theme.colors.border}` }}>
             {/* Complex selector */}
@@ -842,19 +847,25 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
             <button onClick={addBasePair} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${theme.colors.border}`, background: theme.colors.background, fontSize: 12, fontWeight: 700, color: theme.colors.text }}>Add</button>
           </div>
         )}
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: theme.colors.surfaceHover, borderBottom: `1px solid ${theme.colors.border}`, color: theme.colors.text }}>
-              <th style={thStyle(120)}>Complex</th>
-              <th style={thStyle(180)}>Mol #1 (index)</th>
-              <th style={thStyle(180)}>Mol #2 (index)</th>
-              <th style={thStyle(120)}>Type</th>
-              <th style={thStyle(100)}>Orientation</th>
-              <th style={thStyle(130)}>Edge A</th>
-              <th style={thStyle(130)}>Edge B</th>
-              <th style={thStyle(70)}>Action</th>
-            </tr>
-          </thead>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${theme.colors.border}`, background: theme.colors.background, fontSize: 12, fontWeight: 600, color: theme.colors.text, marginLeft: 'auto' }}
+          >{showAdd ? 'Cancel' : 'Add Base Pair'}</button>
+        </div>
+        
+                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+           <thead>
+             <tr>
+               <th style={thStyle(120)}>Complex</th>
+               <th style={thStyle(80)}>Mol#1 (index)</th>
+               <th style={thStyle(80)}>Mol#2 (index)</th>
+               <th style={thStyle(120)}>Type</th>
+               <th style={thStyle(100)}>Orientation</th>
+               <th style={thStyle(130)}>Edge A</th>
+               <th style={thStyle(130)}>Edge B</th>
+               <th style={thStyle(90)}>Action</th>
+             </tr>
+           </thead>
           <tbody>
             {rows.map((r, i) => {
               const rowKey = `${r.rnaComplexIndex}:${r.rnaMoleculeName0}:${r.nucleotideIndex0}:${r.rnaMoleculeName1}:${r.nucleotideIndex1}`;
@@ -865,48 +876,48 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
               const efEdgeA = isEditing ? (editForm.edgeA ?? undefined) : undefined;
               const efEdgeB = isEditing ? (editForm.edgeB ?? undefined) : undefined;
               return (
-              <tr key={`${rowKey}:${i}`} style={{ borderBottom: `1px solid ${theme.colors.border}`, background: i % 2 === 0 ? theme.colors.background : theme.colors.surface }}>
-                <td style={tdStyle(120)}>{r.rnaComplexName}</td>
-                {/* Mol #1 (index) */}
-                <td style={tdStyle(180)}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {(() => {
-                      const symbol = getSymbolByFormattedIndex(r.rnaComplexIndex, r.rnaMoleculeName0, isEditing ? (editForm.formattedNucleotideIndex0 ?? r.formattedNucleotideIndex0) : r.formattedNucleotideIndex0);
-                      const initial = symbol === 'UNK' ? 'UNK' : symbol[0].toUpperCase();
-                      return <span title={`${r.rnaMoleculeName0} (${symbol})`} style={{ fontWeight: 700 }}>{initial}</span>;
-                    })()}
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        value={editForm.formattedNucleotideIndex0 ?? r.formattedNucleotideIndex0}
-                        onChange={(e) => setEditForm(f => ({ ...f, formattedNucleotideIndex0: e.target.value === '' ? undefined : parseInt(e.target.value) }))}
-                        style={inpCell()}
-                      />
-                    ) : (
-                      <span>{r.formattedNucleotideIndex0}</span>
-                    )}
-                  </div>
-                </td>
-                {/* Mol #2 (index) */}
-                <td style={tdStyle(180)}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {(() => {
-                      const symbol = getSymbolByFormattedIndex(r.rnaComplexIndex, r.rnaMoleculeName1, isEditing ? (editForm.formattedNucleotideIndex1 ?? r.formattedNucleotideIndex1) : r.formattedNucleotideIndex1);
-                      const initial = symbol === 'UNK' ? 'UNK' : symbol[0].toUpperCase();
-                      return <span title={`${r.rnaMoleculeName1} (${symbol})`} style={{ fontWeight: 700 }}>{initial}</span>;
-                    })()}
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        value={editForm.formattedNucleotideIndex1 ?? r.formattedNucleotideIndex1}
-                        onChange={(e) => setEditForm(f => ({ ...f, formattedNucleotideIndex1: e.target.value === '' ? undefined : parseInt(e.target.value) }))}
-                        style={inpCell()}
-                      />
-                    ) : (
-                      <span>{r.formattedNucleotideIndex1}</span>
-                    )}
-                  </div>
-                </td>
+                             <tr key={`${rowKey}:${i}`} style={{ borderBottom: `1px solid ${theme.colors.border}`, background: i % 2 === 0 ? theme.colors.background : theme.colors.surface }}>
+                 <td style={tdStyle(120)}>{r.rnaComplexName}</td>
+                 {/* Mol #1 (index) */}
+                 <td style={tdStyle(60)}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                     {(() => {
+                       const symbol = getSymbolByFormattedIndex(r.rnaComplexIndex, r.rnaMoleculeName0, isEditing ? (editForm.formattedNucleotideIndex0 ?? r.formattedNucleotideIndex0) : r.formattedNucleotideIndex0);
+                       const initial = symbol === 'UNK' ? 'UNK' : symbol[0].toUpperCase();
+                       return <span title={`${r.rnaMoleculeName0} (${symbol})`} style={{ fontWeight: 700 }}>{initial}</span>;
+                     })()}
+                     {isEditing ? (
+                       <input
+                         type="number"
+                         value={editForm.formattedNucleotideIndex0 ?? r.formattedNucleotideIndex0}
+                         onChange={(e) => setEditForm(f => ({ ...f, formattedNucleotideIndex0: e.target.value === '' ? undefined : parseInt(e.target.value) }))}
+                         style={inpCell()}
+                       />
+                     ) : (
+                       <span>{r.formattedNucleotideIndex0}</span>
+                     )}
+                   </div>
+                 </td>
+                 {/* Mol #2 (index) */}
+                 <td style={tdStyle(60)}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                     {(() => {
+                       const symbol = getSymbolByFormattedIndex(r.rnaComplexIndex, r.rnaMoleculeName1, isEditing ? (editForm.formattedNucleotideIndex1 ?? r.formattedNucleotideIndex1) : r.formattedNucleotideIndex1);
+                       const initial = symbol === 'UNK' ? 'UNK' : symbol[0].toUpperCase();
+                       return <span title={`${r.rnaMoleculeName1} (${symbol})`} style={{ fontWeight: 700 }}>{initial}</span>;
+                     })()}
+                     {isEditing ? (
+                       <input
+                         type="number"
+                         value={editForm.formattedNucleotideIndex1 ?? r.formattedNucleotideIndex1}
+                         onChange={(e) => setEditForm(f => ({ ...f, formattedNucleotideIndex1: e.target.value === '' ? undefined : parseInt(e.target.value) }))}
+                         style={inpCell()}
+                       />
+                     ) : (
+                       <span>{r.formattedNucleotideIndex1}</span>
+                     )}
+                   </div>
+                 </td>
                 {/* Type base */}
                 <td style={tdStyle(120)}>
                   {isEditing ? (
