@@ -4,6 +4,7 @@ import { BasePair as _BasePair } from '../../app_specific/BasePair';
 import { RnaComplex, insertBasePair, DuplicateBasePairKeysHandler, compareBasePairKeys } from '../../app_specific/RnaComplex';
 import { Context } from '../../../context/Context';
 import Color, { fromCssString as parseColorCss, HandleUndefined } from '../../../data_structures/Color';
+import { useTheme } from '../../../context/ThemeContext';
 
 type Level = 'command' | 'success' | 'error' | 'warning' | 'info';
 
@@ -28,6 +29,7 @@ export const CommandTerminal: React.FC<CommandTerminalProps> = ({ rnaComplexProp
   const setBasePairKeysToEdit = useContext(Context.BasePair.SetKeysToEdit);
   const setNucleotideKeysToRerender = useContext(Context.Nucleotide.SetKeysToRerender);
   const pushToUndoStack = useContext(Context.App.PushToUndoStack);
+  const { theme } = useTheme();
 
   const commandNames = useMemo(() => ['add', 'delete', 'edit', 'reformat', 'color'], []);
 
@@ -565,32 +567,32 @@ export const CommandTerminal: React.FC<CommandTerminalProps> = ({ rnaComplexProp
         right: 0,
         bottom: 0,
         height: 260,
-        background: '#0b1220',
-        color: '#e2e8f0',
+        background: theme.colors.surface,
+        color: theme.colors.text,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-        borderTop: '1px solid #1f2937',
-        boxShadow: '0 -8px 24px rgba(0,0,0,0.35)',
+        borderTop: `1px solid ${theme.colors.border}`,
+        boxShadow: theme.shadows.lg,
         zIndex: 2500,
         display: 'flex',
         flexDirection: 'column'
       }}
       onClick={() => inputRef.current?.focus()}
     >
-      <div style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1f2937' }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: '#93c5fd' }}>XRNA Terminal</div>
-        <div style={{ fontSize: 11, color: '#94a3b8' }}>Press ~ to hide</div>
+      <div style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${theme.colors.border}` }}>
+        <div style={{ fontWeight: 700, fontSize: 12, color: theme.colors.primary }}>XRNA Terminal</div>
+        <div style={{ fontSize: 11, color: theme.colors.textSecondary }}>Press ~ to hide</div>
       </div>
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
         {history.map((h, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', whiteSpace: 'pre-wrap' }}>
-            <span style={{ color: '#64748b', fontSize: 11 }}>[{tsFrom(h.ts)}]</span>
+            <span style={{ color: theme.colors.textSecondary, fontSize: 11 }}>[{tsFrom(h.ts)}]</span>
             <span style={{ color: colorFor(h.level) }}>{h.text}</span>
           </div>
         ))}
       </div>
-      <div style={{ padding: '8px 10px', borderTop: '1px solid #1f2937' }}>
+      <div style={{ padding: '8px 10px', borderTop: `1px solid ${theme.colors.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#38bdf8' }}>&gt;</span>
+          <span style={{ color: theme.colors.primary }}>&gt;</span>
           <input
             ref={inputRef}
             value={input}
@@ -601,7 +603,7 @@ export const CommandTerminal: React.FC<CommandTerminalProps> = ({ rnaComplexProp
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: '#e2e8f0',
+              color: theme.colors.text,
               fontFamily: 'inherit',
               fontSize: 13
             }}
@@ -613,16 +615,16 @@ export const CommandTerminal: React.FC<CommandTerminalProps> = ({ rnaComplexProp
             {hintItems.length > 0 && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: signatureDoc ? 6 : 0 }}>
                 {hintItems.map(h => (
-                  <span key={h} style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 6, padding: '2px 6px', fontSize: 11, color: '#a5b4fc' }}>{h}</span>
+                  <span key={h} style={{ background: theme.colors.surfaceHover, border: `1px solid ${theme.colors.border}`, borderRadius: 6, padding: '2px 6px', fontSize: 11, color: theme.colors.textSecondary }}>{h}</span>
                 ))}
               </div>
             )}
             {signatureDoc && (
-              <div style={{ background: '#0f172a', border: '1px solid #1f2937', borderRadius: 6, padding: '6px 8px' }}>
-                <div style={{ fontSize: 11, color: '#e2e8f0', marginBottom: 4 }}>{signatureDoc.signature}</div>
+              <div style={{ background: theme.colors.backgroundSecondary, border: `1px solid ${theme.colors.border}`, borderRadius: 6, padding: '6px 8px' }}>
+                <div style={{ fontSize: 11, color: theme.colors.text, marginBottom: 4 }}>{signatureDoc.signature}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 2 }}>
                   {signatureDoc.lines.map((ln, i) => (
-                    <div key={i} style={{ fontSize: 11, color: '#94a3b8' }}>- {ln}</div>
+                    <div key={i} style={{ fontSize: 11, color: theme.colors.textSecondary }}>- {ln}</div>
                   ))}
                 </div>
               </div>
@@ -639,11 +641,11 @@ export const CommandTerminal: React.FC<CommandTerminalProps> = ({ rnaComplexProp
   }
   function colorFor(level: Level): string {
     switch (level) {
-      case 'command': return '#93c5fd';
-      case 'error': return '#fca5a5';
-      case 'warning': return '#fbbf24';
-      case 'success': return '#86efac';
-      default: return '#e2e8f0';
+      case 'command': return theme.colors.primary;
+      case 'error': return theme.colors.error;
+      case 'warning': return theme.colors.warning;
+      case 'success': return theme.colors.success;
+      default: return theme.colors.text;
     }
   }
 };

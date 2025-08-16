@@ -1,6 +1,7 @@
 import React from "react";
 import { PanelContainer } from "../layout/PanelContainer";
 import { Settings, Info, TableProperties, Cable } from "lucide-react";
+import { useTheme } from '../../../context/ThemeContext';
 
 export type QuickActionsCallbacks = {
   onToggleBasePairEditor?: () => void;
@@ -16,10 +17,9 @@ export const CompactButton: React.FC<{
   disabled?: boolean;
   variant?: "primary" | "secondary";
 }> = ({ onClick, icon, label, disabled = false, variant = "secondary" }) => {
+  const { theme } = useTheme();
   const [isHovered, setIsHovered] = React.useState(false);
   const [isPressed, setIsPressed] = React.useState(false);
-
-  const isPrimary = variant === "primary";
 
   return (
     <button
@@ -33,8 +33,7 @@ export const CompactButton: React.FC<{
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        gap: "4px",
+        gap: 4,
         padding: "8px 6px",
         border: "none",
         borderRadius: "6px",
@@ -46,28 +45,28 @@ export const CompactButton: React.FC<{
         flex: 1,
         minWidth: "0",
         background: disabled
-          ? "#f1f5f9"
-          : isPrimary
+          ? theme.colors.surfaceHover
+          : variant === "primary"
           ? isPressed
-            ? "#2563eb"
+            ? theme.colors.primary
             : isHovered
-            ? "#3b82f6"
-            : "#4f46e5"
+            ? theme.colors.primaryHover
+            : theme.colors.primary
           : isPressed
-          ? "#e2e8f0"
+          ? theme.colors.surfaceHover
           : isHovered
-          ? "#f1f5f9"
-          : "#ffffff",
-        color: disabled ? "#94a3b8" : isPrimary ? "#ffffff" : "#475569",
+          ? theme.colors.surfaceHover
+          : theme.colors.background,
+        color: disabled ? theme.colors.textMuted : variant === "primary" ? theme.colors.textInverse : theme.colors.text,
         boxShadow: disabled
           ? "none"
-          : isPrimary
+          : variant === "primary"
           ? isPressed
-            ? "0 1px 3px rgba(79, 70, 229, 0.3)"
-            : "0 2px 6px rgba(79, 70, 229, 0.2)"
+            ? theme.shadows.sm
+            : theme.shadows.md
           : isPressed
-          ? "0 1px 2px rgba(0, 0, 0, 0.1)"
-          : "0 1px 3px rgba(0, 0, 0, 0.08)",
+          ? theme.shadows.sm
+          : theme.shadows.sm,
         transform: disabled
           ? "none"
           : isPressed
@@ -110,6 +109,7 @@ export const QuickActionsPanel: React.FC<QuickActionsCallbacks> = ({
   onToggleSettingsDrawer,
   onToggleAboutDrawer,
 }) => {
+  const { theme } = useTheme();
   return (
     <PanelContainer title="Utilities" borderRadius={8}>
       {(onToggleBasePairEditor || onTogglePropertiesDrawer) && (
@@ -118,7 +118,7 @@ export const QuickActionsPanel: React.FC<QuickActionsCallbacks> = ({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "#334155",
+              color: theme.colors.text,
               marginBottom: 6,
               textTransform: "uppercase",
               letterSpacing: "0.5px",
@@ -150,7 +150,7 @@ export const QuickActionsPanel: React.FC<QuickActionsCallbacks> = ({
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "#334155",
+              color: theme.colors.text,
               marginBottom: 6,
               textTransform: "uppercase",
               letterSpacing: "0.5px",

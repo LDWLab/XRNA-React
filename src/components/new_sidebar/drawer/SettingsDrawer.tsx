@@ -1,7 +1,9 @@
 import React, { useMemo, useRef } from 'react';
+import { useTheme } from '../../../context/ThemeContext';
 import { PanelContainer } from '../layout/PanelContainer';
 import { settings as allSettings, settingsLongDescriptionsMap, settingsShortDescriptionsMap, settingsTypeMap, type SettingsRecord, Setting, isSetting } from '../../../ui/Setting';
 import InputWithValidator from '../../generic/InputWithValidator';
+import { Upload, Download, X } from 'lucide-react';
 
 export interface SettingsDrawerProps {
   open: boolean;
@@ -12,6 +14,7 @@ export interface SettingsDrawerProps {
 }
 
 export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, settings, setSettings, getDistanceDefaults }) => {
+  const { theme, isDarkMode } = useTheme();
   const uploadInputRef = useRef<HTMLInputElement>(null);
   const downloadAnchorRef = useRef<HTMLAnchorElement>(null);
 
@@ -39,57 +42,142 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
         top: 0,
         right: 0,
         height: '100%',
-        width: '560px',
-        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-        boxShadow: '-4px 0 20px rgba(0,0,0,0.08)',
+        width: '600px',
+        background: theme.colors.background,
+        boxShadow: theme.shadows.xl,
         transform: open ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+        transition: theme.transitions.default,
         zIndex: 2000,
         display: 'flex',
         flexDirection: 'column',
-        borderLeft: '1px solid #e2e8f0',
+        borderLeft: `2px solid ${theme.colors.border}`,
       }}
     >
+      {/* Header */}
       <div
         style={{
-          padding: '16px 20px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          padding: '24px 28px 20px 28px',
+          borderBottom: `1px solid ${theme.colors.borderLight}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+          background: theme.colors.surface,
           flexShrink: 0,
           position: 'relative',
         }}
       >
-        <div
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: '#3b82f6' }}
-        />
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#ffffff' }}>
-            Settings
-          </span>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            background: `linear-gradient(135deg, ${theme.colors.primary}20, ${theme.colors.accent}20)`,
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: theme.colors.primary,
+            border: `1px solid ${theme.colors.primary}30`,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73v.18a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <h2 style={{ 
+              fontSize: '20px', 
+              fontWeight: '700', 
+              color: theme.colors.text,
+              margin: '0 0 4px 0',
+              letterSpacing: '-0.02em',
+            }}>
+              Settings
+            </h2>
+            <p style={{ 
+              fontSize: '14px', 
+              color: theme.colors.textWeak || theme.colors.textSecondary,
+              margin: 0,
+              lineHeight: '1.4',
+            }}>
+              Configure your application preferences and behavior
+            </p>
+          </div>
         </div>
+        
         <button
           onClick={onClose}
           style={{
-            border: 'none', background: 'rgba(255, 255, 255, 0.1)', cursor: 'pointer', fontSize: '14px', color: '#ffffff',
-            padding: '6px 8px', borderRadius: '6px', width: '28px', height: '28px'
+            border: `1px solid ${theme.colors.border}`,
+            background: theme.colors.surface,
+            cursor: 'pointer',
+            fontSize: '14px',
+            color: theme.colors.textSecondary,
+            padding: '10px',
+            borderRadius: '10px',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: theme.transitions.default,
+            boxShadow: theme.shadows.sm,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = theme.colors.surfaceHover;
+            e.currentTarget.style.borderColor = theme.colors.borderDark;
+            e.currentTarget.style.color = theme.colors.text;
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = theme.colors.surface;
+            e.currentTarget.style.borderColor = theme.colors.border;
+            e.currentTarget.style.color = theme.colors.textSecondary;
+            e.currentTarget.style.transform = 'scale(1)';
           }}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
+          <X size={18} />
         </button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-        <PanelContainer title="Import/Export" borderRadius={8}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button onClick={onUpload} style={buttonStyle()}>
+      {/* Content */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '28px', background: theme.colors.backgroundSecondary }}>
+        {/* Import/Export Section */}
+        <PanelContainer title="Import/Export" borderRadius={12}>
+          <div style={{ 
+            display: 'flex', 
+            gap: '16px', 
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}>
+            <button 
+              onClick={onUpload} 
+              style={{
+                ...buttonStyle(theme),
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 18px',
+                fontSize: '14px',
+                fontWeight: '600',
+              }}
+            >
+              <Upload size={16} />
               Upload JSON
             </button>
-            <button onClick={onDownload} style={primaryButtonStyle()}>
+            <button 
+              onClick={onDownload} 
+              style={{
+                ...primaryButtonStyle(theme),
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '12px 18px',
+                fontSize: '14px',
+                fontWeight: '600',
+              }}
+            >
+              <Download size={16} />
               Download JSON
             </button>
             <input
@@ -125,30 +213,46 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
           </div>
         </PanelContainer>
 
-        <div style={{ height: 12 }} />
+        <div style={{ height: '24px' }} />
 
-        <PanelContainer title="Preferences" borderRadius={8}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 10, columnGap: 10 }}>
+        {/* Preferences Section */}
+        <PanelContainer title="Preferences" borderRadius={12}>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr auto', 
+            rowGap: '20px', 
+            columnGap: '24px',
+            alignItems: 'center',
+          }}>
             {allSettings.map((setting, index) => {
               let input: JSX.Element = <></>;
               switch (settingsTypeMap[setting]) {
                 case 'boolean': {
                   input = (
-                    <input
-                      type="checkbox"
-                      checked={settings[setting] as boolean}
-                      onChange={() => setSettings({ ...settings, [setting]: !settings[setting] })}
-                      style={{ width: 16, height: 16 }}
-                    />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={settings[setting] as boolean}
+                        onChange={() => setSettings({ ...settings, [setting]: !settings[setting] })}
+                        style={{ 
+                          width: '20px', 
+                          height: '20px',
+                          accentColor: theme.colors.primary,
+                          cursor: 'pointer',
+                        }}
+                      />
+                    </div>
                   );
                   break;
                 }
                 case 'number': {
                   input = (
-                    <InputWithValidator.Number
-                      value={settings[setting] as number}
-                      setValue={(v: number) => setSettings({ ...settings, [setting]: v })}
-                    />
+                    <div style={{ minWidth: '140px' }}>
+                      <InputWithValidator.Number
+                        value={settings[setting] as number}
+                        setValue={(v: number) => setSettings({ ...settings, [setting]: v })}
+                      />
+                    </div>
                   );
                   break;
                 }
@@ -156,10 +260,12 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
                   // lazy import to avoid circular
                   const { BasePairsEditor } = require('../../app_specific/editors/BasePairsEditor');
                   input = (
-                    <BasePairsEditor.EditorTypeSelector.Component
-                      editorType={settings[setting]}
-                      onChange={(t: any) => setSettings({ ...settings, [setting]: t })}
-                    />
+                    <div style={{ minWidth: '160px' }}>
+                      <BasePairsEditor.EditorTypeSelector.Component
+                        editorType={settings[setting]}
+                        onChange={(t: any) => setSettings({ ...settings, [setting]: t })}
+                      />
+                    </div>
                   );
                   break;
                 }
@@ -168,9 +274,32 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
               }
               return (
                 <React.Fragment key={index}>
-                  <label title={settingsLongDescriptionsMap[setting]} style={{ color: '#334155', fontSize: 13, lineHeight: 1.2 }}>
-                    {settingsShortDescriptionsMap[setting]}
-                  </label>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}>
+                    <label 
+                      title={settingsLongDescriptionsMap[setting]} 
+                      style={{ 
+                        color: theme.colors.textStrong || theme.colors.text, 
+                        fontSize: '15px', 
+                        fontWeight: '600',
+                        lineHeight: '1.4',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {settingsShortDescriptionsMap[setting]}
+                    </label>
+                    <div style={{
+                      fontSize: '13px',
+                      color: theme.colors.textWeak || theme.colors.textSecondary,
+                      lineHeight: '1.4',
+                      maxWidth: '400px',
+                    }}>
+                      {settingsLongDescriptionsMap[setting]}
+                    </div>
+                  </div>
                   <div>{input}</div>
                 </React.Fragment>
               );
@@ -182,25 +311,32 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
   );
 };
 
-function buttonStyle(): React.CSSProperties {
+function buttonStyle(theme: ReturnType<typeof useTheme>['theme']): React.CSSProperties {
   return {
-    padding: '8px 12px',
-    borderRadius: 8,
-    border: '1px solid #e2e8f0',
-    background: '#ffffff',
-    color: '#334155',
+    padding: '10px 16px',
+    borderRadius: '10px',
+    border: `1px solid ${theme.colors.border}`,
+    background: theme.colors.surface,
+    color: theme.colors.textStrong || theme.colors.text,
     cursor: 'pointer',
-    fontSize: 12,
-    fontWeight: 600,
+    fontSize: '13px',
+    fontWeight: '500',
+    transition: theme.transitions.default,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    boxShadow: theme.shadows.sm,
   };
 }
 
-function primaryButtonStyle(): React.CSSProperties {
+function primaryButtonStyle(theme: ReturnType<typeof useTheme>['theme']): React.CSSProperties {
   return {
-    ...buttonStyle(),
-    background: '#4f46e5',
-    color: '#ffffff',
-    border: '1px solid #4338ca',
+    ...buttonStyle(theme),
+    background: theme.colors.primary,
+    color: theme.colors.textInverse,
+    border: `1px solid ${theme.colors.primary}`,
+    fontWeight: '600',
+    boxShadow: theme.shadows.md,
   };
 }
 

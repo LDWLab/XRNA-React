@@ -1,5 +1,6 @@
 import React from 'react';
 import { PanelContainer } from '../layout/PanelContainer';
+import { useTheme } from '../../../context/ThemeContext';
 
 export interface ElementInfo {
   type: 'nucleotide' | 'basepair' | 'label' | 'unknown';
@@ -46,378 +47,411 @@ const InfoRow: React.FC<{ label: string; value: string | number | React.ReactNod
   label, 
   value, 
   highlight = false 
-}) => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '8px 12px',
-    background: highlight ? 'rgba(79, 70, 229, 0.05)' : 'transparent',
-    borderRadius: '6px',
-    borderLeft: highlight ? '3px solid #4f46e5' : 'none',
-    marginLeft: highlight ? '0' : '3px',
-    transition: 'all 0.2s ease',
-  }}>
-    <span style={{
-      fontSize: '11px',
-      fontWeight: '600',
-      color: '#64748b',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
-    }}>
-      {label}
-    </span>
-    <span style={{
-      fontSize: '12px',
-      fontWeight: highlight ? '600' : '500',
-      color: highlight ? '#4f46e5' : '#475569',
-      fontFamily: typeof value === 'number' ? 'monospace' : 'inherit',
-    }}>
-      {value}
-    </span>
-  </div>
-);
-
-const NucleotideDisplay: React.FC<{ elementInfo: ElementInfo }> = ({ elementInfo }) => (
-  <div style={{
-    border: '1px solid #e2e8f0',
-    borderRadius: '16px',
-    padding: '20px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-    position: 'relative',
-    overflow: 'hidden',
-  }}>
-    
-    
-    {/* Main content */}
+}) => {
+  const { theme } = useTheme();
+  return (
     <div style={{
       display: 'flex',
-      alignItems: 'flex-start',
-      gap: '16px',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '8px 12px',
+      background: highlight ? theme.colors.primary + '10' : 'transparent',
+      borderRadius: '6px',
+      borderLeft: highlight ? `3px solid ${theme.colors.primary}` : 'none',
+      marginLeft: highlight ? '0' : '3px',
+      transition: 'all 0.2s ease',
     }}>
-      {/* Nucleotide symbol */}
-      <div style={{
-        width: '48px',
-        height: '48px',
-        borderRadius: '50%',
-        background: '#059669',
-        color: 'white',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '20px',
-        fontWeight: '700',
-        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-        flexShrink: 0,
+      <span style={{
+        fontSize: '11px',
+        fontWeight: '600',
+        color: theme.colors.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
       }}>
-        {elementInfo.nucleotideSymbol}
-      </div>
-      
-      {/* Information text */}
-      <div style={{
-        flex: 1,
-        lineHeight: '1.6',
+        {label}
+      </span>
+      <span style={{
+        fontSize: '12px',
+        fontWeight: highlight ? '600' : '500',
+        color: highlight ? theme.colors.primary : theme.colors.text,
+        fontFamily: typeof value === 'number' ? 'monospace' : 'inherit',
       }}>
-        <div style={{
-          fontSize: '16px',
-          fontWeight: '600',
-          color: '#1f2937',
-          marginBottom: '8px',
-        }}>
-          Nucleotide #{elementInfo.nucleotideIndex} ({elementInfo.nucleotideSymbol})
-        </div>
-        <div style={{
-          fontSize: '14px',
-          color: '#6b7280',
-          fontWeight: '500',
-        }}>
-          in RNA molecule <span style={{ color: '#059669', fontWeight: '600' }}>"{elementInfo.moleculeName}"</span>
-        </div>
-        <div style={{
-          fontSize: '14px',
-          color: '#6b7280',
-          fontWeight: '500',
-        }}>
-          in RNA complex <span style={{ color: '#059669', fontWeight: '600' }}>"{elementInfo.complexName}"</span>
-        </div>
-        
-        {/* Base pair information */}
-        {elementInfo.basePairPartner && (
-          <div style={{
-            marginTop: '12px',
-            padding: '12px',
-            background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-            borderRadius: '8px',
-            border: '1px solid #f59e0b',
-          }}>
-            <div style={{
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#92400e',
-              marginBottom: '4px',
-            }}>
-              Base paired to:
-            </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#1f2937',
-              fontWeight: '500',
-            }}>
-              Nucleotide #{elementInfo.basePairPartner.nucleotideIndex} ({elementInfo.basePairPartner.nucleotideSymbol})
-            </div>
-            <div style={{
-              fontSize: '12px',
-              color: '#92400e',
-              fontWeight: '500',
-            }}>
-              Type: {elementInfo.basePairType}
-            </div>
-          </div>
-        )}
-        
-        {/* Structure information */}
-        {elementInfo.structureInfo && elementInfo.structureInfo.type !== 'unknown' && (
-          <div style={{
-            marginTop: '12px',
-            padding: '12px',
-            background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-            borderRadius: '8px',
-            border: '1px solid #6366f1',
-          }}>
-            <div style={{
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#4338ca',
-              marginBottom: '4px',
-            }}>
-              Part of {elementInfo.structureInfo.type.replace('_', ' ')}:
-            </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#1f2937',
-              fontWeight: '500',
-            }}>
-              Positions {elementInfo.structureInfo.range?.start}-{elementInfo.structureInfo.range?.end}
-            </div>
-            {elementInfo.structureInfo.helixInfo && (
-              <div style={{
-                fontSize: '12px',
-                color: '#4338ca',
-                fontWeight: '500',
-                marginTop: '4px',
-              }}>
-                Length: {elementInfo.structureInfo.helixInfo.length} bp
-                {elementInfo.structureInfo.helixInfo.gcContent !== undefined && 
-                  ` • GC: ${elementInfo.structureInfo.helixInfo.gcContent}%`
-                }
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+        {value}
+      </span>
     </div>
-  </div>
-);
+  );
+};
 
-const BasePairDisplay: React.FC<{ elementInfo: ElementInfo }> = ({ elementInfo }) => (
-  <div style={{
-    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-    border: '1px solid #e2e8f0',
-    borderRadius: '16px',
-    padding: '20px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-    position: 'relative',
-    overflow: 'hidden',
-  }}>
-    {/* Decorative accent */}
+const NucleotideDisplay: React.FC<{ elementInfo: ElementInfo }> = ({ elementInfo }) => {
+  const { theme } = useTheme();
+  return (
     <div style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: '4px',
-      background: 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',
-    }} />
-    
-    {/* Main content */}
-    <div style={{
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '16px',
+      border: `1px solid ${theme.colors.border}`,
+      borderRadius: '16px',
+      padding: '20px',
+      boxShadow: theme.shadows.md,
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      {/* Base pair icon
+      {/* Main content */}
       <div style={{
-        width: '48px',
-        height: '48px',
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-        color: 'white',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '20px',
-        fontWeight: '700',
-        boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
-        flexShrink: 0,
+        alignItems: 'flex-start',
+        gap: '16px',
       }}>
-        🔗
-      </div> */}
-      
-      {/* Information text */}
-      <div style={{
-        flex: 1,
-        lineHeight: '1.6',
-      }}>
+        {/* Nucleotide symbol */}
         <div style={{
-          fontSize: '16px',
-          fontWeight: '600',
-          color: '#1f2937',
-          marginBottom: '8px',
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          background: theme.colors.warning + '20',
+          border: `2px solid ${theme.colors.warning}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '18px',
+          fontWeight: '700',
+          color: theme.colors.warning,
+          flexShrink: 0,
         }}>
-          Base pair between:
-        </div>
-        <div style={{
-          fontSize: '14px',
-          color: '#6b7280',
-          fontWeight: '500',
-          marginBottom: '4px',
-        }}>
-          Nucleotide #{elementInfo.nucleotideIndex} ({elementInfo.nucleotideSymbol})
-        </div>
-        <div style={{
-          fontSize: '14px',
-          color: '#6b7280',
-          fontWeight: '500',
-          marginBottom: '12px',
-        }}>
-          and Nucleotide #{elementInfo.basePairPartner?.nucleotideIndex} ({elementInfo.basePairPartner?.nucleotideSymbol})
-        </div>
-        <div style={{
-          fontSize: '14px',
-          color: '#6b7280',
-          fontWeight: '500',
-        }}>
-          in RNA molecule <span style={{ color: '#d97706', fontWeight: '600' }}>"{elementInfo.moleculeName}"</span>
-        </div>
-        <div style={{
-          fontSize: '14px',
-          color: '#6b7280',
-          fontWeight: '500',
-        }}>
-          in RNA complex <span style={{ color: '#d97706', fontWeight: '600' }}>"{elementInfo.complexName}"</span>
+          {elementInfo.nucleotideSymbol || 'N'}
         </div>
         
-        {/* Base pair type */}
+        {/* Information text */}
         <div style={{
-          marginTop: '12px',
-          padding: '8px 12px',
-          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-          borderRadius: '6px',
-          border: '1px solid #f59e0b',
-          display: 'inline-block',
+          flex: 1,
+          lineHeight: '1.6',
         }}>
-          <span style={{
-            fontSize: '12px',
-            color: '#92400e',
+          <div style={{
+            fontSize: '16px',
             fontWeight: '600',
+            color: theme.colors.text,
+            marginBottom: '8px',
           }}>
-            Type: {elementInfo.basePairType}
-          </span>
-        </div>
-        
-        {/* Structure information */}
-        {elementInfo.structureInfo && elementInfo.structureInfo.type !== 'unknown' && (
+            Nucleotide #{elementInfo.nucleotideIndex} ({elementInfo.nucleotideSymbol})
+          </div>
           <div style={{
-            marginTop: '12px',
-            padding: '12px',
-            background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-            borderRadius: '8px',
-            border: '1px solid #6366f1',
+            fontSize: '14px',
+            color: theme.colors.textSecondary,
+            fontWeight: '500',
           }}>
+            in RNA molecule <span style={{ color: theme.colors.warning, fontWeight: '600' }}>"{elementInfo.moleculeName}"</span>
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: theme.colors.textSecondary,
+            fontWeight: '500',
+          }}>
+            in RNA complex <span style={{ color: theme.colors.warning, fontWeight: '600' }}>"{elementInfo.complexName}"</span>
+          </div>
+          
+          {/* Base pair information */}
+          {elementInfo.basePairPartner && (
             <div style={{
-              fontSize: '13px',
-              fontWeight: '600',
-              color: '#4338ca',
-              marginBottom: '4px',
+              marginTop: '12px',
+              padding: '12px',
+              background: theme.colors.warning + '20',
+              borderRadius: '8px',
+              border: `1px solid ${theme.colors.warning}`,
             }}>
-              Part of {elementInfo.structureInfo.type.replace('_', ' ')}:
-            </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#1f2937',
-              fontWeight: '500',
-            }}>
-              Positions {elementInfo.structureInfo.range?.start}-{elementInfo.structureInfo.range?.end}
-            </div>
-            {elementInfo.structureInfo.helixInfo && (
+              <div style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: theme.colors.warning,
+                marginBottom: '4px',
+              }}>
+                Base paired to:
+              </div>
+              <div style={{
+                fontSize: '14px',
+                color: theme.colors.text,
+                fontWeight: '500',
+              }}>
+                Nucleotide #{elementInfo.basePairPartner.nucleotideIndex} ({elementInfo.basePairPartner.nucleotideSymbol})
+              </div>
               <div style={{
                 fontSize: '12px',
-                color: '#4338ca',
+                color: theme.colors.warning,
                 fontWeight: '500',
-                marginTop: '4px',
               }}>
-                Length: {elementInfo.structureInfo.helixInfo.length} bp
-                {elementInfo.structureInfo.helixInfo.gcContent !== undefined && 
-                  ` • GC: ${elementInfo.structureInfo.helixInfo.gcContent}%`
-                }
+                Type: {elementInfo.basePairType}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+          
+          {/* Structure information */}
+          {elementInfo.structureInfo && elementInfo.structureInfo.type !== 'unknown' && (
+            <div style={{
+              marginTop: '12px',
+              padding: '12px',
+              background: theme.colors.primary + '20',
+              borderRadius: '8px',
+              border: `1px solid ${theme.colors.primary}`,
+            }}>
+              <div style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: theme.colors.primary,
+                marginBottom: '4px',
+              }}>
+                Part of {elementInfo.structureInfo.type.replace('_', ' ')}:
+              </div>
+              <div style={{
+                fontSize: '14px',
+                color: theme.colors.text,
+                fontWeight: '500',
+              }}>
+                Positions {elementInfo.structureInfo.range?.start}-{elementInfo.structureInfo.range?.end}
+              </div>
+              {elementInfo.structureInfo.helixInfo && (
+                <div style={{
+                  fontSize: '12px',
+                  color: theme.colors.primary,
+                  fontWeight: '500',
+                  marginTop: '4px',
+                }}>
+                  Length: {elementInfo.structureInfo.helixInfo.length} bp
+                  {elementInfo.structureInfo.helixInfo.gcContent !== undefined && 
+                    ` • GC: ${elementInfo.structureInfo.helixInfo.gcContent}%`
+                  }
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
+
+const BasePairDisplay: React.FC<{ elementInfo: ElementInfo }> = ({ elementInfo }) => {
+  const { theme } = useTheme();
+  return (
+    <div style={{
+      background: theme.colors.surface,
+      border: `1px solid ${theme.colors.border}`,
+      borderRadius: '16px',
+      padding: '20px',
+      boxShadow: theme.shadows.md,
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Decorative accent */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '4px',
+        background: theme.colors.warning,
+      }} />
+      
+      {/* Main content */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '16px',
+      }}>
+        {/* Base pair icon */}
+        <div style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          background: theme.colors.warning + '20',
+          border: `2px solid ${theme.colors.warning}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '18px',
+          fontWeight: '700',
+          color: theme.colors.warning,
+          flexShrink: 0,
+        }}>
+          BP
+        </div>
+        
+        {/* Information text */}
+        <div style={{
+          flex: 1,
+          lineHeight: '1.6',
+        }}>
+          <div style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: theme.colors.text,
+            marginBottom: '8px',
+          }}>
+            Base Pair #{elementInfo.nucleotideIndex} ↔ #{elementInfo.basePairPartner?.nucleotideIndex}
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: theme.colors.textSecondary,
+            fontWeight: '500',
+            marginBottom: '4px',
+          }}>
+            Type: <span style={{ color: theme.colors.warning, fontWeight: '600' }}>{elementInfo.basePairType}</span>
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: theme.colors.textSecondary,
+            fontWeight: '500',
+            marginBottom: '12px',
+          }}>
+            Between molecules: <span style={{ color: theme.colors.warning, fontWeight: '600' }}>"{elementInfo.moleculeName}"</span> and <span style={{ color: theme.colors.warning, fontWeight: '600' }}>"{elementInfo.basePairPartner?.rnaMoleculeName}"</span>
+          </div>
+          
+          {/* Position information */}
+          {elementInfo.position && (
+            <div style={{
+              fontSize: '14px',
+              color: theme.colors.textSecondary,
+              fontWeight: '500',
+            }}>
+              Position: ({elementInfo.position.x.toFixed(1)}, {elementInfo.position.y.toFixed(1)})
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const LabelDisplay: React.FC<{ elementInfo: ElementInfo }> = ({ elementInfo }) => {
+  const { theme } = useTheme();
+  return (
+    <div style={{
+      background: theme.colors.surface,
+      border: `1px solid ${theme.colors.border}`,
+      borderRadius: '16px',
+      padding: '20px',
+      boxShadow: theme.shadows.md,
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Decorative accent */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '4px',
+        background: theme.colors.primary,
+      }} />
+      
+      {/* Main content */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: '16px',
+      }}>
+        {/* Label icon */}
+        <div style={{
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          background: theme.colors.primary + '20',
+          border: `2px solid ${theme.colors.primary}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '18px',
+          fontWeight: '700',
+          color: theme.colors.primary,
+          flexShrink: 0,
+        }}>
+          L
+        </div>
+        
+        {/* Information text */}
+        <div style={{
+          flex: 1,
+          lineHeight: '1.6',
+        }}>
+          <div style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: theme.colors.text,
+            marginBottom: '8px',
+          }}>
+            Label
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: theme.colors.textSecondary,
+            fontWeight: '500',
+          }}>
+            Content: <span style={{ color: theme.colors.primary, fontWeight: '600' }}>"{elementInfo.labelContent}"</span>
+          </div>
+          
+          {/* Position information */}
+          {elementInfo.position && (
+            <div style={{
+              fontSize: '14px',
+              color: theme.colors.textSecondary,
+              fontWeight: '500',
+              marginTop: '8px',
+            }}>
+              Position: ({elementInfo.position.x.toFixed(1)}, {elementInfo.position.y.toFixed(1)})
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const InformationPanel: React.FC<InformationPanelProps> = ({ elementInfo }) => {
+  const { theme } = useTheme();
   if (!elementInfo) {
     return (
       <PanelContainer title="Information">
         <div style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-          border: '1px solid #e2e8f0',
+          background: theme.colors.surface,
+          border: `1px solid ${theme.colors.border}`,
           borderRadius: '16px',
           padding: '20px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          boxShadow: theme.shadows.md,
           position: 'relative',
           overflow: 'hidden',
         }}>
-          {/* Decorative accent */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '4px',
-            background: 'linear-gradient(90deg, #6b7280 0%, #4b5563 100%)',
-          }} />
-          
-          {/* Main content */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '16px',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            textAlign: 'center',
+            padding: '40px 20px',
           }}>
-            
             <div style={{
-              flex: 1,
-              lineHeight: '1.6',
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: theme.colors.surfaceHover,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '16px',
+              boxShadow: theme.shadows.sm,
             }}>
-              <div style={{
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#1f2937',
-                marginBottom: '8px',
-              }}>
-                No Element Selected
-              </div>
-              <div style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                fontWeight: '500',
-              }}>
-                Right-click on any nucleotide or base pair to view detailed information
-              </div>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
+            <div style={{
+              fontSize: '16px',
+              fontWeight: '600',
+              color: theme.colors.text,
+              marginBottom: '8px',
+            }}>
+              No Selection
+            </div>
+            <div style={{
+              fontSize: '14px',
+              color: theme.colors.textSecondary,
+              fontWeight: '500',
+            }}>
+              Select an element to view its information
             </div>
           </div>
         </div>
@@ -428,54 +462,46 @@ export const InformationPanel: React.FC<InformationPanelProps> = ({ elementInfo 
   return (
     <PanelContainer title="Information">
       <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
+        background: theme.colors.surface,
+        border: `1px solid ${theme.colors.border}`,
+        borderRadius: '8px',
+        padding: '16px',
+        boxShadow: theme.shadows.sm,
+        textAlign: 'center',
+        color: theme.colors.textSecondary,
       }}>
-        {/* Element Type Badge */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '8px',
+          fontSize: '14px',
+          fontWeight: '600',
+          color: theme.colors.text,
         }}>
-  
+          "{elementInfo.labelContent}"
         </div>
-        <NucleotideDisplay elementInfo={elementInfo} />
-        {/* Dynamic Content Based on Element Type */}
-        {/* {elementInfo.type === 'nucleotide' && <NucleotideDisplay elementInfo={elementInfo} />}
-        {elementInfo.type === 'basepair' && <BasePairDisplay elementInfo={elementInfo} />} */}
-        
-        {/* Fallback for other types */}
-        {!['nucleotide', 'basepair'].includes(elementInfo.type) && (
-          <div style={{
-            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            padding: '16px',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-            textAlign: 'center',
-            color: '#64748b',
-          }}>
-            <div style={{
-              fontSize: '12px',
-              fontWeight: '500',
-              marginBottom: '4px',
-            }}>
-              {elementInfo.type === 'label' ? 'Label Element' : 'Unknown Element'}
-            </div>
-            {elementInfo.labelContent && (
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-              }}>
-                "{elementInfo.labelContent}"
-              </div>
-            )}
-          </div>
-        )}
       </div>
+      
+      {/* Element-specific display */}
+      {elementInfo.type === 'nucleotide' && <NucleotideDisplay elementInfo={elementInfo} />}
+      {elementInfo.type === 'basepair' && <BasePairDisplay elementInfo={elementInfo} />}
+      {elementInfo.type === 'label' && <LabelDisplay elementInfo={elementInfo} />}
+      
+      {/* Additional information */}
+      {elementInfo.additionalInfo && Object.keys(elementInfo.additionalInfo).length > 0 && (
+        <div style={{ marginTop: '16px' }}>
+          <div style={{
+            fontSize: '12px',
+            fontWeight: '600',
+            color: theme.colors.textSecondary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: '8px',
+          }}>
+            Additional Properties
+          </div>
+          {Object.entries(elementInfo.additionalInfo).map(([key, value]) => (
+            <InfoRow key={key} label={key} value={String(value)} />
+          ))}
+        </div>
+      )}
     </PanelContainer>
   );
 }; 

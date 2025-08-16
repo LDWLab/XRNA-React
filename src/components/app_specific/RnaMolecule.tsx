@@ -207,7 +207,7 @@ export namespace RnaMolecule {
           return `${x},${y}`;
         }).join(" ")}
         pointerEvents = "none"
-        stroke = "black"
+        stroke = "var(--color-text)"
         strokeWidth = {contourLineWidth}
         fill = "none"
       />}

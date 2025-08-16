@@ -1,11 +1,14 @@
 import React from 'react';
-
+import { useTheme } from '../../../context/ThemeContext';
+import { PencilRuler } from 'lucide-react';
 type SidebarLayoutProps = {
   width?: number | string;
   children: React.ReactNode;
 };
 
 export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, children }) => {
+  const { theme } = useTheme();
+  
   return (
     <div
       style={{
@@ -13,18 +16,20 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: '#f8fafc',
-        borderRight: '1px solid #e5e7eb',
-        boxShadow: '4px 0 20px rgba(0, 0, 0, 0.06)',
+        background: theme.colors.background,
+        borderRight: `2px solid ${theme.colors.border}`,
+        boxShadow: theme.shadows.xl,
         position: 'relative',
         overflow: 'hidden',
+        transition: theme.transitions.default,
+        zIndex: 1000,
       }}
     >
-      {/* Subtle top accent */}
+      {/* Top accent bar */}
       <div
         style={{
-          height: '3px',
-          background: '#3b82f6',
+          height: '4px',
+          background: `linear-gradient(90deg, ${theme.colors.primary}, ${theme.colors.accent})`,
           position: 'absolute',
           top: 0,
           left: 0,
@@ -33,18 +38,68 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
         }}
       />
       
+      {/* Sidebar header */}
+      <div
+        style={{
+          padding: '7px 10px 7px 20px',
+          borderBottom: `1px solid ${theme.colors.borderLight}`,
+          background: theme.colors.surface,
+          // flexShrink: 0,
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}>
+          <PencilRuler size={24} /> 
+          <div>
+            <h1 style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              color: theme.colors.text,
+              margin: '0 0 2px 0',
+            }}>
+              XRNA React
+            </h1>
+            <p style={{
+              fontSize: '12px',
+              color: theme.colors.textSecondary,
+              margin: 0,
+            }}>
+              Your one stop shop for 
+              RNA Structure Editing & Visualizing
+            </p>
+          </div>
+        </div>
+      </div>
+      
       {/* Main content area */}
       <div
         style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          padding: '16px 14px 14px 14px',
+          padding: '20px',
           overflow: 'auto',
+          background: theme.colors.backgroundSecondary,
         }}
       >
         {children}
       </div>
+      
+      {/* Bottom accent */}
+      <div
+        style={{
+          height: '2px',
+          background: `linear-gradient(90deg, ${theme.colors.borderLight}, ${theme.colors.border})`,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+        }}
+      />
     </div>
   );
 }; 

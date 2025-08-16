@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useTheme } from '../../../context/ThemeContext';
 
 export interface PropertiesDrawerProps {
   open: boolean;
@@ -11,6 +12,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
   onClose,
   content,
 }) => {
+  const { theme } = useTheme();
   const [width, setWidth] = useState(400);
   const [isResizing, setIsResizing] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -52,14 +54,14 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
         right: 0,
         height: '100%',
         width: `${width}px`,
-        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-        boxShadow: '-4px 0 20px rgba(0,0,0,0.08)',
+        background: theme.colors.backgroundSecondary,
+        boxShadow: theme.shadows.lg,
         transform: open ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+        transition: theme.transitions.default,
         zIndex: 2000,
         display: 'flex',
         flexDirection: 'column',
-        borderLeft: '1px solid #e2e8f0',
+        borderLeft: `1px solid ${theme.colors.border}`,
       }}
     >
       {/* Resize Handle */}
@@ -79,12 +81,11 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
         <div
           style={{
             position: 'absolute',
-            left: '1px',
             top: '50%',
             transform: 'translateY(-50%)',
             width: '2px',
             height: '40px',
-            background: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
+            background: theme.colors.border,
             borderRadius: '1px',
             opacity: isResizing ? 1 : 0.3,
             transition: 'opacity 0.2s ease',
@@ -96,11 +97,11 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
       <div
         style={{
           padding: '16px 20px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          borderBottom: `1px solid ${theme.colors.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+          background: theme.colors.surfaceHover,
           flexShrink: 0,
           position: 'relative',
         }}
@@ -113,7 +114,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
             left: 0,
             right: 0,
             height: '3px',
-            background: '#3b82f6',
+            background: theme.colors.primary,
           }}
         />
         
@@ -123,8 +124,8 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              background: '#3b82f6',
-              boxShadow: '0 1px 2px rgba(59, 130, 246, 0.3)',
+              background: theme.colors.primary,
+              boxShadow: theme.shadows.sm,
             }}
           />
           <span
@@ -133,7 +134,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
               fontWeight: 700,
               letterSpacing: '0.5px',
               textTransform: 'uppercase',
-              color: '#ffffff',
+              color: theme.colors.text,
             }}
           >
             Properties
@@ -142,11 +143,11 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
         <button
           onClick={onClose}
           style={{
-            border: 'none',
-            background: 'rgba(255, 255, 255, 0.1)',
+            border: `1px solid ${theme.colors.border}`,
+            background: theme.colors.surface,
             cursor: 'pointer',
             fontSize: '14px',
-            color: '#ffffff',
+            color: theme.colors.text,
             padding: '6px 8px',
             borderRadius: '6px',
             transition: 'all 0.2s ease',
@@ -157,11 +158,11 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
             height: '28px',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+            e.currentTarget.style.backgroundColor = theme.colors.surfaceHover;
             e.currentTarget.style.transform = 'scale(1.05)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            e.currentTarget.style.backgroundColor = theme.colors.surface;
             e.currentTarget.style.transform = 'scale(1)';
           }}
         >
@@ -175,7 +176,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
       <div style={{ flex: 1, overflow: 'auto', padding: '0' }}>
         {content ? (
           <div style={{
-            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            background: theme.colors.backgroundSecondary,
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
@@ -183,8 +184,8 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
             {/* Selected Element Header */}
             <div style={{
               padding: '12px 16px',
-              background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
-              borderBottom: '1px solid #e2e8f0',
+              background: theme.colors.surfaceHover,
+              borderBottom: `1px solid ${theme.colors.border}`,
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -194,15 +195,15 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
                 width: '6px',
                 height: '6px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)',
+                background: theme.colors.success,
+                boxShadow: theme.shadows.sm,
               }} />
               <span style={{
                 fontSize: '11px',
                 fontWeight: '600',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                color: '#475569',
+                color: theme.colors.text,
               }}>
                 Selected Element
               </span>
@@ -212,10 +213,10 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
             <div style={{
               flex: 1,
               padding: '16px',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+              background: theme.colors.backgroundSecondary,
               fontSize: '13px',
               lineHeight: '1.5',
-              color: '#475569',
+              color: theme.colors.text,
               overflow: 'auto',
               scrollBehavior: 'smooth',
             }}>
@@ -230,19 +231,19 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
             justifyContent: 'center',
             padding: '32px 16px',
             textAlign: 'center',
-            color: '#64748b',
+            color: theme.colors.textSecondary,
             height: '100%',
           }}>
             <div style={{
               width: '48px',
               height: '48px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+              background: theme.colors.surfaceHover,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: '16px',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+              boxShadow: theme.shadows.md,
             }}>
               <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
                 <path 
@@ -264,14 +265,14 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
             <div style={{
               fontSize: '15px',
               fontWeight: '500',
-              color: '#475569',
+              color: theme.colors.text,
               marginBottom: '8px',
             }}>
               No Selection
             </div>
             <div style={{
               fontSize: '13px',
-              color: '#64748b',
+              color: theme.colors.textSecondary,
               lineHeight: '1.4',
               maxWidth: '240px',
             }}>

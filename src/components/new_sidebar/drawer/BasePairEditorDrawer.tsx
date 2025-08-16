@@ -1,12 +1,15 @@
 import React from 'react';
 import { BasePairsEditor } from '../../app_specific/editors/BasePairsEditor';
-import { RnaComplexProps } from '../../../App';
+import { RnaComplexProps, FullKeysRecord } from '../../../App';
+import { useTheme } from '../../../context/ThemeContext';
 
 export interface BasePairEditorDrawerProps {
   open: boolean;
   onClose: () => void;
   rnaComplexProps: RnaComplexProps;
   approveBasePairs: (bps: BasePairsEditor.BasePair[]) => void;
+  selected?: FullKeysRecord; // Selected base pairs for Format mode
+  formatMode?: boolean; // Indicates if we're in Format mode
 }
 
 export const BasePairEditorDrawer: React.FC<BasePairEditorDrawerProps> = ({
@@ -14,7 +17,10 @@ export const BasePairEditorDrawer: React.FC<BasePairEditorDrawerProps> = ({
   onClose,
   rnaComplexProps,
   approveBasePairs,
+  selected,
+  formatMode = false,
 }) => {
+  const { theme } = useTheme();
   return (
     <div
       style={{
@@ -23,10 +29,10 @@ export const BasePairEditorDrawer: React.FC<BasePairEditorDrawerProps> = ({
         right: 0,
         height: '100%',
         width: '480px',
-        background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-        boxShadow: '-4px 0 20px rgba(0,0,0,0.08)',
+        background: theme.colors.backgroundSecondary,
+        boxShadow: theme.shadows.lg,
         transform: open ? 'translateX(0)' : 'translateX(100%)',
-        transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)',
+        transition: theme.transitions.default,
         zIndex: 2000,
         display: 'flex',
         flexDirection: 'column',
@@ -36,7 +42,7 @@ export const BasePairEditorDrawer: React.FC<BasePairEditorDrawerProps> = ({
       <div
         style={{
           padding: '16px 20px',
-          borderBottom: '1px solid #e2e8f0',
+          borderBottom: `1px solid ${theme.colors.border}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -45,13 +51,13 @@ export const BasePairEditorDrawer: React.FC<BasePairEditorDrawerProps> = ({
         <span
           style={{
             fontSize: '14px',
-            fontWeight: 600,
+            fontWeight: '600',
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
-            color: '#475569',
+            color: theme.colors.text,
           }}
         >
-          Base-Pair Editor
+          {formatMode ? 'Format Mode - ' : ''}Base-Pair Editor
         </span>
         <button
           onClick={onClose}
@@ -60,7 +66,7 @@ export const BasePairEditorDrawer: React.FC<BasePairEditorDrawerProps> = ({
             background: 'transparent',
             cursor: 'pointer',
             fontSize: '16px',
-            color: '#475569',
+            color: theme.colors.text,
           }}
         >
           ✕

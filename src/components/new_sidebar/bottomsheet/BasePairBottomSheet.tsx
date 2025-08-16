@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useContext } from 'react';
+import { useTheme } from '../../../context/ThemeContext';
 import { RnaComplexProps, RnaMoleculeKey, NucleotideKey, RnaComplexKey } from '../../../App';
 import { BasePair as _BasePair } from '../../app_specific/BasePair';
 import { RnaComplex, compareBasePairKeys, insertBasePair, DuplicateBasePairKeysHandler } from '../../app_specific/RnaComplex';
@@ -11,6 +12,7 @@ export interface BasePairBottomSheetProps {
   onClose: () => void;
   rnaComplexProps: RnaComplexProps;
   selected?: FullKeysRecord; // left-click selection (optional)
+  formatMode?: boolean; // indicates if we're in Format mode
 }
 
 type Orientation = 'cis' | 'trans';
@@ -21,8 +23,8 @@ type Row = {
   rnaComplexIndex: number;
   rnaComplexName: string;
   rnaMoleculeName0: string;
-  nucleotideIndex0: number; // formatted index in molecule (internal array key)
-  formattedNucleotideIndex0: number; // absolute index displayed
+  nucleotideIndex0: number; 
+  formattedNucleotideIndex0: number; 
   rnaMoleculeName1: string;
   nucleotideIndex1: number;
   formattedNucleotideIndex1: number;
@@ -72,7 +74,8 @@ function decomposeTypeBase(t?: _BasePair.Type): TypeBase {
   }
 }
 
-export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, onClose, rnaComplexProps, selected }) => {
+export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, onClose, rnaComplexProps, selected, formatMode = false }) => {
+  const { theme } = useTheme();
   const [height, setHeight] = useState<number>(360);
   const [isResizing, setIsResizing] = useState(false);
   const [activeTab, setActiveTab] = useState<'Global' | 'Selected'>('Global');
@@ -244,11 +247,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
     const selectStyle: React.CSSProperties = {
       width: 110,
       padding: '6px 8px',
-      border: '1px solid #e2e8f0',
+      border: `1px solid ${theme.colors.border}`,
       borderRadius: 6,
       fontSize: 12,
-      color: '#0f172a',
-      background: '#ffffff',
+      color: theme.colors.text,
+      background: theme.colors.background,
     };
 
     return (
@@ -531,20 +534,136 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
     return base === 'auto' ? 'auto' : base === 'canonical' ? 'watson_crick' : base === 'wobble' ? 'hoogsteen' : 'unknown';
   }
 
+  function thStyle(width: number): React.CSSProperties {
+    return {
+      position: 'sticky',
+      top: 0,
+      zIndex: 1,
+      textAlign: 'left',
+      fontSize: 11,
+      textTransform: 'uppercase',
+      letterSpacing: 0.3,
+      padding: '10px 12px',
+      minWidth: width,
+      maxWidth: width,
+      whiteSpace: 'nowrap'
+    };
+  }
+
+  function tdStyle(width: number): React.CSSProperties {
+    return {
+      padding: '8px 12px',
+      minWidth: width,
+      maxWidth: width,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+      fontSize: 12,
+      color: theme.colors.text
+    };
+  }
+
+  function sel(enabled: boolean = true): React.CSSProperties {
+    return {
+      width: 130,
+      padding: '6px 8px',
+      border: `1px solid ${theme.colors.border}`,
+      borderRadius: 6,
+      fontSize: 12,
+      background: theme.colors.background,
+      color: theme.colors.text,
+      opacity: enabled ? 1 : 0.6
+    };
+  }
+
+  function inp(): React.CSSProperties {
+    return {
+      width: 100,
+      padding: '6px 8px',
+      border: `1px solid ${theme.colors.border}`,
+      borderRadius: 6,
+      fontSize: 12,
+      color: theme.colors.text,
+      background: theme.colors.background
+    };
+  }
+
+  function btn(): React.CSSProperties {
+    return {
+      padding: '6px 10px',
+      borderRadius: 8,
+      border: `1px solid ${theme.colors.border}`,
+      background: theme.colors.background,
+      fontSize: 12,
+      fontWeight: 600,
+      color: theme.colors.text,
+      cursor: 'pointer'
+    };
+  }
+
+  function inpCell(): React.CSSProperties {
+    return {
+      width: '100%',
+      padding: '4px 6px',
+      border: `1px solid ${theme.colors.border}`,
+      borderRadius: 6,
+      fontSize: 12,
+      color: theme.colors.text,
+      background: theme.colors.background
+    };
+  }
+
+  function btnSmall(): React.CSSProperties {
+    return {
+      padding: '4px 8px',
+      borderRadius: 6,
+      border: `1px solid ${theme.colors.border}`,
+      background: theme.colors.background,
+      fontSize: 11,
+      fontWeight: 600,
+      color: theme.colors.text,
+      cursor: 'pointer'
+    };
+  }
+
+  function IconButton(props: { title?: string; onClick?: () => void; kind: 'edit' | 'delete' | 'save' | 'cancel' }) {
+    const { title, onClick, kind } = props;
+    const base: React.CSSProperties = {
+      width: 28,
+      height: 28,
+      borderRadius: 6,
+      border: `1px solid ${theme.colors.border}`,
+      background: theme.colors.background,
+      cursor: 'pointer',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    };
+    let glyph = '✎';
+    if (kind === 'delete') glyph = '🗑';
+    if (kind === 'save') glyph = '✔';
+    if (kind === 'cancel') glyph = '✕';
+    return (
+      <button title={title} onClick={onClick} style={base}>
+        <span style={{ fontSize: 12 }}>{glyph}</span>
+      </button>
+    );
+  }
+
   return (
     <div
       ref={sheetRef}
       style={{
         position: 'fixed',
-        left: 420,
+        left: 429,
         right: 0,
         bottom: 0,
         height: open ? height : 0,
         transform: open ? 'translateY(0)' : 'translateY(100%)',
         transition: 'transform 0.3s ease, height 0.3s ease',
-        background: '#ffffff',
-        boxShadow: '0 -8px 24px rgba(0,0,0,0.12)',
-        borderTop: '1px solid #e2e8f0',
+        background: theme.colors.surface,
+        // boxShadow: theme.shadows.lg,
+        borderTop: `1px solid ${theme.colors.border}`,
         zIndex: 2100,
         display: 'flex',
         flexDirection: 'column',
@@ -555,31 +674,55 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
         onMouseDown={(e) => { setIsResizing(true); startYRef.current = e.clientY; startHRef.current = height; }}
         style={{ height: 10, cursor: 'ns-resize', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
-        <div style={{ width: 48, height: 4, borderRadius: 2, background: '#cbd5e1' }} />
+        <div style={{ width: 48, height: 4, borderRadius: 2, background: theme.colors.border }} />
       </div>
 
       {/* Header */}
-      <div style={{ padding: '10px 16px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '10px 16px', borderBottom: `1px solid ${theme.colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: theme.colors.surface }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', letterSpacing: 0.3 }}>Base-Pair Editor</span>
-          <div style={{ display: 'flex', gap: 6, background: '#f1f5f9', padding: '4px', borderRadius: 8 }}>
-            {(['Global','Selected'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setActiveTab(t)}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 6,
-                  border: 'none',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  background: activeTab === t ? '#ffffff' : 'transparent',
-                  color: '#0f172a',
-                  boxShadow: activeTab === t ? '0 1px 2px rgba(16,24,40,0.06)' : 'none',
-                  cursor: 'pointer'
-                }}
-              >{t}</button>
-            ))}
+          <span style={{ fontWeight: 700, fontSize: 13, color: theme.colors.text, letterSpacing: 0.3 }}>
+            {formatMode ? 'Format Mode - Base-Pair Editor' : 'Base-Pair Editor'}
+          </span>
+          <div style={{ display: 'flex', gap: 6, background: theme.colors.surfaceHover, padding: '4px', borderRadius: 8 }}>
+            {formatMode ? (
+              // In Format mode, show "All" and "Selected" tabs
+              (['All', 'Selected'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTab(t === 'All' ? 'Global' : 'Selected')}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    border: 'none',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    background: (t === 'All' ? activeTab === 'Global' : activeTab === 'Selected') ? theme.colors.background : 'transparent',
+                    color: theme.colors.text,
+                    boxShadow: (t === 'All' ? activeTab === 'Global' : activeTab === 'Selected') ? theme.shadows.sm : 'none',
+                    cursor: 'pointer'
+                  }}
+                >{t}</button>
+              ))
+            ) : (
+              // Normal mode, show "Global" and "Selected" tabs
+              (['Global','Selected'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTab(t)}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    border: 'none',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    background: activeTab === t ? theme.colors.background : 'transparent',
+                    color: theme.colors.text,
+                    boxShadow: activeTab === t ? theme.shadows.sm : 'none',
+                    cursor: 'pointer'
+                  }}
+                >{t}</button>
+              ))
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -590,16 +733,16 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
             style={{
               padding: '8px 12px',
               borderRadius: 8,
-              border: '1px solid #4338ca',
-              background: 'linear-gradient(135deg,#6366f1,#4f46e5)',
-              color: '#ffffff',
+              border: `1px solid ${theme.colors.primary}`,
+              background: theme.colors.primary,
+              color: theme.colors.textInverse,
               fontSize: 12,
               fontWeight: 700,
               letterSpacing: 0.3,
               cursor: 'pointer'
             }}
           >Re-format all</button>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: 16, color: '#334155', cursor: 'pointer' }}>✕</button>
+          <button onClick={onClose} style={{ border: 'none', background: 'transparent', fontSize: 16, color: theme.colors.textSecondary, cursor: 'pointer' }}>✕</button>
         </div>
       </div>
 
@@ -608,11 +751,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '8px 12px', gap: 8 }}>
           <button
             onClick={() => setShowAdd(!showAdd)}
-            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#ffffff', fontSize: 12, fontWeight: 600, color: '#0f172a' }}
+            style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${theme.colors.border}`, background: theme.colors.background, fontSize: 12, fontWeight: 600, color: theme.colors.text }}
           >{showAdd ? 'Cancel' : 'Add Base Pair'}</button>
         </div>
         {showAdd && (
-          <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0' }}>
+          <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', borderTop: `1px dashed ${theme.colors.border}`, borderBottom: `1px dashed ${theme.colors.border}` }}>
             {/* Complex selector */}
             <select
               value={addForm.rnaComplexIndex ?? ''}
@@ -696,12 +839,12 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
               <option value={'hoogsteen'}>hoogsteen</option>
               <option value={'sugar_edge'}>sugar_edge</option>
             </select>
-            <button onClick={addBasePair} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#ffffff', fontSize: 12, fontWeight: 700, color: '#0f172a' }}>Add</button>
+            <button onClick={addBasePair} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${theme.colors.border}`, background: theme.colors.background, fontSize: 12, fontWeight: 700, color: theme.colors.text }}>Add</button>
           </div>
         )}
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#334155' }}>
+            <tr style={{ background: theme.colors.surfaceHover, borderBottom: `1px solid ${theme.colors.border}`, color: theme.colors.text }}>
               <th style={thStyle(120)}>Complex</th>
               <th style={thStyle(180)}>Mol #1 (index)</th>
               <th style={thStyle(180)}>Mol #2 (index)</th>
@@ -722,7 +865,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
               const efEdgeA = isEditing ? (editForm.edgeA ?? undefined) : undefined;
               const efEdgeB = isEditing ? (editForm.edgeB ?? undefined) : undefined;
               return (
-              <tr key={`${rowKey}:${i}`} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#ffffff' : '#fbfcfe' }}>
+              <tr key={`${rowKey}:${i}`} style={{ borderBottom: `1px solid ${theme.colors.border}`, background: i % 2 === 0 ? theme.colors.background : theme.colors.surface }}>
                 <td style={tdStyle(120)}>{r.rnaComplexName}</td>
                 {/* Mol #1 (index) */}
                 <td style={tdStyle(180)}>
@@ -791,7 +934,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
                       <option value={'custom'}>custom</option>
                     </select>
                   ) : (
-                    <span style={{ fontSize: 12, color: '#0f172a' }}>{decomposeTypeBase(r.type)}</span>
+                    <span style={{ fontSize: 12, color: theme.colors.text }}>{decomposeTypeBase(r.type)}</span>
                   )}
                 </td>
                 {/* Orientation */}
@@ -807,7 +950,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
                       <option value={'trans'}>trans</option>
                     </select>
                   ) : (
-                    <span style={{ fontSize: 12, color: '#0f172a' }}>{displayOrientation(r)}</span>
+                    <span style={{ fontSize: 12, color: theme.colors.text }}>{displayOrientation(r)}</span>
                   )}
                 </td>
                 {/* Edge A */}
@@ -824,7 +967,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
                       <option value={'sugar_edge'}>sugar_edge</option>
                     </select>
                   ) : (
-                    <span style={{ fontSize: 12, color: '#0f172a' }}>{displayEdgeA(r)}</span>
+                    <span style={{ fontSize: 12, color: theme.colors.text }}>{displayEdgeA(r)}</span>
                   )}
                 </td>
                 {/* Edge B */}
@@ -841,7 +984,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
                       <option value={'sugar_edge'}>sugar_edge</option>
                     </select>
                   ) : (
-                    <span style={{ fontSize: 12, color: '#0f172a' }}>{displayEdgeB(r)}</span>
+                    <span style={{ fontSize: 12, color: theme.colors.text }}>{displayEdgeB(r)}</span>
                   )}
                 </td>
                 {/* Action */}
@@ -862,8 +1005,8 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
             );})}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={10} style={{ padding: 16, textAlign: 'center', color: '#64748b' }}>
-                  {activeTab === 'Selected' ? 'No left-click selection yet.' : 'No base pairs to display.'}
+                <td colSpan={10} style={{ padding: 16, textAlign: 'center', color: theme.colors.textSecondary }}>
+                  No base pairs found. Use the "Add Base Pair" button above to create new ones.
                 </td>
               </tr>
             )}
@@ -873,123 +1016,5 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({ open, 
     </div>
   );
 };
-
-function thStyle(width: number): React.CSSProperties {
-  return {
-    position: 'sticky',
-    top: 0,
-    zIndex: 1,
-    textAlign: 'left',
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-    padding: '10px 12px',
-    minWidth: width,
-    maxWidth: width,
-    whiteSpace: 'nowrap'
-  };
-}
-
-function tdStyle(width: number): React.CSSProperties {
-  return {
-    padding: '8px 12px',
-    minWidth: width,
-    maxWidth: width,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    fontSize: 12,
-    color: '#0f172a'
-  };
-}
-
-function sel(enabled: boolean = true): React.CSSProperties {
-  return {
-    width: 130,
-    padding: '6px 8px',
-    border: '1px solid #e2e8f0',
-    borderRadius: 6,
-    fontSize: 12,
-    background: '#ffffff',
-    color: '#0f172a',
-    opacity: enabled ? 1 : 0.6
-  };
-}
-
-function inp(): React.CSSProperties {
-  return {
-    width: 100,
-    padding: '6px 8px',
-    border: '1px solid #e2e8f0',
-    borderRadius: 6,
-    fontSize: 12,
-    color: '#0f172a',
-    background: '#ffffff'
-  };
-}
-
-function btn(): React.CSSProperties {
-  return {
-    padding: '6px 10px',
-    borderRadius: 8,
-    border: '1px solid #e2e8f0',
-    background: '#ffffff',
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#0f172a',
-    cursor: 'pointer'
-  };
-}
-
-function inpCell(): React.CSSProperties {
-  return {
-    width: '100%',
-    padding: '4px 6px',
-    border: '1px solid #e2e8f0',
-    borderRadius: 6,
-    fontSize: 12,
-    color: '#0f172a',
-    background: '#ffffff'
-  };
-}
-
-function btnSmall(): React.CSSProperties {
-  return {
-    padding: '4px 8px',
-    borderRadius: 6,
-    border: '1px solid #e2e8f0',
-    background: '#ffffff',
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#0f172a',
-    cursor: 'pointer'
-  };
-}
-
-export default BasePairBottomSheet;
-
-function IconButton(props: { title?: string; onClick?: () => void; kind: 'edit' | 'delete' | 'save' | 'cancel' }) {
-  const { title, onClick, kind } = props;
-  const base: React.CSSProperties = {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    border: '1px solid #e2e8f0',
-    background: '#ffffff',
-    cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center'
-  };
-  let glyph = '✎';
-  if (kind === 'delete') glyph = '🗑';
-  if (kind === 'save') glyph = '✔';
-  if (kind === 'cancel') glyph = '✕';
-  return (
-    <button title={title} onClick={onClick} style={base}>
-      <span style={{ fontSize: 12 }}>{glyph}</span>
-    </button>
-  );
-}
 
 

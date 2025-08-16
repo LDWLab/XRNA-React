@@ -1,104 +1,14 @@
 import React from 'react';
 import { PanelContainer } from '../layout/PanelContainer';
-import { Tab, tabs } from '../../../app_data/Tab';
 import { InteractionConstraint } from '../../../ui/InteractionConstraint/InteractionConstraints';
-import { CompactButton } from './QuickActionsPanel';
 import { useTheme } from '../../../context/ThemeContext';
 
-export interface ToolPaletteCallbacks {
-  mode: Tab;
-  onModeChange?: (tab: Tab) => void;
+export interface SelectionPanelProps {
   constraint?: InteractionConstraint.Enum;
   onConstraintChange?: (constraint: InteractionConstraint.Enum) => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  onResetViewport?: () => void;
 }
 
-const ModeTab: React.FC<{
-  tab: Tab;
-  isActive: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-}> = ({ tab, isActive, onClick, disabled = false }) => {
-  const { theme } = useTheme();
-  const [isHovered, setIsHovered] = React.useState(false);
-
-  const getModeIcon = (mode: Tab) => {
-    switch (mode) {
-      case Tab.EDIT:
-        return (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M10.5 1.5l2 2L5 11H3v-2l7.5-7.5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        );
-      case Tab.FORMAT:
-        return (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M3 3h8M3 7h8M3 11h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        );
-      case Tab.ANNOTATE:
-        return (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 3v8M3 7h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        );
-      default:
-        return (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-          </svg>
-        );
-    }
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '8px 6px',
-        border: 'none',
-        borderRadius: '8px',
-        fontSize: '10px',
-        fontWeight: '700',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        opacity: disabled ? 0.4 : 1,
-        flex: 1,
-        background: disabled 
-          ? theme.colors.surfaceHover
-          : isActive 
-            ? theme.colors.primary
-            : (isHovered ? theme.colors.surfaceHover : 'transparent'),
-        color: disabled 
-          ? theme.colors.textMuted
-          : isActive 
-            ? theme.colors.textInverse
-            : (isHovered ? theme.colors.primary : theme.colors.textSecondary),
-        boxShadow: isActive 
-          ? theme.shadows.md
-          : 'none',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {getModeIcon(tab)}
-      </div>
-      <span style={{ fontSize: '10px', fontWeight: '700' }}>
-        {tab.split('/')[0]}
-      </span>
-    </button>
-  );
-};
-
-// Smart constraint grouping
+// Smart constraint grouping with better organization
 const constraintGroups = {
   'Basic': [
     InteractionConstraint.Enum.SINGLE_NUCLEOTIDE,
@@ -288,77 +198,16 @@ const ConstraintChip: React.FC<{
   );
 };
 
-export const ToolPalettePanel: React.FC<ToolPaletteCallbacks> = ({
-  mode,
-  onModeChange,
+export const SelectionPanel: React.FC<SelectionPanelProps> = ({
   constraint,
   onConstraintChange,
-  onUndo,
-  onRedo,
-  onResetViewport,
 }) => {
   const { theme } = useTheme();
   const [activeGroup, setActiveGroup] = React.useState<string>('Basic');
 
   return (
-    <PanelContainer title="Tools" borderRadius={0}>
+    <PanelContainer title="Selection" borderRadius={8}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Edit & View Controls */}
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
-          <CompactButton
-            onClick={onUndo}
-            disabled={!onUndo}
-            icon={
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M2.5 5h4.5a3 3 0 110 6H5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M4.5 3L2.5 5l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            }
-            label="Undo"
-          />
-          <CompactButton
-            onClick={onRedo}
-            disabled={!onRedo}
-            icon={
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M9.5 5H5a3 3 0 100 6h2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M7.5 3l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            }
-            label="Redo"
-          />
-          <CompactButton
-            onClick={onResetViewport}
-            disabled={!onResetViewport}
-            icon={
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M2 6h8M6 2v8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                <circle cx="6" cy="6" r="2" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-              </svg>
-            }
-            label="Reset"
-          />
-        </div>
-        {/* Mode Selection - Compact Tabs */}
-        <div>
-          <div style={{ 
-            display: 'flex', 
-            gap: '4px',
-            background: theme.colors.surfaceHover,
-            padding: '3px',
-            borderRadius: '8px',
-          }}>
-            {tabs.filter(tab => [Tab.EDIT, Tab.FORMAT, Tab.ANNOTATE].includes(tab)).map((tab) => (
-              <ModeTab
-                key={tab}
-                tab={tab}
-                isActive={mode === tab}
-                onClick={() => onModeChange?.(tab)}
-              />
-            ))}
-          </div>
-        </div>
-
         {/* Constraint Groups - Smart Tabs */}
         <div>
           <div style={{ 
@@ -413,4 +262,4 @@ export const ToolPalettePanel: React.FC<ToolPaletteCallbacks> = ({
       </div>
     </PanelContainer>
   );
-}; 
+};

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useTheme } from '../../../context/ThemeContext';
 
 type PanelContainerProps = {
   title: string;
@@ -12,44 +12,46 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
   children, 
   borderRadius = 12
 }) => {
+  const { theme } = useTheme();
   return (
     <div
       style={{
-        background: '#ffffff',
-        border: '1px solid #e5e7eb',
+        background: theme.colors.surface,
+        border: `1px solid ${theme.colors.border}`,
         borderRadius: borderRadius,
         margin: '0 0 10px 0',
-        boxShadow: '0 1px 2px rgba(16, 24, 40, 0.04)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: theme.shadows.sm,
+        transition: theme.transitions.default,
         overflow: 'hidden',
       }}
     >
       <div
         style={{
-          padding: '10px 14px',
-          background: '#f8fafc',
+          padding: '8px 16px',
+          background: theme.colors.surfaceHover,
           fontSize: '12px',
-          fontWeight: 700,
-          letterSpacing: '0.4px',
-          color: '#0f172a',
+          fontWeight: '700',
+          letterSpacing: '0.5px',
+          color: theme.colors.text,
           display: 'flex',
           alignItems: 'center',
-          borderBottom: '1px solid #e5e7eb',
+          borderBottom: `1px solid ${theme.colors.border}`,
+          textTransform: 'uppercase',
         }}
       >
         <span style={{ 
-          textTransform: 'uppercase',
           fontSize: '11px',
-          fontWeight: 700,
+          fontWeight: '700',
+          color: theme.colors.textSecondary,
         }}>
           {title}
         </span>
       </div>
       <div
         style={{
-          padding: 14,
+          padding: '16px',
           minHeight: '48px',
-          background: '#ffffff',
+          background: theme.colors.surface,
         }}
       >
         {children}

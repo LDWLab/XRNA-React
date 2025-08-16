@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../../context/ThemeContext';
 import { PanelContainer } from '../layout/PanelContainer';
 
 export interface PropertiesPanelProps {
@@ -6,16 +7,17 @@ export interface PropertiesPanelProps {
 }
 
 export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => {
+  const { theme } = useTheme();
   return (
     <PanelContainer title="Properties">
       {content ? (
         <div style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-          border: '1px solid #e2e8f0',
+          background: theme.colors.surface,
+          border: `1px solid ${theme.colors.border}`,
           borderRadius: '8px',
           padding: '0',
           overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+          boxShadow: theme.shadows.sm,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
@@ -23,8 +25,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => 
           {/* Header */}
           <div style={{
             padding: '12px 16px',
-            background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
-            borderBottom: '1px solid #e2e8f0',
+            background: theme.colors.surfaceHover,
+            borderBottom: `1px solid ${theme.colors.border}`,
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
@@ -34,15 +36,15 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => 
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              background: '#3b82f6',
-              boxShadow: '0 1px 2px rgba(59, 130, 246, 0.3)',
+              background: theme.colors.primary,
+              boxShadow: theme.shadows.sm,
             }} />
             <span style={{
               fontSize: '11px',
               fontWeight: '600',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
-              color: '#475569',
+              color: theme.colors.text,
             }}>
               Selected Element
             </span>
@@ -52,10 +54,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => 
           <div style={{
             flex: 1,
             padding: '16px',
-            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            background: theme.colors.backgroundSecondary,
             fontSize: '13px',
             lineHeight: '1.5',
-            color: '#475569',
+            color: theme.colors.text,
             overflow: 'auto',
             scrollBehavior: 'smooth',
           }}>
@@ -70,19 +72,19 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => 
           justifyContent: 'center',
           padding: '32px 16px',
           textAlign: 'center',
-          color: '#64748b',
+          color: theme.colors.textSecondary,
           height: '200px',
         }}>
           <div style={{
             width: '40px',
             height: '40px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+            background: theme.colors.surfaceHover,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '12px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+            boxShadow: theme.shadows.md,
           }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path 
@@ -104,14 +106,14 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => 
           <div style={{
             fontSize: '13px',
             fontWeight: '500',
-            color: '#475569',
+            color: theme.colors.text,
             marginBottom: '4px',
           }}>
             No Selection
           </div>
           <div style={{
             fontSize: '11px',
-            color: '#64748b',
+            color: theme.colors.textSecondary,
             lineHeight: '1.4',
             maxWidth: '180px',
           }}>
