@@ -44,7 +44,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
           padding: '7px 10px 7px 20px',
           borderBottom: `1px solid ${theme.colors.borderLight}`,
           background: theme.colors.surface,
-          // flexShrink: 0,
+          flexShrink: 0,
         }}
       >
         <div style={{
@@ -55,7 +55,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
           <PencilRuler size={24} /> 
           <div>
             <h1 style={{
-              fontSize: '18px',
+              fontSize: theme.typography.fontSize.xl,
               fontWeight: '700',
               color: theme.colors.text,
               margin: '0 0 2px 0',
@@ -63,7 +63,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
               XRNA React
             </h1>
             <p style={{
-              fontSize: '12px',
+              fontSize: theme.typography.fontSize.sm,
               color: theme.colors.textSecondary,
               margin: 0,
             }}>
@@ -74,7 +74,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
         </div>
       </div>
       
-      {/* Main content area */}
+      
       <div
         style={{
           flex: 1,
@@ -91,7 +91,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
       {/* Bottom accent */}
       <div
         style={{
-          height: '2px',
+          height: '4px',
           background: `linear-gradient(90deg, ${theme.colors.borderLight}, ${theme.colors.border})`,
           position: 'absolute',
           bottom: 0,

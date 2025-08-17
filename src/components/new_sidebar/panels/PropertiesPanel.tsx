@@ -14,7 +14,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => 
         <div style={{
           background: theme.colors.surface,
           border: `1px solid ${theme.colors.border}`,
-          borderRadius: '8px',
+          borderRadius: theme.borderRadius.lg,
           padding: '0',
           overflow: 'hidden',
           boxShadow: theme.shadows.sm,
@@ -22,7 +22,6 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => 
           display: 'flex',
           flexDirection: 'column',
         }}>
-          {/* Header */}
           <div style={{
             padding: '12px 16px',
             background: theme.colors.surfaceHover,
@@ -40,7 +39,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => 
               boxShadow: theme.shadows.sm,
             }} />
             <span style={{
-              fontSize: '11px',
+              fontSize: theme.typography.fontSize.xs,
               fontWeight: '600',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
@@ -50,12 +49,11 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ content }) => 
             </span>
           </div>
           
-          {/* Content - Scrollable within panel */}
           <div style={{
             flex: 1,
             padding: '16px',
             background: theme.colors.backgroundSecondary,
-            fontSize: '13px',
+            fontSize: theme.typography.fontSize.md,
             lineHeight: '1.5',
             color: theme.colors.text,
             overflow: 'auto',

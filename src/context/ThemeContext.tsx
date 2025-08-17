@@ -106,12 +106,37 @@ export interface ThemeShadows {
   inner: string;
 }
 
+export interface ThemeButtonSizes {
+  sm: {
+    height: string;
+    padding: string;
+    fontSize: string;
+    iconSize: string;
+    borderRadius: string;
+  };
+  md: {
+    height: string;
+    padding: string;
+    fontSize: string;
+    iconSize: string;
+    borderRadius: string;
+  };
+  lg: {
+    height: string;
+    padding: string;
+    fontSize: string;
+    iconSize: string;
+    borderRadius: string;
+  };
+}
+
 export interface Theme {
   colors: ThemeColors;
   spacing: ThemeSpacing;
   typography: ThemeTypography;
   borderRadius: ThemeBorderRadius;
   shadows: ThemeShadows;
+  buttonSizes: ThemeButtonSizes;
   transitions: {
       default: string;
       fast: string;
@@ -219,6 +244,29 @@ const lightTheme: Theme = {
       xl: '0 20px 25px rgba(0, 0, 0, 0.05), 0 10px 10px rgba(0, 0, 0, 0.02)',
       inner: 'inset 0 2px 4px rgba(0, 0, 0, 0.04)',
   },
+  buttonSizes: {
+      sm: {
+          height: '28px',
+          padding: '0 8px',
+          fontSize: '12px',
+          iconSize: '16px',
+          borderRadius: '4px',
+      },
+      md: {
+          height: '36px',
+          padding: '0 12px',
+          fontSize: '14px',
+          iconSize: '18px',
+          borderRadius: '6px',
+      },
+      lg: {
+          height: '44px',
+          padding: '0 16px',
+          fontSize: '16px',
+          iconSize: '20px',
+          borderRadius: '8px',
+      },
+  },
   transitions: {
       default: 'all 0.2s ease-in-out',
       fast: 'all 0.15s ease-in-out',
@@ -288,6 +336,29 @@ const darkTheme: Theme = {
       lg: '0 10px 15px rgba(0, 0, 0, 0.5), 0 4px 6px rgba(0, 0, 0, 0.3)',
       xl: '0 20px 25px rgba(0, 0, 0, 0.5), 0 10px 10px rgba(0, 0, 0, 0.3)',
       inner: 'inset 0 2px 4px rgba(0, 0, 0, 0.4)',
+  },
+  buttonSizes: {
+      sm: {
+          height: '28px',
+          padding: '0 8px',
+          fontSize: '12px',
+          iconSize: '16px',
+          borderRadius: '4px',
+      },
+      md: {
+          height: '36px',
+          padding: '0 12px',
+          fontSize: '14px',
+          iconSize: '18px',
+          borderRadius: '6px'
+      },
+      lg: {
+          height: '44px',
+          padding: '0 16px',
+          fontSize: '16px',
+          iconSize: '20px',
+          borderRadius: '8px',
+      },
   },
   transitions: lightTheme.transitions, // Same transitions for both themes
 };
@@ -452,7 +523,7 @@ export const getThemeStyles = (theme: Theme) => {
           ':focus': {
               borderColor: theme.colors.primary,
               outline: 'none',
-              boxShadow: `0 0 0 3px ${theme.colors.primary}40`, // Added alpha for softer focus ring
+              boxShadow: `0 0 0 3px ${theme.colors.primary}40`, 
           },
       },
       card: {

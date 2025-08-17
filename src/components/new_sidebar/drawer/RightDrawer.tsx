@@ -39,7 +39,7 @@ export const RightDrawer: React.FC<RightDrawerProps> = ({ open, onClose, childre
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: theme.colors.primary }} />
-          <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: theme.colors.text }}>
+          <span style={{ fontSize: theme.typography.fontSize.sm, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: theme.colors.text }}>
             Right Panel
           </span>
         </div>
@@ -49,10 +49,10 @@ export const RightDrawer: React.FC<RightDrawerProps> = ({ open, onClose, childre
             border: 'none',
             background: theme.colors.surfaceHover,
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: theme.typography.fontSize.md,
             color: theme.colors.text,
             padding: '6px 8px',
-            borderRadius: '6px',
+            borderRadius: theme.borderRadius.md,
             width: '28px',
             height: '28px',
           }}

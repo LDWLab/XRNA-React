@@ -72,7 +72,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
             width: '40px',
             height: '40px',
             background: `linear-gradient(135deg, ${theme.colors.primary}20, ${theme.colors.accent}20)`,
-            borderRadius: '12px',
+            borderRadius: theme.borderRadius.xl,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -86,7 +86,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
           </div>
           <div>
             <h2 style={{ 
-              fontSize: '20px', 
+              fontSize: theme.typography.fontSize.xxl, 
               fontWeight: '700', 
               color: theme.colors.text,
               margin: '0 0 4px 0',
@@ -95,7 +95,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
               Settings
             </h2>
             <p style={{ 
-              fontSize: '14px', 
+              fontSize: theme.typography.fontSize.md, 
               color: theme.colors.textWeak || theme.colors.textSecondary,
               margin: 0,
               lineHeight: '1.4',
@@ -111,10 +111,10 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
             border: `1px solid ${theme.colors.border}`,
             background: theme.colors.surface,
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: theme.typography.fontSize.md,
             color: theme.colors.textSecondary,
             padding: '10px',
-            borderRadius: '10px',
+            borderRadius: theme.borderRadius.lg,
             width: '40px',
             height: '40px',
             display: 'flex',

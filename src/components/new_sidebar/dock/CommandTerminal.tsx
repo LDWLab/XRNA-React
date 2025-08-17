@@ -579,13 +579,13 @@ export const CommandTerminal: React.FC<CommandTerminalProps> = ({ rnaComplexProp
       onClick={() => inputRef.current?.focus()}
     >
       <div style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${theme.colors.border}` }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: theme.colors.primary }}>XRNA Terminal</div>
-        <div style={{ fontSize: 11, color: theme.colors.textSecondary }}>Press ~ to hide</div>
+        <div style={{ fontWeight: 700, fontSize: theme.typography.fontSize.sm, color: theme.colors.primary }}>XRNA Terminal</div>
+        <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>Press ~ to hide</div>
       </div>
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
         {history.map((h, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'baseline', whiteSpace: 'pre-wrap' }}>
-            <span style={{ color: theme.colors.textSecondary, fontSize: 11 }}>[{tsFrom(h.ts)}]</span>
+            <span style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.xs }}>[{tsFrom(h.ts)}]</span>
             <span style={{ color: colorFor(h.level) }}>{h.text}</span>
           </div>
         ))}
@@ -605,7 +605,7 @@ export const CommandTerminal: React.FC<CommandTerminalProps> = ({ rnaComplexProp
               outline: 'none',
               color: theme.colors.text,
               fontFamily: 'inherit',
-              fontSize: 13
+              fontSize: theme.typography.fontSize.md
             }}
             placeholder="add(1, 150, length=3)"
           />
@@ -615,16 +615,16 @@ export const CommandTerminal: React.FC<CommandTerminalProps> = ({ rnaComplexProp
             {hintItems.length > 0 && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: signatureDoc ? 6 : 0 }}>
                 {hintItems.map(h => (
-                  <span key={h} style={{ background: theme.colors.surfaceHover, border: `1px solid ${theme.colors.border}`, borderRadius: 6, padding: '2px 6px', fontSize: 11, color: theme.colors.textSecondary }}>{h}</span>
+                  <span key={h} style={{ background: theme.colors.surfaceHover, border: `1px solid ${theme.colors.border}`, borderRadius: theme.borderRadius.md, padding: '2px 6px', fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>{h}</span>
                 ))}
               </div>
             )}
             {signatureDoc && (
-              <div style={{ background: theme.colors.backgroundSecondary, border: `1px solid ${theme.colors.border}`, borderRadius: 6, padding: '6px 8px' }}>
-                <div style={{ fontSize: 11, color: theme.colors.text, marginBottom: 4 }}>{signatureDoc.signature}</div>
+              <div style={{ background: theme.colors.backgroundSecondary, border: `1px solid ${theme.colors.border}`, borderRadius: theme.borderRadius.md, padding: '6px 8px' }}>
+                <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.text, marginBottom: 4 }}>{signatureDoc.signature}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', rowGap: 2 }}>
                   {signatureDoc.lines.map((ln, i) => (
-                    <div key={i} style={{ fontSize: 11, color: theme.colors.textSecondary }}>- {ln}</div>
+                    <div key={i} style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>- {ln}</div>
                   ))}
                 </div>
               </div>

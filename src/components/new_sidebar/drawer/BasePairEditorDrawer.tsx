@@ -50,7 +50,7 @@ export const BasePairEditorDrawer: React.FC<BasePairEditorDrawerProps> = ({
       >
         <span
           style={{
-            fontSize: '14px',
+            fontSize: theme.typography.fontSize.md,
             fontWeight: '600',
             letterSpacing: '0.5px',
             textTransform: 'uppercase',
@@ -65,7 +65,7 @@ export const BasePairEditorDrawer: React.FC<BasePairEditorDrawerProps> = ({
             border: 'none',
             background: 'transparent',
             cursor: 'pointer',
-            fontSize: '16px',
+            fontSize: theme.typography.fontSize.lg,
             color: theme.colors.text,
           }}
         >

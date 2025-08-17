@@ -42,13 +42,23 @@ export const AboutDrawer: React.FC<AboutDrawerProps> = ({ open, onClose, renderT
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: theme.colors.text }}>
+          <span style={{ fontSize: theme.typography.fontSize.sm, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: theme.colors.text }}>
             About XRNA
           </span>
         </div>
         <button
           onClick={onClose}
-          style={{ border: `1px solid ${theme.colors.border}`, background: theme.colors.surface, cursor: 'pointer', fontSize: '14px', color: theme.colors.text, padding: '6px 8px', borderRadius: '6px', width: '28px', height: '28px' }}
+          style={{ 
+            border: `1px solid ${theme.colors.border}`, 
+            background: theme.colors.surface, 
+            cursor: 'pointer', 
+            fontSize: theme.typography.fontSize.md, 
+            color: theme.colors.text, 
+            padding: '6px 8px', 
+            borderRadius: theme.borderRadius.md, 
+            width: '28px', 
+            height: '28px' 
+          }}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M9 3L3 9M3 3l6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -58,7 +68,7 @@ export const AboutDrawer: React.FC<AboutDrawerProps> = ({ open, onClose, renderT
 
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
         <PanelContainer title="Getting Started" borderRadius={8}>
-          <div style={{ fontSize: 14, color: theme.colors.text }}>
+          <div style={{ fontSize: theme.typography.fontSize.md, color: theme.colors.text }}>
             {renderTabInstructions(Tab.ABOUT)}
           </div>
         </PanelContainer>
@@ -70,8 +80,8 @@ export const AboutDrawer: React.FC<AboutDrawerProps> = ({ open, onClose, renderT
             {tabs.map((t) => (
               t !== Tab.ABOUT ? (
                 <div key={t}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: theme.colors.text, marginBottom: 6 }}>{t}</div>
-                  <div style={{ fontSize: 13, color: theme.colors.text }}>{renderTabInstructions(t)}</div>
+                  <div style={{ fontWeight: 700, fontSize: theme.typography.fontSize.md, color: theme.colors.text, marginBottom: 6 }}>{t}</div>
+                  <div style={{ fontSize: theme.typography.fontSize.md, color: theme.colors.text }}>{renderTabInstructions(t)}</div>
                 </div>
               ) : null
             ))}

@@ -1,46 +1,111 @@
-import React, { createElement, createRef, Fragment, FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
-import { DEFAULT_TAB, Tab, tabs } from './app_data/Tab';
-import { add, scaleDown, subtract, Vector2D } from './data_structures/Vector2D';
-import { useResizeDetector } from 'react-resize-detector';
-import { compareBasePairKeys, RnaComplex } from './components/app_specific/RnaComplex';
-import { OutputFileExtension, outputFileExtensions, outputFileWritersMap as outputFileWritersMapRelativeJsonCoordinates, r2dtLegacyOutputFileWritersMap as outputFileWritersMapAbsoluteJsonCoordinates } from './io/OutputUI';
-import { SCALE_BASE, ONE_OVER_LOG_OF_SCALE_BASE, MouseButtonIndices, DEFAULT_STROKE_WIDTH } from './utils/Constants';
-import { inputFileExtensions, InputFileExtension, inputFileReadersRecord, r2dtLegacyInputFileReadersRecord, defaultInvertYAxisFlagRecord } from './io/InputUI';
-import { DEFAULT_SETTINGS, isSetting, Setting, settings, settingsLongDescriptionsMap, SettingsRecord, settingsShortDescriptionsMap, settingsTypeMap } from './ui/Setting';
-import InputWithValidator from './components/generic/InputWithValidator';
-import { BasePairKeysToRerender, Context, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaComplex } from './context/Context';
-import { isEmpty, sign, subtractNumbers } from './utils/Utils';
-import { Nucleotide } from './components/app_specific/Nucleotide';
-import { LabelContent } from './components/app_specific/LabelContent';
-import { LabelLine } from './components/app_specific/LabelLine';
-import { getInteractionConstraintAndFullKeys, InteractionConstraint } from './ui/InteractionConstraint/InteractionConstraints';
-import { BasePairsEditor } from './components/app_specific/editors/BasePairsEditor';
-import { Collapsible } from './components/generic/Collapsible';
-import { SAMPLE_XRNA_FILE } from './utils/sampleXrnaFile';
-import { fileExtensionDescriptions } from './io/FileExtension';
-import loadingGif from './images/loading.svg';
-import { SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME, SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG, SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from './io/SvgInputFileHandler';
-import { areEqual, BLACK } from './data_structures/Color';
-import { RnaMolecule } from './components/app_specific/RnaMolecule';
-import { LabelEditMenu } from './components/app_specific/menus/edit_menus/LabelEditMenu';
-import BasePair from './components/app_specific/BasePair';
-import { multiplyAffineMatrices, parseAffineMatrix } from './data_structures/AffineMatrix';
+import React, {
+  createElement,
+  createRef,
+  Fragment,
+  FunctionComponent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { DEFAULT_TAB, Tab, tabs } from "./app_data/Tab";
+import { add, scaleDown, subtract, Vector2D } from "./data_structures/Vector2D";
+import { useResizeDetector } from "react-resize-detector";
+import {
+  compareBasePairKeys,
+  RnaComplex,
+} from "./components/app_specific/RnaComplex";
+import {
+  OutputFileExtension,
+  outputFileExtensions,
+  outputFileWritersMap as outputFileWritersMapRelativeJsonCoordinates,
+  r2dtLegacyOutputFileWritersMap as outputFileWritersMapAbsoluteJsonCoordinates,
+} from "./io/OutputUI";
+import {
+  SCALE_BASE,
+  ONE_OVER_LOG_OF_SCALE_BASE,
+  MouseButtonIndices,
+  DEFAULT_STROKE_WIDTH,
+} from "./utils/Constants";
+import {
+  inputFileExtensions,
+  InputFileExtension,
+  inputFileReadersRecord,
+  r2dtLegacyInputFileReadersRecord,
+  defaultInvertYAxisFlagRecord,
+} from "./io/InputUI";
+import {
+  DEFAULT_SETTINGS,
+  isSetting,
+  Setting,
+  settings,
+  settingsLongDescriptionsMap,
+  SettingsRecord,
+  settingsShortDescriptionsMap,
+  settingsTypeMap,
+} from "./ui/Setting";
+import InputWithValidator from "./components/generic/InputWithValidator";
+import {
+  BasePairKeysToRerender,
+  Context,
+  NucleotideKeysToRerender,
+  NucleotideKeysToRerenderPerRnaComplex,
+} from "./context/Context";
+import { isEmpty, sign, subtractNumbers } from "./utils/Utils";
+import { Nucleotide } from "./components/app_specific/Nucleotide";
+import { LabelContent } from "./components/app_specific/LabelContent";
+import { LabelLine } from "./components/app_specific/LabelLine";
+import {
+  getInteractionConstraintAndFullKeys,
+  InteractionConstraint,
+} from "./ui/InteractionConstraint/InteractionConstraints";
+import { BasePairsEditor } from "./components/app_specific/editors/BasePairsEditor";
+import { Collapsible } from "./components/generic/Collapsible";
+import { SAMPLE_XRNA_FILE } from "./utils/sampleXrnaFile";
+import { fileExtensionDescriptions } from "./io/FileExtension";
+import loadingGif from "./images/loading.svg";
+import {
+  SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME,
+  SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG,
+  SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG,
+  SVG_PROPERTY_XRNA_TYPE,
+  SvgPropertyXrnaType,
+} from "./io/SvgInputFileHandler";
+import { areEqual, BLACK } from "./data_structures/Color";
+import { RnaMolecule } from "./components/app_specific/RnaMolecule";
+import { LabelEditMenu } from "./components/app_specific/menus/edit_menus/LabelEditMenu";
+import BasePair from "./components/app_specific/BasePair";
+import {
+  multiplyAffineMatrices,
+  parseAffineMatrix,
+} from "./data_structures/AffineMatrix";
 import "./App.css";
-import { Sidebar } from './components/new_sidebar';
-import { BasePairBottomSheet, CommandTerminal, BasePairEditorDrawer } from './components/new_sidebar';
-import { RightDrawer } from './components/new_sidebar/drawer/RightDrawer';
-import { ElementInfo } from './components/new_sidebar';
-import { extractElementInfo } from './utils/ElementInfoExtractor';
-import { Topbar, TOPBAR_HEIGHT } from './components/new_sidebar/layout/Topbar';
-import { ThemeProvider } from './context/ThemeContext';
-import { SettingsDrawer } from './components/new_sidebar/drawer/SettingsDrawer';
-import { AboutDrawer } from './components/new_sidebar/drawer/AboutDrawer';
+import { Sidebar } from "./components/new_sidebar";
+import {
+  BasePairBottomSheet,
+  CommandTerminal,
+  BasePairEditorDrawer,
+} from "./components/new_sidebar";
+import { RightDrawer } from "./components/new_sidebar/drawer/RightDrawer";
+import { ElementInfo } from "./components/new_sidebar";
+import { extractElementInfo } from "./utils/ElementInfoExtractor";
+import { Topbar, TOPBAR_HEIGHT } from "./components/new_sidebar/layout/Topbar";
+import { ThemeProvider } from "./context/ThemeContext";
+import { SettingsDrawer } from "./components/new_sidebar/drawer/SettingsDrawer";
+import { AboutDrawer } from "./components/new_sidebar/drawer/AboutDrawer";
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
-const viewportScalePowPrecalculation : Record<number, number> = {};
-for (let viewportScaleExponent = VIEWPORT_SCALE_EXPONENT_MINIMUM; viewportScaleExponent <= VIEWPORT_SCALE_EXPONENT_MAXIMUM; viewportScaleExponent++) {
-  viewportScalePowPrecalculation[viewportScaleExponent] = Math.pow(SCALE_BASE, viewportScaleExponent);
+const viewportScalePowPrecalculation: Record<number, number> = {};
+for (
+  let viewportScaleExponent = VIEWPORT_SCALE_EXPONENT_MINIMUM;
+  viewportScaleExponent <= VIEWPORT_SCALE_EXPONENT_MAXIMUM;
+  viewportScaleExponent++
+) {
+  viewportScalePowPrecalculation[viewportScaleExponent] = Math.pow(
+    SCALE_BASE,
+    viewportScaleExponent
+  );
 }
 
 export const PARENT_DIV_HTML_ID = "parent_div";
@@ -68,35 +133,38 @@ export type RnaComplexKey = number;
 export type RnaMoleculeKey = string;
 export type NucleotideKey = number;
 export type FullKeys = {
-  rnaComplexIndex : RnaComplexKey,
-  rnaMoleculeName : RnaMoleculeKey,
-  nucleotideIndex : NucleotideKey
+  rnaComplexIndex: RnaComplexKey;
+  rnaMoleculeName: RnaMoleculeKey;
+  nucleotideIndex: NucleotideKey;
 };
-export type FullKeysRecord = Record<RnaComplexKey, Record<RnaMoleculeKey, Set<NucleotideKey>>>;
+export type FullKeysRecord = Record<
+  RnaComplexKey,
+  Record<RnaMoleculeKey, Set<NucleotideKey>>
+>;
 export type DragListener = {
-  initiateDrag : () => Vector2D,
-  continueDrag : (
-    totalDrag : Vector2D,
-    reposiitonAnnotationsFlag : boolean
-  ) => void,
-  terminateDrag? : () => void
-}
+  initiateDrag: () => Vector2D;
+  continueDrag: (
+    totalDrag: Vector2D,
+    reposiitonAnnotationsFlag: boolean
+  ) => void;
+  terminateDrag?: () => void;
+};
 export type RnaComplexProps = Record<RnaComplexKey, RnaComplex.ExternalProps>;
 enum UndoRedoStacksDataTypes {
   IndicesOfFrozenNucleotides = "IndicesOfFrozenNucleotides",
-  RnaComplexProps = "RnaComplexProps"
+  RnaComplexProps = "RnaComplexProps",
 }
 export type UndoRedoStack = Array<{
-  data : FullKeysRecord | RnaComplexProps,
-  dataType : UndoRedoStacksDataTypes
-}>
+  data: FullKeysRecord | RnaComplexProps;
+  dataType: UndoRedoStacksDataTypes;
+}>;
 
 enum SceneState {
   URL_PARSING_ERROR = "URL parsing error",
   NO_DATA = "No data",
   DATA_IS_LOADING = "Data is loading",
   DATA_IS_LOADED = "Data is loaded",
-  DATA_LOADING_FAILED = "Data loading failed"
+  DATA_LOADING_FAILED = "Data loading failed",
 }
 // Begin app-specific constants.
 const DIV_BUFFER_DIMENSION = 2;
@@ -110,263 +178,185 @@ const SCALE_TEXT = "Scale";
 const RESET_TEXT = "Reset";
 const INTERACTION_CONSTRAINT_TEXT = "Constraint";
 const XRNA_SETTINGS_FILE_NAME = "xrna_settings";
-const strokesPerTab : Record<InteractionConstraint.SupportedTab, string> = {
-  [Tab.EDIT] : "red",
-  [Tab.FORMAT] : "blue",
-  [Tab.ANNOTATE] : "rgb(0,110,51)"
+const strokesPerTab: Record<InteractionConstraint.SupportedTab, string> = {
+  [Tab.EDIT]: "red",
+  [Tab.FORMAT]: "blue",
+  [Tab.ANNOTATE]: "rgb(0,110,51)",
 };
 
 export namespace App {
   export type Props = {
-    r2dtLegacyVersionFlag : boolean
+    r2dtLegacyVersionFlag: boolean;
   };
 
-  export function Component(props : Props) {
-    const {
-      r2dtLegacyVersionFlag
-    } = props;
+  export function Component(props: Props) {
+    const { r2dtLegacyVersionFlag } = props;
     // Begin state data.
-    const [
-      complexDocumentName,
-      setComplexDocumentName
-    ] = useState("");
-    const [
-      rnaComplexProps,
-      setRnaComplexProps
-    ] = useState<RnaComplexProps>({});
-    const [
-      flattenedRnaComplexPropsLength,
-      setFlattenedRnaComplexPropsLength
-    ] = useState<number>(0);
-    const [
-      inputFileNameAndExtension,
-      setInputFileNameAndExtension
-    ] = useState("");
-    const [
-      outputFileName,
-      setOutputFileName
-    ] = useState<string>("");
-    const [
-      outputFileExtension,
-      setOutputFileExtension
-    ] = useState<OutputFileExtension | undefined>(undefined);
+    const [complexDocumentName, setComplexDocumentName] = useState("");
+    const [rnaComplexProps, setRnaComplexProps] = useState<RnaComplexProps>({});
+    const [flattenedRnaComplexPropsLength, setFlattenedRnaComplexPropsLength] =
+      useState<number>(0);
+    const [inputFileNameAndExtension, setInputFileNameAndExtension] =
+      useState("");
+    const [outputFileName, setOutputFileName] = useState<string>("");
+    const [outputFileExtension, setOutputFileExtension] = useState<
+      OutputFileExtension | undefined
+    >(undefined);
     type SceneBounds = {
-      x : number,
-      y : number,
-      width : number,
-      height : number
+      x: number;
+      y: number;
+      width: number;
+      height: number;
     };
-    const [
-      sceneBounds,
-      setSceneBounds
-    ] = useState<SceneBounds>({
-      x : 0,
-      y : 0,
-      width : 1,
-      height : 1
+    const [sceneBounds, setSceneBounds] = useState<SceneBounds>({
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
     });
-    const [
-      basePairKeysToEdit,
-      setBasePairKeysToEdit
-    ] = useState<Record<RnaComplexKey, Context.BasePair.KeysToEditPerRnaComplexType>>({});
-    const [
-      labelsOnlyFlag,
-      setLabelsOnlyFlag
-    ] = useState(false);
-    const [
-      indicesOfFrozenNucleotides,
-      setIndicesOfFrozenNucleotides
-    ] = useState<FullKeysRecord>({});
-    const [
-      undoStack,
-      setUndoStack
-    ] = useState<UndoRedoStack>([]);
-    const [
-      redoStack,
-      setRedoStack
-    ] = useState<UndoRedoStack>([]);
+    const [basePairKeysToEdit, setBasePairKeysToEdit] = useState<
+      Record<RnaComplexKey, Context.BasePair.KeysToEditPerRnaComplexType>
+    >({});
+    const [labelsOnlyFlag, setLabelsOnlyFlag] = useState(false);
+    const [indicesOfFrozenNucleotides, setIndicesOfFrozenNucleotides] =
+      useState<FullKeysRecord>({});
+    const [undoStack, setUndoStack] = useState<UndoRedoStack>([]);
+    const [redoStack, setRedoStack] = useState<UndoRedoStack>([]);
     // Begin UI-relevant state data.
-    const [
-      tab,
-      setTab
-    ] = useState<Tab>(Tab.EDIT);
+    const [tab, setTab] = useState<Tab>(Tab.EDIT);
     const currentTabRef = useRef<Tab>(Tab.EDIT);
-    
+
     // Update ref whenever tab changes
     useEffect(() => {
       currentTabRef.current = tab;
     }, [tab]);
-    const [
-      interactionConstraint,
-      setInteractionConstraint
-    ] = useState<InteractionConstraint.Enum | undefined>(InteractionConstraint.Enum.ENTIRE_SCENE);
-    const [
-      settingsRecord,
-      setSettingsRecord
-    ] = useState<SettingsRecord>(DEFAULT_SETTINGS);
-    const [
-      rightClickMenuContent,
-      _setRightClickMenuContent
-    ] = useState(<></>);
-    const [
-      nucleotideKeysToRerender,
-      setNucleotideKeysToRerender
-    ] = useState<NucleotideKeysToRerender>({});
-    const [
-      basePairKeysToRerender,
-      setBasePairKeysToRerender
-    ] = useState<BasePairKeysToRerender>({});
-    const [
-      sceneState,
-      setSceneState
-    ] = useState(SceneState.NO_DATA);
-    const [
-      mouseOverText,
-      setMouseOverText
-    ] = useState("");
-    const [
-      mouseOverTextDimensions,
-      setMouseOverTextDimensions
-    ] = useState<{
-      width : number,
-      height : number
+    const [interactionConstraint, setInteractionConstraint] = useState<
+      InteractionConstraint.Enum | undefined
+    >(InteractionConstraint.Enum.ENTIRE_SCENE);
+    const [settingsRecord, setSettingsRecord] =
+      useState<SettingsRecord>(DEFAULT_SETTINGS);
+    const [rightClickMenuContent, _setRightClickMenuContent] = useState(<></>);
+    const [nucleotideKeysToRerender, setNucleotideKeysToRerender] =
+      useState<NucleotideKeysToRerender>({});
+    const [basePairKeysToRerender, setBasePairKeysToRerender] =
+      useState<BasePairKeysToRerender>({});
+    const [sceneState, setSceneState] = useState(SceneState.NO_DATA);
+    const [mouseOverText, setMouseOverText] = useState("");
+    const [mouseOverTextDimensions, setMouseOverTextDimensions] = useState<{
+      width: number;
+      height: number;
     }>({
-      width : 0,
-      height : 0
+      width: 0,
+      height: 0,
     });
-    const [
-      mouseUIPosition,
-      setMouseUIPosition
-    ] = useState<Vector2D>({ x : 0, y : 0 });
-    const [
-      originOfDrag,
-      setOriginOfDrag
-    ] = useState<Vector2D>({
-      x : 0,
-      y : 0
+    const [mouseUIPosition, setMouseUIPosition] = useState<Vector2D>({
+      x: 0,
+      y: 0,
     });
-    const [
-      dataSpaceOriginOfDrag,
-      setDataSpaceOriginOfDrag
-    ] = useState<Vector2D | undefined>(undefined);
-    const [
-      dragCache,
-      setDragCache
-    ] = useState<Vector2D>({
-      x : 0,
-      y : 0
+    const [originOfDrag, setOriginOfDrag] = useState<Vector2D>({
+      x: 0,
+      y: 0,
     });
-    const [
-      dragListener,
-      _setDragListener
-    ] = useState<DragListener | null>(null);
-    const [
-      resetOrientationDataTrigger,
-      setResetOrientationDataTrigger
-    ] = useState(false);
-    const [
-      downloadButtonErrorMessage,
-      setDownloadButtonErrorMessage
-    ] = useState<string>("");
-    const [
-      urlParsingErrorMessage,
-      setUrlParsingErrorMessage
-    ] = useState<string>("");
-    const [
-      dataLoadingFailedErrorMessage,
-      setDataLoadingFailedErrorMessage
-    ] = useState<string>("");
-    const [
-      interactionConstraintOptions,
-      setInteractionConstraintOptions
-    ] = useState(InteractionConstraint.DEFAULT_OPTIONS);
-    const [
-      rightClickMenuOptionsMenu,
-      setRightClickMenuOptionsMenu
-    ] = useState(<></>);
-    type BasePairAverageDistances = Record<RnaComplexKey, Context.BasePair.AllDistances>;
-    const [
-      basePairAverageDistances,
-      setBasePairAverageDistances
-    ] = useState<BasePairAverageDistances>({});
-    type LabelContentStyles = Record<RnaComplexKey, Record<RnaMoleculeKey, Context.Label.Content.Style>>;
-    const [
-      labelContentDefaultStyles,
-      setLabelContentDefaultStyles
-    ] = useState<LabelContentStyles>({});
+    const [dataSpaceOriginOfDrag, setDataSpaceOriginOfDrag] = useState<
+      Vector2D | undefined
+    >(undefined);
+    const [dragCache, setDragCache] = useState<Vector2D>({
+      x: 0,
+      y: 0,
+    });
+    const [dragListener, _setDragListener] = useState<DragListener | null>(
+      null
+    );
+    const [resetOrientationDataTrigger, setResetOrientationDataTrigger] =
+      useState(false);
+    const [downloadButtonErrorMessage, setDownloadButtonErrorMessage] =
+      useState<string>("");
+    const [urlParsingErrorMessage, setUrlParsingErrorMessage] =
+      useState<string>("");
+    const [dataLoadingFailedErrorMessage, setDataLoadingFailedErrorMessage] =
+      useState<string>("");
+    const [interactionConstraintOptions, setInteractionConstraintOptions] =
+      useState(InteractionConstraint.DEFAULT_OPTIONS);
+    const [rightClickMenuOptionsMenu, setRightClickMenuOptionsMenu] = useState(
+      <></>
+    );
+    type BasePairAverageDistances = Record<
+      RnaComplexKey,
+      Context.BasePair.AllDistances
+    >;
+    const [basePairAverageDistances, setBasePairAverageDistances] =
+      useState<BasePairAverageDistances>({});
+    type LabelContentStyles = Record<
+      RnaComplexKey,
+      Record<RnaMoleculeKey, Context.Label.Content.Style>
+    >;
+    const [labelContentDefaultStyles, setLabelContentDefaultStyles] =
+      useState<LabelContentStyles>({});
     const [
       rightClickMenuAffectedNucleotideIndices,
-      setRightClickMenuAffectedNucleotideIndices
+      setRightClickMenuAffectedNucleotideIndices,
     ] = useState<FullKeysRecord>({});
     const [
       dragListenerAffectedNucleotideIndices,
-      setDragListenerAffectedNucleotideIndices
+      setDragListenerAffectedNucleotideIndices,
     ] = useState<FullKeysRecord>({});
     const [
       autoDetectedInteractionConstraintMessage,
-      setAutoDetectedInteractionConstraintMessage
+      setAutoDetectedInteractionConstraintMessage,
     ] = useState<"" | "Auto-detected">("");
     // Begin viewport-relevant state data.
-    const [
-      viewportTranslateX,
-      setViewportTranslateX
-    ] = useState(0);
-    const [
-      viewportTranslateY,
-      setViewportTranslateY
-    ] = useState(0);
-    const [
-      viewportScale,
-      setViewportScale
-    ] = useState(1);
-    const [
-      viewportScaleExponent,
-      setViewportScaleExponent
-    ] = useState(0);
-    const [
-      debugVisualElements,
-      setDebugVisualElements
-    ] = useState<Array<JSX.Element>>([]);
+    const [viewportTranslateX, setViewportTranslateX] = useState(0);
+    const [viewportTranslateY, setViewportTranslateY] = useState(0);
+    const [viewportScale, setViewportScale] = useState(1);
+    const [viewportScaleExponent, setViewportScaleExponent] = useState(0);
+    const [debugVisualElements, setDebugVisualElements] = useState<
+      Array<JSX.Element>
+    >([]);
     type ToolsDivWidthOrHeightAttribute = "auto" | number | undefined;
-    const [
-      toolsDivWidthAttribute,
-      setToolsDivWidthAttribute
-    ] = useState<ToolsDivWidthOrHeightAttribute>("auto");
-    const [
-      topToolsDivHeightAttribute,
-      setTopToolsDivHeightAttribute
-    ] = useState<ToolsDivWidthOrHeightAttribute>("auto");
-    const [
-      listenForResizeFlag,
-      setListenForResizeFlag
-    ] = useState(false);
-    const [
-      outputFileHandle,
-      setOutputFileHandle
-    ] = useState<any>(undefined);
+    const [toolsDivWidthAttribute, setToolsDivWidthAttribute] =
+      useState<ToolsDivWidthOrHeightAttribute>("auto");
+    const [topToolsDivHeightAttribute, setTopToolsDivHeightAttribute] =
+      useState<ToolsDivWidthOrHeightAttribute>("auto");
+    const [listenForResizeFlag, setListenForResizeFlag] = useState(false);
+    const [outputFileHandle, setOutputFileHandle] = useState<any>(undefined);
     const [basePairRadius, setBasePairRadius] = useState<number>(0);
-    type DrawerKind = 'none' | 'properties' | 'basepair' | 'basePairEditor' | 'settings' | 'about';
-    const [drawerKind, setDrawerKind] = useState<DrawerKind>('none');
+    type DrawerKind =
+      | "none"
+      | "properties"
+      | "basepair"
+      | "basePairEditor"
+      | "settings"
+      | "about";
+    const [drawerKind, setDrawerKind] = useState<DrawerKind>("none");
     const [basepairSheetOpen, setBasepairSheetOpen] = useState<boolean>(false);
     const [rightDrawerTitle, setRightDrawerTitle] = useState<string>("");
-    const [selectedElementInfo, setSelectedElementInfo] = useState<ElementInfo | undefined>(undefined);
-    const [basePairUpdateTriggers, setBasePairUpdateTriggers] = useState<Record<number, number>>({});
+    const [selectedElementInfo, setSelectedElementInfo] = useState<
+      ElementInfo | undefined
+    >(undefined);
+    const [basePairUpdateTriggers, setBasePairUpdateTriggers] = useState<
+      Record<number, number>
+    >({});
     // Begin state-relevant helper functions.
     function setDragListener(
-      dragListener : DragListener | null,
-      newDragListenerAffectedNucleotideIndices : FullKeysRecord
+      dragListener: DragListener | null,
+      newDragListenerAffectedNucleotideIndices: FullKeysRecord
     ) {
       if (dragListener !== null) {
         setDragCache(dragListener.initiateDrag());
       }
       _setDragListener(dragListener);
-      setDragListenerAffectedNucleotideIndices(newDragListenerAffectedNucleotideIndices);
+      setDragListenerAffectedNucleotideIndices(
+        newDragListenerAffectedNucleotideIndices
+      );
     }
     // Begin reference data.
     const downloadOutputFileHtmlButtonReference = useRef<HTMLButtonElement>();
-    const downloadOutputFileHtmlAnchorReference = createRef<HTMLAnchorElement>();
-    const downloadSampleInputFileHtmlAnchorReference = createRef<HTMLAnchorElement>();
-    const settingsFileDownloadHtmlAnchorReference = createRef<HTMLAnchorElement>();
+    const downloadOutputFileHtmlAnchorReference =
+      createRef<HTMLAnchorElement>();
+    const downloadSampleInputFileHtmlAnchorReference =
+      createRef<HTMLAnchorElement>();
+    const settingsFileDownloadHtmlAnchorReference =
+      createRef<HTMLAnchorElement>();
     const settingsFileUploadHtmlInputReference = createRef<HTMLInputElement>();
     const mouseOverTextSvgTextElementReference = createRef<SVGTextElement>();
     const parentDivResizeDetector = useResizeDetector();
@@ -375,7 +365,9 @@ export namespace App {
     const rightClickMenuContentResizeDetector = useResizeDetector();
     const userDrivenResizeDetector = useResizeDetector();
     const errorMessageResizeDetector = useResizeDetector();
-    const interactionConstraintReference = useRef<InteractionConstraint.Enum | undefined>(interactionConstraint);
+    const interactionConstraintReference = useRef<
+      InteractionConstraint.Enum | undefined
+    >(interactionConstraint);
     interactionConstraintReference.current = interactionConstraint;
     const tabReference = useRef<Tab>();
     tabReference.current = tab;
@@ -386,9 +378,12 @@ export namespace App {
     const rnaComplexPropsReference = useRef<RnaComplexProps>();
     rnaComplexPropsReference.current = rnaComplexProps;
     const sceneSvgGElementReference = useRef<SVGGElement>();
-    const interactionConstraintOptionsReference = useRef<InteractionConstraint.Options>();
-    interactionConstraintOptionsReference.current = interactionConstraintOptions;
-    const basePairAverageDistancesReference = useRef<BasePairAverageDistances>();
+    const interactionConstraintOptionsReference =
+      useRef<InteractionConstraint.Options>();
+    interactionConstraintOptionsReference.current =
+      interactionConstraintOptions;
+    const basePairAverageDistancesReference =
+      useRef<BasePairAverageDistances>();
     basePairAverageDistancesReference.current = basePairAverageDistances;
     const labelContentDefaultStylesReference = useRef<LabelContentStyles>();
     labelContentDefaultStylesReference.current = labelContentDefaultStyles;
@@ -408,9 +403,9 @@ export namespace App {
     const toolsDivResizeDetectorWidthReference = useRef<number | undefined>();
     toolsDivResizeDetectorWidthReference.current = toolsDivResizeDetector.width;
     type TotalScale = {
-      positiveScale : number,
-      negativeScale : number,
-      asTransform : string[]
+      positiveScale: number;
+      negativeScale: number;
+      asTransform: string[];
     };
     const totalScaleReference = useRef<TotalScale>();
     const sceneBoundsReference = useRef<SceneBounds>();
@@ -425,25 +420,39 @@ export namespace App {
     const tabRenderRecordReference = useRef<Record<Tab, JSX.Element>>();
     const outputFileNameReference = useRef<string>();
     outputFileNameReference.current = outputFileName;
-    const outputFileExtensionReference = useRef<OutputFileExtension | undefined>();
+    const outputFileExtensionReference = useRef<
+      OutputFileExtension | undefined
+    >();
     outputFileExtensionReference.current = outputFileExtension;
     const downloadButtonErrorMessageReference = useRef<string>();
     downloadButtonErrorMessageReference.current = downloadButtonErrorMessage;
     const uploadInputFileHtmlInputReference = useRef<HTMLInputElement>();
     const flattenedRnaComplexPropsLengthReference = useRef<number>(0);
-    flattenedRnaComplexPropsLengthReference.current = flattenedRnaComplexPropsLength;
-    const transformTranslate0Reference = useRef<{ asVector : Vector2D, asString : string }>();
-    const transformTranslate1Reference = useRef<{ asVector : Vector2D, asString : string }>();
+    flattenedRnaComplexPropsLengthReference.current =
+      flattenedRnaComplexPropsLength;
+    const transformTranslate0Reference = useRef<{
+      asVector: Vector2D;
+      asString: string;
+    }>();
+    const transformTranslate1Reference = useRef<{
+      asVector: Vector2D;
+      asString: string;
+    }>();
     const dataSpaceOriginOfDragReference = useRef<Vector2D>();
     dataSpaceOriginOfDragReference.current = dataSpaceOriginOfDrag;
-    const flattenedRnaComplexPropsReference = useRef<Array<[string, RnaComplex.ExternalProps]>>();
-    const toolsDivWidthAttributeReference = useRef<ToolsDivWidthOrHeightAttribute>();
+    const flattenedRnaComplexPropsReference =
+      useRef<Array<[string, RnaComplex.ExternalProps]>>();
+    const toolsDivWidthAttributeReference =
+      useRef<ToolsDivWidthOrHeightAttribute>();
     toolsDivWidthAttributeReference.current = toolsDivWidthAttribute;
     const inputFileNameAndExtensionReference = useRef<string>();
-    const indicesOfFrozenNucleotidesReference = useRef<typeof indicesOfFrozenNucleotides>();
+    const indicesOfFrozenNucleotidesReference =
+      useRef<typeof indicesOfFrozenNucleotides>();
     indicesOfFrozenNucleotidesReference.current = indicesOfFrozenNucleotides;
-    const rightClickMenuAffectedNucleotideIndicesReference = useRef<typeof rightClickMenuAffectedNucleotideIndices>();
-    rightClickMenuAffectedNucleotideIndicesReference.current = rightClickMenuAffectedNucleotideIndices;
+    const rightClickMenuAffectedNucleotideIndicesReference =
+      useRef<typeof rightClickMenuAffectedNucleotideIndices>();
+    rightClickMenuAffectedNucleotideIndicesReference.current =
+      rightClickMenuAffectedNucleotideIndices;
     const undoStackReference = useRef<typeof undoStack>();
     undoStackReference.current = undoStack;
     const redoStackReference = useRef<typeof redoStack>();
@@ -454,28 +463,27 @@ export namespace App {
     complexDocumentNameReference.current = complexDocumentName;
     const outputFileHandleReference = useRef<typeof outputFileHandle>();
     outputFileHandleReference.current = outputFileHandle;
-    
-    const outputFileWritersMap = r2dtLegacyVersionFlag ? outputFileWritersMapAbsoluteJsonCoordinates : outputFileWritersMapRelativeJsonCoordinates;
+
+    const outputFileWritersMap = r2dtLegacyVersionFlag
+      ? outputFileWritersMapAbsoluteJsonCoordinates
+      : outputFileWritersMapRelativeJsonCoordinates;
     // Begin memo data.
-    const viewportDragListener : DragListener = useMemo(
-      function() {
-        return {
-          initiateDrag() {
-            return {
-              x : viewportTranslateXReference.current,
-              y : viewportTranslateYReference.current
-            };
-          },
-          continueDrag(totalDrag : Vector2D) {
-            setViewportTranslateX(totalDrag.x);
-            setViewportTranslateY(totalDrag.y);
-          }
-        };
-      },
-      []
-    );
+    const viewportDragListener: DragListener = useMemo(function () {
+      return {
+        initiateDrag() {
+          return {
+            x: viewportTranslateXReference.current,
+            y: viewportTranslateYReference.current,
+          };
+        },
+        continueDrag(totalDrag: Vector2D) {
+          setViewportTranslateX(totalDrag.x);
+          setViewportTranslateY(totalDrag.y);
+        },
+      };
+    }, []);
     const flattenedRnaComplexProps = useMemo(
-      function() {
+      function () {
         const flattenedRnaComplexProps = Object.entries(rnaComplexProps);
         setFlattenedRnaComplexPropsLength(flattenedRnaComplexProps.length);
         flattenedRnaComplexPropsReference.current = flattenedRnaComplexProps;
@@ -484,25 +492,23 @@ export namespace App {
       [rnaComplexProps]
     );
     const svgWidth = useMemo(
-      function() {
+      function () {
         return Math.max((parentDivResizeDetector.width ?? 0) - 420, 0);
       },
-      [
-        parentDivResizeDetector.width
-      ]
+      [parentDivResizeDetector.width]
     );
     const sceneDimensionsReciprocals = useMemo(
-      function() {
-        return ({
-          width : 1 / (sceneBounds.width + MARGIN_LEFT),
-          height : 1 / sceneBounds.height
-        });
+      function () {
+        return {
+          width: 1 / (sceneBounds.width + MARGIN_LEFT),
+          height: 1 / sceneBounds.height,
+        };
       },
       [sceneBounds]
     );
     const sceneBoundsScaleMin = useMemo(
-      function() {
-        const heightScale = (parentDivResizeDetector.height ?? 0);
+      function () {
+        const heightScale = parentDivResizeDetector.height ?? 0;
         (window as any).widthScale = svgWidth;
         (window as any).heightScale = heightScale;
         return Math.min(
@@ -510,22 +516,18 @@ export namespace App {
           heightScale * sceneDimensionsReciprocals.height
         );
       },
-      [
-        parentDivResizeDetector.height,
-        svgWidth,
-        sceneDimensionsReciprocals
-      ]
+      [parentDivResizeDetector.height, svgWidth, sceneDimensionsReciprocals]
     );
     sceneBoundsScaleMinReference.current = sceneBoundsScaleMin;
     const transformTranslate0 = useMemo(
-      function() {
+      function () {
         const asVector = {
-          x : -sceneBounds.x,
-          y : -(sceneBounds.y + sceneBounds.height)
+          x: -sceneBounds.x,
+          y: -(sceneBounds.y + sceneBounds.height),
         };
         const returnValue = {
           asVector,
-          asString : `translate(${asVector.x}, ${asVector.y})`
+          asString: `translate(${asVector.x}, ${asVector.y})`,
         };
         transformTranslate0Reference.current = returnValue;
         return returnValue;
@@ -533,420 +535,369 @@ export namespace App {
       [sceneBounds]
     );
     const transformTranslate1 = useMemo(
-      function() {
+      function () {
         const asVector = {
-          x : viewportTranslateX,
-          y : viewportTranslateY
+          x: viewportTranslateX,
+          y: viewportTranslateY,
         };
         const returnValue = {
           asVector,
-          asString : `translate(${asVector.x}, ${asVector.y})`
+          asString: `translate(${asVector.x}, ${asVector.y})`,
         };
         transformTranslate1Reference.current = returnValue;
         return returnValue;
       },
-      [
-        viewportTranslateX,
-        viewportTranslateY
-      ]
+      [viewportTranslateX, viewportTranslateY]
     );
-    const totalScale : TotalScale = useMemo(
-      function() {
+    const totalScale: TotalScale = useMemo(
+      function () {
         const positiveScale = viewportScale * sceneBoundsScaleMin;
         return {
           positiveScale,
-          negativeScale : 1 / positiveScale,
-          asTransform : [
+          negativeScale: 1 / positiveScale,
+          asTransform: [
             `scale(${sceneBoundsScaleMin})`,
-            `scale(${viewportScale})`
-          ]
+            `scale(${viewportScale})`,
+          ],
         };
       },
-      [
-        viewportScale,
-        sceneBoundsScaleMin
-      ]
+      [viewportScale, sceneBoundsScaleMin]
     );
     totalScaleReference.current = totalScale;
-    const labelOnMouseDownRightClickHelper = useMemo(
-      function() {
-        return function(
-          fullKeys : FullKeys,
-          interactionConstraint = interactionConstraintReference.current
-        ) {
-          switch (tabReference.current) {
-            case Tab.EDIT : {
-              if (interactionConstraint === undefined || !InteractionConstraint.isEnum(interactionConstraint)) {
-                setRightClickMenuContent(
-                  <b
-                    style = {{
-                      color : "red"
-                    }}
-                  >
-                    Select a constraint first!
-                  </b>,
-                  {}
-                );
-                return;
-              }
-              const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
-              const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
-              try {
-                const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
-                const helper = new InteractionConstraint.record[interactionConstraint](
-                  rnaComplexProps,
-                  setNucleotideKeysToRerender,
-                  setBasePairKeysToRerender,
-                  setDebugVisualElements,
-                  tab,
-                  indicesOfFrozenNucleotides,
-                  interactionConstraintOptions,
-                  fullKeys
-                );
-                setRightClickMenuContent(
-                  <LabelEditMenu.Component
-                    rnaComplexProps = {rnaComplexProps}
-                    indicesOfAffectedNucleotides = {helper.indicesOfAffectedNucleotides}
-                    setNucleotideKeysToRerender = {setNucleotideKeysToRerender}
-                  />,
-                  helper.indicesOfAffectedNucleotides
-                );
-              } catch (error : any) {
-                if (typeof error === "object" && "errorMessage" in error) {
-                  setRightClickMenuContent(
-                    <b
-                      style = {{
-                        color : "red"
-                      }}
-                    >
-                      {error.errorMessage}
-                    </b>,
-                    {}
-                  );
-                } else {
-                  throw error;
-                }
-              }
-              break;
-            }
-          }
-        }
-      },
-      []
-    );
-    const labelContentOnMouseDownHelper = useMemo(
-      function() {
-        return function(
-          e : React.MouseEvent<LabelContent.SvgRepresentation>,
-          fullKeys : FullKeys
-        ) {
-          const {
-            rnaComplexIndex,
-            rnaMoleculeName,
-            nucleotideIndex
-          } = fullKeys;
-          switch (e.button) {
-            case MouseButtonIndices.Left : {
-              let newDragListener : DragListener = viewportDragListener;
-              if (tabReference.current === Tab.EDIT) {
-                const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
-                const labelContentProps = singularNucleotideProps.labelContentProps as LabelContent.ExternalProps;
-                newDragListener = {
-                  initiateDrag() {
-                    return {
-                      x : labelContentProps.x,
-                      y : labelContentProps.y
-                    };
-                  },
-                  continueDrag(totalDrag : Vector2D) {
-                    singularNucleotideProps.labelContentProps = {
-                      ...labelContentProps,
-                      ...totalDrag
-                    };
-                    labelContentProps.x = totalDrag.x;
-                    labelContentProps.y = totalDrag.y;
-                    setNucleotideKeysToRerender({
-                      [rnaComplexIndex] : {
-                        [rnaMoleculeName] : [nucleotideIndex]
-                      }
-                    });
-                  }
-                };
-              }
-              const setPerRnaMolecule = new Set<number>();
-              setPerRnaMolecule.add(nucleotideIndex);
-              setDragListener(
-                newDragListener,
-                {
-                  [rnaComplexIndex] : {
-                    [rnaMoleculeName] : setPerRnaMolecule
-                  }
-                }
-              );
-              break;
-            }
-            case MouseButtonIndices.Right : {
-              labelOnMouseDownRightClickHelper(fullKeys);
-              break;
-            }
-          }
-        }
-      },
-      []
-    );
-    const labelLineBodyOnMouseDownHelper = useMemo(
-      function() {
-        return function(
-          e : React.MouseEvent<LabelLine.BodySvgRepresentation>,
-          fullKeys : FullKeys,
-          helper : () => void
-        ) {
-          const {
-            rnaComplexIndex,
-            rnaMoleculeName,
-            nucleotideIndex
-          } = fullKeys;
-          const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
-          const labelLineProps = singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
-          switch (e.button) {
-            case MouseButtonIndices.Left : {
-              let newDragListener = viewportDragListener;
-              if (tabReference.current === Tab.EDIT) {
-                const point0 = labelLineProps.points[0];
-                const displacementsPerPoint = labelLineProps.points.map(function(point) {
-                  return subtract(
-                    point,
-                    point0
-                  );
-                });
-                newDragListener = {
-                  initiateDrag() {
-                    return {
-                      x : point0.x,
-                      y : point0.y
-                    };
-                  },
-                  continueDrag(totalDrag) {
-                    for (let i = 0; i < labelLineProps.points.length; i++) {
-                      const point = labelLineProps.points[i];
-                      const newPosition = add(
-                        totalDrag,
-                        displacementsPerPoint[i]
-                      );
-                      point.x = newPosition.x;
-                      point.y = newPosition.y;
-                    }
-                    helper();
-                    setNucleotideKeysToRerender({
-                      [rnaComplexIndex] : {
-                        [rnaMoleculeName] : [nucleotideIndex]
-                      }
-                    });
-                  }
-                };
-              }
-              const setPerRnaMolecule = new Set<number>();
-              setPerRnaMolecule.add(nucleotideIndex);
-              setDragListener(
-                newDragListener,
-                {
-                  [rnaComplexIndex] : {
-                    [rnaMoleculeName] : setPerRnaMolecule
-                  }
-                }
-              );
-              break;
-            }
-            case MouseButtonIndices.Right : {
-              labelOnMouseDownRightClickHelper(fullKeys);
-              break;
-            }
-          }
-        }
-      },
-      []
-    );
-    const labelLineEndpointOnMouseDownHelper = useMemo(
-      function() {
-        return function(
-          e : React.MouseEvent<LabelLine.EndpointSvgRepresentation>,
-          fullKeys : FullKeys,
-          pointIndex : number,
-          helper : () => void
-        ) {
-          const {
-            rnaComplexIndex,
-            rnaMoleculeName,
-            nucleotideIndex
-          } = fullKeys;
-          const singularNucleotideProps = (rnaComplexPropsReference.current as RnaComplexProps)[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
-          const labelLineProps = (singularNucleotideProps.labelLineProps as LabelLine.ExternalProps);
-          switch (e.button) {
-            case MouseButtonIndices.Left : {
-              let newDragListener = viewportDragListener;
-              if (tabReference.current === Tab.EDIT) {
-                const point = labelLineProps.points[pointIndex];
-                newDragListener = {
-                  initiateDrag() {
-                    return {
-                      x : point.x,
-                      y : point.y
-                    };
-                  },
-                  continueDrag(totalDrag) {
-                    point.x = totalDrag.x;
-                    point.y = totalDrag.y;
-                    helper();
-                    setNucleotideKeysToRerender({
-                      [rnaComplexIndex] : {
-                        [rnaMoleculeName] : [nucleotideIndex]
-                      }
-                    });
-                  }
-                };
-              }
-              const setPerRnaMolecule = new Set<number>();
-              setPerRnaMolecule.add(nucleotideIndex);
-              setDragListener(
-                newDragListener,
-                {
-                  [rnaComplexIndex] : {
-                    [rnaMoleculeName] : setPerRnaMolecule
-                  }
-                }
-              );
-              break;
-            }
-            case MouseButtonIndices.Right : {
-              if (tabReference.current === Tab.EDIT) {
-                labelOnMouseDownRightClickHelper(fullKeys);
-              }
-              break;
-            }
-          }
-        }
-      },
-      []
-    );
-    const nucleotideOnMouseDownRightClickHelper = useMemo(
-      function() {
-        return function(
-          fullKeys : FullKeys,
-          interactionConstraint : InteractionConstraint.Enum,
-          tab : InteractionConstraint.SupportedTab
-        ) {
-          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
-          const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
-          try {
-            const helper = new InteractionConstraint.record[interactionConstraint](
-              rnaComplexPropsReference.current as RnaComplexProps,
-              setNucleotideKeysToRerender,
-              setBasePairKeysToRerender,
-              setDebugVisualElements,
-              tab,
-              indicesOfFrozenNucleotides,
-              interactionConstraintOptions,
-              fullKeys
-            );
-            const rightClickMenu = helper.createRightClickMenu(tab);
-            setResetOrientationDataTrigger(!resetOrientationDataTrigger);
-            setRightClickMenuContent(
-              rightClickMenu,
-              helper.indicesOfAffectedNucleotides
-            );
-          } catch (error : any) {
-            if (typeof error === "object" && "errorMessage" in error) {
+    const labelOnMouseDownRightClickHelper = useMemo(function () {
+      return function (
+        fullKeys: FullKeys,
+        interactionConstraint = interactionConstraintReference.current
+      ) {
+        switch (tabReference.current) {
+          case Tab.EDIT: {
+            if (
+              interactionConstraint === undefined ||
+              !InteractionConstraint.isEnum(interactionConstraint)
+            ) {
               setRightClickMenuContent(
                 <b
-                  style = {{
-                    color : "red"
+                  style={{
+                    color: "red",
                   }}
                 >
-                  {error.errorMessage}
+                  Select a constraint first!
                 </b>,
                 {}
               );
-            } else {
-              throw error;
+              return;
             }
-            return;
+            const rnaComplexProps =
+              rnaComplexPropsReference.current as RnaComplexProps;
+            const interactionConstraintOptions =
+              interactionConstraintOptionsReference.current!;
+            try {
+              const indicesOfFrozenNucleotides =
+                indicesOfFrozenNucleotidesReference.current!;
+              const helper = new InteractionConstraint.record[
+                interactionConstraint
+              ](
+                rnaComplexProps,
+                setNucleotideKeysToRerender,
+                setBasePairKeysToRerender,
+                setDebugVisualElements,
+                tab,
+                indicesOfFrozenNucleotides,
+                interactionConstraintOptions,
+                fullKeys
+              );
+              setRightClickMenuContent(
+                <LabelEditMenu.Component
+                  rnaComplexProps={rnaComplexProps}
+                  indicesOfAffectedNucleotides={
+                    helper.indicesOfAffectedNucleotides
+                  }
+                  setNucleotideKeysToRerender={setNucleotideKeysToRerender}
+                />,
+                helper.indicesOfAffectedNucleotides
+              );
+            } catch (error: any) {
+              if (typeof error === "object" && "errorMessage" in error) {
+                setRightClickMenuContent(
+                  <b
+                    style={{
+                      color: "red",
+                    }}
+                  >
+                    {error.errorMessage}
+                  </b>,
+                  {}
+                );
+              } else {
+                throw error;
+              }
+            }
+            break;
           }
         }
-      },
-      []
-    );
-    const nucleotideOnMouseDownHelper = useMemo(
-      function() {
-        return function(
-          e : React.MouseEvent<Nucleotide.SvgRepresentation>,
-          fullKeys : FullKeys
-        ) {
-          const interactionConstraint = interactionConstraintReference.current;
-          if (interactionConstraint === undefined || !InteractionConstraint.isEnum(interactionConstraint)) {
+      };
+    }, []);
+    const labelContentOnMouseDownHelper = useMemo(function () {
+      return function (
+        e: React.MouseEvent<LabelContent.SvgRepresentation>,
+        fullKeys: FullKeys
+      ) {
+        const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } = fullKeys;
+        switch (e.button) {
+          case MouseButtonIndices.Left: {
+            let newDragListener: DragListener = viewportDragListener;
+            if (tabReference.current === Tab.EDIT) {
+              const singularNucleotideProps = (
+                rnaComplexPropsReference.current as RnaComplexProps
+              )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName]
+                .nucleotideProps[nucleotideIndex];
+              const labelContentProps =
+                singularNucleotideProps.labelContentProps as LabelContent.ExternalProps;
+              newDragListener = {
+                initiateDrag() {
+                  return {
+                    x: labelContentProps.x,
+                    y: labelContentProps.y,
+                  };
+                },
+                continueDrag(totalDrag: Vector2D) {
+                  singularNucleotideProps.labelContentProps = {
+                    ...labelContentProps,
+                    ...totalDrag,
+                  };
+                  labelContentProps.x = totalDrag.x;
+                  labelContentProps.y = totalDrag.y;
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex]: {
+                      [rnaMoleculeName]: [nucleotideIndex],
+                    },
+                  });
+                },
+              };
+            }
+            const setPerRnaMolecule = new Set<number>();
+            setPerRnaMolecule.add(nucleotideIndex);
+            setDragListener(newDragListener, {
+              [rnaComplexIndex]: {
+                [rnaMoleculeName]: setPerRnaMolecule,
+              },
+            });
+            break;
+          }
+          case MouseButtonIndices.Right: {
+            labelOnMouseDownRightClickHelper(fullKeys);
+            break;
+          }
+        }
+      };
+    }, []);
+    const labelLineBodyOnMouseDownHelper = useMemo(function () {
+      return function (
+        e: React.MouseEvent<LabelLine.BodySvgRepresentation>,
+        fullKeys: FullKeys,
+        helper: () => void
+      ) {
+        const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } = fullKeys;
+        const singularNucleotideProps = (
+          rnaComplexPropsReference.current as RnaComplexProps
+        )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
+          nucleotideIndex
+        ];
+        const labelLineProps =
+          singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
+        switch (e.button) {
+          case MouseButtonIndices.Left: {
+            let newDragListener = viewportDragListener;
+            if (tabReference.current === Tab.EDIT) {
+              const point0 = labelLineProps.points[0];
+              const displacementsPerPoint = labelLineProps.points.map(function (
+                point
+              ) {
+                return subtract(point, point0);
+              });
+              newDragListener = {
+                initiateDrag() {
+                  return {
+                    x: point0.x,
+                    y: point0.y,
+                  };
+                },
+                continueDrag(totalDrag) {
+                  for (let i = 0; i < labelLineProps.points.length; i++) {
+                    const point = labelLineProps.points[i];
+                    const newPosition = add(
+                      totalDrag,
+                      displacementsPerPoint[i]
+                    );
+                    point.x = newPosition.x;
+                    point.y = newPosition.y;
+                  }
+                  helper();
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex]: {
+                      [rnaMoleculeName]: [nucleotideIndex],
+                    },
+                  });
+                },
+              };
+            }
+            const setPerRnaMolecule = new Set<number>();
+            setPerRnaMolecule.add(nucleotideIndex);
+            setDragListener(newDragListener, {
+              [rnaComplexIndex]: {
+                [rnaMoleculeName]: setPerRnaMolecule,
+              },
+            });
+            break;
+          }
+          case MouseButtonIndices.Right: {
+            labelOnMouseDownRightClickHelper(fullKeys);
+            break;
+          }
+        }
+      };
+    }, []);
+    const labelLineEndpointOnMouseDownHelper = useMemo(function () {
+      return function (
+        e: React.MouseEvent<LabelLine.EndpointSvgRepresentation>,
+        fullKeys: FullKeys,
+        pointIndex: number,
+        helper: () => void
+      ) {
+        const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } = fullKeys;
+        const singularNucleotideProps = (
+          rnaComplexPropsReference.current as RnaComplexProps
+        )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
+          nucleotideIndex
+        ];
+        const labelLineProps =
+          singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
+        switch (e.button) {
+          case MouseButtonIndices.Left: {
+            let newDragListener = viewportDragListener;
+            if (tabReference.current === Tab.EDIT) {
+              const point = labelLineProps.points[pointIndex];
+              newDragListener = {
+                initiateDrag() {
+                  return {
+                    x: point.x,
+                    y: point.y,
+                  };
+                },
+                continueDrag(totalDrag) {
+                  point.x = totalDrag.x;
+                  point.y = totalDrag.y;
+                  helper();
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex]: {
+                      [rnaMoleculeName]: [nucleotideIndex],
+                    },
+                  });
+                },
+              };
+            }
+            const setPerRnaMolecule = new Set<number>();
+            setPerRnaMolecule.add(nucleotideIndex);
+            setDragListener(newDragListener, {
+              [rnaComplexIndex]: {
+                [rnaMoleculeName]: setPerRnaMolecule,
+              },
+            });
+            break;
+          }
+          case MouseButtonIndices.Right: {
+            if (tabReference.current === Tab.EDIT) {
+              labelOnMouseDownRightClickHelper(fullKeys);
+            }
+            break;
+          }
+        }
+      };
+    }, []);
+    const nucleotideOnMouseDownRightClickHelper = useMemo(function () {
+      return function (
+        fullKeys: FullKeys,
+        interactionConstraint: InteractionConstraint.Enum,
+        tab: InteractionConstraint.SupportedTab
+      ) {
+        const indicesOfFrozenNucleotides =
+          indicesOfFrozenNucleotidesReference.current!;
+        const interactionConstraintOptions =
+          interactionConstraintOptionsReference.current!;
+        try {
+          const helper = new InteractionConstraint.record[
+            interactionConstraint
+          ](
+            rnaComplexPropsReference.current as RnaComplexProps,
+            setNucleotideKeysToRerender,
+            setBasePairKeysToRerender,
+            setDebugVisualElements,
+            tab,
+            indicesOfFrozenNucleotides,
+            interactionConstraintOptions,
+            fullKeys
+          );
+          const rightClickMenu = helper.createRightClickMenu(tab);
+          setResetOrientationDataTrigger(!resetOrientationDataTrigger);
+          setRightClickMenuContent(
+            rightClickMenu,
+            helper.indicesOfAffectedNucleotides
+          );
+        } catch (error: any) {
+          if (typeof error === "object" && "errorMessage" in error) {
             setRightClickMenuContent(
               <b
-                style = {{
-                  color : "red"
+                style={{
+                  color: "red",
                 }}
               >
-                Select a constraint first!
+                {error.errorMessage}
               </b>,
               {}
             );
-            return;
+          } else {
+            throw error;
           }
-          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
-          const tab = tabReference.current as Tab;
-          const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
-          let newDragListenerAffectedNucleotideIndices = {};
-          switch (e.button) {
-            case MouseButtonIndices.Left : {
-              let newDragListener : DragListener = viewportDragListener;
-              if (tab === Tab.EDIT) {
-                try {
-                  const helper = new InteractionConstraint.record[interactionConstraint](
-                    rnaComplexPropsReference.current as RnaComplexProps,
-                    setNucleotideKeysToRerender,
-                    setBasePairKeysToRerender,
-                    setDebugVisualElements,
-                    tab,
-                    indicesOfFrozenNucleotides,
-                    interactionConstraintOptions,
-                    fullKeys
-                  );
-                  const newDragListenerAttempt = helper.drag();
-                  newDragListenerAffectedNucleotideIndices = helper.indicesOfAffectedNucleotides;
-                  if (newDragListenerAttempt != undefined) {
-                    newDragListener = newDragListenerAttempt;
-                  }
-                } catch (error : any) {
-                  if (typeof error === "object" && "errorMessage" in error) {
-                    setRightClickMenuContent(
-                      <b
-                        style = {{
-                          color : "red"
-                        }}
-                      >
-                        {error.errorMessage}
-                      </b>,
-                      {}
-                    );
-                  } else {
-                    throw error;
-                  }
-                  return;
-                }
-              }
-              setDragListener(
-                newDragListener,
-                newDragListenerAffectedNucleotideIndices
-              );
-              break;
-            }
-            case MouseButtonIndices.Middle : {
+          return;
+        }
+      };
+    }, []);
+    const nucleotideOnMouseDownHelper = useMemo(function () {
+      return function (
+        e: React.MouseEvent<Nucleotide.SvgRepresentation>,
+        fullKeys: FullKeys
+      ) {
+        const interactionConstraint = interactionConstraintReference.current;
+        if (
+          interactionConstraint === undefined ||
+          !InteractionConstraint.isEnum(interactionConstraint)
+        ) {
+          setRightClickMenuContent(
+            <b
+              style={{
+                color: "red",
+              }}
+            >
+              Select a constraint first!
+            </b>,
+            {}
+          );
+          return;
+        }
+        const indicesOfFrozenNucleotides =
+          indicesOfFrozenNucleotidesReference.current!;
+        const tab = tabReference.current as Tab;
+        const interactionConstraintOptions =
+          interactionConstraintOptionsReference.current!;
+        let newDragListenerAffectedNucleotideIndices = {};
+        switch (e.button) {
+          case MouseButtonIndices.Left: {
+            let newDragListener: DragListener = viewportDragListener;
+            if (tab === Tab.EDIT) {
               try {
-                const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
-                const helper = new InteractionConstraint.record[interactionConstraint](
+                const helper = new InteractionConstraint.record[
+                  interactionConstraint
+                ](
                   rnaComplexPropsReference.current as RnaComplexProps,
                   setNucleotideKeysToRerender,
                   setBasePairKeysToRerender,
@@ -956,79 +907,18 @@ export namespace App {
                   interactionConstraintOptions,
                   fullKeys
                 );
-                const helperIndicesOfAffectedNucleotides = helper.indicesOfAffectedNucleotides;
-                const rightClickMenuAffectedNucleotideIndices = rightClickMenuAffectedNucleotideIndicesReference.current!;
-                const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
-                let freezeNucleotidesFlag = true;
-                const {
-                  rnaComplexIndex,
-                  rnaMoleculeName,
-                  nucleotideIndex
-                } = fullKeys;
-                if (rnaComplexIndex in indicesOfFrozenNucleotides) {
-                  const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
-                  if (rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex) {
-                    const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName];
-                    if (indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
-                      freezeNucleotidesFlag = false;
-                    }
-                  }
+                const newDragListenerAttempt = helper.drag();
+                newDragListenerAffectedNucleotideIndices =
+                  helper.indicesOfAffectedNucleotides;
+                if (newDragListenerAttempt != undefined) {
+                  newDragListener = newDragListenerAttempt;
                 }
-                let clearRightClickMenuFlag = false;
-                for (const [rnaComplexIndexAsString, helperIndicesOfAffectedNucleotidesPerRnaComplex] of Object.entries(helperIndicesOfAffectedNucleotides)) {
-                  const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-                  for (const [rnaMoleculeName, helperIndicesOfAffectedNucleotidesPerRnaComplexPerRnaMolecule] of Object.entries(helperIndicesOfAffectedNucleotidesPerRnaComplex)) {
-                    for (const nucleotideIndex of Array.from(helperIndicesOfAffectedNucleotidesPerRnaComplexPerRnaMolecule)) {
-                      if (!(rnaComplexIndex in newIndicesOfFrozenNucleotides)) {
-                        newIndicesOfFrozenNucleotides[rnaComplexIndex] = {};
-                      }
-                      const newIndicesOfFrozenNucleotidesPerRnaComplex = newIndicesOfFrozenNucleotides[rnaComplexIndex];
-                      if (!(rnaMoleculeName in newIndicesOfFrozenNucleotidesPerRnaComplex)) {
-                        newIndicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName] = new Set<number>();
-                      }
-                      const newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule = newIndicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName];
-                      if (freezeNucleotidesFlag) {
-                        newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.add(nucleotideIndex);
-                      } else if (newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
-                        newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.delete(nucleotideIndex);
-                      }
-                      if (rnaComplexIndex in rightClickMenuAffectedNucleotideIndices) {
-                        const rightClickMenuAffectedNucleotideIndicesPerRnaComplex = rightClickMenuAffectedNucleotideIndices[rnaComplexIndex];
-                        if (rnaMoleculeName in rightClickMenuAffectedNucleotideIndicesPerRnaComplex) {
-                          const rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule = rightClickMenuAffectedNucleotideIndicesPerRnaComplex[rnaMoleculeName];
-                          if (rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
-                            clearRightClickMenuFlag = true;
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-                setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
-                const undoStack = undoStackReference.current!;
-                setUndoStack([...undoStack, {
-                  data : indicesOfFrozenNucleotides,
-                  dataType : UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides
-                }]);
-                setRedoStack([]);
-                if (clearRightClickMenuFlag) {
-                  setRightClickMenuContent(
-                    <b
-                      style = {{
-                        color : "red"
-                      }}
-                    >
-                      The current right-click menu is no longer valid, due to a newly frozen nucleotide
-                    </b>,
-                    {}
-                  );
-                }
-              } catch (error : any) {
+              } catch (error: any) {
                 if (typeof error === "object" && "errorMessage" in error) {
                   setRightClickMenuContent(
                     <b
-                      style = {{
-                        color : "red"
+                      style={{
+                        color: "red",
                       }}
                     >
                       {error.errorMessage}
@@ -1040,317 +930,512 @@ export namespace App {
                 }
                 return;
               }
-              break;
             }
-            case MouseButtonIndices.Right : {
-              if (InteractionConstraint.isSupportedTab(tab)) {
-                nucleotideOnMouseDownRightClickHelper(
-                  fullKeys,
-                  interactionConstraint,
-                  tab
-                );
-              }
-              break;
-            }
+            setDragListener(
+              newDragListener,
+              newDragListenerAffectedNucleotideIndices
+            );
+            break;
           }
-        };
-      },
-      []
-    );
-    const basePairOnMouseDownHelper = useMemo(
-      function() {
-        return function(
-          e : React.MouseEvent,
-          fullKeys0 : FullKeys,
-          fullKeys1 : FullKeys
-        ) {
-          const interactionConstraint = interactionConstraintReference.current!;
-          const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
-          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
-          const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
-          const tab = tabReference.current!;
-          switch (e.button) {
-            case MouseButtonIndices.Left : {
-              let newDragListener : DragListener = viewportDragListener;
-              let newDragListenerAffectedNucleotideIndices = {};
-              // As of now, dragging base pairs is not an option.
-              setDragListener(
-                newDragListener,
-                newDragListenerAffectedNucleotideIndices
-              )
-              break;
-            }
-            case MouseButtonIndices.Right : {
-              if (InteractionConstraint.isSupportedTab(tab)) {
-                try {
-                  const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
-                  const helper = new InteractionConstraint.record[interactionConstraint](
-                    rnaComplexProps,
-                    setNucleotideKeysToRerender,
-                    setBasePairKeysToRerender,
-                    setDebugVisualElements,
-                    tab,
-                    indicesOfFrozenNucleotides,
-                    interactionConstraintOptions,
-                    fullKeys0,
-                    fullKeys1
-                  );
-                  const rightClickMenu = helper.createRightClickMenu(tab);
-                  setResetOrientationDataTrigger(!resetOrientationDataTrigger);
-                  setRightClickMenuContent(
-                    rightClickMenu,
-                    helper.indicesOfAffectedNucleotides
-                  );
-                } catch (error : any) {
-                  if (typeof error === "object" && "errorMessage" in error) {
-                    setRightClickMenuContent(
-                      <b
-                        style = {{
-                          color : "red"
-                        }}
-                      >
-                        {error.errorMessage}
-                      </b>,
-                      {}
-                    );
-                  } else {
-                    throw error;
+          case MouseButtonIndices.Middle: {
+            try {
+              const interactionConstraintOptions =
+                interactionConstraintOptionsReference.current!;
+              const helper = new InteractionConstraint.record[
+                interactionConstraint
+              ](
+                rnaComplexPropsReference.current as RnaComplexProps,
+                setNucleotideKeysToRerender,
+                setBasePairKeysToRerender,
+                setDebugVisualElements,
+                tab,
+                indicesOfFrozenNucleotides,
+                interactionConstraintOptions,
+                fullKeys
+              );
+              const helperIndicesOfAffectedNucleotides =
+                helper.indicesOfAffectedNucleotides;
+              const rightClickMenuAffectedNucleotideIndices =
+                rightClickMenuAffectedNucleotideIndicesReference.current!;
+              const newIndicesOfFrozenNucleotides = structuredClone(
+                indicesOfFrozenNucleotides
+              );
+              let freezeNucleotidesFlag = true;
+              const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } =
+                fullKeys;
+              if (rnaComplexIndex in indicesOfFrozenNucleotides) {
+                const indicesOfFrozenNucleotidesPerRnaComplex =
+                  indicesOfFrozenNucleotides[rnaComplexIndex];
+                if (
+                  rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex
+                ) {
+                  const indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule =
+                    indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName];
+                  if (
+                    indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(
+                      nucleotideIndex
+                    )
+                  ) {
+                    freezeNucleotidesFlag = false;
                   }
                 }
               }
-              break;
+              let clearRightClickMenuFlag = false;
+              for (const [
+                rnaComplexIndexAsString,
+                helperIndicesOfAffectedNucleotidesPerRnaComplex,
+              ] of Object.entries(helperIndicesOfAffectedNucleotides)) {
+                const rnaComplexIndex = Number.parseInt(
+                  rnaComplexIndexAsString
+                );
+                for (const [
+                  rnaMoleculeName,
+                  helperIndicesOfAffectedNucleotidesPerRnaComplexPerRnaMolecule,
+                ] of Object.entries(
+                  helperIndicesOfAffectedNucleotidesPerRnaComplex
+                )) {
+                  for (const nucleotideIndex of Array.from(
+                    helperIndicesOfAffectedNucleotidesPerRnaComplexPerRnaMolecule
+                  )) {
+                    if (!(rnaComplexIndex in newIndicesOfFrozenNucleotides)) {
+                      newIndicesOfFrozenNucleotides[rnaComplexIndex] = {};
+                    }
+                    const newIndicesOfFrozenNucleotidesPerRnaComplex =
+                      newIndicesOfFrozenNucleotides[rnaComplexIndex];
+                    if (
+                      !(
+                        rnaMoleculeName in
+                        newIndicesOfFrozenNucleotidesPerRnaComplex
+                      )
+                    ) {
+                      newIndicesOfFrozenNucleotidesPerRnaComplex[
+                        rnaMoleculeName
+                      ] = new Set<number>();
+                    }
+                    const newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule =
+                      newIndicesOfFrozenNucleotidesPerRnaComplex[
+                        rnaMoleculeName
+                      ];
+                    if (freezeNucleotidesFlag) {
+                      newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.add(
+                        nucleotideIndex
+                      );
+                    } else if (
+                      newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(
+                        nucleotideIndex
+                      )
+                    ) {
+                      newIndicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.delete(
+                        nucleotideIndex
+                      );
+                    }
+                    if (
+                      rnaComplexIndex in rightClickMenuAffectedNucleotideIndices
+                    ) {
+                      const rightClickMenuAffectedNucleotideIndicesPerRnaComplex =
+                        rightClickMenuAffectedNucleotideIndices[
+                          rnaComplexIndex
+                        ];
+                      if (
+                        rnaMoleculeName in
+                        rightClickMenuAffectedNucleotideIndicesPerRnaComplex
+                      ) {
+                        const rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule =
+                          rightClickMenuAffectedNucleotideIndicesPerRnaComplex[
+                            rnaMoleculeName
+                          ];
+                        if (
+                          rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule.has(
+                            nucleotideIndex
+                          )
+                        ) {
+                          clearRightClickMenuFlag = true;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
+              const undoStack = undoStackReference.current!;
+              setUndoStack([
+                ...undoStack,
+                {
+                  data: indicesOfFrozenNucleotides,
+                  dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
+                },
+              ]);
+              setRedoStack([]);
+              if (clearRightClickMenuFlag) {
+                setRightClickMenuContent(
+                  <b
+                    style={{
+                      color: "red",
+                    }}
+                  >
+                    The current right-click menu is no longer valid, due to a
+                    newly frozen nucleotide
+                  </b>,
+                  {}
+                );
+              }
+            } catch (error: any) {
+              if (typeof error === "object" && "errorMessage" in error) {
+                setRightClickMenuContent(
+                  <b
+                    style={{
+                      color: "red",
+                    }}
+                  >
+                    {error.errorMessage}
+                  </b>,
+                  {}
+                );
+              } else {
+                throw error;
+              }
+              return;
             }
+            break;
+          }
+          case MouseButtonIndices.Right: {
+            if (InteractionConstraint.isSupportedTab(tab)) {
+              nucleotideOnMouseDownRightClickHelper(
+                fullKeys,
+                interactionConstraint,
+                tab
+              );
+            }
+            break;
           }
         }
-      },
-      []
-    );
-    const updateRnaMoleculeNameHelper = useMemo(
-      function() {
-        return function(
-          rnaComplexIndex : RnaComplexKey,
-          oldRnaMoleculeName : RnaMoleculeKey,
-          newRnaMoleculeName : RnaMoleculeKey
-        ) {
-          const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
-          const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-          const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
-  
-          for (let rnaMoleculeName of Object.keys(singularRnaComplexProps.rnaMoleculeProps)) {
-            if (!(rnaMoleculeName in basePairsPerRnaComplex)) {
-              continue;
-            }
-            let basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
-            for (let basePairsPerNucleotide of Object.values(basePairsPerRnaMolecule)) {
-              for (const basePairPerNucleotide of basePairsPerNucleotide) {
-                if (basePairPerNucleotide.rnaMoleculeName === oldRnaMoleculeName) {
-                  basePairPerNucleotide.rnaMoleculeName = newRnaMoleculeName;
+      };
+    }, []);
+    const basePairOnMouseDownHelper = useMemo(function () {
+      return function (
+        e: React.MouseEvent,
+        fullKeys0: FullKeys,
+        fullKeys1: FullKeys
+      ) {
+        const interactionConstraint = interactionConstraintReference.current!;
+        const rnaComplexProps =
+          rnaComplexPropsReference.current as RnaComplexProps;
+        const indicesOfFrozenNucleotides =
+          indicesOfFrozenNucleotidesReference.current!;
+        const interactionConstraintOptions =
+          interactionConstraintOptionsReference.current!;
+        const tab = tabReference.current!;
+        switch (e.button) {
+          case MouseButtonIndices.Left: {
+            let newDragListener: DragListener = viewportDragListener;
+            let newDragListenerAffectedNucleotideIndices = {};
+            // As of now, dragging base pairs is not an option.
+            setDragListener(
+              newDragListener,
+              newDragListenerAffectedNucleotideIndices
+            );
+            break;
+          }
+          case MouseButtonIndices.Right: {
+            if (InteractionConstraint.isSupportedTab(tab)) {
+              try {
+                const indicesOfFrozenNucleotides =
+                  indicesOfFrozenNucleotidesReference.current!;
+                const helper = new InteractionConstraint.record[
+                  interactionConstraint
+                ](
+                  rnaComplexProps,
+                  setNucleotideKeysToRerender,
+                  setBasePairKeysToRerender,
+                  setDebugVisualElements,
+                  tab,
+                  indicesOfFrozenNucleotides,
+                  interactionConstraintOptions,
+                  fullKeys0,
+                  fullKeys1
+                );
+                const rightClickMenu = helper.createRightClickMenu(tab);
+                setResetOrientationDataTrigger(!resetOrientationDataTrigger);
+                setRightClickMenuContent(
+                  rightClickMenu,
+                  helper.indicesOfAffectedNucleotides
+                );
+              } catch (error: any) {
+                if (typeof error === "object" && "errorMessage" in error) {
+                  setRightClickMenuContent(
+                    <b
+                      style={{
+                        color: "red",
+                      }}
+                    >
+                      {error.errorMessage}
+                    </b>,
+                    {}
+                  );
+                } else {
+                  throw error;
                 }
               }
             }
+            break;
           }
-  
-          singularRnaComplexProps.rnaMoleculeProps[newRnaMoleculeName] = singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
-          delete singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
-  
-          const basePairsPerRnaMolecule = basePairsPerRnaComplex[oldRnaMoleculeName];
-          delete basePairsPerRnaComplex[oldRnaMoleculeName];
-          basePairsPerRnaComplex[newRnaMoleculeName] = basePairsPerRnaMolecule;
-  
-          setNucleotideKeysToRerender({
-            [rnaComplexIndex] : {}
-          });
+        }
+      };
+    }, []);
+    const updateRnaMoleculeNameHelper = useMemo(function () {
+      return function (
+        rnaComplexIndex: RnaComplexKey,
+        oldRnaMoleculeName: RnaMoleculeKey,
+        newRnaMoleculeName: RnaMoleculeKey
+      ) {
+        const rnaComplexProps =
+          rnaComplexPropsReference.current as RnaComplexProps;
+        const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+        const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+
+        for (let rnaMoleculeName of Object.keys(
+          singularRnaComplexProps.rnaMoleculeProps
+        )) {
+          if (!(rnaMoleculeName in basePairsPerRnaComplex)) {
+            continue;
+          }
+          let basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
+          for (let basePairsPerNucleotide of Object.values(
+            basePairsPerRnaMolecule
+          )) {
+            for (const basePairPerNucleotide of basePairsPerNucleotide) {
+              if (
+                basePairPerNucleotide.rnaMoleculeName === oldRnaMoleculeName
+              ) {
+                basePairPerNucleotide.rnaMoleculeName = newRnaMoleculeName;
+              }
+            }
+          }
+        }
+
+        singularRnaComplexProps.rnaMoleculeProps[newRnaMoleculeName] =
+          singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
+        delete singularRnaComplexProps.rnaMoleculeProps[oldRnaMoleculeName];
+
+        const basePairsPerRnaMolecule =
+          basePairsPerRnaComplex[oldRnaMoleculeName];
+        delete basePairsPerRnaComplex[oldRnaMoleculeName];
+        basePairsPerRnaComplex[newRnaMoleculeName] = basePairsPerRnaMolecule;
+
+        setNucleotideKeysToRerender({
+          [rnaComplexIndex]: {},
+        });
+      };
+    }, []);
+    const updateBasePairAverageDistances = useMemo(function () {
+      return function (
+        rnaComplexKey: RnaComplexKey,
+        basePairDistances: Context.BasePair.AllDistances
+      ) {
+        const basePairAverageDistances =
+          basePairAverageDistancesReference.current;
+        setBasePairAverageDistances({
+          ...basePairAverageDistances,
+          [rnaComplexKey]: basePairDistances,
+        });
+      };
+    }, []);
+    const updateLabelContentDefaultStyles = useMemo(function () {
+      return function (
+        rnaComplexKey: RnaComplexKey,
+        rnaMoleculeKey: RnaMoleculeKey,
+        defaultStyle: Partial<Context.Label.Content.Style>
+      ) {
+        const labelContentDefaultStyles =
+          labelContentDefaultStylesReference.current as LabelContentStyles;
+        const newLabelContentDefaultStyles = structuredClone(
+          labelContentDefaultStyles
+        );
+        if (!(rnaComplexKey in newLabelContentDefaultStyles)) {
+          newLabelContentDefaultStyles[rnaComplexKey] = {};
+        }
+        const newLabelContentDefaultStylesPerRnaComplex =
+          newLabelContentDefaultStyles[rnaComplexKey];
+        newLabelContentDefaultStylesPerRnaComplex[rnaMoleculeKey] = {
+          ...newLabelContentDefaultStylesPerRnaComplex[rnaMoleculeKey],
+          ...defaultStyle,
         };
-      },
-      []
-    );
-    const updateBasePairAverageDistances = useMemo(
-      function() {
-        return function(
-          rnaComplexKey : RnaComplexKey,
-          basePairDistances : Context.BasePair.AllDistances
-        ) {
-          const basePairAverageDistances = basePairAverageDistancesReference.current;
-          setBasePairAverageDistances({
-            ...basePairAverageDistances,
-            [rnaComplexKey] : basePairDistances
-          });
-        }
-      },
-      []
-    );
-    const updateLabelContentDefaultStyles = useMemo(
-      function () {
-        return function(
-          rnaComplexKey : RnaComplexKey,
-          rnaMoleculeKey : RnaMoleculeKey,
-          defaultStyle : Partial<Context.Label.Content.Style>
-        ) {
-          const labelContentDefaultStyles = labelContentDefaultStylesReference.current as LabelContentStyles;
-          const newLabelContentDefaultStyles = structuredClone(labelContentDefaultStyles);
-          if (!(rnaComplexKey in newLabelContentDefaultStyles)) {
-            newLabelContentDefaultStyles[rnaComplexKey] = {};
-          }
-          const newLabelContentDefaultStylesPerRnaComplex = newLabelContentDefaultStyles[rnaComplexKey];
-          newLabelContentDefaultStylesPerRnaComplex[rnaMoleculeKey] = {
-            ...newLabelContentDefaultStylesPerRnaComplex[rnaMoleculeKey],
-            ...defaultStyle
-          };
-          setLabelContentDefaultStyles(newLabelContentDefaultStyles);
-        }
-      },
-      []
-    );
-    const updateInteractionConstraintOptions = useMemo(
-      function() {
-        return function(newInteractionConstraintOptions : Partial<InteractionConstraint.Options>) {
-          setRightClickMenuContent(
-            <b
-              style = {{
-                color : "red"
-              }}
-            >
-              The current right-click menu is no longer valid, due to updated interaction-constraint options.
-            </b>,
-            {}
-          );
-          setInteractionConstraintOptions({
-            ...interactionConstraintOptionsReference.current as InteractionConstraint.Options,
-            ...newInteractionConstraintOptions
-          });
-        }
-      },
-      []
-    );
+        setLabelContentDefaultStyles(newLabelContentDefaultStyles);
+      };
+    }, []);
+    const updateInteractionConstraintOptions = useMemo(function () {
+      return function (
+        newInteractionConstraintOptions: Partial<InteractionConstraint.Options>
+      ) {
+        setRightClickMenuContent(
+          <b
+            style={{
+              color: "red",
+            }}
+          >
+            The current right-click menu is no longer valid, due to updated
+            interaction-constraint options.
+          </b>,
+          {}
+        );
+        setInteractionConstraintOptions({
+          ...(interactionConstraintOptionsReference.current as InteractionConstraint.Options),
+          ...newInteractionConstraintOptions,
+        });
+      };
+    }, []);
     function setRightClickMenuContent(
-      rightClickMenuContent : JSX.Element,
-      rightClickMenuAffectedNucleotides : FullKeysRecord
+      rightClickMenuContent: JSX.Element,
+      rightClickMenuAffectedNucleotides: FullKeysRecord
     ) {
-      _setRightClickMenuContent(<div
-        style = {{
-          width : "auto",
-          display : "inline-block"
-        }}
-        ref = {rightClickMenuContentResizeDetector.ref}
-      >
-        {rightClickMenuContent}
-      </div>);
-      setRightClickMenuAffectedNucleotideIndices(rightClickMenuAffectedNucleotides);
-      
+      _setRightClickMenuContent(
+        <div
+          style={{
+            width: "auto",
+            display: "inline-block",
+          }}
+          ref={rightClickMenuContentResizeDetector.ref}
+        >
+          {rightClickMenuContent}
+        </div>
+      );
+      setRightClickMenuAffectedNucleotideIndices(
+        rightClickMenuAffectedNucleotides
+      );
+
       // Extract element information from the first affected nucleotide
       if (Object.keys(rightClickMenuAffectedNucleotides).length > 0) {
         try {
-          const rnaComplexIndex = parseInt(Object.keys(rightClickMenuAffectedNucleotides)[0]);
-          const rnaMoleculeName = Object.keys(rightClickMenuAffectedNucleotides[rnaComplexIndex])[0];
-          const nucleotideIndices = Array.from(rightClickMenuAffectedNucleotides[rnaComplexIndex][rnaMoleculeName]);
-          
+          const rnaComplexIndex = parseInt(
+            Object.keys(rightClickMenuAffectedNucleotides)[0]
+          );
+          const rnaMoleculeName = Object.keys(
+            rightClickMenuAffectedNucleotides[rnaComplexIndex]
+          )[0];
+          const nucleotideIndices = Array.from(
+            rightClickMenuAffectedNucleotides[rnaComplexIndex][rnaMoleculeName]
+          );
+
           if (nucleotideIndices.length > 0) {
             const fullKeys = {
               rnaComplexIndex,
               rnaMoleculeName,
-              nucleotideIndex: nucleotideIndices[0]
+              nucleotideIndex: nucleotideIndices[0],
             };
-            
+
             // Determine element type based on context
-            let elementType: 'nucleotide' | 'basepair' | 'label' = 'nucleotide';
+            let elementType: "nucleotide" | "basepair" | "label" = "nucleotide";
             // Check if this is a base pair interaction by looking at the right-click menu content
             const menuString = rightClickMenuContent.toString();
-            if (menuString.includes('basepair') || menuString.includes('BasePair')) {
-              elementType = 'basepair';
+            if (
+              menuString.includes("basepair") ||
+              menuString.includes("BasePair")
+            ) {
+              elementType = "basepair";
             }
-            
-            const elementInfo = extractElementInfo(fullKeys, rnaComplexProps, elementType);
+
+            const elementInfo = extractElementInfo(
+              fullKeys,
+              rnaComplexProps,
+              elementType
+            );
             setSelectedElementInfo(elementInfo);
           }
         } catch (error) {
-          console.warn('Error extracting element info:', error);
+          console.warn("Error extracting element info:", error);
           setSelectedElementInfo(undefined);
         }
-        
-        // Automatically open unified Properties drawer (unless in Format mode)
-        console.log('Right-click detected, current tab:', currentTabRef.current, 'Tab.FORMAT:', Tab.FORMAT, 'Will open drawer:', currentTabRef.current !== Tab.FORMAT);
-        console.log('Tab comparison details - tab type:', typeof currentTabRef.current, 'Tab.FORMAT type:', typeof Tab.FORMAT, 'tab value:', currentTabRef.current, 'Tab.FORMAT value:', Tab.FORMAT);
+
         if (currentTabRef.current !== Tab.FORMAT) {
-          setRightDrawerTitle('Properties');
-          setDrawerKind('properties');
-        } else {
-          console.log('Format mode detected, NOT opening Properties drawer');
+          setRightDrawerTitle("Properties");
+          setDrawerKind("properties");
         }
       } else {
         setSelectedElementInfo(undefined);
       }
     }
     const renderedRnaComplexes = useMemo(
-      function() {
+      function () {
         const basePairKeysToEdit = basePairKeysToEditReference.current!;
-        return <Context.App.RnaComplexProps.Provider
-          value = {rnaComplexProps}
-        >
-          <Context.Nucleotide.LabelsOnlyFlag.Provider
-            value = {labelsOnlyFlag && tab == Tab.EDIT}
-          >
-            <Context.App.SetMouseOverText.Provider
-              value = {setMouseOverText}
+        return (
+          <Context.App.RnaComplexProps.Provider value={rnaComplexProps}>
+            <Context.Nucleotide.LabelsOnlyFlag.Provider
+              value={labelsOnlyFlag && tab == Tab.EDIT}
             >
-              <Context.Nucleotide.OnMouseDownHelper.Provider
-                value = {nucleotideOnMouseDownHelper}
-              >
-                <Context.Label.Content.OnMouseDownHelper.Provider
-                  value = {labelContentOnMouseDownHelper}
+              <Context.App.SetMouseOverText.Provider value={setMouseOverText}>
+                <Context.Nucleotide.OnMouseDownHelper.Provider
+                  value={nucleotideOnMouseDownHelper}
                 >
-                  <Context.Label.Line.Body.OnMouseDownHelper.Provider
-                    value = {labelLineBodyOnMouseDownHelper}
+                  <Context.Label.Content.OnMouseDownHelper.Provider
+                    value={labelContentOnMouseDownHelper}
                   >
-                    <Context.Label.Line.Endpoint.OnMouseDownHelper.Provider
-                      value = {labelLineEndpointOnMouseDownHelper}
+                    <Context.Label.Line.Body.OnMouseDownHelper.Provider
+                      value={labelLineBodyOnMouseDownHelper}
                     >
-                      <g
-                        id = {SVG_SCENE_GROUP_HTML_ID}
-                        {...{
-                          [SVG_PROPERTY_XRNA_TYPE] : SvgPropertyXrnaType.SCENE,
-                          [SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME] : complexDocumentName,
-                          [SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG] : true,
-                          [SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG] : false
-                        }}
-                        ref = {function(svgGElement : SVGGElement | null) {
-                          if (svgGElement === null) {
-                            return;
-                          }
-                          sceneSvgGElementReference.current = svgGElement;
-                        }}
+                      <Context.Label.Line.Endpoint.OnMouseDownHelper.Provider
+                        value={labelLineEndpointOnMouseDownHelper}
                       >
-                        {flattenedRnaComplexProps.map(function(
-                          [
+                        <g
+                          id={SVG_SCENE_GROUP_HTML_ID}
+                          {...{
+                            [SVG_PROPERTY_XRNA_TYPE]: SvgPropertyXrnaType.SCENE,
+                            [SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME]:
+                              complexDocumentName,
+                            [SVG_PROPERTY_XRNA_RELATIVE_COORDINATES_FLAG]: true,
+                            [SVG_PROPERTY_XRNA_INVERT_Y_AXIS_FLAG]: false,
+                          }}
+                          ref={function (svgGElement: SVGGElement | null) {
+                            if (svgGElement === null) {
+                              return;
+                            }
+                            sceneSvgGElementReference.current = svgGElement;
+                          }}
+                        >
+                          {flattenedRnaComplexProps.map(function ([
                             rnaComplexIndexAsString,
-                            singularRnaComplexProps
-                          ]
-                        ) {
-                          const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-                          return <Context.RnaComplex.Index.Provider
-                            key = {rnaComplexIndex}
-                            value = {rnaComplexIndex}
-                          >
-                            <Context.BasePair.DataToEditPerRnaComplex.Provider
-                              value = {basePairKeysToEdit[rnaComplexIndex]}
-                            >
-                              <RnaComplex.Component
-                                key = {rnaComplexIndex}
-                                {...singularRnaComplexProps}
-                                nucleotideKeysToRerenderPerRnaComplex = {nucleotideKeysToRerender[rnaComplexIndex] ?? {}}
-                                basePairKeysToRerenderPerRnaComplex = {basePairKeysToRerender[rnaComplexIndex] ?? []}
-                                basePairUpdateTrigger = {basePairUpdateTriggers[rnaComplexIndex] ?? 0}
-                              />
-                            </Context.BasePair.DataToEditPerRnaComplex.Provider>
-                          </Context.RnaComplex.Index.Provider>;
-                        })}
-                      </g>
-                    </Context.Label.Line.Endpoint.OnMouseDownHelper.Provider>
-                  </Context.Label.Line.Body.OnMouseDownHelper.Provider>
-                </Context.Label.Content.OnMouseDownHelper.Provider>
-              </Context.Nucleotide.OnMouseDownHelper.Provider>
-            </Context.App.SetMouseOverText.Provider>
-          </Context.Nucleotide.LabelsOnlyFlag.Provider>
-        </Context.App.RnaComplexProps.Provider>;
+                            singularRnaComplexProps,
+                          ]) {
+                            const rnaComplexIndex = Number.parseInt(
+                              rnaComplexIndexAsString
+                            );
+                            return (
+                              <Context.RnaComplex.Index.Provider
+                                key={rnaComplexIndex}
+                                value={rnaComplexIndex}
+                              >
+                                <Context.BasePair.DataToEditPerRnaComplex.Provider
+                                  value={basePairKeysToEdit[rnaComplexIndex]}
+                                >
+                                  <RnaComplex.Component
+                                    key={rnaComplexIndex}
+                                    {...singularRnaComplexProps}
+                                    nucleotideKeysToRerenderPerRnaComplex={
+                                      nucleotideKeysToRerender[
+                                        rnaComplexIndex
+                                      ] ?? {}
+                                    }
+                                    basePairKeysToRerenderPerRnaComplex={
+                                      basePairKeysToRerender[rnaComplexIndex] ??
+                                      []
+                                    }
+                                    basePairUpdateTrigger={
+                                      basePairUpdateTriggers[rnaComplexIndex] ??
+                                      0
+                                    }
+                                  />
+                                </Context.BasePair.DataToEditPerRnaComplex.Provider>
+                              </Context.RnaComplex.Index.Provider>
+                            );
+                          })}
+                        </g>
+                      </Context.Label.Line.Endpoint.OnMouseDownHelper.Provider>
+                    </Context.Label.Line.Body.OnMouseDownHelper.Provider>
+                  </Context.Label.Content.OnMouseDownHelper.Provider>
+                </Context.Nucleotide.OnMouseDownHelper.Provider>
+              </Context.App.SetMouseOverText.Provider>
+            </Context.Nucleotide.LabelsOnlyFlag.Provider>
+          </Context.App.RnaComplexProps.Provider>
+        );
       },
       [
         rnaComplexProps,
@@ -1358,24 +1443,45 @@ export namespace App {
         basePairKeysToRerender,
         labelsOnlyFlag && tab == Tab.EDIT,
         basePairKeysToEdit,
-        basePairUpdateTriggers
+        basePairUpdateTriggers,
       ]
     );
     const triggerRightClickMenuFlag = useMemo(
-      function() {
-        for (const [rnaComplexIndexAsString, dragListenerAffectedNucleotideIndicesPerRnaComplex] of Object.entries(dragListenerAffectedNucleotideIndices)) {
+      function () {
+        for (const [
+          rnaComplexIndexAsString,
+          dragListenerAffectedNucleotideIndicesPerRnaComplex,
+        ] of Object.entries(dragListenerAffectedNucleotideIndices)) {
           const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
           if (!(rnaComplexIndex in rightClickMenuAffectedNucleotideIndices)) {
             continue;
           }
-          const rightClickMenuAffectedNucleotideIndicesPerRnaComplex = rightClickMenuAffectedNucleotideIndices[rnaComplexIndex];
-          for (const [rnaMoleculeName, dragListenerAffectedNucleotideIndicesPerRnaMolecule] of Object.entries(dragListenerAffectedNucleotideIndicesPerRnaComplex)) {
-            if (!(rnaMoleculeName in rightClickMenuAffectedNucleotideIndicesPerRnaComplex)) {
+          const rightClickMenuAffectedNucleotideIndicesPerRnaComplex =
+            rightClickMenuAffectedNucleotideIndices[rnaComplexIndex];
+          for (const [
+            rnaMoleculeName,
+            dragListenerAffectedNucleotideIndicesPerRnaMolecule,
+          ] of Object.entries(
+            dragListenerAffectedNucleotideIndicesPerRnaComplex
+          )) {
+            if (
+              !(
+                rnaMoleculeName in
+                rightClickMenuAffectedNucleotideIndicesPerRnaComplex
+              )
+            ) {
               continue;
             }
-            const rightClickMenuAffectedNucleotideIndicesPerRnaMolecule = rightClickMenuAffectedNucleotideIndicesPerRnaComplex[rnaMoleculeName];
+            const rightClickMenuAffectedNucleotideIndicesPerRnaMolecule =
+              rightClickMenuAffectedNucleotideIndicesPerRnaComplex[
+                rnaMoleculeName
+              ];
             for (const nucleotideIndex of dragListenerAffectedNucleotideIndicesPerRnaMolecule.values()) {
-              if (rightClickMenuAffectedNucleotideIndicesPerRnaMolecule.has(nucleotideIndex)) {
+              if (
+                rightClickMenuAffectedNucleotideIndicesPerRnaMolecule.has(
+                  nucleotideIndex
+                )
+              ) {
                 return true;
               }
             }
@@ -1385,65 +1491,76 @@ export namespace App {
       },
       [
         rightClickMenuAffectedNucleotideIndices,
-        dragListenerAffectedNucleotideIndices
+        dragListenerAffectedNucleotideIndices,
       ]
     );
     triggerRightClickMenuFlagReference.current = triggerRightClickMenuFlag;
     const repositionAnnotationsFlag = useMemo(
-      function() {
-        return settingsRecord[Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] as boolean;
+      function () {
+        return settingsRecord[
+          Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS
+        ] as boolean;
       },
       [settingsRecord]
     );
     repositionAnnotationsFlagReference.current = repositionAnnotationsFlag;
-    const resetViewport = useMemo(
-      function() {
-        return function() {
-          setSceneBounds((sceneSvgGElementReference.current as SVGGElement).getBBox());
-          setViewportTranslateX(0);
-          setViewportTranslateY(0);
-          setViewportScaleExponent(0);
-          setViewportScale(1);
-        }
-      },
-      []
-    );
+    const resetViewport = useMemo(function () {
+      return function () {
+        setSceneBounds(
+          (sceneSvgGElementReference.current as SVGGElement).getBBox()
+        );
+        setViewportTranslateX(0);
+        setViewportTranslateY(0);
+        setViewportScaleExponent(0);
+        setViewportScale(1);
+      };
+    }, []);
     const parseInputFileContent = useMemo(
-      function() {
+      function () {
         return function (
-          inputFileContent : string,
-          inputFileExtension : InputFileExtension,
-          invertYAxisFlag? : boolean 
+          inputFileContent: string,
+          inputFileExtension: InputFileExtension,
+          invertYAxisFlag?: boolean
         ) {
           try {
-            const parsedInput = (r2dtLegacyVersionFlag ? r2dtLegacyInputFileReadersRecord : inputFileReadersRecord)[inputFileExtension](inputFileContent);
+            const parsedInput = (
+              r2dtLegacyVersionFlag
+                ? r2dtLegacyInputFileReadersRecord
+                : inputFileReadersRecord
+            )[inputFileExtension](inputFileContent);
             const rnaComplexNames = new Set<string>();
-            for (const singularRnaComplexProps of Object.values(parsedInput.rnaComplexProps)) {
-              const {
-                name,
-                basePairs
-              } = singularRnaComplexProps;
+            for (const singularRnaComplexProps of Object.values(
+              parsedInput.rnaComplexProps
+            )) {
+              const { name, basePairs } = singularRnaComplexProps;
               if (rnaComplexNames.has(name)) {
                 throw `RNA complexes must have distinct names.`;
               }
               rnaComplexNames.add(name);
-        
-              for (const [rnaMoleculeName, singularRnaMoleculeProps] of Object.entries(singularRnaComplexProps.rnaMoleculeProps)) {
+
+              for (const [
+                rnaMoleculeName,
+                singularRnaMoleculeProps,
+              ] of Object.entries(singularRnaComplexProps.rnaMoleculeProps)) {
                 if (!(rnaMoleculeName in basePairs)) {
                   basePairs[rnaMoleculeName] = {};
                 }
-                for (const singularNucleotideProps of Object.values(singularRnaMoleculeProps.nucleotideProps)) {
+                for (const singularNucleotideProps of Object.values(
+                  singularRnaMoleculeProps.nucleotideProps
+                )) {
                   if (singularNucleotideProps.color === undefined) {
                     singularNucleotideProps.color = structuredClone(BLACK);
                   }
                   if (singularNucleotideProps.labelContentProps !== undefined) {
-                    const labelContentProps = singularNucleotideProps.labelContentProps;
+                    const labelContentProps =
+                      singularNucleotideProps.labelContentProps;
                     if (labelContentProps.color === undefined) {
                       labelContentProps.color = structuredClone(BLACK);
                     }
                   }
                   if (singularNucleotideProps.labelLineProps !== undefined) {
-                    const labelLineProps = singularNucleotideProps.labelLineProps;
+                    const labelLineProps =
+                      singularNucleotideProps.labelLineProps;
                     if (labelLineProps.color === undefined) {
                       labelLineProps.color = structuredClone(BLACK);
                     }
@@ -1452,23 +1569,43 @@ export namespace App {
               }
             }
             if (invertYAxisFlag === undefined) {
-              invertYAxisFlag = defaultInvertYAxisFlagRecord[inputFileExtension];
+              invertYAxisFlag =
+                defaultInvertYAxisFlagRecord[inputFileExtension];
             }
             if (invertYAxisFlag) {
               for (const singularRnaComplexProps of parsedInput.rnaComplexProps) {
-                Object.values(singularRnaComplexProps.rnaMoleculeProps).forEach((singularRnaMoleculeProps : RnaMolecule.ExternalProps) => {
-                  Object.values(singularRnaMoleculeProps.nucleotideProps).forEach((singularNucleotideProps : Nucleotide.ExternalProps) => {
-                    singularNucleotideProps.y *= -1;
-                    if (singularNucleotideProps.labelLineProps !== undefined) {
-                      for (let i = 0; i < singularNucleotideProps.labelLineProps.points.length; i++) {
-                        singularNucleotideProps.labelLineProps.points[i].y *= -1;
+                Object.values(singularRnaComplexProps.rnaMoleculeProps).forEach(
+                  (singularRnaMoleculeProps: RnaMolecule.ExternalProps) => {
+                    Object.values(
+                      singularRnaMoleculeProps.nucleotideProps
+                    ).forEach(
+                      (singularNucleotideProps: Nucleotide.ExternalProps) => {
+                        singularNucleotideProps.y *= -1;
+                        if (
+                          singularNucleotideProps.labelLineProps !== undefined
+                        ) {
+                          for (
+                            let i = 0;
+                            i <
+                            singularNucleotideProps.labelLineProps.points
+                              .length;
+                            i++
+                          ) {
+                            singularNucleotideProps.labelLineProps.points[
+                              i
+                            ].y *= -1;
+                          }
+                        }
+                        if (
+                          singularNucleotideProps.labelContentProps !==
+                          undefined
+                        ) {
+                          singularNucleotideProps.labelContentProps.y *= -1;
+                        }
                       }
-                    }
-                    if (singularNucleotideProps.labelContentProps !== undefined) {
-                      singularNucleotideProps.labelContentProps.y *= -1;
-                    }
-                  });
-                });
+                    );
+                  }
+                );
               }
             }
             setUndoStack([]);
@@ -1477,25 +1614,29 @@ export namespace App {
             setRnaComplexProps(parsedInput.rnaComplexProps);
             if (Object.keys(parsedInput.rnaComplexProps).length > 0) {
               let numSeconds = 2;
-              setTimeout(
-                function() {
-                  if (settingsRecord[Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD]) {
-                    resetViewport();
-                  }
-                  let boundingRectHeightsSum = 0;
-                  let numberOfBoundingRects = 0;
-                  const nucleotideElements = Array.from(document.querySelectorAll(`.${NUCLEOTIDE_CLASS_NAME}`) as NodeListOf<SVGGraphicsElement>);
-                  for (const nucleotideElement of nucleotideElements) {
-                    const boundingClientRect = nucleotideElement.getBBox();
-                    boundingRectHeightsSum += boundingClientRect.height;
-                    numberOfBoundingRects++;
-                  }
-                  const averageBoundingRectHeight = numberOfBoundingRects == 0 ? 1 : (boundingRectHeightsSum / numberOfBoundingRects * 0.25);
-                  setBasePairRadius(averageBoundingRectHeight);
-                  setSceneState(SceneState.DATA_IS_LOADED);
-                },
-                numSeconds * 1000
-              );
+              setTimeout(function () {
+                if (settingsRecord[Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD]) {
+                  resetViewport();
+                }
+                let boundingRectHeightsSum = 0;
+                let numberOfBoundingRects = 0;
+                const nucleotideElements = Array.from(
+                  document.querySelectorAll(
+                    `.${NUCLEOTIDE_CLASS_NAME}`
+                  ) as NodeListOf<SVGGraphicsElement>
+                );
+                for (const nucleotideElement of nucleotideElements) {
+                  const boundingClientRect = nucleotideElement.getBBox();
+                  boundingRectHeightsSum += boundingClientRect.height;
+                  numberOfBoundingRects++;
+                }
+                const averageBoundingRectHeight =
+                  numberOfBoundingRects == 0
+                    ? 1
+                    : (boundingRectHeightsSum / numberOfBoundingRects) * 0.25;
+                setBasePairRadius(averageBoundingRectHeight);
+                setSceneState(SceneState.DATA_IS_LOADED);
+              }, numSeconds * 1000);
             } else {
               setSceneState(SceneState.NO_DATA);
             }
@@ -1511,193 +1652,197 @@ export namespace App {
       },
       [r2dtLegacyVersionFlag]
     );
-    const parseJson = useMemo(
-      function() {
-        return function(url : string) {
-          let promise = fetch(url, {
-            method : "GET"
+    const parseJson = useMemo(function () {
+      return function (url: string) {
+        let promise = fetch(url, {
+          method: "GET",
+        });
+        promise.then((data) => {
+          data.text().then((dataAsText) => {
+            parseInputFileContent(dataAsText, InputFileExtension.json);
           });
-          promise.then(data => {
-            data.text().then(dataAsText => {
-              parseInputFileContent(
-                dataAsText,
-                InputFileExtension.json
-              );
-            });
-          });
-        }
-      },
-      []
-    );
-    const undoRedoHelper = useMemo(
-      function() {
-        return function(
-          fromStack : UndoRedoStack,
-          toStack : UndoRedoStack,
-          setFromStack : (fromStack : UndoRedoStack) => void,
-          setToStack : (toStack : UndoRedoStack) => void
-        ) {
-          const indicesOfFrozenNucleotides = indicesOfFrozenNucleotidesReference.current!;
-          const rnaComplexProps = rnaComplexPropsReference.current!;
-          const rightClickMenuAffectedNucleotideIndices = rightClickMenuAffectedNucleotideIndicesReference.current!;
+        });
+      };
+    }, []);
+    const undoRedoHelper = useMemo(function () {
+      return function (
+        fromStack: UndoRedoStack,
+        toStack: UndoRedoStack,
+        setFromStack: (fromStack: UndoRedoStack) => void,
+        setToStack: (toStack: UndoRedoStack) => void
+      ) {
+        const indicesOfFrozenNucleotides =
+          indicesOfFrozenNucleotidesReference.current!;
+        const rnaComplexProps = rnaComplexPropsReference.current!;
+        const rightClickMenuAffectedNucleotideIndices =
+          rightClickMenuAffectedNucleotideIndicesReference.current!;
 
-          if (Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0) {
-            alert("Cannot use undo/redo while a right-click menu is open. Close the menu first to use undo/redo.");
-          } else if (fromStack.length > 0) {
-            const newFromStack = [...fromStack];
-            const copiedState = newFromStack.pop()!;
-            const {
-              data,
-              dataType
-            } = copiedState;
-            setFromStack(newFromStack);
-            switch (dataType) {
-              case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides : {
-                setToStack([
-                  ...toStack,
-                  {
-                    data : indicesOfFrozenNucleotides,
-                    dataType
-                  }
-                ]);
-                break;
-              }
-              case UndoRedoStacksDataTypes.RnaComplexProps : {
-                setToStack([
-                  ...toStack,
-                  {
-                    data : rnaComplexProps,
-                    dataType
-                  }
-                ]);
-                break;
-              }
+        if (Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0) {
+          alert(
+            "Cannot use undo/redo while a right-click menu is open. Close the menu first to use undo/redo."
+          );
+        } else if (fromStack.length > 0) {
+          const newFromStack = [...fromStack];
+          const copiedState = newFromStack.pop()!;
+          const { data, dataType } = copiedState;
+          setFromStack(newFromStack);
+          switch (dataType) {
+            case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides: {
+              setToStack([
+                ...toStack,
+                {
+                  data: indicesOfFrozenNucleotides,
+                  dataType,
+                },
+              ]);
+              break;
             }
-
-            switch (dataType) {
-              case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides : {
-                setIndicesOfFrozenNucleotides(data as FullKeysRecord);
-                break;
-              }
-              case UndoRedoStacksDataTypes.RnaComplexProps : {
-                setBasePairKeysToEdit({});
-                setRnaComplexProps(data as RnaComplexProps);
-                break;
-              }
-              default : {
-                throw "Unhandled switch case";
-              }
+            case UndoRedoStacksDataTypes.RnaComplexProps: {
+              setToStack([
+                ...toStack,
+                {
+                  data: rnaComplexProps,
+                  dataType,
+                },
+              ]);
+              break;
             }
           }
-        };
-      },
-      []
-    );
-    const undo = useMemo(
-      function() {
-        return function() {
-          undoRedoHelper(
-            undoStackReference.current!,
-            redoStackReference.current!,
-            setUndoStack,
-            setRedoStack
-          );
+
+          switch (dataType) {
+            case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides: {
+              setIndicesOfFrozenNucleotides(data as FullKeysRecord);
+              break;
+            }
+            case UndoRedoStacksDataTypes.RnaComplexProps: {
+              setBasePairKeysToEdit({});
+              setRnaComplexProps(data as RnaComplexProps);
+              break;
+            }
+            default: {
+              throw "Unhandled switch case";
+            }
+          }
         }
-      },
-      []
-    );
-    const redo = useMemo(
-      function() {
-        return function() {
-          undoRedoHelper(
-            redoStackReference.current!,
-            undoStackReference.current!,
-            setRedoStack,
-            setUndoStack
-          );
-        }
-      },
-      []
-    );
+      };
+    }, []);
+    const undo = useMemo(function () {
+      return function () {
+        undoRedoHelper(
+          undoStackReference.current!,
+          redoStackReference.current!,
+          setUndoStack,
+          setRedoStack
+        );
+      };
+    }, []);
+    const redo = useMemo(function () {
+      return function () {
+        undoRedoHelper(
+          redoStackReference.current!,
+          undoStackReference.current!,
+          setRedoStack,
+          setUndoStack
+        );
+      };
+    }, []);
     const interactionConstraintSelectHtmlElement = useMemo(
-      function() {
+      function () {
         const undoStack = undoStackReference.current!;
         const redoStack = redoStackReference.current!;
-        const interactionConstraint = interactionConstraintReference.current as InteractionConstraint.Enum | undefined;
-        return <>
-          {INTERACTION_CONSTRAINT_TEXT}:&nbsp;
-          <select
-            value = {interactionConstraint}
-            // value = {interactionConstraintReference.current}
-            onChange = {function(e) {
-              const newInteractionConstraint = e.target.value as InteractionConstraint.Enum;
-              setInteractionConstraint(newInteractionConstraint);
-              setAutoDetectedInteractionConstraintMessage("");
-              resetRightClickMenuContent();
-              if (newInteractionConstraint in InteractionConstraint.optionsMenuRecord) {
-                setRightClickMenuOptionsMenu(createElement(
-                  InteractionConstraint.optionsMenuRecord[newInteractionConstraint] as FunctionComponent<{}>,
-                  {}
-                ));
-              } else {
-                setRightClickMenuOptionsMenu(<></>);
-              }
-            }}
-          >
-            <option
-              style = {{
-                display : "none"
+        const interactionConstraint = interactionConstraintReference.current as
+          | InteractionConstraint.Enum
+          | undefined;
+        return (
+          <>
+            {INTERACTION_CONSTRAINT_TEXT}:&nbsp;
+            <select
+              value={interactionConstraint}
+              // value = {interactionConstraintReference.current}
+              onChange={function (e) {
+                const newInteractionConstraint = e.target
+                  .value as InteractionConstraint.Enum;
+                setInteractionConstraint(newInteractionConstraint);
+                setAutoDetectedInteractionConstraintMessage("");
+                resetRightClickMenuContent();
+                if (
+                  newInteractionConstraint in
+                  InteractionConstraint.optionsMenuRecord
+                ) {
+                  setRightClickMenuOptionsMenu(
+                    createElement(
+                      InteractionConstraint.optionsMenuRecord[
+                        newInteractionConstraint
+                      ] as FunctionComponent<{}>,
+                      {}
+                    )
+                  );
+                } else {
+                  setRightClickMenuOptionsMenu(<></>);
+                }
               }}
-              value = {undefined}
             >
-              Select a constraint.
-            </option>
-            {InteractionConstraint.all.map(function(interactionConstraint : InteractionConstraint.Enum) {
-              return (<option
-                key = {interactionConstraint}
-                value = {interactionConstraint}
-              >
-                {interactionConstraint}
-              </option>);
-            })}
-          </select>
-          <span
-            style = {{
-              color : "red"
-            }}
-          >
-            {autoDetectedInteractionConstraintMessage}
-          </span>
-          <br/>
-          {tab == Tab.EDIT && <>
-            <label>
-              Labels Only:&nbsp;
-              <input
-                type = "checkbox"
-                checked = {labelsOnlyFlag}
-                onChange = {function() {
-                  setLabelsOnlyFlag(!labelsOnlyFlag);
+              <option
+                style={{
+                  display: "none",
                 }}
-              />
-            </label>
-            <br/>
-          </>}
-          <button
-            onClick = {undo}
-            title = "undo"
-            disabled = {undoStack.length === 0}
-          >
-            ↺
-          </button>
-          <button
-            onClick = {redo}
-            title = "redo"
-            disabled = {redoStack.length === 0}
-          >
-            ↻
-          </button>
-          <br/>
-        </>;
+                value={undefined}
+              >
+                Select a constraint.
+              </option>
+              {InteractionConstraint.all.map(function (
+                interactionConstraint: InteractionConstraint.Enum
+              ) {
+                return (
+                  <option
+                    key={interactionConstraint}
+                    value={interactionConstraint}
+                  >
+                    {interactionConstraint}
+                  </option>
+                );
+              })}
+            </select>
+            <span
+              style={{
+                color: "red",
+              }}
+            >
+              {autoDetectedInteractionConstraintMessage}
+            </span>
+            <br />
+            {tab == Tab.EDIT && (
+              <>
+                <label>
+                  Labels Only:&nbsp;
+                  <input
+                    type="checkbox"
+                    checked={labelsOnlyFlag}
+                    onChange={function () {
+                      setLabelsOnlyFlag(!labelsOnlyFlag);
+                    }}
+                  />
+                </label>
+                <br />
+              </>
+            )}
+            <button
+              onClick={undo}
+              title="undo"
+              disabled={undoStack.length === 0}
+            >
+              ↺
+            </button>
+            <button
+              onClick={redo}
+              title="redo"
+              disabled={redoStack.length === 0}
+            >
+              ↻
+            </button>
+            <br />
+          </>
+        );
       },
       [
         interactionConstraint,
@@ -1705,1242 +1850,1337 @@ export namespace App {
         labelsOnlyFlag,
         tab,
         undoStack,
-        redoStack
+        redoStack,
       ]
     );
-    const tabInstructionsRecord : Record<Tab, JSX.Element> = useMemo(
-      function() {
+    const tabInstructionsRecord: Record<Tab, JSX.Element> = useMemo(
+      function () {
         return {
-          [Tab.INPUT_OUTPUT] : <>
-            Here, you can:
-            <br/>
-            <ul
-              style = {{
-                margin : 0
-              }}
-            >
-              <li>
-                Upload input files
-              </li>
-              <li>
-                Download output files
-              </li>
-            </ul>
-            Together, these processes enable conversion between file formats.
-            <br/>
-            <Collapsible.Component
-              title = "How to upload input files"
-            >
-              <ol
-                style = {{
-                  margin : 0
-                }}
-              >
-                <li>
-                  Click the "{OPEN_BUTTON_TEXT}" button (Ctrl + O).
-                </li>
-                <li>
-                  Select a file with one of the following supported input-file extensions:
-                  <ul
-                    style = {{
-                      margin : 0
-                    }}
-                  >
-                    {inputFileExtensions.map(function(
-                      inputFileExtension,
-                      index
-                    ) {
-                      return <Fragment
-                        key = {index}
-                      >
-                        <li>
-                          .{inputFileExtension} - {fileExtensionDescriptions[inputFileExtension]}
-                        </li>
-                      </Fragment>
-                    })}
-                  </ul>
-                </li>
-                <li>
-                  Upload the file.
-                </li>
-              </ol>
-            </Collapsible.Component>
-            <Collapsible.Component
-              title = "How to download output files"
-            >
-              Within the "{SAVE_ROW_TEXT}" row:
-              <ol
-                style = {{
-                  margin : 0
-                }}
-              >
-                <li>
-                  Provide an output-file name.
-                </li>
-                <li>
-                  Select one of the following supported output-file extensions:
-                  <ul
-                    style = {{
-                      margin : 0
-                    }}
-                  >
-                    {outputFileExtensions.map(function(
-                      outputFileExtension,
-                      index
-                    ) {
-                      return <Fragment
-                        key = {index}
-                      >
-                        <li>
-                          .{outputFileExtension} - {fileExtensionDescriptions[outputFileExtension]}
-                        </li>
-                      </Fragment>
-                    })}
-                  </ul>
-                </li>
-                <li>
-                  Click the "{SAVE_BUTTON_TEXT}" button (Ctrl + S)
-                </li>
-              </ol>
-            </Collapsible.Component>
-            <Collapsible.Component
-              title = "Demo"
-            >
-              <iframe
-                src = "https://youtube.com/embed/Pdpwbka8wgw?start=27&end=58"
-                allowFullScreen = {true}
-                width = {960}
-                height = {540}
-              />
-            </Collapsible.Component>
-          </>,
-          [Tab.VIEWPORT] : <>
-            Here, you can manipulate the viewport with precision.
-            <br/>
-            To clarify, the viewport is the main, right-hand component of XRNA. Within it, interactive 2D RNA diagrams are displayed.
-            <br/>
-            <Collapsible.Component
-              title = {TRANSLATION_TEXT}
-            >
-              {`"${TRANSLATION_TEXT}" refers to the 2D displacement of the entire viewport. It is synchronized with click-and-drag within the viewport.`}
+          [Tab.INPUT_OUTPUT]: (
+            <>
+              Here, you can:
+              <br />
               <ul
-                style = {{
-                  margin : 0
+                style={{
+                  margin: 0,
                 }}
               >
-                <li>
-                  x: The horizontal displacement. Rightward displacement is positive; leftward is negative.
-                </li>
-                <li>
-                  y: The vertical displacement. Upward displacement is positive; downward is negative.
-                </li>
+                <li>Upload input files</li>
+                <li>Download output files</li>
               </ul>
-            </Collapsible.Component>
-            <Collapsible.Component
-              title = {SCALE_TEXT}
-            >
-              "{SCALE_TEXT}" refers to the "in-and-out zoom" of the entire viewport. It is synchronized with the mousewheel within the viewport.
-              <ul
-                style = {{
-                  margin : 0
-                }}
-              >
-                <li>
-                  Scrolling up with the mouse wheel increases zoom; this means zooming in.
-                </li>
-                <li>
-                  Scrolling down does the opposite.
-                </li>
-              </ul>
-            </Collapsible.Component>
-            <Collapsible.Component
-              title = {RESET_TEXT}
-            >
-              In one step, the "{RESET_TEXT}" button (Ctrl + 0) allows the user to reset all properties of the viewport:
-              <ul
-                style = {{
-                  margin : 0
-                }}
-              >
-                <li>translate</li>
-                <li>scale</li>
-              </ul>
-              This places all elements of the scene within view of the user.
-            </Collapsible.Component>
-            <Collapsible.Component
-              title = "Demo"
-            >
-              <iframe
-                src = "https://youtube.com/embed/Pdpwbka8wgw?start=58&end=93"
-                allowFullScreen = {true}
-                width = {960}
-                height = {540}
-              />
-            </Collapsible.Component>
-          </>,
-          [Tab.EDIT] : <>
-            Here, you can edit nucleotide data which has been uploaded and is displayed within the viewport.
-            <ol
-              style = {{
-                margin : 0
-              }}
-            >
-              <li>
-                Navigate within the viewport to the portion of the scene you plan to edit.
-              </li>
-              <li>
-                Next, do one of the following:
+              Together, these processes enable conversion between file formats.
+              <br />
+              <Collapsible.Component title="How to upload input files">
+                <ol
+                  style={{
+                    margin: 0,
+                  }}
+                >
+                  <li>Click the "{OPEN_BUTTON_TEXT}" button (Ctrl + O).</li>
+                  <li>
+                    Select a file with one of the following supported input-file
+                    extensions:
+                    <ul
+                      style={{
+                        margin: 0,
+                      }}
+                    >
+                      {inputFileExtensions.map(function (
+                        inputFileExtension,
+                        index
+                      ) {
+                        return (
+                          <Fragment key={index}>
+                            <li>
+                              .{inputFileExtension} -{" "}
+                              {fileExtensionDescriptions[inputFileExtension]}
+                            </li>
+                          </Fragment>
+                        );
+                      })}
+                    </ul>
+                  </li>
+                  <li>Upload the file.</li>
+                </ol>
+              </Collapsible.Component>
+              <Collapsible.Component title="How to download output files">
+                Within the "{SAVE_ROW_TEXT}" row:
+                <ol
+                  style={{
+                    margin: 0,
+                  }}
+                >
+                  <li>Provide an output-file name.</li>
+                  <li>
+                    Select one of the following supported output-file
+                    extensions:
+                    <ul
+                      style={{
+                        margin: 0,
+                      }}
+                    >
+                      {outputFileExtensions.map(function (
+                        outputFileExtension,
+                        index
+                      ) {
+                        return (
+                          <Fragment key={index}>
+                            <li>
+                              .{outputFileExtension} -{" "}
+                              {fileExtensionDescriptions[outputFileExtension]}
+                            </li>
+                          </Fragment>
+                        );
+                      })}
+                    </ul>
+                  </li>
+                  <li>Click the "{SAVE_BUTTON_TEXT}" button (Ctrl + S)</li>
+                </ol>
+              </Collapsible.Component>
+              <Collapsible.Component title="Demo">
+                <iframe
+                  src="https://youtube.com/embed/Pdpwbka8wgw?start=27&end=58"
+                  allowFullScreen={true}
+                  width={960}
+                  height={540}
+                />
+              </Collapsible.Component>
+            </>
+          ),
+          [Tab.VIEWPORT]: (
+            <>
+              Here, you can manipulate the viewport with precision.
+              <br />
+              To clarify, the viewport is the main, right-hand component of
+              XRNA. Within it, interactive 2D RNA diagrams are displayed.
+              <br />
+              <Collapsible.Component title={TRANSLATION_TEXT}>
+                {`"${TRANSLATION_TEXT}" refers to the 2D displacement of the entire viewport. It is synchronized with click-and-drag within the viewport.`}
                 <ul
-                  style = {{
-                    margin : 0
+                  style={{
+                    margin: 0,
                   }}
                 >
                   <li>
-                    Select a constraint. Then, left-click on a nucleotide. Drag it to change relevant nucleotide-position data, according to the behavior of the constraint.
+                    x: The horizontal displacement. Rightward displacement is
+                    positive; leftward is negative.
                   </li>
                   <li>
-                    Right-mouse-click and drag to select one or more nucleotide(s) or label(s). This will populate a menu which will allow you to precisely edit data, according to the behavior of an automatically determined constraint.
-                  </li>
-                  <li>
-                    Select a constraint. Then, right-click on a nucleotide. This will populate a menu which will allow you to precisely edit data, according to the behavior of the constraint.
+                    y: The vertical displacement. Upward displacement is
+                    positive; downward is negative.
                   </li>
                 </ul>
-                <Collapsible.Component
-                  title = "Notes"
+              </Collapsible.Component>
+              <Collapsible.Component title={SCALE_TEXT}>
+                "{SCALE_TEXT}" refers to the "in-and-out zoom" of the entire
+                viewport. It is synchronized with the mousewheel within the
+                viewport.
+                <ul
+                  style={{
+                    margin: 0,
+                  }}
                 >
-                  <ul>
+                  <li>
+                    Scrolling up with the mouse wheel increases zoom; this means
+                    zooming in.
+                  </li>
+                  <li>Scrolling down does the opposite.</li>
+                </ul>
+              </Collapsible.Component>
+              <Collapsible.Component title={RESET_TEXT}>
+                In one step, the "{RESET_TEXT}" button (Ctrl + 0) allows the
+                user to reset all properties of the viewport:
+                <ul
+                  style={{
+                    margin: 0,
+                  }}
+                >
+                  <li>translate</li>
+                  <li>scale</li>
+                </ul>
+                This places all elements of the scene within view of the user.
+              </Collapsible.Component>
+              <Collapsible.Component title="Demo">
+                <iframe
+                  src="https://youtube.com/embed/Pdpwbka8wgw?start=58&end=93"
+                  allowFullScreen={true}
+                  width={960}
+                  height={540}
+                />
+              </Collapsible.Component>
+            </>
+          ),
+          [Tab.EDIT]: (
+            <>
+              Here, you can edit nucleotide data which has been uploaded and is
+              displayed within the viewport.
+              <ol
+                style={{
+                  margin: 0,
+                }}
+              >
+                <li>
+                  Navigate within the viewport to the portion of the scene you
+                  plan to edit.
+                </li>
+                <li>
+                  Next, do one of the following:
+                  <ul
+                    style={{
+                      margin: 0,
+                    }}
+                  >
                     <li>
-                      Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
+                      Select a constraint. Then, left-click on a nucleotide.
+                      Drag it to change relevant nucleotide-position data,
+                      according to the behavior of the constraint.
                     </li>
                     <li>
-                      Other constraints have more restrictive usage requirements.
+                      Right-mouse-click and drag to select one or more
+                      nucleotide(s) or label(s). This will populate a menu which
+                      will allow you to precisely edit data, according to the
+                      behavior of an automatically determined constraint.
                     </li>
                     <li>
-                      Annotations (i.e. labels) may be edited in the same exact way as nucleotides / nucleotide regions (described above).
-                    </li>
-                    <li>
-                      Annotations are not present in some input files, but they can be added within the "{Tab.ANNOTATE}" tab.
+                      Select a constraint. Then, right-click on a nucleotide.
+                      This will populate a menu which will allow you to
+                      precisely edit data, according to the behavior of the
+                      constraint.
                     </li>
                   </ul>
-                </Collapsible.Component>
-              </li>
-            </ol>
-            <Collapsible.Component
-              title = "Demo"
-            >
-              <iframe
-                src = "https://youtube.com/embed/joGzg568zds"
-                allowFullScreen = {true}
-                width = {960}
-                height = {540}
-              />
-            </Collapsible.Component>
-          </>,
-          [Tab.FORMAT] : <>
-            Here, you can add, delete, or edit base pairs.
-            <ol
-              style = {{
-                margin : 0
-              }}
-            >
-              <li>
-                Navigate within the viewport to the portion of the scene you plan to format.
-              </li>
-              <li>
-                Do one of the following:
-                <ul>
-                  <li>
-                    Right-mouse-click and drag to select one or more nucleotide(s). This will populate a menu which will allow you to precisely format data, according to the behavior of an automatically determined constraint.
-                  </li>
-                  <li>
-                    Select a constraint. Then, right-click on a nucleotide. This will populate a menu which will allow you to format base-pair data, according to the behavior of the constraint
-                  </li>
-                </ul>
-              </li>
-            </ol>
-            <Collapsible.Component
-              title = "Notes"
-            >
-              <ul
-                style = {{
-                  margin : 0
+                  <Collapsible.Component title="Notes">
+                    <ul>
+                      <li>
+                        Most constraints require you to click on a nucleotide
+                        that either is or is not base-paired to another
+                        nucleotide.
+                      </li>
+                      <li>
+                        Other constraints have more restrictive usage
+                        requirements.
+                      </li>
+                      <li>
+                        Annotations (i.e. labels) may be edited in the same
+                        exact way as nucleotides / nucleotide regions (described
+                        above).
+                      </li>
+                      <li>
+                        Annotations are not present in some input files, but
+                        they can be added within the "{Tab.ANNOTATE}" tab.
+                      </li>
+                    </ul>
+                  </Collapsible.Component>
+                </li>
+              </ol>
+              <Collapsible.Component title="Demo">
+                <iframe
+                  src="https://youtube.com/embed/joGzg568zds"
+                  allowFullScreen={true}
+                  width={960}
+                  height={540}
+                />
+              </Collapsible.Component>
+            </>
+          ),
+          [Tab.FORMAT]: (
+            <>
+              Here, you can add, delete, or edit base pairs.
+              <ol
+                style={{
+                  margin: 0,
                 }}
               >
                 <li>
-                  Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
+                  Navigate within the viewport to the portion of the scene you
+                  plan to format.
                 </li>
                 <li>
-                  Other constraints have more restrictive usage requirements.
+                  Do one of the following:
+                  <ul>
+                    <li>
+                      Right-mouse-click and drag to select one or more
+                      nucleotide(s). This will populate a menu which will allow
+                      you to precisely format data, according to the behavior of
+                      an automatically determined constraint.
+                    </li>
+                    <li>
+                      Select a constraint. Then, right-click on a nucleotide.
+                      This will populate a menu which will allow you to format
+                      base-pair data, according to the behavior of the
+                      constraint
+                    </li>
+                  </ul>
                 </li>
-              </ul>
-            </Collapsible.Component>
-            <Collapsible.Component
-              title = "Demo"
-            >
-              <iframe
-                src = "https://youtube.com/embed/MJJ-G9IyV6Q"
-                allowFullScreen = {true}
-                width = {960}
-                height = {540}
-              />
-            </Collapsible.Component>
-          </>,
-          [Tab.ANNOTATE] : <>
-            Here, you can add, delete, or edit annotations (label lines or label content).
-            <br/>
-            <ol
-              style = {{
-                margin : 0
-              }}
-            >
-              <li>
-                Navigate within the viewport to the portion of the scene you plan to annotate.
-              </li>
-              <li>
-                Do one of the following:
-                <ul>
+              </ol>
+              <Collapsible.Component title="Notes">
+                <ul
+                  style={{
+                    margin: 0,
+                  }}
+                >
                   <li>
-                    Select a constraint. Then, right-click on a nucleotide. This will populate a menu which will allow you to annotate nucleotides, according to the behavior of the constraint
+                    Most constraints require you to click on a nucleotide that
+                    either is or is not base-paired to another nucleotide.
                   </li>
                   <li>
-                    Right-mouse click-and-drag to select one or more nucleotide(s). This will populate a menu which will allow you to annotate nucleotides, according to the behavior an automatically determined constraint
+                    Other constraints have more restrictive usage requirements.
                   </li>
                 </ul>
-              </li>
-            </ol>
-            <Collapsible.Component
-              title = "Notes"
-            >
-              <ul
-                style = {{
-                  margin : 0
+              </Collapsible.Component>
+              <Collapsible.Component title="Demo">
+                <iframe
+                  src="https://youtube.com/embed/MJJ-G9IyV6Q"
+                  allowFullScreen={true}
+                  width={960}
+                  height={540}
+                />
+              </Collapsible.Component>
+            </>
+          ),
+          [Tab.ANNOTATE]: (
+            <>
+              Here, you can add, delete, or edit annotations (label lines or
+              label content).
+              <br />
+              <ol
+                style={{
+                  margin: 0,
                 }}
               >
                 <li>
-                  Most constraints require you to click on a nucleotide that either is or is not base-paired to another nucleotide.
+                  Navigate within the viewport to the portion of the scene you
+                  plan to annotate.
                 </li>
                 <li>
-                  Other constraints have more restrictive usage requirements.
+                  Do one of the following:
+                  <ul>
+                    <li>
+                      Select a constraint. Then, right-click on a nucleotide.
+                      This will populate a menu which will allow you to annotate
+                      nucleotides, according to the behavior of the constraint
+                    </li>
+                    <li>
+                      Right-mouse click-and-drag to select one or more
+                      nucleotide(s). This will populate a menu which will allow
+                      you to annotate nucleotides, according to the behavior an
+                      automatically determined constraint
+                    </li>
+                  </ul>
                 </li>
-              </ul>
-            </Collapsible.Component>
-            <Collapsible.Component
-              title = "Demo"
-            >
-              <iframe
-                src = "https://youtube.com/embed/KZy5xFL2ZgM"
-                allowFullScreen = {true}
-                width = {960}
-                height = {540}
-              />
-            </Collapsible.Component>
-          </>,
-          [Tab.SETTINGS] : <>
-            Here, you can change settings which regulate how XRNA.js behaves.
-            <br/>
-            Support for saving your settings is implemented by the pair of upload/download buttons. 
-            <br/>
-            Store the "{XRNA_SETTINGS_FILE_NAME}" file somewhere you will remember for later use.
-            <Collapsible.Component
-              title = "Demo"
-            >
-              <iframe
-                src = "https://youtube.com/embed/Jil5XVPkLuc"
-                allowFullScreen = {true}
-                width = {960}
-                height = {540}
-              />
-            </Collapsible.Component>
-          </>,
+              </ol>
+              <Collapsible.Component title="Notes">
+                <ul
+                  style={{
+                    margin: 0,
+                  }}
+                >
+                  <li>
+                    Most constraints require you to click on a nucleotide that
+                    either is or is not base-paired to another nucleotide.
+                  </li>
+                  <li>
+                    Other constraints have more restrictive usage requirements.
+                  </li>
+                </ul>
+              </Collapsible.Component>
+              <Collapsible.Component title="Demo">
+                <iframe
+                  src="https://youtube.com/embed/KZy5xFL2ZgM"
+                  allowFullScreen={true}
+                  width={960}
+                  height={540}
+                />
+              </Collapsible.Component>
+            </>
+          ),
+          [Tab.SETTINGS]: (
+            <>
+              Here, you can change settings which regulate how XRNA.js behaves.
+              <br />
+              Support for saving your settings is implemented by the pair of
+              upload/download buttons.
+              <br />
+              Store the "{XRNA_SETTINGS_FILE_NAME}" file somewhere you will
+              remember for later use.
+              <Collapsible.Component title="Demo">
+                <iframe
+                  src="https://youtube.com/embed/Jil5XVPkLuc"
+                  allowFullScreen={true}
+                  width={960}
+                  height={540}
+                />
+              </Collapsible.Component>
+            </>
+          ),
           // Show nothing.
-          [Tab.ABOUT] : <></>
+          [Tab.ABOUT]: <></>,
         };
       },
       []
     );
     tabInstructionsRecordReference.current = tabInstructionsRecord;
-    const onMouseMove = useMemo(
-      function() {
-        return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
-          // Track UI-space mouse position relative to the SVG for tooltip placement
-          const boundingRect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
-          setMouseUIPosition({
-            x : e.clientX - boundingRect.left,
-            y : e.clientY - boundingRect.top
-          });
+    const onMouseMove = useMemo(function () {
+      return function (e: React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        // Track UI-space mouse position relative to the SVG for tooltip placement
+        const boundingRect = (
+          e.currentTarget as SVGSVGElement
+        ).getBoundingClientRect();
+        setMouseUIPosition({
+          x: e.clientX - boundingRect.left,
+          y: e.clientY - boundingRect.top,
+        });
 
-          const flattenedRnaComplexPropsLength = flattenedRnaComplexPropsLengthReference.current;
-          if (flattenedRnaComplexPropsLength === 0) {
-            return;
-          }
-          
-          const mouseCoordinates = {
-            x : e.clientX,
-            y : e.clientY
-          };
-  
-          const dragListener = dragListenerReference.current as DragListener | null;
-          if (dragListener !== null) {
-            const originOfDrag = originOfDragReference.current as Vector2D;
-            const dragCache = dragCacheReference.current as Vector2D;
-            const viewportScale = viewportScaleReference.current as number;
-            const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
-            const repositionAnnotationsFlag = repositionAnnotationsFlagReference.current as boolean;
-            const triggerRightClickMenuFlag = triggerRightClickMenuFlagReference.current as boolean;
-            const resetOrientationDataTrigger = resetOrientationDataTriggerReference.current as boolean;
-            const translation = subtract(
-              mouseCoordinates,
-              originOfDrag
-            );
-            translation.y = -translation.y;
-            dragListener.continueDrag(
-              add(
-                dragCache,
-                scaleDown(
-                  translation,
-                  viewportScale * sceneBoundsScaleMin
-                )
-              ),
-              repositionAnnotationsFlag
-            );
-            if (triggerRightClickMenuFlag) {
-              setResetOrientationDataTrigger(!resetOrientationDataTrigger);
-            }
-          }
-  
-          const dataSpaceOriginOfDrag = dataSpaceOriginOfDragReference.current;
-          const tab = tabReference.current as Tab;
-          if (dataSpaceOriginOfDrag !== undefined && InteractionConstraint.isSupportedTab(tab)) {
-            const mouseDataSpaceCoordinates = transformIntoDataSpace(mouseCoordinates);
-            const xCoordinates = [
-              dataSpaceOriginOfDrag.x,
-              mouseDataSpaceCoordinates.x
-            ].sort(subtractNumbers);
-            const yCoordinates = [
-              dataSpaceOriginOfDrag.y,
-              mouseDataSpaceCoordinates.y
-            ].sort(subtractNumbers);
-            const minX = xCoordinates[0];
-            const minY = yCoordinates[0]
-            setDebugVisualElements([<rect
-              key = {0}
-              x = {minX}
-              y = {minY}
-              width = {xCoordinates[1] - minX}
-              height = {yCoordinates[1] - minY}
-              fill = "none"
-              stroke = {strokesPerTab[tab]}
-              strokeWidth = {DEFAULT_STROKE_WIDTH}
-            />]);
-          }
-          e.preventDefault();
+        const flattenedRnaComplexPropsLength =
+          flattenedRnaComplexPropsLengthReference.current;
+        if (flattenedRnaComplexPropsLength === 0) {
+          return;
         }
-      },
-      []
-    );
-    const onMouseDown = useMemo(
-      function() {
-        return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
-          const clickedOnCoordinates = {
-            x : e.clientX,
-            y : e.clientY
-          };
-          switch (e.button) {
-            case MouseButtonIndices.Left : {
-              setOriginOfDrag(clickedOnCoordinates);
-              break;
-            }
-            case MouseButtonIndices.Right : {
-              const clickedOnCoordinatesInDataSpace = transformIntoDataSpace(clickedOnCoordinates);
-              setDataSpaceOriginOfDrag(clickedOnCoordinatesInDataSpace);
-              break;
-            }
-          }
+
+        const mouseCoordinates = {
+          x: e.clientX,
+          y: e.clientY,
         };
-      },
-      []
-    );
-    const onMouseUp = useMemo(
-      function() {
-        return function(e : React.MouseEvent<SVGSVGElement, MouseEvent>) {
-          const settingsRecord = settingsRecordReference.current!;
-          const treatNoncanonicalBasePairsAsUnpairedFlag = settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean;
-          const dragListener = dragListenerReference.current as DragListener | null;
-          if (dragListener !== null) {
-            if (dragListener.terminateDrag !== undefined) {
-              dragListener.terminateDrag();
-            }
-            setDragListener(
-              null,
-              {}
-            );
+
+        const dragListener =
+          dragListenerReference.current as DragListener | null;
+        if (dragListener !== null) {
+          const originOfDrag = originOfDragReference.current as Vector2D;
+          const dragCache = dragCacheReference.current as Vector2D;
+          const viewportScale = viewportScaleReference.current as number;
+          const sceneBoundsScaleMin =
+            sceneBoundsScaleMinReference.current as number;
+          const repositionAnnotationsFlag =
+            repositionAnnotationsFlagReference.current as boolean;
+          const triggerRightClickMenuFlag =
+            triggerRightClickMenuFlagReference.current as boolean;
+          const resetOrientationDataTrigger =
+            resetOrientationDataTriggerReference.current as boolean;
+          const translation = subtract(mouseCoordinates, originOfDrag);
+          translation.y = -translation.y;
+          dragListener.continueDrag(
+            add(
+              dragCache,
+              scaleDown(translation, viewportScale * sceneBoundsScaleMin)
+            ),
+            repositionAnnotationsFlag
+          );
+          if (triggerRightClickMenuFlag) {
+            setResetOrientationDataTrigger(!resetOrientationDataTrigger);
           }
-          const dataSpaceOriginOfDrag = dataSpaceOriginOfDragReference.current;
-          const tab = tabReference.current as Tab;
-          if (dataSpaceOriginOfDrag !== undefined && InteractionConstraint.isSupportedTab(tab)) {
-            setDebugVisualElements([]);
-            const mouseCoordinates = {
-              x : e.clientX,
-              y : e.clientY
-            };
-            const mouseDataSpaceCoordinates = transformIntoDataSpace(mouseCoordinates);
-            const xCoordinates = [
-              dataSpaceOriginOfDrag.x,
-              mouseDataSpaceCoordinates.x
-            ].sort(subtractNumbers);
-            const yCoordinates = [
-              dataSpaceOriginOfDrag.y,
-              mouseDataSpaceCoordinates.y
-            ].sort(subtractNumbers);
-            const minX = xCoordinates[0];
-            const minY = yCoordinates[0];
-            const maxX = xCoordinates[1];
-            const maxY = yCoordinates[1];
-            if ((
-              // Attempt to avoid unnecessary click-and-drag, which is unintuitive to users. These metrics are arbitrary.
-              maxX - minX > 0.5 ||
-              maxY - minY > 0.5
-            )) {
-              const fullKeysOfCapturedNucleotides = new Array<FullKeys>();
-              const labelsEncounteredKeysRecord : Record<RnaMoleculeKey, Set<NucleotideKey>> = {};
-              const fullKeysOfCapturedLabels = new Array<FullKeys>();
-              const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
-              function validateLabel(
-                {
-                  rnaMoleculeName,
-                  nucleotideIndex
-                } : RnaComplex.BasePairKeys,
-                {
-                  x,
-                  y
-                } : Vector2D
-              ) {
-                if (
-                  x < minX ||
-                  x > maxX ||
-                  y < minY ||
-                  y > maxY
-                ) {
-                  return false;
-                }
-    
-                if (!(rnaMoleculeName in labelsEncounteredKeysRecord)) {
-                  labelsEncounteredKeysRecord[rnaMoleculeName] = new Set<NucleotideKey>();
-                }
-                const labelsEncounteredKeysRecordPerRnaMolecule = labelsEncounteredKeysRecord[rnaMoleculeName];
-                if (labelsEncounteredKeysRecordPerRnaMolecule.has(nucleotideIndex)) {
-                  return false;
-                }
-                labelsEncounteredKeysRecordPerRnaMolecule.add(nucleotideIndex);
-                return true;
+        }
+
+        const dataSpaceOriginOfDrag = dataSpaceOriginOfDragReference.current;
+        const tab = tabReference.current as Tab;
+        if (
+          dataSpaceOriginOfDrag !== undefined &&
+          InteractionConstraint.isSupportedTab(tab)
+        ) {
+          const mouseDataSpaceCoordinates =
+            transformIntoDataSpace(mouseCoordinates);
+          const xCoordinates = [
+            dataSpaceOriginOfDrag.x,
+            mouseDataSpaceCoordinates.x,
+          ].sort(subtractNumbers);
+          const yCoordinates = [
+            dataSpaceOriginOfDrag.y,
+            mouseDataSpaceCoordinates.y,
+          ].sort(subtractNumbers);
+          const minX = xCoordinates[0];
+          const minY = yCoordinates[0];
+          setDebugVisualElements([
+            <rect
+              key={0}
+              x={minX}
+              y={minY}
+              width={xCoordinates[1] - minX}
+              height={yCoordinates[1] - minY}
+              fill="none"
+              stroke={strokesPerTab[tab]}
+              strokeWidth={DEFAULT_STROKE_WIDTH}
+            />,
+          ]);
+        }
+        e.preventDefault();
+      };
+    }, []);
+    const onMouseDown = useMemo(function () {
+      return function (e: React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        const clickedOnCoordinates = {
+          x: e.clientX,
+          y: e.clientY,
+        };
+        switch (e.button) {
+          case MouseButtonIndices.Left: {
+            setOriginOfDrag(clickedOnCoordinates);
+            break;
+          }
+          case MouseButtonIndices.Right: {
+            const clickedOnCoordinatesInDataSpace =
+              transformIntoDataSpace(clickedOnCoordinates);
+            setDataSpaceOriginOfDrag(clickedOnCoordinatesInDataSpace);
+            break;
+          }
+        }
+      };
+    }, []);
+    const onMouseUp = useMemo(function () {
+      return function (e: React.MouseEvent<SVGSVGElement, MouseEvent>) {
+        const settingsRecord = settingsRecordReference.current!;
+        const treatNoncanonicalBasePairsAsUnpairedFlag = settingsRecord[
+          Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED
+        ] as boolean;
+        const dragListener =
+          dragListenerReference.current as DragListener | null;
+        if (dragListener !== null) {
+          if (dragListener.terminateDrag !== undefined) {
+            dragListener.terminateDrag();
+          }
+          setDragListener(null, {});
+        }
+        const dataSpaceOriginOfDrag = dataSpaceOriginOfDragReference.current;
+        const tab = tabReference.current as Tab;
+        if (
+          dataSpaceOriginOfDrag !== undefined &&
+          InteractionConstraint.isSupportedTab(tab)
+        ) {
+          setDebugVisualElements([]);
+          const mouseCoordinates = {
+            x: e.clientX,
+            y: e.clientY,
+          };
+          const mouseDataSpaceCoordinates =
+            transformIntoDataSpace(mouseCoordinates);
+          const xCoordinates = [
+            dataSpaceOriginOfDrag.x,
+            mouseDataSpaceCoordinates.x,
+          ].sort(subtractNumbers);
+          const yCoordinates = [
+            dataSpaceOriginOfDrag.y,
+            mouseDataSpaceCoordinates.y,
+          ].sort(subtractNumbers);
+          const minX = xCoordinates[0];
+          const minY = yCoordinates[0];
+          const maxX = xCoordinates[1];
+          const maxY = yCoordinates[1];
+          if (
+            // Attempt to avoid unnecessary click-and-drag, which is unintuitive to users. These metrics are arbitrary.
+            maxX - minX > 0.5 ||
+            maxY - minY > 0.5
+          ) {
+            const fullKeysOfCapturedNucleotides = new Array<FullKeys>();
+            const labelsEncounteredKeysRecord: Record<
+              RnaMoleculeKey,
+              Set<NucleotideKey>
+            > = {};
+            const fullKeysOfCapturedLabels = new Array<FullKeys>();
+            const rnaComplexProps =
+              rnaComplexPropsReference.current as RnaComplexProps;
+            function validateLabel(
+              { rnaMoleculeName, nucleotideIndex }: RnaComplex.BasePairKeys,
+              { x, y }: Vector2D
+            ) {
+              if (x < minX || x > maxX || y < minY || y > maxY) {
+                return false;
               }
-              for (const [rnaComplexIndexAsString, { rnaMoleculeProps }] of Object.entries(rnaComplexProps)) {
-                const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-                for (const [rnaMoleculeName, { nucleotideProps }] of Object.entries(rnaMoleculeProps)) {
-                  for (const [nucleotideIndexAsString, singularNucleotideProps] of Object.entries(nucleotideProps)) {
-                    const { labelContentProps, labelLineProps } = singularNucleotideProps;
-                    const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
-    
-                    const fullKeys = {
-                      rnaComplexIndex,
-                      rnaMoleculeName,
-                      nucleotideIndex
-                    };
-    
-                    if (validateLabel(
-                      fullKeys,
-                      singularNucleotideProps
-                    )) {
-                      fullKeysOfCapturedNucleotides.push(fullKeys);
+
+              if (!(rnaMoleculeName in labelsEncounteredKeysRecord)) {
+                labelsEncounteredKeysRecord[rnaMoleculeName] =
+                  new Set<NucleotideKey>();
+              }
+              const labelsEncounteredKeysRecordPerRnaMolecule =
+                labelsEncounteredKeysRecord[rnaMoleculeName];
+              if (
+                labelsEncounteredKeysRecordPerRnaMolecule.has(nucleotideIndex)
+              ) {
+                return false;
+              }
+              labelsEncounteredKeysRecordPerRnaMolecule.add(nucleotideIndex);
+              return true;
+            }
+            for (const [
+              rnaComplexIndexAsString,
+              { rnaMoleculeProps },
+            ] of Object.entries(rnaComplexProps)) {
+              const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+              for (const [
+                rnaMoleculeName,
+                { nucleotideProps },
+              ] of Object.entries(rnaMoleculeProps)) {
+                for (const [
+                  nucleotideIndexAsString,
+                  singularNucleotideProps,
+                ] of Object.entries(nucleotideProps)) {
+                  const { labelContentProps, labelLineProps } =
+                    singularNucleotideProps;
+                  const nucleotideIndex = Number.parseInt(
+                    nucleotideIndexAsString
+                  );
+
+                  const fullKeys = {
+                    rnaComplexIndex,
+                    rnaMoleculeName,
+                    nucleotideIndex,
+                  };
+
+                  if (validateLabel(fullKeys, singularNucleotideProps)) {
+                    fullKeysOfCapturedNucleotides.push(fullKeys);
+                  }
+                  if (labelContentProps !== undefined) {
+                    const absolutePosition = add(
+                      singularNucleotideProps,
+                      labelContentProps
+                    );
+                    if (validateLabel(fullKeys, absolutePosition)) {
+                      fullKeysOfCapturedLabels.push(fullKeys);
                     }
-                    if (labelContentProps !== undefined) {
+                  }
+                  if (labelLineProps !== undefined) {
+                    for (const point of labelLineProps.points) {
                       const absolutePosition = add(
                         singularNucleotideProps,
-                        labelContentProps
+                        point
                       );
-                      if (validateLabel(
-                        fullKeys,
-                        absolutePosition
-                      )) {
+                      if (validateLabel(fullKeys, absolutePosition)) {
                         fullKeysOfCapturedLabels.push(fullKeys);
-                      }
-                    }
-                    if (labelLineProps !== undefined) {
-                      for (const point of labelLineProps.points) {
-                        const absolutePosition = add(
-                          singularNucleotideProps,
-                          point
-                        );
-                        if (validateLabel(
-                          fullKeys,
-                          absolutePosition
-                        )) {
-                          fullKeysOfCapturedLabels.push(fullKeys);
-                        }
                       }
                     }
                   }
                 }
               }
-              let interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(
+            }
+            let interactionConstraintAndFullKeys =
+              getInteractionConstraintAndFullKeys(
                 fullKeysOfCapturedNucleotides,
                 rnaComplexProps,
                 treatNoncanonicalBasePairsAsUnpairedFlag
               );
-              setAutoDetectedInteractionConstraintMessage("Auto-detected");
-              if (interactionConstraintAndFullKeys !== undefined) {
-                const {
-                  fullKeys,
-                  interactionConstraint
-                } = interactionConstraintAndFullKeys;
-                setInteractionConstraint(interactionConstraint);
-                nucleotideOnMouseDownRightClickHelper(
-                  fullKeys,
-                  interactionConstraint,
-                  tab as InteractionConstraint.SupportedTab
-                );
-              } else {
-                interactionConstraintAndFullKeys = getInteractionConstraintAndFullKeys(
+            setAutoDetectedInteractionConstraintMessage("Auto-detected");
+            if (interactionConstraintAndFullKeys !== undefined) {
+              const { fullKeys, interactionConstraint } =
+                interactionConstraintAndFullKeys;
+              setInteractionConstraint(interactionConstraint);
+              nucleotideOnMouseDownRightClickHelper(
+                fullKeys,
+                interactionConstraint,
+                tab as InteractionConstraint.SupportedTab
+              );
+            } else {
+              interactionConstraintAndFullKeys =
+                getInteractionConstraintAndFullKeys(
                   fullKeysOfCapturedLabels,
                   rnaComplexProps,
                   treatNoncanonicalBasePairsAsUnpairedFlag
                 );
-                if (interactionConstraintAndFullKeys !== undefined) {
-                  const {
-                    fullKeys,
-                    interactionConstraint
-                  } = interactionConstraintAndFullKeys;
-                  setInteractionConstraint(interactionConstraint);
-                  labelOnMouseDownRightClickHelper(
-                    fullKeys,
-                    interactionConstraint
-                  );
-                }
+              if (interactionConstraintAndFullKeys !== undefined) {
+                const { fullKeys, interactionConstraint } =
+                  interactionConstraintAndFullKeys;
+                setInteractionConstraint(interactionConstraint);
+                labelOnMouseDownRightClickHelper(
+                  fullKeys,
+                  interactionConstraint
+                );
               }
             }
           }
-          setDataSpaceOriginOfDrag(undefined);
+        }
+        setDataSpaceOriginOfDrag(undefined);
+      };
+    }, []);
+    const onMouseLeave = useMemo(function () {
+      return function () {
+        setDragListener(null, {});
+        setDebugVisualElements([]);
+        setDataSpaceOriginOfDrag(undefined);
+        // Hide hover tooltip when leaving the SVG
+        setMouseOverText("");
+      };
+    }, []);
+    const onWheel = useMemo(function () {
+      return function (e: React.WheelEvent<SVGSVGElement>) {
+        const flattenedRnaComplexPropsLength =
+          flattenedRnaComplexPropsLengthReference.current;
+        if (flattenedRnaComplexPropsLength === 0) {
+          return;
+        }
+
+        const viewportScaleExponent =
+          viewportScaleExponentReference.current as number;
+        const toolsDivResizeDetectorWidth =
+          toolsDivResizeDetectorWidthReference.current ?? 0;
+        const totalScale = totalScaleReference.current as TotalScale;
+        const sceneBounds = sceneBoundsReference.current as SceneBounds;
+        const viewportTranslateX =
+          viewportTranslateXReference.current as number;
+        const viewportTranslateY =
+          viewportTranslateYReference.current as number;
+        const sceneBoundsScaleMin =
+          sceneBoundsScaleMinReference.current as number;
+
+        // Apparently, the sign of <event.deltaY> needs to be negated in order to support intuitive scrolling...
+        let newScaleExponent = viewportScaleExponent - sign(e.deltaY);
+        let newScale =
+          newScaleExponent in viewportScalePowPrecalculation
+            ? viewportScalePowPrecalculation[newScaleExponent]
+            : Math.pow(SCALE_BASE, newScaleExponent);
+        setViewportScale(newScale);
+        setViewportScaleExponent(newScaleExponent);
+        let uiVector = {
+          x: e.clientX - toolsDivResizeDetectorWidth - DIV_BUFFER_DIMENSION,
+          y: e.clientY,
         };
-      },
-      []
-    );
-    const onMouseLeave = useMemo(
-      function() {
-        return function() {
-          setDragListener(
-            null,
-            {}
-          );
-          setDebugVisualElements([]);
-          setDataSpaceOriginOfDrag(undefined);
-          // Hide hover tooltip when leaving the SVG
-          setMouseOverText("");
+        let reciprocal = totalScale.negativeScale;
+        let inputVector = {
+          x: uiVector.x * reciprocal + sceneBounds.x - viewportTranslateX,
+          y:
+            uiVector.y * reciprocal -
+            sceneBounds.y +
+            viewportTranslateY -
+            sceneBounds.height,
         };
-      },
-      []
-    );
-    const onWheel = useMemo(
-      function() {
-        return function(e : React.WheelEvent<SVGSVGElement>) {
-          const flattenedRnaComplexPropsLength = flattenedRnaComplexPropsLengthReference.current;
-          if (flattenedRnaComplexPropsLength === 0) {
-            return;
-          }
-  
-          const viewportScaleExponent = viewportScaleExponentReference.current as number;
-          const toolsDivResizeDetectorWidth = toolsDivResizeDetectorWidthReference.current ?? 0;
-          const totalScale = totalScaleReference.current as TotalScale;
-          const sceneBounds = sceneBoundsReference.current as SceneBounds;
-          const viewportTranslateX = viewportTranslateXReference.current as number;
-          const viewportTranslateY = viewportTranslateYReference.current as number;
-          const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
-  
-          // Apparently, the sign of <event.deltaY> needs to be negated in order to support intuitive scrolling...
-          let newScaleExponent = viewportScaleExponent - sign(e.deltaY);
-          let newScale = newScaleExponent in viewportScalePowPrecalculation ? viewportScalePowPrecalculation[newScaleExponent] : Math.pow(SCALE_BASE, newScaleExponent);
-          setViewportScale(newScale);
-          setViewportScaleExponent(newScaleExponent);
-          let uiVector = {
-            x : e.clientX - toolsDivResizeDetectorWidth - DIV_BUFFER_DIMENSION,
-            y : e.clientY
-          };
-          let reciprocal = totalScale.negativeScale;
-          let inputVector = {
-            x : uiVector.x * reciprocal + sceneBounds.x - viewportTranslateX,
-            y : uiVector.y * reciprocal - sceneBounds.y + viewportTranslateY - sceneBounds.height
-          };
-          reciprocal = 1 / (newScale * sceneBoundsScaleMin);
-          let newOriginDeltaX = uiVector.x * reciprocal - inputVector.x + sceneBounds.x;
-          let newOriginDeltaY = -(uiVector.y * reciprocal - inputVector.y - sceneBounds.y - sceneBounds.height);
-          setViewportTranslateX(newOriginDeltaX);
-          setViewportTranslateY(newOriginDeltaY);
-        };
-      },
-      []
-    );
+        reciprocal = 1 / (newScale * sceneBoundsScaleMin);
+        let newOriginDeltaX =
+          uiVector.x * reciprocal - inputVector.x + sceneBounds.x;
+        let newOriginDeltaY = -(
+          uiVector.y * reciprocal -
+          inputVector.y -
+          sceneBounds.y -
+          sceneBounds.height
+        );
+        setViewportTranslateX(newOriginDeltaX);
+        setViewportTranslateY(newOriginDeltaY);
+      };
+    }, []);
     const uploadInputFileUI = useMemo(
-      function() {
-        const settingsRecord = settingsRecordReference.current as SettingsRecord;
-        return <label>
-          {OPEN_ROW_TEXT}:&nbsp;
-          <input
-            ref = {function(x) {
-              if (x !== null) {
-                uploadInputFileHtmlInputReference.current = x;
-              }
-            }}
-            style = {{
-              display : "none"
-            }}
-            type = "file"
-            accept = {inputFileExtensions.map(function(inputFileExtension : InputFileExtension) {
-              return "." + inputFileExtension;
-            }).join(",")}
-            onChange = {function(e) {
-              let files = e.target.files;
-              if (files === null || files.length === 0) {
-                return;
-              }
-              setSceneState(SceneState.DATA_IS_LOADING);
-              let file = files[0];
-              let inputFileNameAndExtension = file.name;
-              inputFileNameAndExtensionReference.current = inputFileNameAndExtension;
-              setInputFileNameAndExtension(inputFileNameAndExtension);
-              let regexMatch = /^(.*)\.(.+)$/.exec(inputFileNameAndExtension) as RegExpExecArray;
-              let fileName = regexMatch[1];
-              let fileExtension = regexMatch[2];
-              if (settingsRecord[Setting.COPY_FILE_NAME]) {
-                setOutputFileName(fileName);
-              }
-              if (settingsRecord[Setting.COPY_FILE_EXTENSION] && (fileExtension in outputFileWritersMap)) {
-                setOutputFileExtension(fileExtension as OutputFileExtension);
-              }
-              let reader = new FileReader();
-              reader.addEventListener("load", function(event) {
-                // Read the content of the input file.
-                parseInputFileContent(
-                  (event.target as FileReader).result as string,
-                  fileExtension.toLocaleLowerCase() as InputFileExtension
-                );
-              });
-              reader.readAsText(files[0] as File);
-            }}
-            onClick = {function(e) {
-              e.currentTarget.value = "";
-            }}
-          />
-        </label>;
-      },
-      [
-        settingsRecord,
-        outputFileWritersMap
-      ]
-    );
-    const tabRenderRecord = useMemo(
-      function() {
-        const viewportTranslateX = viewportTranslateXReference.current as number;
-        const viewportTranslateY = viewportTranslateYReference.current as number;
-        const viewportScaleExponent = viewportScaleExponentReference.current as number;
-        const viewportScale = viewportScaleReference.current as number;
-        const rightClickMenuOptionsMenu = rightClickMenuOptionsMenuReference.current as JSX.Element;
-        const settingsRecord = settingsRecordReference.current as SettingsRecord;
-        const tabInstructionsRecord = tabInstructionsRecordReference.current as Record<Tab, JSX.Element>;
-        const outputFileExtension = outputFileExtensionReference.current as string;
-        const inputFileNameAndExtension = inputFileNameAndExtensionReference.current as string;
-        
-        const tabRenderRecord : Record<Tab, JSX.Element> = {
-          [Tab.INPUT_OUTPUT] : <>
-            {uploadInputFileUI}
-            <button
-              onClick = {function(e) {
-                (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
-              }}
-            >
-              {OPEN_BUTTON_TEXT}
-            </button>
-            <em>
-              {inputFileNameAndExtension}
-            </em>
-            <br/>
-            <label>
-              {SAVE_ROW_TEXT}:&nbsp;
-              <input
-                type = "text"
-                placeholder = "save_file_name"
-                value = {outputFileName}
-                onChange = {function(e) {
-                  setOutputFileName(e.target.value);
-                }}
-              />
-            </label>
-            <select
-              value = {outputFileExtension}
-              onChange = {function(e) {
-                setOutputFileExtension(e.target.value as OutputFileExtension);
-                // Resolves a save-file bug.
-                setOutputFileHandle(undefined);
-              }}
-            >
-              <option
-                style = {{
-                  display : "none"
-                }}
-                value = {""}
-              >
-                .file_extension
-              </option>
-              {outputFileExtensions.map(function(outputFileExtension : OutputFileExtension, index : number) {
-                return <option
-                  key = {index}
-                  value = {outputFileExtension}
-                >
-                  .{outputFileExtension}
-                </option>;
-              })}
-            </select>
-            <button
-              ref = {function(htmlButtonElement : HTMLButtonElement) {
-                downloadOutputFileHtmlButtonReference.current = htmlButtonElement;
-              }}
-              onClick = {async function() {
-                const outputFileHandle = outputFileHandleReference.current!;
-                let localOutputFileHandle = outputFileHandle;
-                if (outputFileHandle === undefined) {
-                  localOutputFileHandle = await getOutputFileHandle();
-                  setOutputFileHandle(localOutputFileHandle);
-                }
-                saveFile(localOutputFileHandle);
-              }}
-              disabled = {downloadButtonErrorMessage !== ""}
-              title = {downloadButtonErrorMessage}
-            >
-              {SAVE_BUTTON_TEXT}
-            </button>
-            <button
-              onClick = {async function() {
-                const localOutputFileHandle = await getOutputFileHandle();
-                setOutputFileHandle(localOutputFileHandle);
-                saveFile(localOutputFileHandle);
-              }}
-              disabled = {downloadButtonErrorMessage !== ""}
-              title = {downloadButtonErrorMessage}
-            >
-              Save As
-            </button>
-            <a
-              ref = {downloadOutputFileHtmlAnchorReference}
-              style = {{
-                display : "none"
-              }}
-              download = {`${outputFileName}.${outputFileExtension}`}
-            />
-          </>,
-          [Tab.VIEWPORT] : <>
-            <b>
-              {TRANSLATION_TEXT}:
-            </b>
-            <br/>
-            <label>
-              x:&nbsp;
-              <InputWithValidator.Number
-                value = {viewportTranslateX}
-                setValue = {setViewportTranslateX}
-                disabledFlag = {flattenedRnaComplexPropsLength === 0}
-              />
-            </label>
-            <br/>
-            <label>
-              y:&nbsp;
-              <InputWithValidator.Number
-                value = {viewportTranslateY}
-                setValue = {setViewportTranslateY}
-                disabledFlag = {flattenedRnaComplexPropsLength === 0}
-              />
-            </label>
-            <br/>
-            <b>
-              {SCALE_TEXT}:&nbsp;
-            </b>
-            <br/>
+      function () {
+        const settingsRecord =
+          settingsRecordReference.current as SettingsRecord;
+        return (
+          <label>
+            {OPEN_ROW_TEXT}:&nbsp;
             <input
-              type = "range"
-              value = {viewportScaleExponent}
-              onChange = {function(e) {
-                const newScaleExponent = Number.parseInt(e.target.value);
-                setViewportScaleExponent(newScaleExponent);
-                setViewportScale(viewportScalePowPrecalculation[newScaleExponent]);
-              }}
-              min = {VIEWPORT_SCALE_EXPONENT_MINIMUM}
-              max = {VIEWPORT_SCALE_EXPONENT_MAXIMUM}
-              disabled = {flattenedRnaComplexPropsLength === 0}
-            />
-            <InputWithValidator.Number
-              value = {viewportScale}
-              setValue = {function(newViewportScale : number) {
-                setViewportScale(newViewportScale);
-                // scale = SCALE_BASE ^ scaleExponent
-                // log(scale) = log(SCALE_BASE ^ scaleExponent)
-                // log(scale) = scaleExponent * log(SCALE_BASE)
-                // log(scale) / log(SCALE_BASE) = scaleExponent
-                if (newViewportScale > 0) {
-                  setViewportScaleExponent(Math.log(newViewportScale) * ONE_OVER_LOG_OF_SCALE_BASE);
+              ref={function (x) {
+                if (x !== null) {
+                  uploadInputFileHtmlInputReference.current = x;
                 }
               }}
-              disabledFlag = {flattenedRnaComplexPropsLength === 0}
-            />
-            <br/>
-            <button
-              onClick = {resetViewport}
-              disabled = {flattenedRnaComplexPropsLength === 0}
-            >
-              {RESET_TEXT}
-            </button>
-          </>,
-          [Tab.EDIT] : <>
-            {interactionConstraintSelectHtmlElement}
-            {rightClickMenuOptionsMenu}
-          </>,
-          [Tab.FORMAT] : <>
-            {interactionConstraintSelectHtmlElement}
-            {rightClickMenuOptionsMenu}
-          </>,
-          [Tab.ANNOTATE] : <>
-            {interactionConstraintSelectHtmlElement}
-            {rightClickMenuOptionsMenu}
-          </>,
-          [Tab.SETTINGS] : <>
-            <button
-              onClick = {function() {
-                (settingsFileUploadHtmlInputReference.current as HTMLInputElement).click();
+              style={{
+                display: "none",
               }}
-            >
-              Upload
-            </button>
-            <input
-              style = {{
-                display : "none"
-              }}
-              ref = {settingsFileUploadHtmlInputReference}
-              type = "file"
-              accept = ".json"
-              onChange = {function(e) {
+              type="file"
+              accept={inputFileExtensions
+                .map(function (inputFileExtension: InputFileExtension) {
+                  return "." + inputFileExtension;
+                })
+                .join(",")}
+              onChange={function (e) {
                 let files = e.target.files;
                 if (files === null || files.length === 0) {
                   return;
                 }
+                setSceneState(SceneState.DATA_IS_LOADING);
+                let file = files[0];
+                let inputFileNameAndExtension = file.name;
+                inputFileNameAndExtensionReference.current =
+                  inputFileNameAndExtension;
+                setInputFileNameAndExtension(inputFileNameAndExtension);
+                let regexMatch = /^(.*)\.(.+)$/.exec(
+                  inputFileNameAndExtension
+                ) as RegExpExecArray;
+                let fileName = regexMatch[1];
+                let fileExtension = regexMatch[2];
+                if (settingsRecord[Setting.COPY_FILE_NAME]) {
+                  setOutputFileName(fileName);
+                }
+                if (
+                  settingsRecord[Setting.COPY_FILE_EXTENSION] &&
+                  fileExtension in outputFileWritersMap
+                ) {
+                  setOutputFileExtension(fileExtension as OutputFileExtension);
+                }
                 let reader = new FileReader();
-                reader.addEventListener("load", function(event) {
-                  // Read the content of the settings file.
-                  let settingsJson = JSON.parse((event.target as FileReader).result as string);
-                  let keys = Object.keys(settingsJson);
-                  let formatCheckPassedFlag = true;
-                  for (let key of keys) {
-                    const value = settingsJson[key];
-                    if (!isSetting(key) || (typeof value !== settingsTypeMap[key] && !(settingsTypeMap[key] === "BasePairsEditorType" && BasePairsEditor.isEditorType(value)))) {
-                      setDataLoadingFailedErrorMessage("Parsing the uploaded settings file failed. The content of that file is unrecognized.");
-                      formatCheckPassedFlag = false;
-                      break;
-                    }
-                  }
-                  if (formatCheckPassedFlag) {
-                    let updatedSettings : Partial<SettingsRecord> = {};
-                    for (let key of keys) {
-                      updatedSettings[key as Setting] = settingsJson[key];
-                    }
-                    setSettingsRecord({
-                      ...settingsRecord,
-                      ...updatedSettings
-                    });
-                  }
+                reader.addEventListener("load", function (event) {
+                  // Read the content of the input file.
+                  parseInputFileContent(
+                    (event.target as FileReader).result as string,
+                    fileExtension.toLocaleLowerCase() as InputFileExtension
+                  );
                 });
                 reader.readAsText(files[0] as File);
               }}
+              onClick={function (e) {
+                e.currentTarget.value = "";
+              }}
             />
-            <button
-              onClick = {function() {
-                let settingsFileDownloadHtmlAnchor = settingsFileDownloadHtmlAnchorReference.current as HTMLAnchorElement;
-                let settingsObject : Partial<SettingsRecord> = {};
-                const flattenedRnaComplexProps = flattenedRnaComplexPropsReference.current as Array<[string, RnaComplex.ExternalProps]>;
-                if (flattenedRnaComplexProps.length > 0) {
-                  const rnaComplexIndex = Number.parseInt(flattenedRnaComplexProps[0][0]);
-                  const { helixDistance, distances } = basePairAverageDistances[rnaComplexIndex];
-                  settingsObject[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] = helixDistance;
-                  settingsObject[Setting.CANONICAL_BASE_PAIR_DISTANCE] = distances[BasePair.Type.CANONICAL];
-                  settingsObject[Setting.MISMATCH_BASE_PAIR_DISTANCE] = distances[BasePair.Type.MISMATCH];
-                  settingsObject[Setting.WOBBLE_BASE_PAIR_DISTANCE] = distances[BasePair.Type.WOBBLE];
-                }
-  
-                for (let key of settings) {
-                  let value = settingsRecord[key];
-                  if (Number.isNaN(value)) {
-                    if (key in settingsObject) {
-                      continue;
-                    } else {
-                      value = 1;
-                    }
-                  }
-                  settingsObject[key] = value;
-                }
-                settingsFileDownloadHtmlAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(JSON.stringify(settingsObject))}`;
-                settingsFileDownloadHtmlAnchor.click();
-              }}
-            >
-              Download
-            </button>
-            <a
-              ref = {settingsFileDownloadHtmlAnchorReference}
-              style = {{
-                display : "none"
-              }}
-              download = {`${XRNA_SETTINGS_FILE_NAME}.json`}
-            />
-            <br/>
-            {settings.map(function(setting : Setting, index : number) {
-              let input : JSX.Element = <></>;
-              switch (settingsTypeMap[setting]) {
-                case "boolean" : {
-                  input = <input
-                    type = "checkbox"
-                    checked = {settingsRecord[setting] as boolean}
-                    onChange = {function() {
-                      setSettingsRecord({
-                        ...settingsRecord,
-                        [setting] : !settingsRecord[setting]
-                      });
-                    }}
-                  />;
-                  break;
-                }
-                case "number" : {
-                  input = <InputWithValidator.Number
-                    value = {settingsRecord[setting] as number}
-                    setValue = {function(newValue : number) {
-                      setSettingsRecord({
-                        ...settingsRecord,
-                        [setting] : newValue
-                      });
-                    }}
-                  />;
-                  break;
-                }
-                case "BasePairsEditorType" : {
-                  input = <BasePairsEditor.EditorTypeSelector.Component
-                    editorType = {settingsRecord[setting] as BasePairsEditor.EditorType}
-                    onChange = {function(newEditorType : BasePairsEditor.EditorType) {
-                      setSettingsRecord({
-                        ...settingsRecord,
-                        [setting] : newEditorType
-                      });
-                    }}
-                  />;
-                  break;
-                }
-                default : {
-                  throw "Unhandled switch case.";
-                }
-              }
-              return <Fragment
-                key = {index}
+          </label>
+        );
+      },
+      [settingsRecord, outputFileWritersMap]
+    );
+    const tabRenderRecord = useMemo(
+      function () {
+        const viewportTranslateX =
+          viewportTranslateXReference.current as number;
+        const viewportTranslateY =
+          viewportTranslateYReference.current as number;
+        const viewportScaleExponent =
+          viewportScaleExponentReference.current as number;
+        const viewportScale = viewportScaleReference.current as number;
+        const rightClickMenuOptionsMenu =
+          rightClickMenuOptionsMenuReference.current as JSX.Element;
+        const settingsRecord =
+          settingsRecordReference.current as SettingsRecord;
+        const tabInstructionsRecord =
+          tabInstructionsRecordReference.current as Record<Tab, JSX.Element>;
+        const outputFileExtension =
+          outputFileExtensionReference.current as string;
+        const inputFileNameAndExtension =
+          inputFileNameAndExtensionReference.current as string;
+
+        const tabRenderRecord: Record<Tab, JSX.Element> = {
+          [Tab.INPUT_OUTPUT]: (
+            <>
+              {uploadInputFileUI}
+              <button
+                onClick={function (e) {
+                  (
+                    uploadInputFileHtmlInputReference.current as HTMLInputElement
+                  ).click();
+                }}
               >
-                <label
-                  title = {settingsLongDescriptionsMap[setting]}
-                >
-                  {settingsShortDescriptionsMap[setting]}:&nbsp;
-                  {input}
-                </label>
-                <br/>
-              </Fragment>;
-            })}
-          </>,
-          [Tab.ABOUT] : <>
-            <span
-              style = {{
-                whiteSpace : "normal"
-              }}
-            >
-              <Collapsible.Component
-                title = "Getting Started"
-              >
-                <ol
-                  style = {{
-                    margin : 0
+                {OPEN_BUTTON_TEXT}
+              </button>
+              <em>{inputFileNameAndExtension}</em>
+              <br />
+              <label>
+                {SAVE_ROW_TEXT}:&nbsp;
+                <input
+                  type="text"
+                  placeholder="save_file_name"
+                  value={outputFileName}
+                  onChange={function (e) {
+                    setOutputFileName(e.target.value);
                   }}
-                >
-                  <li>
-                    <label>
-                      To begin working with XRNA, you need an input file:&nbsp;
-                      <button
-                        onClick = {function() {
-                          const downloadAnchor = downloadSampleInputFileHtmlAnchorReference.current as HTMLAnchorElement;
-                          downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(SAMPLE_XRNA_FILE)}`;
-                          downloadAnchor.click();
-                        }}
-                      >Download</button>
-                      <a
-                        style = {{
-                          display : "none"
-                        }}
-                        ref = {downloadSampleInputFileHtmlAnchorReference}
-                        download = "example.xrna"
-                      />
-                    </label>
-                  </li>
-                  <li>
-                    Now that you have an input file, navigate to the "{Tab.INPUT_OUTPUT}" tab to upload it. XRNA.js should import its data in only a few seconds.
-                    <br/>
-                  </li>
-                  <li>
-                    Once the data is imported, you can continue work in several different ways:
-                    <ul>
-                      <li>Download its data to a different file ({Tab.INPUT_OUTPUT} tab)</li>
-                      <li>Edit its data ({Tab.EDIT} tab)</li>
-                      <li>Add/remove/edit base base pairs ({Tab.FORMAT} tab)</li>
-                      <li>Add/remove annotations ({Tab.ANNOTATE} tab)</li>
-                    </ul>
-                    For explanation of these, read the relevant section of the "{Tab.ABOUT}" tab.
-                  </li>
-                </ol>
-                <Collapsible.Component
-                  title = "Demo"
-                >
-                  <iframe
-                    src = "https://youtube.com/embed/h56dluFPR3w"
-                    allowFullScreen = {true}
-                    width = {960}
-                    height = {540}
-                  />
-                </Collapsible.Component>
-              </Collapsible.Component>
-              <Collapsible.Component
-                title = "Tabs"
-              >
-                {tabs.map(function(tabI) {
-                  let content = <></>;
-                  if (tabI !== Tab.ABOUT) {
-                    content = <Collapsible.Component
-                      title = {`The ${tabI} tab`}
-                    >
-                      {tabInstructionsRecord[tabI]}
-                    </Collapsible.Component>;
-                  }
-                  return <Fragment
-                    key = {tabI}
-                  >
-                    {content}
-                  </Fragment>;
-                })}
-              </Collapsible.Component>
-              <Collapsible.Component
-                title = "Constraints"
-              >
-                {InteractionConstraint.all.map(function(interactionConstraint) {
-                  return <Collapsible.Component
-                    key =  {interactionConstraint}
-                    title = {`The "${interactionConstraint}" constraint`}
-                  >
-                    {InteractionConstraint.descriptionRecord[interactionConstraint]}
-                  </Collapsible.Component>;
-                })}
-              </Collapsible.Component>
-              <Collapsible.Component
-                title = "Tips and Tricks"
-              >
-                Hotkey combinations:
-                <ul
-                  style = {{
-                    margin : 0
-                  }}
-                >
-                  <li>
-                    Ctrl + O - opens a new input file
-                  </li>
-                  <li>
-                    Ctrl + S - saves a new output file, using the current output-file name and output-file extension.
-                    <br/>
-                    Fails if either of these are not provided.
-                  </li>
-                  <li>
-                    Ctrl + 0 - resets the properties of the "{Tab.VIEWPORT}" tab.
-                  </li>
-                  <li>
-                    Ctrl + Z - undo
-                  </li>
-                  <li>
-                    Ctrl + Shift + Z (Ctrl + Y) - redo
-                  </li>
-                </ul>
-                <Collapsible.Component
-                  title = "Demo"
-                >
-                  <iframe
-                    src = "https://youtube.com/embed/5QiSc445DyU"
-                    allowFullScreen = {true}
-                    width = {960}
-                    height = {540}
-                  />
-                </Collapsible.Component>
-                In order to have a more enjoyable and intuitive experience with XRNA.js, try right-mouse click-and-drag to highlight nucleotides.
-                <br/>
-                This will:
-                <ol
-                  style = {{
-                    margin : 0
-                  }}
-                >
-                  <li>
-                    Automatically change the constraint to an appropriate value which matches the nucleotides you selected 
-                  </li>
-                  <li>
-                    Populate a menu for precisely editing, formatting, or annotating data within the viewport.
-                  </li>
-                </ol>
-                <Collapsible.Component
-                  title = "Demo"
-                >
-                  <iframe
-                    src = "https://youtube.com/embed/5QiSc445DyU?start=130"
-                    allowFullScreen = {true}
-                    width = {960}
-                    height = {540}
-                  />
-                </Collapsible.Component>
-              </Collapsible.Component>
-              <Collapsible.Component
-                title = "Important File Formats"
-              >
-                <iframe
-                  src = "https://youtube.com/embed/lwlfTPwrD8Q"
-                  allowFullScreen = {true}
-                  width = {960}
-                  height = {540}
                 />
-              </Collapsible.Component>
-              <Collapsible.Component
-                title = "How to cite XRNA"
+              </label>
+              <select
+                value={outputFileExtension}
+                onChange={function (e) {
+                  setOutputFileExtension(e.target.value as OutputFileExtension);
+                  // Resolves a save-file bug.
+                  setOutputFileHandle(undefined);
+                }}
               >
-                XRNA.js is currently unpublished; once it becomes published, citation instructions will replace this text block.
-              </Collapsible.Component>
-              <Collapsible.Component
-                title = "Contact us"
+                <option
+                  style={{
+                    display: "none",
+                  }}
+                  value={""}
+                >
+                  .file_extension
+                </option>
+                {outputFileExtensions.map(function (
+                  outputFileExtension: OutputFileExtension,
+                  index: number
+                ) {
+                  return (
+                    <option key={index} value={outputFileExtension}>
+                      .{outputFileExtension}
+                    </option>
+                  );
+                })}
+              </select>
+              <button
+                ref={function (htmlButtonElement: HTMLButtonElement) {
+                  downloadOutputFileHtmlButtonReference.current =
+                    htmlButtonElement;
+                }}
+                onClick={async function () {
+                  const outputFileHandle = outputFileHandleReference.current!;
+                  let localOutputFileHandle = outputFileHandle;
+                  if (outputFileHandle === undefined) {
+                    localOutputFileHandle = await getOutputFileHandle();
+                    setOutputFileHandle(localOutputFileHandle);
+                  }
+                  saveFile(localOutputFileHandle);
+                }}
+                disabled={downloadButtonErrorMessage !== ""}
+                title={downloadButtonErrorMessage}
               >
-                <a
-                  href = "https://www.linkedin.com/in/caedenmeade/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Message the developer
-                </a>
-                <br/>
-                <a
-                  href = "https://github.com/LDWLab/XRNA-React/issues"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Report a bug
-                </a>
-              </Collapsible.Component>
-            </span>
-          </>
+                {SAVE_BUTTON_TEXT}
+              </button>
+              <button
+                onClick={async function () {
+                  const localOutputFileHandle = await getOutputFileHandle();
+                  setOutputFileHandle(localOutputFileHandle);
+                  saveFile(localOutputFileHandle);
+                }}
+                disabled={downloadButtonErrorMessage !== ""}
+                title={downloadButtonErrorMessage}
+              >
+                Save As
+              </button>
+              <a
+                ref={downloadOutputFileHtmlAnchorReference}
+                style={{
+                  display: "none",
+                }}
+                download={`${outputFileName}.${outputFileExtension}`}
+              />
+            </>
+          ),
+          [Tab.VIEWPORT]: (
+            <>
+              <b>{TRANSLATION_TEXT}:</b>
+              <br />
+              <label>
+                x:&nbsp;
+                <InputWithValidator.Number
+                  value={viewportTranslateX}
+                  setValue={setViewportTranslateX}
+                  disabledFlag={flattenedRnaComplexPropsLength === 0}
+                />
+              </label>
+              <br />
+              <label>
+                y:&nbsp;
+                <InputWithValidator.Number
+                  value={viewportTranslateY}
+                  setValue={setViewportTranslateY}
+                  disabledFlag={flattenedRnaComplexPropsLength === 0}
+                />
+              </label>
+              <br />
+              <b>{SCALE_TEXT}:&nbsp;</b>
+              <br />
+              <input
+                type="range"
+                value={viewportScaleExponent}
+                onChange={function (e) {
+                  const newScaleExponent = Number.parseInt(e.target.value);
+                  setViewportScaleExponent(newScaleExponent);
+                  setViewportScale(
+                    viewportScalePowPrecalculation[newScaleExponent]
+                  );
+                }}
+                min={VIEWPORT_SCALE_EXPONENT_MINIMUM}
+                max={VIEWPORT_SCALE_EXPONENT_MAXIMUM}
+                disabled={flattenedRnaComplexPropsLength === 0}
+              />
+              <InputWithValidator.Number
+                value={viewportScale}
+                setValue={function (newViewportScale: number) {
+                  setViewportScale(newViewportScale);
+                  // scale = SCALE_BASE ^ scaleExponent
+                  // log(scale) = log(SCALE_BASE ^ scaleExponent)
+                  // log(scale) = scaleExponent * log(SCALE_BASE)
+                  // log(scale) / log(SCALE_BASE) = scaleExponent
+                  if (newViewportScale > 0) {
+                    setViewportScaleExponent(
+                      Math.log(newViewportScale) * ONE_OVER_LOG_OF_SCALE_BASE
+                    );
+                  }
+                }}
+                disabledFlag={flattenedRnaComplexPropsLength === 0}
+              />
+              <br />
+              <button
+                onClick={resetViewport}
+                disabled={flattenedRnaComplexPropsLength === 0}
+              >
+                {RESET_TEXT}
+              </button>
+            </>
+          ),
+          [Tab.EDIT]: (
+            <>
+              {interactionConstraintSelectHtmlElement}
+              {rightClickMenuOptionsMenu}
+            </>
+          ),
+          [Tab.FORMAT]: (
+            <>
+              {interactionConstraintSelectHtmlElement}
+              {rightClickMenuOptionsMenu}
+            </>
+          ),
+          [Tab.ANNOTATE]: (
+            <>
+              {interactionConstraintSelectHtmlElement}
+              {rightClickMenuOptionsMenu}
+            </>
+          ),
+          [Tab.SETTINGS]: (
+            <>
+              <button
+                onClick={function () {
+                  (
+                    settingsFileUploadHtmlInputReference.current as HTMLInputElement
+                  ).click();
+                }}
+              >
+                Upload
+              </button>
+              <input
+                style={{
+                  display: "none",
+                }}
+                ref={settingsFileUploadHtmlInputReference}
+                type="file"
+                accept=".json"
+                onChange={function (e) {
+                  let files = e.target.files;
+                  if (files === null || files.length === 0) {
+                    return;
+                  }
+                  let reader = new FileReader();
+                  reader.addEventListener("load", function (event) {
+                    // Read the content of the settings file.
+                    let settingsJson = JSON.parse(
+                      (event.target as FileReader).result as string
+                    );
+                    let keys = Object.keys(settingsJson);
+                    let formatCheckPassedFlag = true;
+                    for (let key of keys) {
+                      const value = settingsJson[key];
+                      if (
+                        !isSetting(key) ||
+                        (typeof value !== settingsTypeMap[key] &&
+                          !(
+                            settingsTypeMap[key] === "BasePairsEditorType" &&
+                            BasePairsEditor.isEditorType(value)
+                          ))
+                      ) {
+                        setDataLoadingFailedErrorMessage(
+                          "Parsing the uploaded settings file failed. The content of that file is unrecognized."
+                        );
+                        formatCheckPassedFlag = false;
+                        break;
+                      }
+                    }
+                    if (formatCheckPassedFlag) {
+                      let updatedSettings: Partial<SettingsRecord> = {};
+                      for (let key of keys) {
+                        updatedSettings[key as Setting] = settingsJson[key];
+                      }
+                      setSettingsRecord({
+                        ...settingsRecord,
+                        ...updatedSettings,
+                      });
+                    }
+                  });
+                  reader.readAsText(files[0] as File);
+                }}
+              />
+              <button
+                onClick={function () {
+                  let settingsFileDownloadHtmlAnchor =
+                    settingsFileDownloadHtmlAnchorReference.current as HTMLAnchorElement;
+                  let settingsObject: Partial<SettingsRecord> = {};
+                  const flattenedRnaComplexProps =
+                    flattenedRnaComplexPropsReference.current as Array<
+                      [string, RnaComplex.ExternalProps]
+                    >;
+                  if (flattenedRnaComplexProps.length > 0) {
+                    const rnaComplexIndex = Number.parseInt(
+                      flattenedRnaComplexProps[0][0]
+                    );
+                    const { helixDistance, distances } =
+                      basePairAverageDistances[rnaComplexIndex];
+                    settingsObject[
+                      Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS
+                    ] = helixDistance;
+                    settingsObject[Setting.CANONICAL_BASE_PAIR_DISTANCE] =
+                      distances[BasePair.Type.CANONICAL];
+                    settingsObject[Setting.MISMATCH_BASE_PAIR_DISTANCE] =
+                      distances[BasePair.Type.MISMATCH];
+                    settingsObject[Setting.WOBBLE_BASE_PAIR_DISTANCE] =
+                      distances[BasePair.Type.WOBBLE];
+                  }
+
+                  for (let key of settings) {
+                    let value = settingsRecord[key];
+                    if (Number.isNaN(value)) {
+                      if (key in settingsObject) {
+                        continue;
+                      } else {
+                        value = 1;
+                      }
+                    }
+                    settingsObject[key] = value;
+                  }
+                  settingsFileDownloadHtmlAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
+                    JSON.stringify(settingsObject)
+                  )}`;
+                  settingsFileDownloadHtmlAnchor.click();
+                }}
+              >
+                Download
+              </button>
+              <a
+                ref={settingsFileDownloadHtmlAnchorReference}
+                style={{
+                  display: "none",
+                }}
+                download={`${XRNA_SETTINGS_FILE_NAME}.json`}
+              />
+              <br />
+              {settings.map(function (setting: Setting, index: number) {
+                let input: JSX.Element = <></>;
+                switch (settingsTypeMap[setting]) {
+                  case "boolean": {
+                    input = (
+                      <input
+                        type="checkbox"
+                        checked={settingsRecord[setting] as boolean}
+                        onChange={function () {
+                          setSettingsRecord({
+                            ...settingsRecord,
+                            [setting]: !settingsRecord[setting],
+                          });
+                        }}
+                      />
+                    );
+                    break;
+                  }
+                  case "number": {
+                    input = (
+                      <InputWithValidator.Number
+                        value={settingsRecord[setting] as number}
+                        setValue={function (newValue: number) {
+                          setSettingsRecord({
+                            ...settingsRecord,
+                            [setting]: newValue,
+                          });
+                        }}
+                      />
+                    );
+                    break;
+                  }
+                  case "BasePairsEditorType": {
+                    input = (
+                      <BasePairsEditor.EditorTypeSelector.Component
+                        editorType={
+                          settingsRecord[setting] as BasePairsEditor.EditorType
+                        }
+                        onChange={function (
+                          newEditorType: BasePairsEditor.EditorType
+                        ) {
+                          setSettingsRecord({
+                            ...settingsRecord,
+                            [setting]: newEditorType,
+                          });
+                        }}
+                      />
+                    );
+                    break;
+                  }
+                  default: {
+                    throw "Unhandled switch case.";
+                  }
+                }
+                return (
+                  <Fragment key={index}>
+                    <label title={settingsLongDescriptionsMap[setting]}>
+                      {settingsShortDescriptionsMap[setting]}:&nbsp;
+                      {input}
+                    </label>
+                    <br />
+                  </Fragment>
+                );
+              })}
+            </>
+          ),
+          [Tab.ABOUT]: (
+            <>
+              <span
+                style={{
+                  whiteSpace: "normal",
+                }}
+              >
+                <Collapsible.Component title="Getting Started">
+                  <ol
+                    style={{
+                      margin: 0,
+                    }}
+                  >
+                    <li>
+                      <label>
+                        To begin working with XRNA, you need an input
+                        file:&nbsp;
+                        <button
+                          onClick={function () {
+                            const downloadAnchor =
+                              downloadSampleInputFileHtmlAnchorReference.current as HTMLAnchorElement;
+                            downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
+                              SAMPLE_XRNA_FILE
+                            )}`;
+                            downloadAnchor.click();
+                          }}
+                        >
+                          Download
+                        </button>
+                        <a
+                          style={{
+                            display: "none",
+                          }}
+                          ref={downloadSampleInputFileHtmlAnchorReference}
+                          download="example.xrna"
+                        />
+                      </label>
+                    </li>
+                    <li>
+                      Now that you have an input file, navigate to the "
+                      {Tab.INPUT_OUTPUT}" tab to upload it. XRNA.js should
+                      import its data in only a few seconds.
+                      <br />
+                    </li>
+                    <li>
+                      Once the data is imported, you can continue work in
+                      several different ways:
+                      <ul>
+                        <li>
+                          Download its data to a different file (
+                          {Tab.INPUT_OUTPUT} tab)
+                        </li>
+                        <li>Edit its data ({Tab.EDIT} tab)</li>
+                        <li>
+                          Add/remove/edit base base pairs ({Tab.FORMAT} tab)
+                        </li>
+                        <li>Add/remove annotations ({Tab.ANNOTATE} tab)</li>
+                      </ul>
+                      For explanation of these, read the relevant section of the
+                      "{Tab.ABOUT}" tab.
+                    </li>
+                  </ol>
+                  <Collapsible.Component title="Demo">
+                    <iframe
+                      src="https://youtube.com/embed/h56dluFPR3w"
+                      allowFullScreen={true}
+                      width={960}
+                      height={540}
+                    />
+                  </Collapsible.Component>
+                </Collapsible.Component>
+                <Collapsible.Component title="Tabs">
+                  {tabs.map(function (tabI) {
+                    let content = <></>;
+                    if (tabI !== Tab.ABOUT) {
+                      content = (
+                        <Collapsible.Component title={`The ${tabI} tab`}>
+                          {tabInstructionsRecord[tabI]}
+                        </Collapsible.Component>
+                      );
+                    }
+                    return <Fragment key={tabI}>{content}</Fragment>;
+                  })}
+                </Collapsible.Component>
+                <Collapsible.Component title="Constraints">
+                  {InteractionConstraint.all.map(function (
+                    interactionConstraint
+                  ) {
+                    return (
+                      <Collapsible.Component
+                        key={interactionConstraint}
+                        title={`The "${interactionConstraint}" constraint`}
+                      >
+                        {
+                          InteractionConstraint.descriptionRecord[
+                            interactionConstraint
+                          ]
+                        }
+                      </Collapsible.Component>
+                    );
+                  })}
+                </Collapsible.Component>
+                <Collapsible.Component title="Tips and Tricks">
+                  Hotkey combinations:
+                  <ul
+                    style={{
+                      margin: 0,
+                    }}
+                  >
+                    <li>Ctrl + O - opens a new input file</li>
+                    <li>
+                      Ctrl + S - saves a new output file, using the current
+                      output-file name and output-file extension.
+                      <br />
+                      Fails if either of these are not provided.
+                    </li>
+                    <li>
+                      Ctrl + 0 - resets the properties of the "{Tab.VIEWPORT}"
+                      tab.
+                    </li>
+                    <li>Ctrl + Z - undo</li>
+                    <li>Ctrl + Shift + Z (Ctrl + Y) - redo</li>
+                  </ul>
+                  <Collapsible.Component title="Demo">
+                    <iframe
+                      src="https://youtube.com/embed/5QiSc445DyU"
+                      allowFullScreen={true}
+                      width={960}
+                      height={540}
+                    />
+                  </Collapsible.Component>
+                  In order to have a more enjoyable and intuitive experience
+                  with XRNA.js, try right-mouse click-and-drag to highlight
+                  nucleotides.
+                  <br />
+                  This will:
+                  <ol
+                    style={{
+                      margin: 0,
+                    }}
+                  >
+                    <li>
+                      Automatically change the constraint to an appropriate
+                      value which matches the nucleotides you selected
+                    </li>
+                    <li>
+                      Populate a menu for precisely editing, formatting, or
+                      annotating data within the viewport.
+                    </li>
+                  </ol>
+                  <Collapsible.Component title="Demo">
+                    <iframe
+                      src="https://youtube.com/embed/5QiSc445DyU?start=130"
+                      allowFullScreen={true}
+                      width={960}
+                      height={540}
+                    />
+                  </Collapsible.Component>
+                </Collapsible.Component>
+                <Collapsible.Component title="Important File Formats">
+                  <iframe
+                    src="https://youtube.com/embed/lwlfTPwrD8Q"
+                    allowFullScreen={true}
+                    width={960}
+                    height={540}
+                  />
+                </Collapsible.Component>
+                <Collapsible.Component title="How to cite XRNA">
+                  XRNA.js is currently unpublished; once it becomes published,
+                  citation instructions will replace this text block.
+                </Collapsible.Component>
+                <Collapsible.Component title="Contact us">
+                  <a
+                    href="https://www.linkedin.com/in/caedenmeade/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Message the developer
+                  </a>
+                  <br />
+                  <a
+                    href="https://github.com/LDWLab/XRNA-React/issues"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Report a bug
+                  </a>
+                </Collapsible.Component>
+              </span>
+            </>
+          ),
         };
         return tabRenderRecord;
       },
@@ -2957,98 +3197,105 @@ export namespace App {
         flattenedRnaComplexPropsLength,
         inputFileNameAndExtension,
         flattenedRnaComplexProps,
-        outputFileWritersMap
+        outputFileWritersMap,
       ]
     );
     const renderedTabs = useMemo(
-      function() {
+      function () {
         const tab = tabReference.current as Tab;
-        return <>
-          {tabs.map(function(tabI : Tab) {
-            const color = tab === tabI ? "#add8e6" : "#ccc";
-            return <button
-              style = {{
-                border : `1px solid ${color}`,
-                backgroundColor : color,
-                borderRadius : 6,
-                padding : '6px 10px',
-                marginRight : 4
-              }}
-              key = {tabI}
-              onClick = {function() {
-                setTab(tabI);
-              }}
-            >
-              {tabI}
-            </button>
-          })}
-          <br/>
-          {tabs.map(function(tabI : Tab) {
-            return <div
-              key = {tabI}
-              style = {{
-                display : tab === tabI ? "block" : "none",
-                background : "inherit"
-              }}
-            >
-              {tabRenderRecord[tabI]}
-            </div>;
-          })}
-        </>;
+        return (
+          <>
+            {tabs.map(function (tabI: Tab) {
+              const color = tab === tabI ? "#add8e6" : "#ccc";
+              return (
+                <button
+                  style={{
+                    border: `1px solid ${color}`,
+                    backgroundColor: color,
+                    borderRadius: 6,
+                    padding: "6px 10px",
+                    marginRight: 4,
+                  }}
+                  key={tabI}
+                  onClick={function () {
+                    setTab(tabI);
+                  }}
+                >
+                  {tabI}
+                </button>
+              );
+            })}
+            <br />
+            {tabs.map(function (tabI: Tab) {
+              return (
+                <div
+                  key={tabI}
+                  style={{
+                    display: tab === tabI ? "block" : "none",
+                    background: "inherit",
+                  }}
+                >
+                  {tabRenderRecord[tabI]}
+                </div>
+              );
+            })}
+          </>
+        );
       },
-      [
-        tab,
-        tabRenderRecord
-      ]
+      [tab, tabRenderRecord]
     );
-    const pushToUndoStack = useMemo(
-      function() {
-        return function() {
-          const rnaComplexProps = rnaComplexPropsReference.current!;
-          const undoStack = undoStackReference.current!;
-          setUndoStack([...undoStack, {
-            data : structuredClone(rnaComplexProps),
-            dataType : UndoRedoStacksDataTypes.RnaComplexProps
-          }]);
-          setRedoStack([]);
-        }
-      },
-      []
-    );
+    const pushToUndoStack = useMemo(function () {
+      return function () {
+        const rnaComplexProps = rnaComplexPropsReference.current!;
+        const undoStack = undoStackReference.current!;
+        setUndoStack([
+          ...undoStack,
+          {
+            data: structuredClone(rnaComplexProps),
+            dataType: UndoRedoStacksDataTypes.RnaComplexProps,
+          },
+        ]);
+        setRedoStack([]);
+      };
+    }, []);
     const onKeyDown = useMemo(
-      function() {
-        return function(event : React.KeyboardEvent<Element>) {
+      function () {
+        return function (event: React.KeyboardEvent<Element>) {
           switch (event.key.toLowerCase()) {
-            case "0" : {
+            case "0": {
               if (event.ctrlKey) {
                 event.preventDefault();
                 resetViewport();
               }
               break;
             }
-            case "o" : {
+            case "o": {
               if (event.ctrlKey) {
                 event.preventDefault();
-                (uploadInputFileHtmlInputReference.current as HTMLInputElement).click();
+                (
+                  uploadInputFileHtmlInputReference.current as HTMLInputElement
+                ).click();
               }
               break;
             }
-            case "s" : {
+            case "s": {
               if (event.ctrlKey) {
                 event.preventDefault();
                 if (downloadButtonErrorMessage == "") {
-                  (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement).click();
+                  (
+                    downloadOutputFileHtmlButtonReference.current as HTMLButtonElement
+                  ).click();
                 } else {
                   setDataLoadingFailedErrorMessage(downloadButtonErrorMessage);
                 }
               }
               break;
             }
-            case "y" : {
+            case "y": {
               redo();
               break;
             }
-            case "z" : {
+            case "z": {
               if (event.shiftKey) {
                 redo();
               } else {
@@ -3057,159 +3304,171 @@ export namespace App {
               break;
             }
           }
-        }
+        };
       },
       [
         uploadInputFileHtmlInputReference.current,
         downloadOutputFileHtmlButtonReference.current,
-        downloadButtonErrorMessage
+        downloadButtonErrorMessage,
       ]
     );
     const labelClassName = useMemo(
-      function() {
+      function () {
         return tab === Tab.EDIT ? LABEL_CLASS_NAME : NO_STROKE_CLASS_NAME;
       },
       [tab]
     );
     const basePairClassName = useMemo(
-      function() {
-        return tab in strokesPerTab ? BASE_PAIR_CLASS_NAME : NO_STROKE_CLASS_NAME;
+      function () {
+        return tab in strokesPerTab
+          ? BASE_PAIR_CLASS_NAME
+          : NO_STROKE_CLASS_NAME;
       },
       [tab]
     );
-    const transformIntoDataSpace = useMemo(
-      function() {
-        return function(clickedOnCoordinates : Vector2D) {
-          const toolsDivResizeDetectorWidth = toolsDivResizeDetectorWidthReference.current as number;
-          const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
-          const viewportScale = viewportScaleReference.current as number;
-          const transformTranslate0 = transformTranslate0Reference.current as { asVector : Vector2D, asString : string };
-          const transformTranslate1 = transformTranslate1Reference.current as { asVector : Vector2D, asString : string };
-  
-          let transformedCoordinates = structuredClone(clickedOnCoordinates);
-          transformedCoordinates.x -= toolsDivResizeDetectorWidth;
-          transformedCoordinates = scaleDown(
-            transformedCoordinates,
-            sceneBoundsScaleMin * viewportScale
-          );
-          transformedCoordinates.y = -transformedCoordinates.y;
-          transformedCoordinates = subtract(
-            transformedCoordinates,
-            add(
-              transformTranslate0.asVector,
-              transformTranslate1.asVector
-            )
-          );
-          return transformedCoordinates;
-        }
-      },
-      []
-    );
-    const resetRightClickMenuContent = useMemo(
-      function() {
-        return function() {
-          const flattenedRnaComplexProps = flattenedRnaComplexPropsReference.current as Array<[string, RnaComplex.ExternalProps]>;
-          const tab = tabReference.current as Tab;
-          let rightClickPrompt = "";
-          if (flattenedRnaComplexProps.length === 0) {
-            const promptStart = "You must load a non-empty input file before attempting to ";
-            switch (tab) {
-              case Tab.EDIT : {
-                rightClickPrompt = promptStart + "edit.";
-                break;
-              }
-              case Tab.FORMAT : {
-                rightClickPrompt = promptStart + "format.";
-                break;
-              }
-              case Tab.ANNOTATE : {
-                rightClickPrompt = promptStart + "annotate.";
-                break;
-              }
+    const transformIntoDataSpace = useMemo(function () {
+      return function (clickedOnCoordinates: Vector2D) {
+        const toolsDivResizeDetectorWidth =
+          toolsDivResizeDetectorWidthReference.current as number;
+        const sceneBoundsScaleMin =
+          sceneBoundsScaleMinReference.current as number;
+        const viewportScale = viewportScaleReference.current as number;
+        const transformTranslate0 = transformTranslate0Reference.current as {
+          asVector: Vector2D;
+          asString: string;
+        };
+        const transformTranslate1 = transformTranslate1Reference.current as {
+          asVector: Vector2D;
+          asString: string;
+        };
+
+        let transformedCoordinates = structuredClone(clickedOnCoordinates);
+        transformedCoordinates.x -= toolsDivResizeDetectorWidth;
+        transformedCoordinates = scaleDown(
+          transformedCoordinates,
+          sceneBoundsScaleMin * viewportScale
+        );
+        transformedCoordinates.y = -transformedCoordinates.y;
+        transformedCoordinates = subtract(
+          transformedCoordinates,
+          add(transformTranslate0.asVector, transformTranslate1.asVector)
+        );
+        return transformedCoordinates;
+      };
+    }, []);
+    const resetRightClickMenuContent = useMemo(function () {
+      return function () {
+        const flattenedRnaComplexProps =
+          flattenedRnaComplexPropsReference.current as Array<
+            [string, RnaComplex.ExternalProps]
+          >;
+        const tab = tabReference.current as Tab;
+        let rightClickPrompt = "";
+        if (flattenedRnaComplexProps.length === 0) {
+          const promptStart =
+            "You must load a non-empty input file before attempting to ";
+          switch (tab) {
+            case Tab.EDIT: {
+              rightClickPrompt = promptStart + "edit.";
+              break;
             }
-          } else {
-            const promptStart = "Right-click on a nucleotide to begin ";
-            switch (tab) {
-              case Tab.EDIT : {
-                rightClickPrompt = promptStart + "editing.";
-                break;
-              }
-              case Tab.FORMAT : {
-                rightClickPrompt = promptStart + "formating.";
-                break;
-              }
-              case Tab.ANNOTATE : {
-                rightClickPrompt = promptStart + "annotating.";
-                break;
-              }
+            case Tab.FORMAT: {
+              rightClickPrompt = promptStart + "format.";
+              break;
+            }
+            case Tab.ANNOTATE: {
+              rightClickPrompt = promptStart + "annotate.";
+              break;
             }
           }
-          setRightClickMenuContent(
-            <b
-              style = {{
-                color : "red",
-                width : "100%"
-              }}
-            >
-              {rightClickPrompt}
-            </b>,
-            {}
-          );
+        } else {
+          const promptStart = "Right-click on a nucleotide to begin ";
+          switch (tab) {
+            case Tab.EDIT: {
+              rightClickPrompt = promptStart + "editing.";
+              break;
+            }
+            case Tab.FORMAT: {
+              rightClickPrompt = promptStart + "formating.";
+              break;
+            }
+            case Tab.ANNOTATE: {
+              rightClickPrompt = promptStart + "annotating.";
+              break;
+            }
+          }
         }
-      },
-      []
-    );
+        setRightClickMenuContent(
+          <b
+            style={{
+              color: "red",
+              width: "100%",
+            }}
+          >
+            {rightClickPrompt}
+          </b>,
+          {}
+        );
+      };
+    }, []);
     // Note: Dark mode is now handled by the theme system instead of filter invert
     const canvasFill = useMemo(() => {
       const darkModeFlag = settingsRecord[Setting.DARK_MODE];
       return darkModeFlag ? "#0f172a" : "#ffffff";
     }, [settingsRecord]);
-    const getOutputFileHandle = useMemo(
-      function() {
-        return async function() {
-          const outputFileName = outputFileNameReference.current!;
-          const outputFileExtension = outputFileExtensionReference.current!;
-          if (!("showSaveFilePicker" in window) || typeof window.showSaveFilePicker !== "function") {
-            return null;
-          }
-          return await window.showSaveFilePicker({
-            suggestedName : `${outputFileName}.${outputFileExtension}`,
-            types : [{
-              description : "",
-              accept: {
-                'text/plain': [`.${outputFileExtension}`],
-              }
-            }]
-          });
+    const getOutputFileHandle = useMemo(function () {
+      return async function () {
+        const outputFileName = outputFileNameReference.current!;
+        const outputFileExtension = outputFileExtensionReference.current!;
+        if (
+          !("showSaveFilePicker" in window) ||
+          typeof window.showSaveFilePicker !== "function"
+        ) {
+          return null;
         }
-      },
-      []
-    );
-    const saveFile = useMemo(
-      function() {
-        return async function(handle : any) {
-          const outputFileExtension = outputFileExtensionReference.current!;
-          const rnaComplexProps = rnaComplexPropsReference.current!;
-          const complexDocumentName = complexDocumentNameReference.current!;
+        return await window.showSaveFilePicker({
+          suggestedName: `${outputFileName}.${outputFileExtension}`,
+          types: [
+            {
+              description: "",
+              accept: {
+                "text/plain": [`.${outputFileExtension}`],
+              },
+            },
+          ],
+        });
+      };
+    }, []);
+    const saveFile = useMemo(function () {
+      return async function (handle: any) {
+        const outputFileExtension = outputFileExtensionReference.current!;
+        const rnaComplexProps = rnaComplexPropsReference.current!;
+        const complexDocumentName = complexDocumentNameReference.current!;
 
-          const writable = await handle.createWritable();
-          await writable.write(outputFileWritersMap[outputFileExtension as OutputFileExtension](
+        const writable = await handle.createWritable();
+        await writable.write(
+          outputFileWritersMap[outputFileExtension as OutputFileExtension](
             rnaComplexProps,
             complexDocumentName
-          ));
-          await writable.close();
-        }
-      },
-      []
-    );
+          )
+        );
+        await writable.close();
+      };
+    }, []);
     // Global event hooks for bottom-sheet UX
     useEffect(() => {
-      function onOpenSheet() { setBasepairSheetOpen(true); }
+      function onOpenSheet() {
+        setBasepairSheetOpen(true);
+      }
       function onTriggerReformatAll() {
-        const btn = document.getElementById('__hidden_reformat_button__') as HTMLButtonElement | null;
+        const btn = document.getElementById(
+          "__hidden_reformat_button__"
+        ) as HTMLButtonElement | null;
         btn?.click();
       }
-      function onTriggerReformatRange(e: CustomEvent<{ start?: number; end?: number }>) {
+      function onTriggerReformatRange(
+        e: CustomEvent<{ start?: number; end?: number }>
+      ) {
         const range = e.detail || {};
         // Build a minimal BasePairs array to request a positioning update for the desired range.
         // We will reuse BasePairsEditor.setBasePairs by synthesizing a selection spanning start..end.
@@ -3220,26 +3479,46 @@ export namespace App {
         }
         const start = Math.min(range.start, range.end);
         const end = Math.max(range.start, range.end);
-        const btn = document.getElementById('__hidden_reformat_button__') as HTMLButtonElement | null;
+        const btn = document.getElementById(
+          "__hidden_reformat_button__"
+        ) as HTMLButtonElement | null;
         // Fallback to full if hidden hook is not available
-        if (!btn) { onTriggerReformatAll(); return; }
+        if (!btn) {
+          onTriggerReformatAll();
+          return;
+        }
         // We cannot directly pass a range to BasePairsEditor's hidden hook without refactoring; do full for now.
         // This keeps UI consistent and avoids partial repositioning bugs.
         btn.click();
       }
-      window.addEventListener('openBasepairBottomSheet', onOpenSheet as any);
-      window.addEventListener('triggerReformatAll', onTriggerReformatAll as any);
-      window.addEventListener('triggerReformatRange', onTriggerReformatRange as any);
+      window.addEventListener("openBasepairBottomSheet", onOpenSheet as any);
+      window.addEventListener(
+        "triggerReformatAll",
+        onTriggerReformatAll as any
+      );
+      window.addEventListener(
+        "triggerReformatRange",
+        onTriggerReformatRange as any
+      );
       return () => {
-        window.removeEventListener('openBasepairBottomSheet', onOpenSheet as any);
-        window.removeEventListener('triggerReformatAll', onTriggerReformatAll as any);
-        window.removeEventListener('triggerReformatRange', onTriggerReformatRange as any);
+        window.removeEventListener(
+          "openBasepairBottomSheet",
+          onOpenSheet as any
+        );
+        window.removeEventListener(
+          "triggerReformatAll",
+          onTriggerReformatAll as any
+        );
+        window.removeEventListener(
+          "triggerReformatRange",
+          onTriggerReformatRange as any
+        );
       };
     }, []);
     // Begin effects.
     useEffect(
-      function() {
-        window.onbeforeunload = function(e) {
+      function () {
+        window.onbeforeunload = function (e) {
           if (!settingsRecord[Setting.DISABLE_NAVIGATE_AWAY_PROMPT]) {
             // Custom messages aren't allowed anymore.
             return "";
@@ -3248,88 +3527,99 @@ export namespace App {
       },
       [settingsRecord]
     );
-    useEffect(
-      function() {
-        let documentUrl = document.URL;
-        let index = documentUrl.indexOf('?');
-        if (index != -1) {
-          let params : Record<string, string> = {};
-          let pairs = documentUrl.substring(index + 1, documentUrl.length).split('&');
-          for (let i = 0; i < pairs.length; i++) {
-            let nameVal = pairs[i].split('=');
-            params[nameVal[0]] = nameVal[1];
-          }
-          let r2dt_key = "r2dt_job_id";
-          if (r2dt_key in params) {
-            parseJson(`https://www.ebi.ac.uk/Tools/services/rest/r2dt/result/r2dt-${params[r2dt_key]}/json`);
-          }
-          let url_key = "source_url";
-          if (url_key in params) {
-            parseJson(params[url_key]);
-          }
-          let tab_key = "tab";
-          if (tab_key in params) {
-            const tab = params[tab_key];
-            const lowercase_tab = tab.toLocaleLowerCase();
-            const foundTab = tabs.find(tabI => tabI.toLocaleLowerCase() === lowercase_tab);
-            if (foundTab === undefined) {
-              setUrlParsingErrorMessage(`"${tab}" is not a valid, recognized Tab value.`);
-              setSceneState(SceneState.URL_PARSING_ERROR);
-            } else {
-              setTab(foundTab);
-            }
+    useEffect(function () {
+      let documentUrl = document.URL;
+      let index = documentUrl.indexOf("?");
+      if (index != -1) {
+        let params: Record<string, string> = {};
+        let pairs = documentUrl
+          .substring(index + 1, documentUrl.length)
+          .split("&");
+        for (let i = 0; i < pairs.length; i++) {
+          let nameVal = pairs[i].split("=");
+          params[nameVal[0]] = nameVal[1];
+        }
+        let r2dt_key = "r2dt_job_id";
+        if (r2dt_key in params) {
+          parseJson(
+            `https://www.ebi.ac.uk/Tools/services/rest/r2dt/result/r2dt-${params[r2dt_key]}/json`
+          );
+        }
+        let url_key = "source_url";
+        if (url_key in params) {
+          parseJson(params[url_key]);
+        }
+        let tab_key = "tab";
+        if (tab_key in params) {
+          const tab = params[tab_key];
+          const lowercase_tab = tab.toLocaleLowerCase();
+          const foundTab = tabs.find(
+            (tabI) => tabI.toLocaleLowerCase() === lowercase_tab
+          );
+          if (foundTab === undefined) {
+            setUrlParsingErrorMessage(
+              `"${tab}" is not a valid, recognized Tab value.`
+            );
+            setSceneState(SceneState.URL_PARSING_ERROR);
+          } else {
+            setTab(foundTab);
           }
         }
-      },
-      []
-    );
+      }
+    }, []);
     useEffect(
-      function() {
+      function () {
         const current = mouseOverTextSvgTextElementReference.current;
-        const newMouseOverTextDimensions = current === null ? {
-          width : 0,
-          height : 0
-        } :  (current as SVGTextElement).getBBox();
+        const newMouseOverTextDimensions =
+          current === null
+            ? {
+                width: 0,
+                height: 0,
+              }
+            : (current as SVGTextElement).getBBox();
         setMouseOverTextDimensions(newMouseOverTextDimensions);
       },
       [mouseOverText]
     );
+    useEffect(resetRightClickMenuContent, [tab, rnaComplexProps]);
+
     useEffect(
-      resetRightClickMenuContent,
-      [
-        tab,
-        rnaComplexProps
-      ]
-    );
-    
-    useEffect(
-      function() {
+      function () {
         if (Object.keys(basePairKeysToEdit).length === 0) return;
-        const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
-        const basePairKeysToRerender : BasePairKeysToRerender = {};
+        const nucleotideKeysToRerender: NucleotideKeysToRerender = {};
+        const basePairKeysToRerender: BasePairKeysToRerender = {};
         function pushNucleotideKeysToRerender(
-          nucleotideKeysToRerenderPerRnaComplex : NucleotideKeysToRerenderPerRnaComplex,
-          keys : RnaComplex.BasePairKeys
+          nucleotideKeysToRerenderPerRnaComplex: NucleotideKeysToRerenderPerRnaComplex,
+          keys: RnaComplex.BasePairKeys
         ) {
-          const {
-            rnaMoleculeName,
-            nucleotideIndex
-          } = keys;
+          const { rnaMoleculeName, nucleotideIndex } = keys;
           if (!(rnaMoleculeName in nucleotideKeysToRerenderPerRnaComplex)) {
             nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] = [];
           }
-          const nucleotideKeysToRerenderPerRnaComplexPerRnaMolecule = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName];
-          if (!nucleotideKeysToRerenderPerRnaComplexPerRnaMolecule.includes(nucleotideIndex)) {
-            nucleotideKeysToRerenderPerRnaComplexPerRnaMolecule.push(nucleotideIndex);
+          const nucleotideKeysToRerenderPerRnaComplexPerRnaMolecule =
+            nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName];
+          if (
+            !nucleotideKeysToRerenderPerRnaComplexPerRnaMolecule.includes(
+              nucleotideIndex
+            )
+          ) {
+            nucleotideKeysToRerenderPerRnaComplexPerRnaMolecule.push(
+              nucleotideIndex
+            );
           }
         }
-        for (const [rnaComplexIndexAsString, basePairKeysToEditPerRnaComplex] of Object.entries(basePairKeysToEdit)) {
+        for (const [
+          rnaComplexIndexAsString,
+          basePairKeysToEditPerRnaComplex,
+        ] of Object.entries(basePairKeysToEdit)) {
           const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
           nucleotideKeysToRerender[rnaComplexIndex] = {};
           basePairKeysToRerender[rnaComplexIndex] = [];
-          const nucleotideKeysToRerenderPerRnaComplex = nucleotideKeysToRerender[rnaComplexIndex];
-          const basePairKeysToRerenderPerRnaComplex = basePairKeysToRerender[rnaComplexIndex];
-  
+          const nucleotideKeysToRerenderPerRnaComplex =
+            nucleotideKeysToRerender[rnaComplexIndex];
+          const basePairKeysToRerenderPerRnaComplex =
+            basePairKeysToRerender[rnaComplexIndex];
+
           for (const basePairDatumToAdd of basePairKeysToEditPerRnaComplex.add) {
             const { keys0, keys1 } = basePairDatumToAdd;
             pushNucleotideKeysToRerender(
@@ -3340,10 +3630,7 @@ export namespace App {
               nucleotideKeysToRerenderPerRnaComplex,
               keys1
             );
-            basePairKeysToRerenderPerRnaComplex.push(
-              keys0,
-              keys1
-            );
+            basePairKeysToRerenderPerRnaComplex.push(keys0, keys1);
           }
           for (const basePairDatumToDelete of basePairKeysToEditPerRnaComplex.delete) {
             const { keys0, keys1 } = basePairDatumToDelete;
@@ -3355,13 +3642,12 @@ export namespace App {
               nucleotideKeysToRerenderPerRnaComplex,
               keys1
             );
-            basePairKeysToRerenderPerRnaComplex.push(
-              keys0,
-              keys1
-            );
+            basePairKeysToRerenderPerRnaComplex.push(keys0, keys1);
           }
-          
-          for (let nucleotideKeysToRerenderPerRnaMolecule of Object.values(nucleotideKeysToRerenderPerRnaComplex)) {
+
+          for (let nucleotideKeysToRerenderPerRnaMolecule of Object.values(
+            nucleotideKeysToRerenderPerRnaComplex
+          )) {
             nucleotideKeysToRerenderPerRnaMolecule.sort(subtractNumbers);
           }
           basePairKeysToRerenderPerRnaComplex.sort(compareBasePairKeys);
@@ -3370,7 +3656,8 @@ export namespace App {
         const newTriggers = { ...basePairUpdateTriggers };
         for (const rnaComplexIndexAsString of Object.keys(basePairKeysToEdit)) {
           const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-          newTriggers[rnaComplexIndex] = (newTriggers[rnaComplexIndex] ?? 0) + 1;
+          newTriggers[rnaComplexIndex] =
+            (newTriggers[rnaComplexIndex] ?? 0) + 1;
         }
         setBasePairUpdateTriggers(newTriggers);
         setNucleotideKeysToRerender({});
@@ -3380,44 +3667,39 @@ export namespace App {
       [basePairKeysToEdit, basePairUpdateTriggers] // Add basePairUpdateTriggers to deps if needed
     );
     useEffect(
-      function() {
+      function () {
         let downloadButtonErrorMessage = "";
         if (isEmpty(rnaComplexProps)) {
           downloadButtonErrorMessage = "Import data to enable downloads.";
         } else if (outputFileName === "") {
-          downloadButtonErrorMessage = "Provide an output-file name to enable downloads.";
+          downloadButtonErrorMessage =
+            "Provide an output-file name to enable downloads.";
         } else if (outputFileExtension === undefined) {
-          downloadButtonErrorMessage = "Provide an output-file extension to enable downloads.";
+          downloadButtonErrorMessage =
+            "Provide an output-file extension to enable downloads.";
         }
         setDownloadButtonErrorMessage(downloadButtonErrorMessage);
       },
-      [
-        rnaComplexProps,
-        outputFileName,
-        outputFileExtension
-      ]
+      [rnaComplexProps, outputFileName, outputFileExtension]
     );
     useEffect(
-      function() {
-        setResetOrientationDataTrigger(prev => !prev);
+      function () {
+        setResetOrientationDataTrigger((prev) => !prev);
       },
       [rightClickMenuContent]
     );
     useEffect(
-      function() {
+      function () {
         setTopToolsDivHeightAttribute(topToolsDivResizeDetector.height);
-  
-        setTimeout(
-          function() {
-            setTopToolsDivHeightAttribute("auto");
-          },
-          100
-        );
+
+        setTimeout(function () {
+          setTopToolsDivHeightAttribute("auto");
+        }, 100);
       },
       [rightClickMenuContent]
     );
     useEffect(
-      function() {
+      function () {
         if (listenForResizeFlag) {
           return;
         }
@@ -3431,11 +3713,11 @@ export namespace App {
       [
         topToolsDivResizeDetector.width,
         rightClickMenuContentResizeDetector.width,
-        errorMessageResizeDetector.width
+        errorMessageResizeDetector.width,
       ]
     );
     useEffect(
-      function() {
+      function () {
         if (!listenForResizeFlag) {
           return;
         }
@@ -3445,475 +3727,676 @@ export namespace App {
       [userDrivenResizeDetector.width]
     );
     useEffect(
-      function() {
-        if (
-          dragListener !== null && 
-          dragListener !== viewportDragListener
-        ) {
+      function () {
+        if (dragListener !== null && dragListener !== viewportDragListener) {
           pushToUndoStack();
         }
       },
       [dragListener]
     );
     useEffect(
-      function() {
-        const interactionConstraintOptions = interactionConstraintOptionsReference.current!;
+      function () {
+        const interactionConstraintOptions =
+          interactionConstraintOptionsReference.current!;
         setInteractionConstraintOptions({
           ...interactionConstraintOptions,
-          treatNoncanonicalBasePairsAsUnpairedFlag : settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean
+          treatNoncanonicalBasePairsAsUnpairedFlag: settingsRecord[
+            Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED
+          ] as boolean,
         });
       },
       [settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED]]
     );
-    return <ThemeProvider 
-      settingsRecord={settingsRecord}
-      updateSettings={(newSettings) => {
-        const updatedSettings = { ...settingsRecord, ...newSettings };
-        setSettingsRecord(updatedSettings);
-      }}
-    >
-      <Context.BasePair.OnMouseDownHelper.Provider
-      value = {basePairOnMouseDownHelper}
-    >
-      <Context.App.PushToUndoStack.Provider
-        value = {pushToUndoStack}
-      > 
-        <Context.App.IndicesOfFrozenNucleotides.Provider
-          value = {indicesOfFrozenNucleotides}
+    return (
+      <ThemeProvider
+        settingsRecord={settingsRecord}
+        updateSettings={(newSettings) => {
+          const updatedSettings = { ...settingsRecord, ...newSettings };
+          setSettingsRecord(updatedSettings);
+        }}
+      >
+        <Context.BasePair.OnMouseDownHelper.Provider
+          value={basePairOnMouseDownHelper}
         >
-          <Context.Label.ClassName.Provider
-            value = {labelClassName}
-          >
-            <Context.BasePair.ClassName.Provider
-              value = {basePairClassName}
+          <Context.App.PushToUndoStack.Provider value={pushToUndoStack}>
+            <Context.App.IndicesOfFrozenNucleotides.Provider
+              value={indicesOfFrozenNucleotides}
             >
-              <Context.BasePair.Radius.Provider
-                value = {basePairRadius}
-              >
-                <Context.BasePair.AverageDistances.Provider
-                  value = {basePairAverageDistances}
-                >
-                  <Context.BasePair.UpdateAverageDistances.Provider
-                    value = {updateBasePairAverageDistances}
-                  >
-                    <Context.Label.Content.DefaultStyles.Provider
-                      value = {labelContentDefaultStyles}
+              <Context.Label.ClassName.Provider value={labelClassName}>
+                <Context.BasePair.ClassName.Provider value={basePairClassName}>
+                  <Context.BasePair.Radius.Provider value={basePairRadius}>
+                    <Context.BasePair.AverageDistances.Provider
+                      value={basePairAverageDistances}
                     >
-                      <Context.Label.Content.UpdateDefaultStyle.Provider
-                        value = {updateLabelContentDefaultStyles}
+                      <Context.BasePair.UpdateAverageDistances.Provider
+                        value={updateBasePairAverageDistances}
                       >
-                        <Context.App.InteractionConstraintOptions.Provider
-                          value = {interactionConstraintOptions}
+                        <Context.Label.Content.DefaultStyles.Provider
+                          value={labelContentDefaultStyles}
                         >
-                          <Context.App.UpdateInteractionConstraintOptions.Provider
-                            value = {updateInteractionConstraintOptions}
+                          <Context.Label.Content.UpdateDefaultStyle.Provider
+                            value={updateLabelContentDefaultStyles}
                           >
-                            <Context.Nucleotide.SetKeysToRerender.Provider
-                              value = {setNucleotideKeysToRerender}
+                            <Context.App.InteractionConstraintOptions.Provider
+                              value={interactionConstraintOptions}
                             >
-                              <Context.BasePair.SetKeysToRerender.Provider
-                                value = {setBasePairKeysToRerender}
+                              <Context.App.UpdateInteractionConstraintOptions.Provider
+                                value={updateInteractionConstraintOptions}
                               >
-                                <Context.App.Settings.Provider
-                                  value = {settingsRecord}
+                                <Context.Nucleotide.SetKeysToRerender.Provider
+                                  value={setNucleotideKeysToRerender}
                                 >
-                                  <Context.App.UpdateRnaMoleculeNameHelper.Provider
-                                    value = {updateRnaMoleculeNameHelper}
+                                  <Context.BasePair.SetKeysToRerender.Provider
+                                    value={setBasePairKeysToRerender}
                                   >
-                                    <Context.BasePair.SetKeysToEdit.Provider
-                                      value = {setBasePairKeysToEdit}
+                                    <Context.App.Settings.Provider
+                                      value={settingsRecord}
                                     >
-                        
-                                      <div
-                                        id = {PARENT_DIV_HTML_ID}
-                                        onKeyDown = {onKeyDown}
-                                        ref = {parentDivResizeDetector.ref}
-                                        style = {{
-                                          position : "absolute",
-                                          display : "block",
-                                          width : "100%",
-                                          height : "100%",
-                                          overflow : "hidden",
-                                          background : "var(--color-background)",
-                                          color : "var(--color-text)",
-                                          marginLeft : `${MARGIN_LEFT}px`,
-                                          transition: "var(--transition-default)"
-                                        }}
-                                        onMouseUp = {function() {
-                                          setListenForResizeFlag(false);
-                                        }}
-                                        
+                                      <Context.App.UpdateRnaMoleculeNameHelper.Provider
+                                        value={updateRnaMoleculeNameHelper}
                                       >
-                                        {/* NEW Sidebar - docked left */}
-                                        <div
-                                          style={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            height: '100%',
-                                            width: 420,
-                                            zIndex: 1000,
-                                          }}
+                                        <Context.BasePair.SetKeysToEdit.Provider
+                                          value={setBasePairKeysToEdit}
                                         >
-                                          <Sidebar
-                                            onUndo={undo}
-                                            onRedo={redo}
-                                            onResetViewport={resetViewport}
-                                            mode={tab}
-                                            onModeChange={setTab}
-                                            constraint={interactionConstraint}
-                                            onConstraintChange={setInteractionConstraint}
-                                            onToggleBasePairEditor={() => { 
-                                              setRightClickMenuContent(<></>, {}); 
-                                              setBasepairSheetOpen(prev => !prev); 
-                                            }}
-                                            onTogglePropertiesDrawer={() => { 
-                                              if (drawerKind === 'properties') {
-                                                setDrawerKind('none');
-                                              } else {
-                                                setRightDrawerTitle('Properties'); 
-                                                setDrawerKind('properties'); 
-                                              }
-                                            }}
-                                            onToggleSettingsDrawer={() => { 
-                                              if (drawerKind === 'settings') {
-                                                setDrawerKind('none');
-                                              } else {
-                                                setRightClickMenuContent(<></>, {}); 
-                                                setRightDrawerTitle('Settings'); 
-                                                setDrawerKind('settings'); 
-                                              }
-                                            }}
-                                            onToggleAboutDrawer={() => { 
-                                              if (drawerKind === 'about') {
-                                                setDrawerKind('none');
-                                              } else {
-                                                setRightClickMenuContent(<></>, {}); 
-                                                setRightDrawerTitle('About XRNA'); 
-                                                setDrawerKind('about'); 
-                                              }
-                                            }}
-                                            undoStack={undoStack}
-                                            redoStack={redoStack}
-                                            onJumpToHistory={(index) => {
-                                              // Implementation for jumping to specific history point
-                                              console.log('Jumping to history index:', index);
-                                              
-                                              // Get current stacks
-                                              const currentUndoStack = undoStackReference.current!;
-                                              const currentRedoStack = redoStackReference.current!;
-                                              
-                                              if (index < 0 || index > currentUndoStack.length + currentRedoStack.length) {
-                                                console.warn('Invalid history index:', index);
-                                                return;
-                                              }
-                                              
-                                              // If jumping to current position, do nothing
-                                              if (index === currentUndoStack.length) {
-                                                return;
-                                              }
-                                              
-                                              // If jumping to a point in the undo stack (past)
-                                              if (index < currentUndoStack.length) {
-                                                const targetState = currentUndoStack[index];
-                                                if (targetState) {
-                                                  // Apply the target state
-                                                  switch (targetState.dataType) {
-                                                    case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
-                                                      setIndicesOfFrozenNucleotides(targetState.data as FullKeysRecord);
-                                                      break;
-                                                    case UndoRedoStacksDataTypes.RnaComplexProps:
-                                                      setBasePairKeysToEdit({});
-                                                      setRnaComplexProps(targetState.data as RnaComplexProps);
-                                                      break;
-                                                  }
-                                                  
-                                                  // Update stacks: move everything after index to redo stack
-                                                  const newUndoStack = currentUndoStack.slice(0, index + 1);
-                                                  const newRedoStack = [
-                                                    ...currentRedoStack,
-                                                    ...currentUndoStack.slice(index + 1).reverse()
-                                                  ];
-                                                  
-                                                  setUndoStack(newUndoStack);
-                                                  setRedoStack(newRedoStack);
-                                                }
-                                              } else {
-                                                // If jumping to a point in the redo stack (future)
-                                                const redoIndex = index - currentUndoStack.length;
-                                                const targetState = currentRedoStack[redoIndex];
-                                                if (targetState) {
-                                                  // Apply the target state
-                                                  switch (targetState.dataType) {
-                                                    case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
-                                                      setIndicesOfFrozenNucleotides(targetState.data as FullKeysRecord);
-                                                      break;
-                                                    case UndoRedoStacksDataTypes.RnaComplexProps:
-                                                      setBasePairKeysToEdit({});
-                                                      setRnaComplexProps(targetState.data as RnaComplexProps);
-                                                      break;
-                                                  }
-                                                  
-                                                  // Update stacks: move everything up to redoIndex to undo stack
-                                                  const newUndoStack = [
-                                                    ...currentUndoStack,
-                                                    ...currentRedoStack.slice(0, redoIndex + 1)
-                                                  ];
-                                                  const newRedoStack = currentRedoStack.slice(redoIndex + 1);
-                                                  
-                                                  setUndoStack(newUndoStack);
-                                                  setRedoStack(newRedoStack);
-                                                }
-                                              }
-                                            }}
-                                            onResetToLastCheckpoint={() => {
-                                              // Implementation for resetting to last checkpoint
-                                              console.log('Resetting to last checkpoint');
-                                              
-                                              // For now, we'll reset to the initial state (index 0)
-                                              // In a real implementation, you'd track actual save operations
-                                              const currentUndoStack = undoStackReference.current!;
-                                              
-                                              if (currentUndoStack.length > 0) {
-                                                const initialState = currentUndoStack[0];
-                                                if (initialState) {
-                                                  // Apply the initial state
-                                                  switch (initialState.dataType) {
-                                                    case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
-                                                      setIndicesOfFrozenNucleotides(initialState.data as FullKeysRecord);
-                                                      break;
-                                                    case UndoRedoStacksDataTypes.RnaComplexProps:
-                                                      setBasePairKeysToEdit({});
-                                                      setRnaComplexProps(initialState.data as RnaComplexProps);
-                                                      break;
-                                                  }
-                                                  
-                                                  // Move everything to redo stack (except initial state)
-                                                  const newRedoStack = [
-                                                    ...redoStackReference.current!,
-                                                    ...currentUndoStack.slice(1).reverse()
-                                                  ];
-                                                  
-                                                  setUndoStack([initialState]);
-                                                  setRedoStack(newRedoStack);
-                                                }
-                                              }
-                                            }}
-                                            onFormatModeClick={() => {
-                                              // Open bottom base pair editor in Format mode
-                                              setRightClickMenuContent(<></>, {});
-                                              setBasepairSheetOpen(true); // Open bottom sheet
-                                              setDrawerKind('none'); // Don't open any right drawer
-                                              // Set the tab to FORMAT to indicate we're in format mode
-                                              console.log('Before setTab - current tab:', tab);
-                                              setTab(Tab.FORMAT);
-                                              console.log('After setTab - Tab.FORMAT value:', Tab.FORMAT);
-                                              
-                                              // Get constraint-based selection instead of empty drag selection
-                                              console.log('Format mode clicked, current constraint:', interactionConstraint);
-                                              
-                                              // Create selection based on current constraint
-                                              let constraintSelection: FullKeysRecord = {};
-                                              
-                                              if (interactionConstraint && rnaComplexProps) {
-                                                // Get all elements that match the current constraint
-                                                Object.entries(rnaComplexProps).forEach(([rcKey, rcProps]) => {
-                                                  const rcKeyNum = parseInt(rcKey, 10);
-                                                  constraintSelection[rcKeyNum] = {};
-                                                  Object.entries(rcProps.rnaMoleculeProps).forEach(([molKey, molProps]) => {
-                                                    // For now, select all nucleotides in the molecule
-                                                    // This can be refined based on specific constraint types
-                                                    const nucleotideSet = new Set<number>();
-                                                    Object.keys(molProps.nucleotideProps).forEach((nucKey) => {
-                                                      const nucIndex = parseInt(nucKey, 10);
-                                                      nucleotideSet.add(nucIndex);
-                                                    });
-                                                    if (nucleotideSet.size > 0) {
-                                                      constraintSelection[rcKeyNum][molKey] = nucleotideSet;
-                                                    }
-                                                  });
-                                                });
-                                              }
-                                              
-                                              console.log('Format mode clicked, constraint-based selection:', constraintSelection);
-                                              
-                                              // Set the constraint-based selection
-                                              setRightClickMenuAffectedNucleotideIndices(constraintSelection);
-                                            }}
-                                          />
-                                        </div>
-                                        
-                                        {/* Topbar */}
-                                        <Topbar
-                                          onOpenFile={function() { (uploadInputFileHtmlInputReference.current as HTMLInputElement).click(); }}
-                                          onSave={function() { (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click(); }}
-                                          onExportWithFormat={function(filename, format) {
-                                            setOutputFileName(filename);
-                                            setOutputFileExtension(format as OutputFileExtension);
-                                            (downloadOutputFileHtmlButtonReference.current as HTMLButtonElement)?.click();
-                                          }}
-                                          onUndo={undo}
-                                          onRedo={redo}
-                                          onResetViewport={resetViewport}
-                                          fileName={outputFileName}
-                                          onFileNameChange={setOutputFileName}
-                                          exportFormats={outputFileExtensions.map(ext => ({ value: ext, label: ext.toUpperCase() }))}
-                                          exportFormat={outputFileExtension}
-                                          onExportFormatChange={(format) => setOutputFileExtension(format as OutputFileExtension)}
-                                        />
-
-                                        {/* Tools div */}
-                                        <div
-                                          tabIndex = {0}
-                                          ref = {toolsDivResizeDetector.ref}
-                                          style = {{
-                                            position : "absolute",
-                                            left: 420,
-                                            top: TOPBAR_HEIGHT,
-                                            width : toolsDivWidthAttribute,
-                                            height : `calc(100% - ${TOPBAR_HEIGHT}px)`,
-                                            display : "block",
-                                            borderRight : `1px solid #e2e8f0`,
-                                            background : "inherit"
-                                          }}
-                                        >
-                                          {/* Top tools div */}
                                           <div
-                                            ref = {userDrivenResizeDetector.ref}
-                                            style = {{
-                                              width : toolsDivWidthAttribute,
-                                              minWidth : "inherit",
-                                              maxHeight : "100%",
-                                              height : topToolsDivHeightAttribute,
-                                              display : "inline-block",
-                                              overflowX : "auto",
-                                              overflowY : "auto",
-                                              top : 0,
-                                              left : 420,
-                                              background : "inherit",
-                                              resize : "both",
-                                              borderBottom : `2px solid black`,
-                                              whiteSpace : "nowrap"
+                                            id={PARENT_DIV_HTML_ID}
+                                            onKeyDown={onKeyDown}
+                                            ref={parentDivResizeDetector.ref}
+                                            style={{
+                                              position: "absolute",
+                                              display: "block",
+                                              width: "100%",
+                                              height: "100%",
+                                              overflow: "hidden",
+                                              background:
+                                                "var(--color-background)",
+                                              color: "var(--color-text)",
+                                              marginLeft: `${MARGIN_LEFT}px`,
+                                              transition:
+                                                "var(--transition-default)",
                                             }}
-                                            onMouseDown = {function() {
-                                              setListenForResizeFlag(true);
+                                            onMouseUp={function () {
+                                              setListenForResizeFlag(false);
                                             }}
                                           >
+                                            {/* NEW Sidebar - docked left */}
                                             <div
-                                              ref = {topToolsDivResizeDetector.ref}
-                                              style = {{
-                                                width : "auto",
-                                                height : "inherit",
-                                                display : "inline-block"
+                                              style={{
+                                                position: "absolute",
+                                                top: 0,
+                                                left: 0,
+                                                height: "100%",
+                                                width: 420,
+                                                zIndex: 1000,
                                               }}
                                             >
-                                              {renderedTabs}
-                                              {sceneState === SceneState.URL_PARSING_ERROR && <>
-                                                <b
-                                                  style = {{
-                                                    color : "red"
-                                                  }}
-                                                >
-                                                  {urlParsingErrorMessage ? urlParsingErrorMessage : "An error occurred while parsing the URL."}
-                                                </b>
-                                              </>}
-                                              {sceneState === SceneState.NO_DATA && <>
-                                                <b
-                                                  style = {{
-                                                    color : "red"
-                                                  }}
-                                                >
-                                                  No data to display.
-                                                </b>
-                                              </>}
-                                              {/* undoStack.length {undoStack.length} redoStack.length {redoStack.length} */}
-                                            </div>
-                                          </div>
-                                          {/* Bottom tools div */}
-                                          <div
-                                            style = {{
-                                              width : "100%",
-                                              height : "100%",
-                                              maxHeight : (parentDivResizeDetector.height ?? 0) - (topToolsDivResizeDetector.height ?? 0),
-                                              display : "inline-block",
-                                              overflowX : "hidden",
-                                              overflowY : "auto",
-                                              top : (topToolsDivResizeDetector.height ?? 0) + DIV_BUFFER_DIMENSION,
-                                            left : 420,
-                                              background : "inherit",
-                                              position : "absolute",
-                                              whiteSpace : "nowrap"
-                                            }}
-                                          >
-                                            {sceneState === SceneState.DATA_LOADING_FAILED && <>
-                                              <div
-                                                style = {{
-                                                  display : "inline-block",
-                                                  width : "auto"
+                                              <Sidebar
+                                                onUndo={undo}
+                                                onRedo={redo}
+                                                onResetViewport={resetViewport}
+                                                mode={tab}
+                                                onModeChange={setTab}
+                                                constraint={
+                                                  interactionConstraint
+                                                }
+                                                onConstraintChange={
+                                                  setInteractionConstraint
+                                                }
+                                                onToggleBasePairEditor={() => {
+                                                  setRightClickMenuContent(
+                                                    <></>,
+                                                    {}
+                                                  );
+                                                  setBasepairSheetOpen(
+                                                    (prev) => !prev
+                                                  );
                                                 }}
-                                                ref = {errorMessageResizeDetector.ref}
+                                                onTogglePropertiesDrawer={() => {
+                                                  if (
+                                                    drawerKind === "properties"
+                                                  ) {
+                                                    setDrawerKind("none");
+                                                  } else {
+                                                    setRightDrawerTitle(
+                                                      "Properties"
+                                                    );
+                                                    setDrawerKind("properties");
+                                                  }
+                                                }}
+                                                onToggleSettingsDrawer={() => {
+                                                  if (
+                                                    drawerKind === "settings"
+                                                  ) {
+                                                    setDrawerKind("none");
+                                                  } else {
+                                                    setRightClickMenuContent(
+                                                      <></>,
+                                                      {}
+                                                    );
+                                                    setRightDrawerTitle(
+                                                      "Settings"
+                                                    );
+                                                    setDrawerKind("settings");
+                                                  }
+                                                }}
+                                                onToggleAboutDrawer={() => {
+                                                  if (drawerKind === "about") {
+                                                    setDrawerKind("none");
+                                                  } else {
+                                                    setRightClickMenuContent(
+                                                      <></>,
+                                                      {}
+                                                    );
+                                                    setRightDrawerTitle(
+                                                      "About XRNA"
+                                                    );
+                                                    setDrawerKind("about");
+                                                  }
+                                                }}
+                                                undoStack={undoStack}
+                                                redoStack={redoStack}
+                                                onJumpToHistory={(index) => {
+                                                  const currentUndoStack =
+                                                    undoStackReference.current!;
+                                                  const currentRedoStack =
+                                                    redoStackReference.current!;
+
+                                                  if (
+                                                    index < 0 ||
+                                                    index >
+                                                      currentUndoStack.length +
+                                                        currentRedoStack.length
+                                                  ) {
+                                                    return;
+                                                  }
+
+                                                  if (
+                                                    index ===
+                                                    currentUndoStack.length
+                                                  ) {
+                                                    return;
+                                                  }
+
+                                                  if (
+                                                    index <
+                                                    currentUndoStack.length
+                                                  ) {
+                                                    const targetState =
+                                                      currentUndoStack[index];
+                                                    if (targetState) {
+                                                      switch (
+                                                        targetState.dataType
+                                                      ) {
+                                                        case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
+                                                          setIndicesOfFrozenNucleotides(
+                                                            targetState.data as FullKeysRecord
+                                                          );
+                                                          break;
+                                                        case UndoRedoStacksDataTypes.RnaComplexProps:
+                                                          setBasePairKeysToEdit(
+                                                            {}
+                                                          );
+                                                          setRnaComplexProps(
+                                                            targetState.data as RnaComplexProps
+                                                          );
+                                                          break;
+                                                      }
+
+                                                      const newUndoStack =
+                                                        currentUndoStack.slice(
+                                                          0,
+                                                          index + 1
+                                                        );
+                                                      const newRedoStack = [
+                                                        ...currentRedoStack,
+                                                        ...currentUndoStack
+                                                          .slice(index + 1)
+                                                          .reverse(),
+                                                      ];
+
+                                                      setUndoStack(
+                                                        newUndoStack
+                                                      );
+                                                      setRedoStack(
+                                                        newRedoStack
+                                                      );
+                                                    }
+                                                  } else {
+                                                    const redoIndex =
+                                                      index -
+                                                      currentUndoStack.length;
+                                                    const targetState =
+                                                      currentRedoStack[
+                                                        redoIndex
+                                                      ];
+                                                    if (targetState) {
+                                                      switch (
+                                                        targetState.dataType
+                                                      ) {
+                                                        case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
+                                                          setIndicesOfFrozenNucleotides(
+                                                            targetState.data as FullKeysRecord
+                                                          );
+                                                          break;
+                                                        case UndoRedoStacksDataTypes.RnaComplexProps:
+                                                          setBasePairKeysToEdit(
+                                                            {}
+                                                          );
+                                                          setRnaComplexProps(
+                                                            targetState.data as RnaComplexProps
+                                                          );
+                                                          break;
+                                                      }
+
+                                                      const newUndoStack = [
+                                                        ...currentUndoStack,
+                                                        ...currentRedoStack.slice(
+                                                          0,
+                                                          redoIndex + 1
+                                                        ),
+                                                      ];
+                                                      const newRedoStack =
+                                                        currentRedoStack.slice(
+                                                          redoIndex + 1
+                                                        );
+
+                                                      setUndoStack(
+                                                        newUndoStack
+                                                      );
+                                                      setRedoStack(
+                                                        newRedoStack
+                                                      );
+                                                    }
+                                                  }
+                                                }}
+                                                onResetToLastCheckpoint={() => {
+                                                  const currentUndoStack =
+                                                    undoStackReference.current!;
+
+                                                  if (
+                                                    currentUndoStack.length > 0
+                                                  ) {
+                                                    const initialState =
+                                                      currentUndoStack[0];
+                                                    if (initialState) {
+                                                      switch (
+                                                        initialState.dataType
+                                                      ) {
+                                                        case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
+                                                          setIndicesOfFrozenNucleotides(
+                                                            initialState.data as FullKeysRecord
+                                                          );
+                                                          break;
+                                                        case UndoRedoStacksDataTypes.RnaComplexProps:
+                                                          setBasePairKeysToEdit(
+                                                            {}
+                                                          );
+                                                          setRnaComplexProps(
+                                                            initialState.data as RnaComplexProps
+                                                          );
+                                                          break;
+                                                      }
+
+                                                      const newRedoStack = [
+                                                        ...redoStackReference.current!,
+                                                        ...currentUndoStack
+                                                          .slice(1)
+                                                          .reverse(),
+                                                      ];
+
+                                                      setUndoStack([
+                                                        initialState,
+                                                      ]);
+                                                      setRedoStack(
+                                                        newRedoStack
+                                                      );
+                                                    }
+                                                  }
+                                                }}
+                                                onFormatModeClick={() => {
+                                                  setRightClickMenuContent(
+                                                    <></>,
+                                                    {}
+                                                  );
+                                                  setBasepairSheetOpen(true);
+                                                  setDrawerKind("none");
+                                                  setTab(Tab.FORMAT);
+
+                                                  // Get constraint-based selection instead of empty drag selection
+                                                  console.log(
+                                                    "Format mode clicked, current constraint:",
+                                                    interactionConstraint
+                                                  );
+
+                                                  // Create selection based on current constraint
+                                                  let constraintSelection: FullKeysRecord =
+                                                    {};
+
+                                                  if (
+                                                    interactionConstraint &&
+                                                    rnaComplexProps
+                                                  ) {
+                                                    // Get all elements that match the current constraint
+                                                    Object.entries(
+                                                      rnaComplexProps
+                                                    ).forEach(
+                                                      ([rcKey, rcProps]) => {
+                                                        const rcKeyNum =
+                                                          parseInt(rcKey, 10);
+                                                        constraintSelection[
+                                                          rcKeyNum
+                                                        ] = {};
+                                                        Object.entries(
+                                                          rcProps.rnaMoleculeProps
+                                                        ).forEach(
+                                                          ([
+                                                            molKey,
+                                                            molProps,
+                                                          ]) => {
+                                                            // For now, select all nucleotides in the molecule
+                                                            // This can be refined based on specific constraint types
+                                                            const nucleotideSet =
+                                                              new Set<number>();
+                                                            Object.keys(
+                                                              molProps.nucleotideProps
+                                                            ).forEach(
+                                                              (nucKey) => {
+                                                                const nucIndex =
+                                                                  parseInt(
+                                                                    nucKey,
+                                                                    10
+                                                                  );
+                                                                nucleotideSet.add(
+                                                                  nucIndex
+                                                                );
+                                                              }
+                                                            );
+                                                            if (
+                                                              nucleotideSet.size >
+                                                              0
+                                                            ) {
+                                                              constraintSelection[
+                                                                rcKeyNum
+                                                              ][molKey] =
+                                                                nucleotideSet;
+                                                            }
+                                                          }
+                                                        );
+                                                      }
+                                                    );
+                                                  }
+
+                                                  console.log(
+                                                    "Format mode clicked, constraint-based selection:",
+                                                    constraintSelection
+                                                  );
+
+                                                  // Set the constraint-based selection
+                                                  setRightClickMenuAffectedNucleotideIndices(
+                                                    constraintSelection
+                                                  );
+                                                }}
+                                              />
+                                            </div>
+
+                                            {/* Topbar */}
+                                            <Topbar
+                                              onOpenFile={function () {
+                                                (
+                                                  uploadInputFileHtmlInputReference.current as HTMLInputElement
+                                                ).click();
+                                              }}
+                                              onSave={function () {
+                                                (
+                                                  downloadOutputFileHtmlButtonReference.current as HTMLButtonElement
+                                                )?.click();
+                                              }}
+                                              onExportWithFormat={function (
+                                                filename,
+                                                format
+                                              ) {
+                                                setOutputFileName(filename);
+                                                setOutputFileExtension(
+                                                  format as OutputFileExtension
+                                                );
+                                                (
+                                                  downloadOutputFileHtmlButtonReference.current as HTMLButtonElement
+                                                )?.click();
+                                              }}
+                                              onUndo={undo}
+                                              onRedo={redo}
+                                              onResetViewport={resetViewport}
+                                              fileName={outputFileName}
+                                              onFileNameChange={
+                                                setOutputFileName
+                                              }
+                                              exportFormats={outputFileExtensions.map(
+                                                (ext) => {
+                                                  const tooltips: Record<string, string> = {
+                                                    'json': 'Structured format, maximum support for all features',
+                                                    'bpseq': 'Base Pair Sequence - No support for non-canonical base pairs',
+                                                    'svg': 'Scalable Vector Graphics - No support for non-canonical base pairs',
+                                                    'png': 'Portable Network Graphics - No support for non-canonical base pairs',
+                                                    'pdf': 'Portable Document Format - No support for non-canonical base pairs',
+                                                    'csv': 'Comma Separated Values - No support for non-canonical base pairs',
+                                                    'tr': 'Text Report - No support for non-canonical base pairs',
+                                                    'xrna': 'XRNA native format - No support for non-canonical base pairs'
+                                                  };
+                                                  return {
+                                                    value: ext,
+                                                    label: ext.toUpperCase(),
+                                                    tooltip: tooltips[ext] || `Export as ${ext.toUpperCase()} format`
+                                                  };
+                                                }
+                                              )}
+                                              exportFormat={outputFileExtension}
+                                              onExportFormatChange={(format) =>
+                                                setOutputFileExtension(
+                                                  format as OutputFileExtension
+                                                )
+                                              }
+                                            />
+
+                                            {/* Tools div */}
+                                            <div
+                                              tabIndex={0}
+                                              ref={toolsDivResizeDetector.ref}
+                                              style={{
+                                                position: "absolute",
+                                                left: 420,
+                                                top: TOPBAR_HEIGHT,
+                                                width: toolsDivWidthAttribute,
+                                                height: `calc(100% - ${TOPBAR_HEIGHT}px)`,
+                                                display: "block",
+                                                borderRight: `1px solid #e2e8f0`,
+                                                background: "inherit",
+                                              }}
+                                            >
+                                              {/* Top tools div */}
+                                              <div
+                                                ref={
+                                                  userDrivenResizeDetector.ref
+                                                }
+                                                style={{
+                                                  width: toolsDivWidthAttribute,
+                                                  minWidth: "inherit",
+                                                  maxHeight: "100%",
+                                                  height:
+                                                    topToolsDivHeightAttribute,
+                                                  display: "inline-block",
+                                                  overflowX: "auto",
+                                                  overflowY: "auto",
+                                                  top: 0,
+                                                  left: 420,
+                                                  background: "inherit",
+                                                  resize: "both",
+                                                  borderBottom: `2px solid black`,
+                                                  whiteSpace: "nowrap",
+                                                }}
+                                                onMouseDown={function () {
+                                                  setListenForResizeFlag(true);
+                                                }}
                                               >
-                                                <b
-                                                  style = {{
-                                                    color : "red",
+                                                <div
+                                                  ref={
+                                                    topToolsDivResizeDetector.ref
+                                                  }
+                                                  style={{
+                                                    width: "auto",
+                                                    height: "inherit",
+                                                    display: "inline-block",
                                                   }}
                                                 >
-                                                  Parsing the provided input file failed.&nbsp;{dataLoadingFailedErrorMessage ? dataLoadingFailedErrorMessage : "Try another file, or report a bug."}
-                                                </b>
-                                                &nbsp;
-                                                <a
-                                                  href = "https://github.com/LDWLab/XRNA-React/issues"
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                >
-                                                  Report a bug
-                                                </a>
+                                                  {renderedTabs}
+                                                  {sceneState ===
+                                                    SceneState.URL_PARSING_ERROR && (
+                                                    <>
+                                                      <b
+                                                        style={{
+                                                          color: "red",
+                                                        }}
+                                                      >
+                                                        {urlParsingErrorMessage
+                                                          ? urlParsingErrorMessage
+                                                          : "An error occurred while parsing the URL."}
+                                                      </b>
+                                                    </>
+                                                  )}
+                                                  {sceneState ===
+                                                    SceneState.NO_DATA && (
+                                                    <>
+                                                      <b
+                                                        style={{
+                                                          color: "red",
+                                                        }}
+                                                      >
+                                                        No data to display.
+                                                      </b>
+                                                    </>
+                                                  )}
+                                                  {/* undoStack.length {undoStack.length} redoStack.length {redoStack.length} */}
+                                                </div>
                                               </div>
-                                              <br/>
-                                            </>}
-                                            <Context.App.ComplexDocumentName.Provider
-                                              value = {complexDocumentName}
-                                            >
-                                              <Context.App.SetComplexDocumentName.Provider
-                                                value = {setComplexDocumentName}
+                                              {/* Bottom tools div */}
+                                              <div
+                                                style={{
+                                                  width: "100%",
+                                                  height: "100%",
+                                                  maxHeight:
+                                                    (parentDivResizeDetector.height ??
+                                                      0) -
+                                                    (topToolsDivResizeDetector.height ??
+                                                      0),
+                                                  display: "inline-block",
+                                                  overflowX: "hidden",
+                                                  overflowY: "auto",
+                                                  top:
+                                                    (topToolsDivResizeDetector.height ??
+                                                      0) + DIV_BUFFER_DIMENSION,
+                                                  left: 420,
+                                                  background: "inherit",
+                                                  position: "absolute",
+                                                  whiteSpace: "nowrap",
+                                                }}
                                               >
-                                                <Context.OrientationEditor.ResetDataTrigger.Provider
-                                                  value = {resetOrientationDataTrigger}
+                                                {sceneState ===
+                                                  SceneState.DATA_LOADING_FAILED && (
+                                                  <>
+                                                    <div
+                                                      style={{
+                                                        display: "inline-block",
+                                                        width: "auto",
+                                                      }}
+                                                      ref={
+                                                        errorMessageResizeDetector.ref
+                                                      }
+                                                    >
+                                                      <b
+                                                        style={{
+                                                          color: "red",
+                                                        }}
+                                                      >
+                                                        Parsing the provided
+                                                        input file failed.&nbsp;
+                                                        {dataLoadingFailedErrorMessage
+                                                          ? dataLoadingFailedErrorMessage
+                                                          : "Try another file, or report a bug."}
+                                                      </b>
+                                                      &nbsp;
+                                                      <a
+                                                        href="https://github.com/LDWLab/XRNA-React/issues"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                      >
+                                                        Report a bug
+                                                      </a>
+                                                    </div>
+                                                    <br />
+                                                  </>
+                                                )}
+                                                <Context.App.ComplexDocumentName.Provider
+                                                  value={complexDocumentName}
                                                 >
-                                                  <Context.Collapsible.Width.Provider
-                                                    value = {toolsDivWidthAttribute}
+                                                  <Context.App.SetComplexDocumentName.Provider
+                                                    value={
+                                                      setComplexDocumentName
+                                                    }
                                                   >
-                                                    {/* Right-click menu content is now displayed in Properties drawer */}
-                                                  </Context.Collapsible.Width.Provider>
-                                                </Context.OrientationEditor.ResetDataTrigger.Provider>
-                                              </Context.App.SetComplexDocumentName.Provider>
-                                            </Context.App.ComplexDocumentName.Provider>
-                                          </div>
-                                        </div>
-                                        <svg
-                                          id = {SVG_ELEMENT_HTML_ID}
-                                          style = {{
-                                            top : TOPBAR_HEIGHT,
-                                          left : 420,
-                                            position : "absolute"
-                                          }}
-                                          xmlns = "http://www.w3.org/2000/svg"
-                                          viewBox = {`0 0 ${Math.max((parentDivResizeDetector.width ?? 0) - 420, 0)} ${Math.max((parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT, 0)}`}
-                                          tabIndex = {1}
-                                          onMouseDown = {onMouseDown}
-                                          onMouseMove = {onMouseMove}
-                                          onMouseUp = {onMouseUp}
-                                          onMouseLeave = {onMouseLeave}
-                                          onContextMenu = {function(event) {
-                                            event.preventDefault();
-                                          }}
-                                          onWheel = {onWheel}
-                                          fill = {canvasFill}
-                                          stroke = {InteractionConstraint.isSupportedTab(tab) ? strokesPerTab[tab] : "none"}
-                                          filter = "none"
-                                        >
-                                          {/* Having this here, rather than in an external App.css file, allows these to be directly exported to .SVG files. */}
-                                          <style>{`
+                                                    <Context.OrientationEditor.ResetDataTrigger.Provider
+                                                      value={
+                                                        resetOrientationDataTrigger
+                                                      }
+                                                    >
+                                                      <Context.Collapsible.Width.Provider
+                                                        value={
+                                                          toolsDivWidthAttribute
+                                                        }
+                                                      >
+                                                        {/* Right-click menu content is now displayed in Properties drawer */}
+                                                      </Context.Collapsible.Width.Provider>
+                                                    </Context.OrientationEditor.ResetDataTrigger.Provider>
+                                                  </Context.App.SetComplexDocumentName.Provider>
+                                                </Context.App.ComplexDocumentName.Provider>
+                                              </div>
+                                            </div>
+                                            <svg
+                                              id={SVG_ELEMENT_HTML_ID}
+                                              style={{
+                                                top: TOPBAR_HEIGHT,
+                                                left: 420,
+                                                position: "absolute",
+                                              }}
+                                              xmlns="http://www.w3.org/2000/svg"
+                                              viewBox={`0 0 ${Math.max(
+                                                (parentDivResizeDetector.width ??
+                                                  0) - 420,
+                                                0
+                                              )} ${Math.max(
+                                                (parentDivResizeDetector.height ??
+                                                  0) - TOPBAR_HEIGHT,
+                                                0
+                                              )}`}
+                                              tabIndex={1}
+                                              onMouseDown={onMouseDown}
+                                              onMouseMove={onMouseMove}
+                                              onMouseUp={onMouseUp}
+                                              onMouseLeave={onMouseLeave}
+                                              onContextMenu={function (event) {
+                                                event.preventDefault();
+                                              }}
+                                              onWheel={onWheel}
+                                              fill={canvasFill}
+                                              stroke={
+                                                InteractionConstraint.isSupportedTab(
+                                                  tab
+                                                )
+                                                  ? strokesPerTab[tab]
+                                                  : "none"
+                                              }
+                                              filter="none"
+                                            >
+                                              {/* Having this here, rather than in an external App.css file, allows these to be directly exported to .SVG files. */}
+                                              <style>{`
                                             .${NUCLEOTIDE_CLASS_NAME} { stroke:none; }
                                             .${NUCLEOTIDE_CLASS_NAME}:hover { stroke:inherit; }
                                             .${BASE_PAIR_CLASS_NAME} { stroke:none; }
@@ -3922,324 +4405,667 @@ export namespace App {
                                             .${LABEL_CLASS_NAME}:hover { stroke:inherit; }
                                             .${NO_STROKE_CLASS_NAME} { stroke:none; }
                                           `}</style>
-                                          <defs>
-                                            <filter id="xrTooltipShadow" x="-20%" y="-20%" width="140%" height="140%">
-                                              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.20" />
-                                            </filter>
-                                          </defs>
-                                          <rect
-                                            id = {SVG_BACKGROUND_HTML_ID}
-                                            width = "100%"
-                                            height = "100%"
-                                            stroke = "none"
-                                            onMouseDown = {function(e) {
-                                              switch (e.button) {
-                                                case MouseButtonIndices.Left : {
-                                                  setDragListener(
-                                                    viewportDragListener,
-                                                    {}
-                                                  );
-                                                  break;
-                                                }
-                                              }
-                                            }}
-                                          />
-                                          <g
-                                            style = {{
-                                              visibility : sceneState === SceneState.DATA_IS_LOADED ? "visible" : "hidden"
-                                            }}
-                                            id = {VIEWPORT_SCALE_GROUP_0_HTML_ID}
-                                            transform = {totalScale.asTransform[0]}
-                                          >
-                                            <g
-                                              id = {VIEWPORT_SCALE_GROUP_1_HTML_ID}
-                                              transform = {totalScale.asTransform[1]}
-                                            >
+                                              <defs>
+                                                <filter
+                                                  id="xrTooltipShadow"
+                                                  x="-20%"
+                                                  y="-20%"
+                                                  width="140%"
+                                                  height="140%"
+                                                >
+                                                  <feDropShadow
+                                                    dx="0"
+                                                    dy="2"
+                                                    stdDeviation="2"
+                                                    floodColor="#000000"
+                                                    floodOpacity="0.20"
+                                                  />
+                                                </filter>
+                                              </defs>
+                                              <rect
+                                                id={SVG_BACKGROUND_HTML_ID}
+                                                width="100%"
+                                                height="100%"
+                                                stroke="none"
+                                                onMouseDown={function (e) {
+                                                  switch (e.button) {
+                                                    case MouseButtonIndices.Left: {
+                                                      setDragListener(
+                                                        viewportDragListener,
+                                                        {}
+                                                      );
+                                                      break;
+                                                    }
+                                                  }
+                                                }}
+                                              />
                                               <g
-                                                id = {VIEWPORT_TRANSLATE_GROUP_0_HTML_ID}
-                                                transform = {"scale(1, -1) " + transformTranslate0.asString}
+                                                style={{
+                                                  visibility:
+                                                    sceneState ===
+                                                    SceneState.DATA_IS_LOADED
+                                                      ? "visible"
+                                                      : "hidden",
+                                                }}
+                                                id={
+                                                  VIEWPORT_SCALE_GROUP_0_HTML_ID
+                                                }
+                                                transform={
+                                                  totalScale.asTransform[0]
+                                                }
                                               >
                                                 <g
-                                                  id = {VIEWPORT_TRANSLATE_GROUP_1_HTML_ID}
-                                                  transform = {transformTranslate1.asString}
+                                                  id={
+                                                    VIEWPORT_SCALE_GROUP_1_HTML_ID
+                                                  }
+                                                  transform={
+                                                    totalScale.asTransform[1]
+                                                  }
                                                 >
-                                                  {debugVisualElements}
-                                                  {renderedRnaComplexes}
+                                                  <g
+                                                    id={
+                                                      VIEWPORT_TRANSLATE_GROUP_0_HTML_ID
+                                                    }
+                                                    transform={
+                                                      "scale(1, -1) " +
+                                                      transformTranslate0.asString
+                                                    }
+                                                  >
+                                                    <g
+                                                      id={
+                                                        VIEWPORT_TRANSLATE_GROUP_1_HTML_ID
+                                                      }
+                                                      transform={
+                                                        transformTranslate1.asString
+                                                      }
+                                                    >
+                                                      {debugVisualElements}
+                                                      {renderedRnaComplexes}
+                                                    </g>
+                                                  </g>
                                                 </g>
                                               </g>
-                                            </g>
-                                          </g>
-                                          <g
-                                            id = {MOUSE_OVER_TEXT_HTML_ID}
-                                            style = {{
-                                              display : mouseOverText.length > 0 ? "inline" : "none",
-                                              filter : 'url(#xrTooltipShadow)'
-                                            }}
-                                            transform = {`translate(${Math.max(
-                                              0,
-                                              Math.min(
-                                                mouseUIPosition.x + 12,
-                                                Math.max((parentDivResizeDetector.width ?? 0) - 420, 0) - (mouseOverTextDimensions.width + 12)
-                                              )
-                                            )}, ${Math.max(
-                                              0,
-                                              Math.min(
-                                                mouseUIPosition.y + 12,
-                                                Math.max((parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT, 0) - (mouseOverTextDimensions.height + 12)
-                                              )
-                                            )})`}
-                                          >
-                                            <rect
-                                              x = {0}
-                                              y = {0}
-                                              width = {mouseOverTextDimensions.width + 16}
-                                              height = {mouseOverTextDimensions.height + 16}
-                                              fill = "#ffffff"
-                                              stroke = "#e5e7eb"
-                                              rx = {6}
-                                              ry = {6}
+                                              <g
+                                                id={MOUSE_OVER_TEXT_HTML_ID}
+                                                style={{
+                                                  display:
+                                                    mouseOverText.length > 0
+                                                      ? "inline"
+                                                      : "none",
+                                                  filter:
+                                                    "url(#xrTooltipShadow)",
+                                                }}
+                                                transform={`translate(${Math.max(
+                                                  0,
+                                                  Math.min(
+                                                    mouseUIPosition.x + 12,
+                                                    Math.max(
+                                                      (parentDivResizeDetector.width ??
+                                                        0) - 420,
+                                                      0
+                                                    ) -
+                                                      (mouseOverTextDimensions.width +
+                                                        12)
+                                                  )
+                                                )}, ${Math.max(
+                                                  0,
+                                                  Math.min(
+                                                    mouseUIPosition.y + 12,
+                                                    Math.max(
+                                                      (parentDivResizeDetector.height ??
+                                                        0) - TOPBAR_HEIGHT,
+                                                      0
+                                                    ) -
+                                                      (mouseOverTextDimensions.height +
+                                                        12)
+                                                  )
+                                                )})`}
+                                              >
+                                                <rect
+                                                  x={0}
+                                                  y={0}
+                                                  width={
+                                                    mouseOverTextDimensions.width +
+                                                    16
+                                                  }
+                                                  height={
+                                                    mouseOverTextDimensions.height +
+                                                    16
+                                                  }
+                                                  fill="#ffffff"
+                                                  stroke="#e5e7eb"
+                                                  rx={6}
+                                                  ry={6}
+                                                />
+                                                <text
+                                                  fill="#111827"
+                                                  stroke="none"
+                                                  x={8}
+                                                  y={
+                                                    8 +
+                                                    MOUSE_OVER_TEXT_FONT_SIZE
+                                                  }
+                                                  ref={
+                                                    mouseOverTextSvgTextElementReference
+                                                  }
+                                                  xmlSpace="preserve"
+                                                  fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
+                                                  fontSize={
+                                                    MOUSE_OVER_TEXT_FONT_SIZE
+                                                  }
+                                                >
+                                                  {mouseOverText
+                                                    .split("\n")
+                                                    .map((line, idx) => (
+                                                      <tspan
+                                                        key={idx}
+                                                        x={8}
+                                                        dy={
+                                                          idx === 0
+                                                            ? 0
+                                                            : MOUSE_OVER_TEXT_FONT_SIZE *
+                                                              1.25
+                                                        }
+                                                      >
+                                                        {line}
+                                                      </tspan>
+                                                    ))}
+                                                </text>
+                                              </g>
+                                            </svg>
+                                            {sceneState ===
+                                              SceneState.DATA_IS_LOADING && (
+                                              <img
+                                                style={{
+                                                  top:
+                                                    (parentDivResizeDetector.height ??
+                                                      0) *
+                                                      0.5 -
+                                                    100,
+                                                  left:
+                                                    ((toolsDivResizeDetector.width ??
+                                                      0) +
+                                                      (parentDivResizeDetector.width ??
+                                                        0)) *
+                                                      0.5 -
+                                                    50,
+                                                  position: "absolute",
+                                                }}
+                                                src={loadingGif}
+                                                alt="Loading..."
+                                              />
+                                            )}
+                                            <div
+                                              style={{
+                                                position: "absolute",
+                                                visibility: "hidden",
+                                                height: "auto",
+                                                width: "auto",
+                                                whiteSpace: "nowrap",
+                                                background: "inherit",
+                                              }}
+                                              id={TEST_SPACE_ID}
                                             />
-                                            <text
-                                              fill = "#111827"
-                                              stroke = "none"
-                                              x = {8}
-                                              y = {8 + MOUSE_OVER_TEXT_FONT_SIZE}
-                                              ref = {mouseOverTextSvgTextElementReference}
-                                              xmlSpace = "preserve"
-                                              fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-                                              fontSize = {MOUSE_OVER_TEXT_FONT_SIZE}
+                                            {/* Unified Right Drawer */}
+                                            <RightDrawer
+                                              open={drawerKind !== "none"}
+                                              onClose={() => {
+                                                setDrawerKind("none");
+                                                setRightClickMenuContent(
+                                                  <></>,
+                                                  {}
+                                                );
+                                                setSelectedElementInfo(
+                                                  undefined
+                                                );
+                                              }}
+                                              // title={rightDrawerTitle}
+                                              // startWidth={drawerKind === 'about' ? 720 : drawerKind === 'settings' ? 560 : 480}
                                             >
-                                              {mouseOverText.split('\n').map((line, idx) => (
-                                                <tspan key={idx} x={8} dy={idx === 0 ? 0 : MOUSE_OVER_TEXT_FONT_SIZE * 1.25}>{line}</tspan>
-                                              ))}
-                                            </text>
-                                          </g>
-                                        </svg>
-                                        {sceneState === SceneState.DATA_IS_LOADING && <img
-                                          style = {{
-                                            top : (parentDivResizeDetector.height ?? 0) * 0.5 - 100,
-                                            left : ((toolsDivResizeDetector.width ?? 0) + (parentDivResizeDetector.width ?? 0)) * 0.5 - 50,
-                                            position : "absolute"
-                                          }}
-                                          src = {loadingGif}
-                                          alt = "Loading..."
-                                        />}
-                                        <div
-                                          style = {{
-                                            position : "absolute",
-                                            visibility : "hidden",
-                                            height : "auto",
-                                            width : "auto",
-                                            whiteSpace : "nowrap",
-                                            background : "inherit"
-                                          }}
-                                          id = {TEST_SPACE_ID}
-                                        />
-                                        {/* Unified Right Drawer */}
-                                        <RightDrawer
-                                          open={drawerKind !== 'none'}
-                                          onClose={() => {
-                                            setDrawerKind('none');
-                                            setRightClickMenuContent(<></>, {});
-                                            setSelectedElementInfo(undefined);
-                                          }}
-                                          // title={rightDrawerTitle}
-                                          // startWidth={drawerKind === 'about' ? 720 : drawerKind === 'settings' ? 560 : 480}
-                                        >
-                                          {drawerKind === 'properties' && (
-                                            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                                              <div style={{ padding: '12px 10px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text)' }}>Selected Element</div>
-                                              <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
-                                                {rightClickMenuContent}
-                                              </div>
-                                            </div>
-                                          )}
-                                          {drawerKind === 'basepair' && (
-                                            <div style={{ height: '100%', overflow: 'auto' }}>
+                                              {drawerKind === "properties" && (
+                                                <div
+                                                  style={{
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    height: "100%",
+                                                  }}
+                                                >
+                                                  <div
+                                                    style={{
+                                                      padding: "12px 10px",
+                                                      background:
+                                                        "var(--color-surface)",
+                                                      borderBottom:
+                                                        "1px solid var(--color-border)",
+                                                      fontSize: 11,
+                                                      fontWeight: 700,
+                                                      textTransform:
+                                                        "uppercase",
+                                                      color:
+                                                        "var(--color-text)",
+                                                    }}
+                                                  >
+                                                    Selected Element
+                                                  </div>
+                                                  <div
+                                                    style={{
+                                                      flex: 1,
+                                                      overflow: "auto",
+                                                      padding: 12,
+                                                    }}
+                                                  >
+                                                    {rightClickMenuContent}
+                                                  </div>
+                                                </div>
+                                              )}
+                                              {drawerKind === "basepair" && (
+                                                <div
+                                                  style={{
+                                                    height: "100%",
+                                                    overflow: "auto",
+                                                  }}
+                                                >
+                                                  <BasePairsEditor.Component
+                                                    rnaComplexProps={
+                                                      rnaComplexProps
+                                                    }
+                                                    approveBasePairs={function () {}}
+                                                  />
+                                                </div>
+                                              )}
+                                              {drawerKind === "settings" && (
+                                                <SettingsDrawer
+                                                  open={true}
+                                                  onClose={() =>
+                                                    setDrawerKind("none")
+                                                  }
+                                                  settings={settingsRecord}
+                                                  setSettings={
+                                                    setSettingsRecord
+                                                  }
+                                                  getDistanceDefaults={() => {
+                                                    const flattened =
+                                                      flattenedRnaComplexPropsReference.current as Array<
+                                                        [
+                                                          string,
+                                                          RnaComplex.ExternalProps
+                                                        ]
+                                                      >;
+                                                    if (
+                                                      flattened &&
+                                                      flattened.length > 0
+                                                    ) {
+                                                      const rnaComplexIndex =
+                                                        Number.parseInt(
+                                                          flattened[0][0]
+                                                        );
+                                                      const {
+                                                        helixDistance,
+                                                        distances,
+                                                      } =
+                                                        basePairAverageDistances[
+                                                          rnaComplexIndex
+                                                        ];
+                                                      if (
+                                                        helixDistance != null &&
+                                                        distances
+                                                      ) {
+                                                        return {
+                                                          [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]:
+                                                            helixDistance,
+                                                          [Setting.CANONICAL_BASE_PAIR_DISTANCE]:
+                                                            distances[
+                                                              BasePair.Type
+                                                                .CANONICAL
+                                                            ],
+                                                          [Setting.MISMATCH_BASE_PAIR_DISTANCE]:
+                                                            distances[
+                                                              BasePair.Type
+                                                                .MISMATCH
+                                                            ],
+                                                          [Setting.WOBBLE_BASE_PAIR_DISTANCE]:
+                                                            distances[
+                                                              BasePair.Type
+                                                                .WOBBLE
+                                                            ],
+                                                        };
+                                                      }
+                                                    }
+                                                    return {};
+                                                  }}
+                                                />
+                                              )}
+                                              {drawerKind === "about" && (
+                                                <AboutDrawer
+                                                  open={true}
+                                                  onClose={() =>
+                                                    setDrawerKind("none")
+                                                  }
+                                                  renderTabInstructions={(
+                                                    tab
+                                                  ) => {
+                                                    switch (tab) {
+                                                      case Tab.INPUT_OUTPUT:
+                                                        return (
+                                                          <div>
+                                                            <p>
+                                                              Upload and
+                                                              download RNA
+                                                              structure files in
+                                                              various formats
+                                                              including JSON,
+                                                              SVG, and more.
+                                                            </p>
+                                                            <ul>
+                                                              <li>
+                                                                Upload files to
+                                                                import RNA
+                                                                structures
+                                                              </li>
+                                                              <li>
+                                                                Download files
+                                                                to save your
+                                                                work
+                                                              </li>
+                                                              <li>
+                                                                Support for
+                                                                multiple file
+                                                                formats
+                                                              </li>
+                                                            </ul>
+                                                          </div>
+                                                        );
+                                                      case Tab.VIEWPORT:
+                                                        return (
+                                                          <div>
+                                                            <p>
+                                                              Control the
+                                                              viewport and
+                                                              navigation of your
+                                                              RNA structure.
+                                                            </p>
+                                                            <ul>
+                                                              <li>
+                                                                Zoom in/out with
+                                                                mouse wheel
+                                                              </li>
+                                                              <li>
+                                                                Pan by dragging
+                                                                the canvas
+                                                              </li>
+                                                              <li>
+                                                                Reset viewport
+                                                                to default
+                                                                position
+                                                              </li>
+                                                            </ul>
+                                                          </div>
+                                                        );
+                                                      case Tab.EDIT:
+                                                        return (
+                                                          <div>
+                                                            <p>
+                                                              Edit RNA
+                                                              structures by
+                                                              modifying
+                                                              nucleotides,
+                                                              positions, and
+                                                              properties.
+                                                            </p>
+                                                            <ul>
+                                                              <li>
+                                                                Move nucleotides
+                                                                by dragging
+                                                              </li>
+                                                              <li>
+                                                                Edit nucleotide
+                                                                properties
+                                                              </li>
+                                                              <li>
+                                                                Modify labels
+                                                                and annotations
+                                                              </li>
+                                                            </ul>
+                                                          </div>
+                                                        );
+                                                      case Tab.FORMAT:
+                                                        return (
+                                                          <div>
+                                                            <p>
+                                                              Format RNA
+                                                              structures by
+                                                              adjusting base
+                                                              pairs and
+                                                              structural
+                                                              elements.
+                                                            </p>
+                                                            <ul>
+                                                              <li>
+                                                                Add/remove base
+                                                                pairs
+                                                              </li>
+                                                              <li>
+                                                                Adjust base pair
+                                                                distances
+                                                              </li>
+                                                              <li>
+                                                                Optimize
+                                                                structure layout
+                                                              </li>
+                                                            </ul>
+                                                          </div>
+                                                        );
+                                                      case Tab.ANNOTATE:
+                                                        return (
+                                                          <div>
+                                                            <p>
+                                                              Add annotations
+                                                              and labels to your
+                                                              RNA structure.
+                                                            </p>
+                                                            <ul>
+                                                              <li>
+                                                                Add text labels
+                                                              </li>
+                                                              <li>
+                                                                Create
+                                                                annotation
+                                                                regions
+                                                              </li>
+                                                              <li>
+                                                                Customize
+                                                                annotation
+                                                                styles
+                                                              </li>
+                                                            </ul>
+                                                          </div>
+                                                        );
+                                                      case Tab.SETTINGS:
+                                                        return (
+                                                          <div>
+                                                            <p>
+                                                              Configure
+                                                              application
+                                                              preferences and
+                                                              behavior.
+                                                            </p>
+                                                            <ul>
+                                                              <li>
+                                                                Adjust display
+                                                                settings
+                                                              </li>
+                                                              <li>
+                                                                Configure
+                                                                interaction
+                                                                constraints
+                                                              </li>
+                                                              <li>
+                                                                Import/export
+                                                                settings
+                                                              </li>
+                                                            </ul>
+                                                          </div>
+                                                        );
+                                                      case Tab.ABOUT:
+                                                        return (
+                                                          <div>
+                                                            <p>
+                                                              XRNA.js is an
+                                                              interactive web
+                                                              app for editing,
+                                                              formatting, and
+                                                              annotating 2D RNA
+                                                              diagrams with
+                                                              precision.
+                                                            </p>
+                                                            <h4>
+                                                              Getting Started:
+                                                            </h4>
+                                                            <ol>
+                                                              <li>
+                                                                Download a
+                                                                sample input
+                                                                file from the
+                                                                Input/Output
+                                                                area
+                                                              </li>
+                                                              <li>
+                                                                Upload it via
+                                                                the File panel
+                                                                in the left
+                                                                sidebar
+                                                              </li>
+                                                              <li>
+                                                                Use
+                                                                Edit/Format/Annotate
+                                                                tools for
+                                                                operations on
+                                                                nucleotides and
+                                                                base pairs
+                                                              </li>
+                                                            </ol>
+                                                            <h4>Shortcuts:</h4>
+                                                            <ul>
+                                                              <li>
+                                                                Ctrl + O — Open
+                                                                file
+                                                              </li>
+                                                              <li>
+                                                                Ctrl + S — Save
+                                                                file
+                                                              </li>
+                                                              <li>
+                                                                Ctrl + 0 — Reset
+                                                                viewport
+                                                              </li>
+                                                              <li>
+                                                                Ctrl + Z — Undo
+                                                              </li>
+                                                              <li>
+                                                                Ctrl + Shift + Z
+                                                                / Ctrl + Y —
+                                                                Redo
+                                                              </li>
+                                                            </ul>
+                                                            <h4>Contact:</h4>
+                                                            <p>
+                                                              <a
+                                                                href="https://github.com/LDWLab/XRNA-React/issues"
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                              >
+                                                                Report a bug
+                                                              </a>
+                                                            </p>
+                                                          </div>
+                                                        );
+                                                      default:
+                                                        return (
+                                                          <div>
+                                                            No instructions
+                                                            available for this
+                                                            tab.
+                                                          </div>
+                                                        );
+                                                    }
+                                                  }}
+                                                />
+                                              )}
+                                              {drawerKind ===
+                                                "basePairEditor" && (
+                                                <BasePairEditorDrawer
+                                                  open={true}
+                                                  onClose={() =>
+                                                    setDrawerKind("none")
+                                                  }
+                                                  rnaComplexProps={
+                                                    rnaComplexProps
+                                                  }
+                                                  approveBasePairs={(bps) => {
+                                                    // Handle base pair approval
+                                                    console.log(
+                                                      "Base pairs approved:",
+                                                      bps
+                                                    );
+                                                    // You can implement the logic to apply the approved base pairs here
+                                                  }}
+                                                  selected={
+                                                    rightClickMenuAffectedNucleotideIndices
+                                                  }
+                                                  formatMode={
+                                                    tab === Tab.FORMAT
+                                                  }
+                                                />
+                                              )}
+                                            </RightDrawer>
+
+                                            {/* Hidden Base-Pairs Editor host (for global reformat trigger) */}
+                                            <div style={{ display: "none" }}>
                                               <BasePairsEditor.Component
-                                                rnaComplexProps={rnaComplexProps}
-                                                approveBasePairs={function(){}}
+                                                rnaComplexProps={
+                                                  rnaComplexProps
+                                                }
+                                                approveBasePairs={function () {}}
                                               />
                                             </div>
-                                          )}
-                                          {drawerKind === 'settings' && (
-                                            <SettingsDrawer
-                                              open={true}
-                                              onClose={() => setDrawerKind('none')}
-                                              settings={settingsRecord}
-                                              setSettings={setSettingsRecord}
-                                              getDistanceDefaults={() => {
-                                                  const flattened = flattenedRnaComplexPropsReference.current as Array<[string, RnaComplex.ExternalProps]>;
-                                                  if (flattened && flattened.length > 0) {
-                                                    const rnaComplexIndex = Number.parseInt(flattened[0][0]);
-                                                    const { helixDistance, distances } = basePairAverageDistances[rnaComplexIndex];
-                                                    if (helixDistance != null && distances) {
-                                                    return {
-                                                      [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]: helixDistance,
-                                                      [Setting.CANONICAL_BASE_PAIR_DISTANCE]: distances[BasePair.Type.CANONICAL],
-                                                      [Setting.MISMATCH_BASE_PAIR_DISTANCE]: distances[BasePair.Type.MISMATCH],
-                                                      [Setting.WOBBLE_BASE_PAIR_DISTANCE]: distances[BasePair.Type.WOBBLE],
-                                                    };
-                                                  }
-                                                }
-                                                return {};
-                                              }}
-                                            />
-                                          )}
-                                          {drawerKind === 'about' && (
-                                            <AboutDrawer
-                                              open={true}
-                                              onClose={() => setDrawerKind('none')}
-                                              renderTabInstructions={(tab) => {
-                                                switch (tab) {
-                                                  case Tab.INPUT_OUTPUT:
-                                                    return (
-                                                      <div>
-                                                        <p>Upload and download RNA structure files in various formats including JSON, SVG, and more.</p>
-                                                        <ul>
-                                                          <li>Upload files to import RNA structures</li>
-                                                          <li>Download files to save your work</li>
-                                                          <li>Support for multiple file formats</li>
-                                                        </ul>
-                                                      </div>
-                                                    );
-                                                  case Tab.VIEWPORT:
-                                                    return (
-                                                      <div>
-                                                        <p>Control the viewport and navigation of your RNA structure.</p>
-                                                        <ul>
-                                                          <li>Zoom in/out with mouse wheel</li>
-                                                          <li>Pan by dragging the canvas</li>
-                                                          <li>Reset viewport to default position</li>
-                                                        </ul>
-                                                      </div>
-                                                    );
-                                                  case Tab.EDIT:
-                                                    return (
-                                                      <div>
-                                                        <p>Edit RNA structures by modifying nucleotides, positions, and properties.</p>
-                                                        <ul>
-                                                          <li>Move nucleotides by dragging</li>
-                                                          <li>Edit nucleotide properties</li>
-                                                          <li>Modify labels and annotations</li>
-                                                        </ul>
-                                                      </div>
-                                                    );
-                                                  case Tab.FORMAT:
-                                                    return (
-                                                      <div>
-                                                        <p>Format RNA structures by adjusting base pairs and structural elements.</p>
-                                                        <ul>
-                                                          <li>Add/remove base pairs</li>
-                                                          <li>Adjust base pair distances</li>
-                                                          <li>Optimize structure layout</li>
-                                                        </ul>
-                                                      </div>
-                                                    );
-                                                  case Tab.ANNOTATE:
-                                                    return (
-                                                      <div>
-                                                        <p>Add annotations and labels to your RNA structure.</p>
-                                                        <ul>
-                                                          <li>Add text labels</li>
-                                                          <li>Create annotation regions</li>
-                                                          <li>Customize annotation styles</li>
-                                                        </ul>
-                                                      </div>
-                                                    );
-                                                  case Tab.SETTINGS:
-                                                    return (
-                                                      <div>
-                                                        <p>Configure application preferences and behavior.</p>
-                                                        <ul>
-                                                          <li>Adjust display settings</li>
-                                                          <li>Configure interaction constraints</li>
-                                                          <li>Import/export settings</li>
-                                                        </ul>
-                                                      </div>
-                                                    );
-                                                  case Tab.ABOUT:
-                                                    return (
-                                                      <div>
-                                                        <p>XRNA.js is an interactive web app for editing, formatting, and annotating 2D RNA diagrams with precision.</p>
-                                                        <h4>Getting Started:</h4>
-                                                        <ol>
-                                                          <li>Download a sample input file from the Input/Output area</li>
-                                                          <li>Upload it via the File panel in the left sidebar</li>
-                                                          <li>Use Edit/Format/Annotate tools for operations on nucleotides and base pairs</li>
-                                                </ol>
-                                                        <h4>Shortcuts:</h4>
-                                                        <ul>
-                                                  <li>Ctrl + O — Open file</li>
-                                                  <li>Ctrl + S — Save file</li>
-                                                  <li>Ctrl + 0 — Reset viewport</li>
-                                                  <li>Ctrl + Z — Undo</li>
-                                                  <li>Ctrl + Shift + Z / Ctrl + Y — Redo</li>
-                                                </ul>
-                                                        <h4>Contact:</h4>
-                                                        <p><a href="https://github.com/LDWLab/XRNA-React/issues" target="_blank" rel="noopener noreferrer">Report a bug</a></p>
-                                            </div>
-                                                    );
-                                                  default:
-                                                    return <div>No instructions available for this tab.</div>;
-                                                }
-                                              }}
-                                            />
-                                          )}
-                                          {drawerKind === 'basePairEditor' && (
-                                            <BasePairEditorDrawer
-                                              open={true}
-                                              onClose={() => setDrawerKind('none')}
+
+                                            {/* Bottom Sheet: Base-Pair Editor */}
+                                            <BasePairBottomSheet
+                                              open={basepairSheetOpen}
+                                              onClose={() =>
+                                                setBasepairSheetOpen(false)
+                                              }
                                               rnaComplexProps={rnaComplexProps}
-                                              approveBasePairs={(bps) => {
-                                                // Handle base pair approval
-                                                console.log('Base pairs approved:', bps);
-                                                // You can implement the logic to apply the approved base pairs here
-                                              }}
-                                              selected={rightClickMenuAffectedNucleotideIndices}
+                                              selected={
+                                                rightClickMenuAffectedNucleotideIndices
+                                              }
                                               formatMode={tab === Tab.FORMAT}
                                             />
-                                          )}
-                                        </RightDrawer>
 
-                                        {/* Hidden Base-Pairs Editor host (for global reformat trigger) */}
-                                        <div style={{ display: 'none' }}>
-                                          <BasePairsEditor.Component
-                                            rnaComplexProps={rnaComplexProps}
-                                            approveBasePairs={function(){}}
-                                          />
-                                        </div>
-
-                                        {/* Bottom Sheet: Base-Pair Editor */}
-                                        <BasePairBottomSheet
-                                          open={basepairSheetOpen}
-                                          onClose={() => setBasepairSheetOpen(false)}
-                                          rnaComplexProps={rnaComplexProps}
-                                          selected={rightClickMenuAffectedNucleotideIndices}
-                                          formatMode={tab === Tab.FORMAT}
-                                        />
-
-                                        {/* Bottom-docked command terminal (hidden by default, toggle with ~) */}
-                                        <CommandTerminal rnaComplexProps={rnaComplexProps} />
-                                      </div>
-                                    </Context.BasePair.SetKeysToEdit.Provider>
-                                  </Context.App.UpdateRnaMoleculeNameHelper.Provider>
-                                </Context.App.Settings.Provider>
-                              </Context.BasePair.SetKeysToRerender.Provider>
-                            </Context.Nucleotide.SetKeysToRerender.Provider>
-                          </Context.App.UpdateInteractionConstraintOptions.Provider>
-                        </Context.App.InteractionConstraintOptions.Provider>
-                      </Context.Label.Content.UpdateDefaultStyle.Provider>
-                    </Context.Label.Content.DefaultStyles.Provider>
-                  </Context.BasePair.UpdateAverageDistances.Provider>
-                </Context.BasePair.AverageDistances.Provider>
-              </Context.BasePair.Radius.Provider>
-            </Context.BasePair.ClassName.Provider>
-          </Context.Label.ClassName.Provider>
-        </Context.App.IndicesOfFrozenNucleotides.Provider>
-      </Context.App.PushToUndoStack.Provider>
-    </Context.BasePair.OnMouseDownHelper.Provider>
-    </ThemeProvider>;
+                                            {/* Bottom-docked command terminal (hidden by default, toggle with ~) */}
+                                            <CommandTerminal
+                                              rnaComplexProps={rnaComplexProps}
+                                            />
+                                          </div>
+                                        </Context.BasePair.SetKeysToEdit.Provider>
+                                      </Context.App.UpdateRnaMoleculeNameHelper.Provider>
+                                    </Context.App.Settings.Provider>
+                                  </Context.BasePair.SetKeysToRerender.Provider>
+                                </Context.Nucleotide.SetKeysToRerender.Provider>
+                              </Context.App.UpdateInteractionConstraintOptions.Provider>
+                            </Context.App.InteractionConstraintOptions.Provider>
+                          </Context.Label.Content.UpdateDefaultStyle.Provider>
+                        </Context.Label.Content.DefaultStyles.Provider>
+                      </Context.BasePair.UpdateAverageDistances.Provider>
+                    </Context.BasePair.AverageDistances.Provider>
+                  </Context.BasePair.Radius.Provider>
+                </Context.BasePair.ClassName.Provider>
+              </Context.Label.ClassName.Provider>
+            </Context.App.IndicesOfFrozenNucleotides.Provider>
+          </Context.App.PushToUndoStack.Provider>
+        </Context.BasePair.OnMouseDownHelper.Provider>
+      </ThemeProvider>
+    );
   }
 }
 

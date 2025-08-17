@@ -29,7 +29,7 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
         style={{
           padding: '8px 16px',
           background: theme.colors.surfaceHover,
-          fontSize: '12px',
+          fontSize: theme.typography.fontSize.sm,
           fontWeight: '700',
           letterSpacing: '0.5px',
           color: theme.colors.text,
@@ -40,7 +40,7 @@ export const PanelContainer: React.FC<PanelContainerProps> = ({
         }}
       >
         <span style={{ 
-          fontSize: '11px',
+          fontSize: theme.typography.fontSize.xs,
           fontWeight: '700',
           color: theme.colors.textSecondary,
         }}>

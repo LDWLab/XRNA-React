@@ -56,13 +56,13 @@ const InfoRow: React.FC<{ label: string; value: string | number | React.ReactNod
       alignItems: 'center',
       padding: '8px 12px',
       background: highlight ? theme.colors.primary + '10' : 'transparent',
-      borderRadius: '6px',
+      borderRadius: theme.borderRadius.md,
       borderLeft: highlight ? `3px solid ${theme.colors.primary}` : 'none',
       marginLeft: highlight ? '0' : '3px',
       transition: 'all 0.2s ease',
     }}>
       <span style={{
-        fontSize: '11px',
+        fontSize: theme.typography.fontSize.xs,
         fontWeight: '600',
         color: theme.colors.textSecondary,
         textTransform: 'uppercase',
@@ -71,7 +71,7 @@ const InfoRow: React.FC<{ label: string; value: string | number | React.ReactNod
         {label}
       </span>
       <span style={{
-        fontSize: '12px',
+        fontSize: theme.typography.fontSize.sm,
         fontWeight: highlight ? '600' : '500',
         color: highlight ? theme.colors.primary : theme.colors.text,
         fontFamily: typeof value === 'number' ? 'monospace' : 'inherit',
@@ -87,7 +87,7 @@ const NucleotideDisplay: React.FC<{ elementInfo: ElementInfo }> = ({ elementInfo
   return (
     <div style={{
       border: `1px solid ${theme.colors.border}`,
-      borderRadius: '16px',
+      borderRadius: theme.borderRadius.full,
       padding: '20px',
       boxShadow: theme.shadows.md,
       position: 'relative',
@@ -109,7 +109,7 @@ const NucleotideDisplay: React.FC<{ elementInfo: ElementInfo }> = ({ elementInfo
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '18px',
+          fontSize: theme.typography.fontSize.xl,
           fontWeight: '700',
           color: theme.colors.warning,
           flexShrink: 0,
@@ -123,7 +123,7 @@ const NucleotideDisplay: React.FC<{ elementInfo: ElementInfo }> = ({ elementInfo
           lineHeight: '1.6',
         }}>
           <div style={{
-            fontSize: '16px',
+            fontSize: theme.typography.fontSize.lg,
             fontWeight: '600',
             color: theme.colors.text,
             marginBottom: '8px',
@@ -131,14 +131,14 @@ const NucleotideDisplay: React.FC<{ elementInfo: ElementInfo }> = ({ elementInfo
             Nucleotide #{elementInfo.nucleotideIndex} ({elementInfo.nucleotideSymbol})
           </div>
           <div style={{
-            fontSize: '14px',
+            fontSize: theme.typography.fontSize.md,
             color: theme.colors.textSecondary,
             fontWeight: '500',
           }}>
             in RNA molecule <span style={{ color: theme.colors.warning, fontWeight: '600' }}>"{elementInfo.moleculeName}"</span>
           </div>
           <div style={{
-            fontSize: '14px',
+            fontSize: theme.typography.fontSize.md,
             color: theme.colors.textSecondary,
             fontWeight: '500',
           }}>

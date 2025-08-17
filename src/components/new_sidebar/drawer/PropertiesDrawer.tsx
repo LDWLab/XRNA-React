@@ -130,7 +130,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
           />
           <span
             style={{
-              fontSize: '12px',
+              fontSize: theme.typography.fontSize.sm,
               fontWeight: 700,
               letterSpacing: '0.5px',
               textTransform: 'uppercase',
@@ -146,10 +146,10 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
             border: `1px solid ${theme.colors.border}`,
             background: theme.colors.surface,
             cursor: 'pointer',
-            fontSize: '14px',
+            fontSize: theme.typography.fontSize.md,
             color: theme.colors.text,
             padding: '6px 8px',
-            borderRadius: '6px',
+            borderRadius: theme.borderRadius.md,
             transition: 'all 0.2s ease',
             display: 'flex',
             alignItems: 'center',
@@ -199,7 +199,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
                 boxShadow: theme.shadows.sm,
               }} />
               <span style={{
-                fontSize: '11px',
+                fontSize: theme.typography.fontSize.xs,
                 fontWeight: '600',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
@@ -214,7 +214,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
               flex: 1,
               padding: '16px',
               background: theme.colors.backgroundSecondary,
-              fontSize: '13px',
+              fontSize: theme.typography.fontSize.md,
               lineHeight: '1.5',
               color: theme.colors.text,
               overflow: 'auto',

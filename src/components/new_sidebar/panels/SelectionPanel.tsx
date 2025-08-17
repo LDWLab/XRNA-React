@@ -2,13 +2,13 @@ import React from 'react';
 import { PanelContainer } from '../layout/PanelContainer';
 import { InteractionConstraint } from '../../../ui/InteractionConstraint/InteractionConstraints';
 import { useTheme } from '../../../context/ThemeContext';
+import { Button } from '../layout/Button';
 
 export interface SelectionPanelProps {
   constraint?: InteractionConstraint.Enum;
   onConstraintChange?: (constraint: InteractionConstraint.Enum) => void;
 }
 
-// Smart constraint grouping with better organization
 const constraintGroups = {
   'Basic': [
     InteractionConstraint.Enum.SINGLE_NUCLEOTIDE,
@@ -155,46 +155,7 @@ const ConstraintChip: React.FC<{
   };
 
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '6px 8px',
-        border: isActive ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
-        borderRadius: '16px',
-        fontSize: '10px',
-        fontWeight: '500',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        opacity: disabled ? 0.4 : 1,
-        background: disabled 
-          ? theme.colors.surfaceHover
-          : isActive 
-            ? theme.colors.primary + '20'
-            : (isHovered ? theme.colors.surfaceHover : theme.colors.background),
-        color: disabled 
-          ? theme.colors.textMuted
-          : isActive 
-            ? theme.colors.primary
-            : (isHovered ? theme.colors.text : theme.colors.textSecondary),
-        boxShadow: isActive 
-          ? `0 0 0 2px ${theme.colors.primary}20`
-          : (isHovered ? theme.shadows.sm : 'none'),
-        transform: isActive ? 'scale(1.05)' : 'scale(1)',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {getConstraintIcon(constraint)}
-      </div>
-      <span style={{ fontSize: '11px', fontWeight: '600' }}>
-        {getShortName(constraint)}
-      </span>
-    </button>
+    <Button label={getShortName(constraint)} onClick={onClick} disabled={disabled} variant={isActive ? 'primary' : 'secondary'} icon={getConstraintIcon(constraint)}/>
   );
 };
 
@@ -207,13 +168,12 @@ export const SelectionPanel: React.FC<SelectionPanelProps> = ({
 
   return (
     <PanelContainer title="Selection" borderRadius={8}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Constraint Groups - Smart Tabs */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <div>
           <div style={{ 
             display: 'flex', 
             gap: '4px',
-            marginBottom: '12px',
+            marginBottom: '4px',
             borderBottom: `1px solid ${theme.colors.border}`,
           }}>
             {Object.keys(constraintGroups).map((groupName) => (
@@ -221,17 +181,18 @@ export const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 key={groupName}
                 onClick={() => setActiveGroup(groupName)}
                 style={{
-                  padding: '6px 12px',
+                  height: theme.buttonSizes.md.height,
+                  padding: theme.buttonSizes.md.padding,
                   border: 'none',
                   background: activeGroup === groupName ? theme.colors.primary : 'transparent',
-                  color: activeGroup === groupName ? theme.colors.textInverse : theme.colors.textSecondary,
-                  borderRadius: '6px 6px 0 0',
-                  fontSize: '10px',
+                  color: activeGroup === groupName ? theme.colors.textInverse : theme.colors.text,
+                  borderRadius: `${theme.borderRadius.md} ${theme.borderRadius.md} 0 0`,
+                  fontSize: theme.buttonSizes.sm.fontSize,
                   fontWeight: '600',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
+                  letterSpacing: '1px',
                 }}
               >
                 {groupName}
@@ -239,12 +200,11 @@ export const SelectionPanel: React.FC<SelectionPanelProps> = ({
             ))}
           </div>
           
-          {/* Active Group Constraints */}
           <div style={{ 
             display: 'flex', 
             flexWrap: 'wrap', 
             gap: '6px',
-            minHeight: '60px',
+            minHeight: '30px',
             alignItems: 'flex-start',
             alignContent: 'flex-start',
           }}>
