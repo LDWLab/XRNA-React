@@ -4058,83 +4058,90 @@ export namespace App {
                                                     <></>,
                                                     {}
                                                   );
-                                                  setBasepairSheetOpen(true);
-                                                  setDrawerKind("none");
-                                                  setTab(Tab.FORMAT);
+                                                  
+                                                  // Toggle basepair editor: close if open, open if closed
+                                                  if (basepairSheetOpen) {
+                                                    setBasepairSheetOpen(false);
+                                                    setTab(Tab.EDIT); // Reset to EDIT mode when closing
+                                                  } else {
+                                                    setBasepairSheetOpen(true);
+                                                    setDrawerKind("none");
+                                                    setTab(Tab.FORMAT);
 
-                                                  // Get constraint-based selection instead of empty drag selection
-                                                  console.log(
-                                                    "Format mode clicked, current constraint:",
-                                                    interactionConstraint
-                                                  );
+                                                    // Get constraint-based selection instead of empty drag selection
+                                                    console.log(
+                                                      "Format mode clicked, current constraint:",
+                                                      interactionConstraint
+                                                    );
 
-                                                  // Create selection based on current constraint
-                                                  let constraintSelection: FullKeysRecord =
-                                                    {};
+                                                    // Create selection based on current constraint
+                                                    let constraintSelection: FullKeysRecord =
+                                                      {};
 
-                                                  if (
-                                                    interactionConstraint &&
-                                                    rnaComplexProps
-                                                  ) {
-                                                    // Get all elements that match the current constraint
-                                                    Object.entries(
+                                                    if (
+                                                      interactionConstraint &&
                                                       rnaComplexProps
-                                                    ).forEach(
-                                                      ([rcKey, rcProps]) => {
-                                                        const rcKeyNum =
-                                                          parseInt(rcKey, 10);
-                                                        constraintSelection[
-                                                          rcKeyNum
-                                                        ] = {};
-                                                        Object.entries(
-                                                          rcProps.rnaMoleculeProps
-                                                        ).forEach(
-                                                          ([
-                                                            molKey,
-                                                            molProps,
-                                                          ]) => {
-                                                            // For now, select all nucleotides in the molecule
-                                                            // This can be refined based on specific constraint types
-                                                            const nucleotideSet =
-                                                              new Set<number>();
-                                                            Object.keys(
-                                                              molProps.nucleotideProps
-                                                            ).forEach(
-                                                              (nucKey) => {
-                                                                const nucIndex =
-                                                                  parseInt(
-                                                                    nucKey,
-                                                                    10
+                                                    ) {
+                                                      // Get all elements that match the current constraint
+                                                      Object.entries(
+                                                        rnaComplexProps
+                                                      ).forEach(
+                                                        ([rcKey, rcProps]) => {
+                                                          const rcKeyNum =
+                                                            parseInt(rcKey, 10);
+                                                          constraintSelection[
+                                                            rcKeyNum
+                                                          ] = {};
+                                                          Object.entries(
+                                                            rcProps.rnaMoleculeProps
+                                                          ).forEach(
+                                                            ([
+                                                              molKey,
+                                                              molProps,
+                                                            ]) => {
+                                                              // For now, select all nucleotides in the molecule
+                                                              // This can be refined based on specific constraint types
+                                                              const nucleotideSet =
+                                                                new Set<number>();
+                                                              Object.keys(
+                                                                molProps.nucleotideProps
+                                                              ).forEach(
+                                                                (nucKey) => {
+                                                                  const nucIndex =
+                                                                    parseInt(
+                                                                      nucKey,
+                                                                      10
+                                                                    );
+                                                                  nucleotideSet.add(
+                                                                    nucIndex
                                                                   );
-                                                                nucleotideSet.add(
-                                                                  nucIndex
-                                                                );
+                                                                }
+                                                              );
+                                                              if (
+                                                                nucleotideSet.size >
+                                                                0
+                                                              ) {
+                                                                constraintSelection[
+                                                                  rcKeyNum
+                                                                ][molKey] =
+                                                                  nucleotideSet;
                                                               }
-                                                            );
-                                                            if (
-                                                              nucleotideSet.size >
-                                                              0
-                                                            ) {
-                                                              constraintSelection[
-                                                                rcKeyNum
-                                                              ][molKey] =
-                                                                nucleotideSet;
                                                             }
-                                                          }
-                                                        );
-                                                      }
+                                                          );
+                                                        }
+                                                      );
+                                                    }
+
+                                                    console.log(
+                                                      "Format mode clicked, constraint-based selection:",
+                                                      constraintSelection
+                                                    );
+
+                                                    // Set the constraint-based selection
+                                                    setRightClickMenuAffectedNucleotideIndices(
+                                                      constraintSelection
                                                     );
                                                   }
-
-                                                  console.log(
-                                                    "Format mode clicked, constraint-based selection:",
-                                                    constraintSelection
-                                                  );
-
-                                                  // Set the constraint-based selection
-                                                  setRightClickMenuAffectedNucleotideIndices(
-                                                    constraintSelection
-                                                  );
                                                 }}
                                               />
                                             </div>
@@ -5032,9 +5039,10 @@ export namespace App {
                                             {/* Bottom Sheet: Base-Pair Editor */}
                                             <BasePairBottomSheet
                                               open={basepairSheetOpen}
-                                              onClose={() =>
-                                                setBasepairSheetOpen(false)
-                                              }
+                                              onClose={() => {
+                                                setBasepairSheetOpen(false);
+                                                setTab(Tab.EDIT);
+                                              }}
                                               rnaComplexProps={rnaComplexProps}
                                               selected={
                                                 rightClickMenuAffectedNucleotideIndices
