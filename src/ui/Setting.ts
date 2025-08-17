@@ -25,8 +25,10 @@ export enum Setting {
   GRID_LEFT_RIGHT_DIAGONAL = "grid_left_right_diagonal",
   GRID_RIGHT_LEFT_DIAGONAL = "grid_right_left_diagonal",
   GRID_CONCENTRIC_CIRCLES = "grid_concentric_circles",
+  GRID_DOTTED = "grid_dotted",
   GRID_SPACING = "grid_spacing",
-  GRID_COLOR = "grid_color"
+  GRID_COLOR = "grid_color",
+  CANVAS_COLOR = "canvas_color"
 }
 
 export const settings = Object.values(Setting);
@@ -55,8 +57,10 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.GRID_LEFT_RIGHT_DIAGONAL] : "Show left-to-right diagonal lines",
   [Setting.GRID_RIGHT_LEFT_DIAGONAL] : "Show right-to-left diagonal lines",
   [Setting.GRID_CONCENTRIC_CIRCLES] : "Show concentric circles",
+  [Setting.GRID_DOTTED] : "Show dotted grid pattern",
   [Setting.GRID_SPACING] : "Grid line spacing",
-  [Setting.GRID_COLOR] : "Grid color"
+  [Setting.GRID_COLOR] : "Grid color",
+  [Setting.CANVAS_COLOR] : "Canvas background color"
 };
 
 export const settingsLongDescriptionsMap : Record<Setting, string> = {
@@ -83,8 +87,10 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.GRID_LEFT_RIGHT_DIAGONAL] : "Display diagonal lines from top-left to bottom-right. These lines move with the viewport pan but maintain their spacing.",
   [Setting.GRID_RIGHT_LEFT_DIAGONAL] : "Display diagonal lines from top-right to bottom-left. These lines move with the viewport pan but maintain their spacing.",
   [Setting.GRID_CONCENTRIC_CIRCLES] : "Display concentric circles centered on the canvas. The radius between circles is controlled by the grid spacing setting.",
+  [Setting.GRID_DOTTED] : "Display a dotted grid pattern across the canvas. The spacing between dots is controlled by the grid spacing setting.",
   [Setting.GRID_SPACING] : "Control the distance between parallel grid lines or the radius increment for concentric circles. Higher values create more spaced out grids.",
-  [Setting.GRID_COLOR] : "Customize the color of all grid elements. Leave empty to use automatic theme-based colors."
+  [Setting.GRID_COLOR] : "Customize the color of all grid elements. Leave empty to use automatic theme-based colors.",
+  [Setting.CANVAS_COLOR] : "Customize the canvas background color. Leave empty to use automatic theme-based colors."
 };
 
 export const settingsTypeMap : Record<Setting, "boolean" | "number" | "string" | "BasePairsEditorType"> = {
@@ -111,8 +117,10 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "string" |
   [Setting.GRID_LEFT_RIGHT_DIAGONAL] : "boolean",
   [Setting.GRID_RIGHT_LEFT_DIAGONAL] : "boolean",
   [Setting.GRID_CONCENTRIC_CIRCLES] : "boolean",
+  [Setting.GRID_DOTTED] : "boolean",
   [Setting.GRID_SPACING] : "number",
-  [Setting.GRID_COLOR] : "string"
+  [Setting.GRID_COLOR] : "string",
+  [Setting.CANVAS_COLOR] : "string"
 };
 
 export function isSetting(candidateSetting : string) : candidateSetting is Setting {
@@ -147,6 +155,8 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.GRID_LEFT_RIGHT_DIAGONAL] : false,
   [Setting.GRID_RIGHT_LEFT_DIAGONAL] : false,
   [Setting.GRID_CONCENTRIC_CIRCLES] : false,
-  [Setting.GRID_SPACING] : 10,
-  [Setting.GRID_COLOR] : ""
+  [Setting.GRID_DOTTED] : false,
+  [Setting.GRID_SPACING] : 50,
+  [Setting.GRID_COLOR] : "",
+  [Setting.CANVAS_COLOR] : ""
 };

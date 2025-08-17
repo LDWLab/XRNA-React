@@ -93,7 +93,7 @@ import { Topbar, TOPBAR_HEIGHT } from "./components/new_sidebar/layout/Topbar";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SettingsDrawer } from "./components/new_sidebar/drawer/SettingsDrawer";
 import { AboutDrawer } from "./components/new_sidebar/drawer/AboutDrawer";
-import { StructureTooltip, Grid } from "./components/ui";
+import { StructureTooltip, Grid, FloatingControls } from "./components/ui";
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -2551,6 +2551,54 @@ export namespace App {
         setViewportTranslateY(newOriginDeltaY);
       };
     }, []);
+
+    // Zoom in/out functions for the floating controls
+    const onZoomIn = useMemo(() => {
+      return () => {
+        const flattenedRnaComplexPropsLength =
+          flattenedRnaComplexPropsLengthReference.current;
+        if (flattenedRnaComplexPropsLength === 0) {
+          return;
+        }
+
+        const viewportScaleExponent =
+          viewportScaleExponentReference.current as number;
+        let newScaleExponent = viewportScaleExponent + 1;
+        let newScale =
+          newScaleExponent in viewportScalePowPrecalculation
+            ? viewportScalePowPrecalculation[newScaleExponent]
+            : Math.pow(SCALE_BASE, newScaleExponent);
+        
+        if (newScaleExponent <= VIEWPORT_SCALE_EXPONENT_MAXIMUM) {
+          setViewportScale(newScale);
+          setViewportScaleExponent(newScaleExponent);
+        }
+      };
+    }, []);
+
+    const onZoomOut = useMemo(() => {
+      return () => {
+        const flattenedRnaComplexPropsLength =
+          flattenedRnaComplexPropsLengthReference.current;
+        if (flattenedRnaComplexPropsLength === 0) {
+          return;
+        }
+
+        const viewportScaleExponent =
+          viewportScaleExponentReference.current as number;
+        let newScaleExponent = viewportScaleExponent - 1;
+        let newScale =
+          newScaleExponent in viewportScalePowPrecalculation
+            ? viewportScalePowPrecalculation[newScaleExponent]
+            : Math.pow(SCALE_BASE, newScaleExponent);
+        
+        if (newScaleExponent >= VIEWPORT_SCALE_EXPONENT_MINIMUM) {
+          setViewportScale(newScale);
+          setViewportScaleExponent(newScaleExponent);
+        }
+      };
+    }, []);
+
     const uploadInputFileUI = useMemo(
       function () {
         const settingsRecord =
@@ -4476,6 +4524,11 @@ export namespace App {
                                                 width="100%"
                                                 height="100%"
                                                 stroke="none"
+                                                fill={
+                                                  settingsRecord[Setting.CANVAS_COLOR] as string
+                                                    ? settingsRecord[Setting.CANVAS_COLOR] as string
+                                                    : undefined
+                                                }
                                                 onMouseDown={function (e) {
                                                   switch (e.button) {
                                                     case MouseButtonIndices.Left: {
@@ -4554,6 +4607,16 @@ export namespace App {
                                                 mouseOverTextSvgTextElementReference={mouseOverTextSvgTextElementReference}
                                               />
                                             </svg>
+                                            
+                                            {/* Floating Controls */}
+                                            <FloatingControls
+                                              settings={settingsRecord}
+                                              setSettings={setSettingsRecord}
+                                              onZoomIn={onZoomIn}
+                                              onZoomOut={onZoomOut}
+                                              onResetViewport={resetViewport}
+                                              position={{ top: 80, right: 20 }}
+                                            />
                                             {sceneState ===
                                               SceneState.DATA_IS_LOADING && (
                                               <img

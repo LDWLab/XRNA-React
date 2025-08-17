@@ -41,6 +41,7 @@ export const Grid: React.FC<GridProps> = ({
   const concentricCircles = settings[
     Setting.GRID_CONCENTRIC_CIRCLES
   ] as boolean;
+  const dotted = settings[Setting.GRID_DOTTED] as boolean;
   const gridSpacing = settings[Setting.GRID_SPACING] as number;
   const customGridColor = settings[Setting.GRID_COLOR] as string;
 
@@ -241,8 +242,42 @@ export const Grid: React.FC<GridProps> = ({
     viewportHeight,
   ]);
 
-  // Don't render if grid is disabled
-  if (!gridEnabled) return null;
+  // Generate dotted grid pattern
+  const dottedElements = useMemo(() => {
+    if (!dotted) return [];
+
+    const dots = [];
+    const dotSize = Math.max(1, 2 / viewportScale); // Scale dot size with zoom
+    
+    for (let x = gridBounds.left; x <= gridBounds.right; x += scaledSpacing) {
+      for (let y = gridBounds.top; y <= gridBounds.bottom; y += scaledSpacing) {
+        dots.push(
+          <circle
+            key={`dot-${x}-${y}`}
+            cx={x}
+            cy={y}
+            r={dotSize}
+            fill={gridColor}
+            opacity={0.3}
+          />
+        );
+      }
+    }
+    
+    return dots;
+  }, [
+    dotted,
+    gridBounds,
+    scaledSpacing,
+    gridColor,
+    viewportScale,
+  ]);
+
+  // Check if any grid type is enabled
+  const hasAnyGridEnabled = horizontalLines || verticalLines || leftRightDiagonal || rightLeftDiagonal || concentricCircles || dotted;
+  
+  // Don't render if no grid types are enabled
+  if (!hasAnyGridEnabled) return null;
 
   return (
     <g id="canvas-grid">
@@ -251,6 +286,7 @@ export const Grid: React.FC<GridProps> = ({
       {leftRightDiagonalElements}
       {rightLeftDiagonalElements}
       {concentricCirclesElements}
+      {dottedElements}
     </g>
   );
 };
