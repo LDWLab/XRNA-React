@@ -4,7 +4,7 @@ import { Tab, tabs } from "../../../app_data/Tab";
 import { useTheme } from "../../../context/ThemeContext";
 import { ActionsPanel } from "./ActionsPanel";
 import { InteractionConstraint } from "../../../ui/InteractionConstraint/InteractionConstraints";
-import { Circle, Move, Pencil, TableOfContents } from "lucide-react";
+import { Circle, Move, Pencil, Cable } from "lucide-react";
 
 export interface ToolsPanelProps {
   mode: Tab;
@@ -34,7 +34,7 @@ const ModeTab: React.FC<{
       case Tab.EDIT:
         return <Move size={12} />;
       case Tab.FORMAT:
-        return <TableOfContents size={12} />;
+        return <Cable size={12} />;
       case Tab.ANNOTATE:
         return <Pencil size={12} />;
       default:

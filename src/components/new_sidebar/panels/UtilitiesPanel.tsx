@@ -27,7 +27,7 @@ export const UtilitiesPanel: React.FC<UtilitiesPanelProps> = ({
         {(onToggleBasePairEditor || onTogglePropertiesDrawer) && (
           <div>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {onToggleBasePairEditor && (
+              {/* {onToggleBasePairEditor && (
                 <Button
                   onClick={onToggleBasePairEditor}
                   icon={<Cable size={12} />}
@@ -35,7 +35,7 @@ export const UtilitiesPanel: React.FC<UtilitiesPanelProps> = ({
                   hint="Edit base pairs"
                   variant="secondary"
                 />
-              )}
+              )} */}
               {onToggleSettingsDrawer && (
                 <Button
                   onClick={onToggleSettingsDrawer}

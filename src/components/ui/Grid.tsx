@@ -61,12 +61,17 @@ export const Grid: React.FC<GridProps> = ({
   
   // Calculate grid parameters - use smaller base spacing and scale with zoom
   const baseSpacing = Math.max(10, gridSpacing * 0.5); // Reduce base spacing
-  const scaledSpacing = baseSpacing * viewportScale;
-  const strokeWidth = Math.max(0.3, 0.8 / viewportScale); // Thinner lines that scale better
+  const scaledSpacing = Math.max(1, baseSpacing * viewportScale); // Ensure minimum spacing
+  const strokeWidth = Math.max(0.3, 0.8 / Math.max(0.1, viewportScale)); // Thinner lines that scale better
 
   // Calculate grid bounds based on viewport, not scene bounds
   // This ensures grid is always visible and scales properly with zoom
   const gridBounds = useMemo(() => {
+    // Safety check: prevent division by zero or very small values
+    if (scaledSpacing <= 0) {
+      return { left: 0, right: 0, top: 0, bottom: 0 };
+    }
+    
     const margin = Math.max(viewportWidth, viewportHeight) * 0.2; // Add margin around viewport
     const left = -margin;
     const right = viewportWidth + margin;
@@ -242,35 +247,66 @@ export const Grid: React.FC<GridProps> = ({
     viewportHeight,
   ]);
 
-  // Generate dotted grid pattern
-  const dottedElements = useMemo(() => {
+  // Generate crosshatch grid pattern (performance-friendly alternative to dots)
+  const crosshatchElements = useMemo(() => {
     if (!dotted) return [];
 
-    const dots = [];
-    const dotSize = Math.max(1, 2 / viewportScale); // Scale dot size with zoom
+    const lines = [];
+    const crosshatchSpacing = scaledSpacing * 2; // Wider spacing for crosshatch
     
-    for (let x = gridBounds.left; x <= gridBounds.right; x += scaledSpacing) {
-      for (let y = gridBounds.top; y <= gridBounds.bottom; y += scaledSpacing) {
-        dots.push(
-          <circle
-            key={`dot-${x}-${y}`}
-            cx={x}
-            cy={y}
-            r={dotSize}
-            fill={gridColor}
-            opacity={0.3}
-          />
-        );
-      }
+    // Generate diagonal lines in both directions for crosshatch effect
+    const maxDimension = Math.max(viewportWidth, viewportHeight) * 1.5;
+    
+    // Left-to-right diagonal lines (45 degrees)
+    for (let offset = -maxDimension; offset <= maxDimension; offset += crosshatchSpacing) {
+      const x1 = offset;
+      const y1 = 0;
+      const x2 = offset + maxDimension;
+      const y2 = maxDimension;
+      
+      lines.push(
+        <line
+          key={`cross-lr-${offset}`}
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke={gridColor}
+          strokeWidth={strokeWidth * 0.5}
+          opacity={0.1}
+        />
+      );
     }
     
-    return dots;
+    // Right-to-left diagonal lines (-45 degrees)
+    for (let offset = -maxDimension; offset <= maxDimension; offset += crosshatchSpacing) {
+      const x1 = offset;
+      const y1 = maxDimension;
+      const x2 = offset + maxDimension;
+      const y2 = 0;
+      
+      lines.push(
+        <line
+          key={`cross-rl-${offset}`}
+          x1={x1}
+          y1={y1}
+          x2={x2}
+          y2={y2}
+          stroke={gridColor}
+          strokeWidth={strokeWidth * 0.5}
+          opacity={0.1}
+        />
+      );
+    }
+    
+    return lines;
   }, [
     dotted,
-    gridBounds,
     scaledSpacing,
     gridColor,
-    viewportScale,
+    strokeWidth,
+    viewportWidth,
+    viewportHeight,
   ]);
 
   // Check if any grid type is enabled
@@ -280,13 +316,13 @@ export const Grid: React.FC<GridProps> = ({
   if (!hasAnyGridEnabled) return null;
 
   return (
-    <g id="canvas-grid">
+    <g id="canvas-grid" data-theme-ignore>
       {horizontalLinesElements}
       {verticalLinesElements}
       {leftRightDiagonalElements}
       {rightLeftDiagonalElements}
       {concentricCirclesElements}
-      {dottedElements}
+      {crosshatchElements}
     </g>
   );
 };

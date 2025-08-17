@@ -4615,7 +4615,7 @@ export namespace App {
                                               onZoomIn={onZoomIn}
                                               onZoomOut={onZoomOut}
                                               onResetViewport={resetViewport}
-                                              position={{ top: 80, right: 20 }}
+                                              position={{ top: 80, right: 17 }}
                                             />
                                             {sceneState ===
                                               SceneState.DATA_IS_LOADING && (

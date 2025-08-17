@@ -345,8 +345,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         <button
           onClick={onZoomIn}
           style={{
-            width: "48px",
-            height: "48px",
+            width: "35px",
+            height: "35px",
             borderRadius: "50%",
             border: "none",
             background: theme.colors.surface,
@@ -360,14 +360,14 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           }}
           title="Zoom In"
         >
-          <ZoomIn size={24} />
+          <ZoomIn size={20} />
         </button>
 
         <button
           onClick={onZoomOut}
           style={{
-            width: "48px",
-            height: "48px",
+            width: "35px",
+            height: "35px",
             borderRadius: "50%",
             border: "none",
             background: theme.colors.surface,
@@ -381,14 +381,14 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           }}
           title="Zoom Out"
         >
-          <ZoomOut size={24} />
+          <ZoomOut size={20} />
         </button>
 
         <button
           onClick={onResetViewport}
           style={{
-            width: "48px",
-            height: "48px",
+            width: "35px",
+            height: "35px",
             borderRadius: "50%",
             border: "none",
             background: theme.colors.surface,
@@ -402,7 +402,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           }}
           title="Reset View"
         >
-          <RotateCcw size={24} />
+          <RotateCcw size={20} />
         </button>
       </div>
 
@@ -411,8 +411,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         <button
           onClick={toggleExpanded}
           style={{
-            width: "48px",
-            height: "48px",
+            width: "35px",
+            height: "35px",
             borderRadius: "50%",
             border: "none",
             background: theme.colors.primary,
@@ -427,7 +427,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
           }}
           title="Grid Settings"
         >
-          <Settings size={28} />
+          <Settings size={20} />
         </button>
 
         {/* Expanded Settings Panel */}
@@ -518,7 +518,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
                 <GridTypeButton
                   setting={Setting.GRID_DOTTED}
                   icon={Grip}
-                  label="Dotted"
+                  label="Crosshatch"
                   isActive={settings[Setting.GRID_DOTTED] as boolean}
                 />
                 <GridTypeButton
