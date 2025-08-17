@@ -93,6 +93,7 @@ import { Topbar, TOPBAR_HEIGHT } from "./components/new_sidebar/layout/Topbar";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SettingsDrawer } from "./components/new_sidebar/drawer/SettingsDrawer";
 import { AboutDrawer } from "./components/new_sidebar/drawer/AboutDrawer";
+import { StructureTooltip } from "./components/ui";
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -3411,10 +3412,10 @@ export namespace App {
         );
       };
     }, []);
-    // Note: Dark mode is now handled by the theme system instead of filter invert
+    
     const canvasFill = useMemo(() => {
       const darkModeFlag = settingsRecord[Setting.DARK_MODE];
-      return darkModeFlag ? "#0f172a" : "#ffffff";
+      return darkModeFlag ? "#514646" : "#F0F0F0";
     }, [settingsRecord]);
     const getOutputFileHandle = useMemo(function () {
       return async function () {
@@ -4422,11 +4423,31 @@ export namespace App {
                                                 >
                                                   <feDropShadow
                                                     dx="0"
+                                                    dy="4"
+                                                    stdDeviation="3"
+                                                    floodColor="#000000"
+                                                    floodOpacity="0.15"
+                                                  />
+                                                  <feDropShadow
+                                                    dx="0"
                                                     dy="2"
                                                     stdDeviation="2"
                                                     floodColor="#000000"
-                                                    floodOpacity="0.20"
+                                                    floodOpacity="0.05"
                                                   />
+                                                </filter>
+                                                <filter
+                                                  id="xrTooltipGlow"
+                                                  x="-50%"
+                                                  y="-50%"
+                                                  width="200%"
+                                                  height="200%"
+                                                >
+                                                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                                                  <feMerge>
+                                                    <feMergeNode in="coloredBlur"/>
+                                                    <feMergeNode in="SourceGraphic"/>
+                                                  </feMerge>
                                                 </filter>
                                               </defs>
                                               <rect
@@ -4492,93 +4513,15 @@ export namespace App {
                                                   </g>
                                                 </g>
                                               </g>
-                                              <g
-                                                id={MOUSE_OVER_TEXT_HTML_ID}
-                                                style={{
-                                                  display:
-                                                    mouseOverText.length > 0
-                                                      ? "inline"
-                                                      : "none",
-                                                  filter:
-                                                    "url(#xrTooltipShadow)",
-                                                }}
-                                                transform={`translate(${Math.max(
-                                                  0,
-                                                  Math.min(
-                                                    mouseUIPosition.x + 12,
-                                                    Math.max(
-                                                      (parentDivResizeDetector.width ??
-                                                        0) - 420,
-                                                      0
-                                                    ) -
-                                                      (mouseOverTextDimensions.width +
-                                                        12)
-                                                  )
-                                                )}, ${Math.max(
-                                                  0,
-                                                  Math.min(
-                                                    mouseUIPosition.y + 12,
-                                                    Math.max(
-                                                      (parentDivResizeDetector.height ??
-                                                        0) - TOPBAR_HEIGHT,
-                                                      0
-                                                    ) -
-                                                      (mouseOverTextDimensions.height +
-                                                        12)
-                                                  )
-                                                )})`}
-                                              >
-                                                <rect
-                                                  x={0}
-                                                  y={0}
-                                                  width={
-                                                    mouseOverTextDimensions.width +
-                                                    16
-                                                  }
-                                                  height={
-                                                    mouseOverTextDimensions.height +
-                                                    16
-                                                  }
-                                                  fill="#ffffff"
-                                                  stroke="#e5e7eb"
-                                                  rx={6}
-                                                  ry={6}
-                                                />
-                                                <text
-                                                  fill="#111827"
-                                                  stroke="none"
-                                                  x={8}
-                                                  y={
-                                                    8 +
-                                                    MOUSE_OVER_TEXT_FONT_SIZE
-                                                  }
-                                                  ref={
-                                                    mouseOverTextSvgTextElementReference
-                                                  }
-                                                  xmlSpace="preserve"
-                                                  fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace"
-                                                  fontSize={
-                                                    MOUSE_OVER_TEXT_FONT_SIZE
-                                                  }
-                                                >
-                                                  {mouseOverText
-                                                    .split("\n")
-                                                    .map((line, idx) => (
-                                                      <tspan
-                                                        key={idx}
-                                                        x={8}
-                                                        dy={
-                                                          idx === 0
-                                                            ? 0
-                                                            : MOUSE_OVER_TEXT_FONT_SIZE *
-                                                              1.25
-                                                        }
-                                                      >
-                                                        {line}
-                                                      </tspan>
-                                                    ))}
-                                                </text>
-                                              </g>
+                                              <StructureTooltip
+                                                mouseOverText={mouseOverText}
+                                                mouseOverTextDimensions={mouseOverTextDimensions}
+                                                mouseUIPosition={mouseUIPosition}
+                                                parentDivResizeDetector={parentDivResizeDetector}
+                                                TOPBAR_HEIGHT={TOPBAR_HEIGHT}
+                                                MOUSE_OVER_TEXT_FONT_SIZE={MOUSE_OVER_TEXT_FONT_SIZE}
+                                                mouseOverTextSvgTextElementReference={mouseOverTextSvgTextElementReference}
+                                              />
                                             </svg>
                                             {sceneState ===
                                               SceneState.DATA_IS_LOADING && (

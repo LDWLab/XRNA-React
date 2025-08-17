@@ -15,6 +15,24 @@
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <style>
+      /* Paint something nice immediately (no white flash) */
+      :root { 
+        background: #EFE8E0;              /* light fallback (Gardenia) */
+        color-scheme: light dark;         /* improves form controls in both modes */
+        --color-canvas: #F3F3F3;          /* your neutral canvas for light */
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { 
+          background: #121110;            /* warm espresso */
+          --color-canvas: #181818;        /* your neutral canvas for dark */
+        }
+      }
+      html, body, #root { 
+        background: inherit; 
+        min-height: 100%;
+      }
+    </style>
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.

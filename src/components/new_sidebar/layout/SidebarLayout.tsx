@@ -60,15 +60,15 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
               color: theme.colors.text,
               margin: '0 0 2px 0',
             }}>
-              XRNA React
+              XRNA-React
             </h1>
             <p style={{
-              fontSize: theme.typography.fontSize.sm,
+              fontSize: theme.typography.fontSize.md,
+              fontWeight: '500',
               color: theme.colors.textSecondary,
               margin: 0,
             }}>
-              Your one stop shop for 
-              RNA Structure Editing & Visualizing
+              Visualize, Edit, Repeat
             </p>
           </div>
         </div>
@@ -80,7 +80,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, child
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          padding: '20px',
+          padding: '6px',
           overflow: 'auto',
           background: theme.colors.backgroundSecondary,
         }}

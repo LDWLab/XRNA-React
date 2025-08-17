@@ -23,12 +23,20 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setTooltip(null); // Clear tooltip when dropdown closes
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Clear tooltip when dropdown closes
+  useEffect(() => {
+    if (!isOpen) {
+      setTooltip(null);
+    }
+  }, [isOpen]);
 
   return (
     <div ref={dropdownRef} style={{ position: 'relative', minWidth: 80 }}>
@@ -94,6 +102,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
               onClick={() => {
                 onChange(option.value);
                 setIsOpen(false);
+                setTooltip(null); // Clear tooltip when option is selected
               }}
               style={{
                 padding: '8px 12px',
