@@ -93,7 +93,7 @@ import { Topbar, TOPBAR_HEIGHT } from "./components/new_sidebar/layout/Topbar";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SettingsDrawer } from "./components/new_sidebar/drawer/SettingsDrawer";
 import { AboutDrawer } from "./components/new_sidebar/drawer/AboutDrawer";
-import { StructureTooltip } from "./components/ui";
+import { StructureTooltip, Grid } from "./components/ui";
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -2975,6 +2975,27 @@ export namespace App {
                     );
                     break;
                   }
+                  case "string": {
+                    input = (
+                      <input
+                        type="text"
+                        value={settingsRecord[setting] as string}
+                        onChange={function (e: React.ChangeEvent<HTMLInputElement>) {
+                          setSettingsRecord({
+                            ...settingsRecord,
+                            [setting]: e.target.value,
+                          });
+                        }}
+                        placeholder="Enter value..."
+                        style={{
+                          padding: "4px 8px",
+                          border: "1px solid #ccc",
+                          borderRadius: "4px",
+                        }}
+                      />
+                    );
+                    break;
+                  }
                   default: {
                     throw "Unhandled switch case.";
                   }
@@ -4466,6 +4487,16 @@ export namespace App {
                                                     }
                                                   }
                                                 }}
+                                              />
+                                              {/* Grid component - always visible, zooms with canvas but doesn't move with pan */}
+                                              <Grid
+                                                settings={settingsRecord}
+                                                viewportWidth={svgWidth}
+                                                viewportHeight={Math.max((parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT, 0)}
+                                                viewportScale={viewportScale}
+                                                viewportTranslateX={viewportTranslateX}
+                                                viewportTranslateY={viewportTranslateY}
+                                                sceneBounds={sceneBounds}
                                               />
                                               <g
                                                 style={{

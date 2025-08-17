@@ -17,14 +17,23 @@ export enum Setting {
   CONTOUR_LINE_WIDTH = "contour_line_width",
   DARK_MODE = "dark_mode",
   DISABLE_NAVIGATE_AWAY_PROMPT = "disable_navigate_away_prompt",
-  TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED = "treat_non_canonical_base_pairs_as_unpaired"
+  TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED = "treat_non_canonical_base_pairs_as_unpaired",
+  // Grid settings
+  GRID_ENABLED = "grid_enabled",
+  GRID_HORIZONTAL_LINES = "grid_horizontal_lines",
+  GRID_VERTICAL_LINES = "grid_vertical_lines",
+  GRID_LEFT_RIGHT_DIAGONAL = "grid_left_right_diagonal",
+  GRID_RIGHT_LEFT_DIAGONAL = "grid_right_left_diagonal",
+  GRID_CONCENTRIC_CIRCLES = "grid_concentric_circles",
+  GRID_SPACING = "grid_spacing",
+  GRID_COLOR = "grid_color"
 }
 
 export const settings = Object.values(Setting);
 
 export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.COPY_FILE_NAME] : "Copy input-file names to output-file names",
-  [Setting.COPY_FILE_EXTENSION] : "Copy input-file extensions to output-file extensions",
+  [Setting.COPY_FILE_EXTENSION] : "Copy input-file extensions to downloadable output files",
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "Reset viewport after file upload",
   [Setting.USE_DEGREES] : "Use degrees",
   [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "Reposition annotations when editing",
@@ -38,7 +47,16 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.CONTOUR_LINE_WIDTH] : "Contour-line width",
   [Setting.DARK_MODE] : "Dark mode",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the navigate-away prompt",
-  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Treat non-canonical base pairs as unpaired (when editing and formatting)"
+  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Treat non-canonical base pairs as unpaired (when editing and formatting)",
+  // Grid settings
+  [Setting.GRID_ENABLED] : "Enable canvas grid",
+  [Setting.GRID_HORIZONTAL_LINES] : "Show horizontal grid lines",
+  [Setting.GRID_VERTICAL_LINES] : "Show vertical grid lines",
+  [Setting.GRID_LEFT_RIGHT_DIAGONAL] : "Show left-to-right diagonal lines",
+  [Setting.GRID_RIGHT_LEFT_DIAGONAL] : "Show right-to-left diagonal lines",
+  [Setting.GRID_CONCENTRIC_CIRCLES] : "Show concentric circles",
+  [Setting.GRID_SPACING] : "Grid line spacing",
+  [Setting.GRID_COLOR] : "Grid color"
 };
 
 export const settingsLongDescriptionsMap : Record<Setting, string> = {
@@ -57,10 +75,19 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.CONTOUR_LINE_WIDTH] : "Width of the contour line (applied when replacing nucleotides with a contour line)",
   [Setting.DARK_MODE] : "Change background colors and scene colors to darken the scene",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the prompt asking you to save your work, when you navigate away from this page",
-  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Disable editing and formatting of non-canonical base pairs."
+  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Disable editing and formatting of non-canonical base pairs.",
+  // Grid settings
+  [Setting.GRID_ENABLED] : "Enable or disable the canvas grid system. When enabled, you can choose which grid types to display.",
+  [Setting.GRID_HORIZONTAL_LINES] : "Display horizontal parallel lines across the canvas. These lines move with the viewport pan but maintain their spacing.",
+  [Setting.GRID_VERTICAL_LINES] : "Display vertical parallel lines across the canvas. These lines move with the viewport pan but maintain their spacing.",
+  [Setting.GRID_LEFT_RIGHT_DIAGONAL] : "Display diagonal lines from top-left to bottom-right. These lines move with the viewport pan but maintain their spacing.",
+  [Setting.GRID_RIGHT_LEFT_DIAGONAL] : "Display diagonal lines from top-right to bottom-left. These lines move with the viewport pan but maintain their spacing.",
+  [Setting.GRID_CONCENTRIC_CIRCLES] : "Display concentric circles centered on the canvas. The radius between circles is controlled by the grid spacing setting.",
+  [Setting.GRID_SPACING] : "Control the distance between parallel grid lines or the radius increment for concentric circles. Higher values create more spaced out grids.",
+  [Setting.GRID_COLOR] : "Customize the color of all grid elements. Leave empty to use automatic theme-based colors."
 };
 
-export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairsEditorType"> = {
+export const settingsTypeMap : Record<Setting, "boolean" | "number" | "string" | "BasePairsEditorType"> = {
   [Setting.COPY_FILE_NAME] : "boolean",
   [Setting.COPY_FILE_EXTENSION] : "boolean",
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "boolean",
@@ -76,14 +103,23 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "BasePairs
   [Setting.CONTOUR_LINE_WIDTH] : "number",
   [Setting.DARK_MODE] : "boolean",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "boolean",
-  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "boolean"
+  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "boolean",
+  // Grid settings
+  [Setting.GRID_ENABLED] : "boolean",
+  [Setting.GRID_HORIZONTAL_LINES] : "boolean",
+  [Setting.GRID_VERTICAL_LINES] : "boolean",
+  [Setting.GRID_LEFT_RIGHT_DIAGONAL] : "boolean",
+  [Setting.GRID_RIGHT_LEFT_DIAGONAL] : "boolean",
+  [Setting.GRID_CONCENTRIC_CIRCLES] : "boolean",
+  [Setting.GRID_SPACING] : "number",
+  [Setting.GRID_COLOR] : "string"
 };
 
 export function isSetting(candidateSetting : string) : candidateSetting is Setting {
   return (settings as Array<string>).includes(candidateSetting);
 }
 
-export type SettingValue = boolean | number | BasePairsEditor.EditorType;
+export type SettingValue = boolean | number | string | BasePairsEditor.EditorType;
 
 export type SettingsRecord = Record<Setting, SettingValue>;
 
@@ -103,5 +139,14 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.CONTOUR_LINE_WIDTH] : DEFAULT_STROKE_WIDTH,
   [Setting.DARK_MODE] : false,
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : false,
-  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : true
+  [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : true,
+  // Grid settings
+  [Setting.GRID_ENABLED] : false,
+  [Setting.GRID_HORIZONTAL_LINES] : true,
+  [Setting.GRID_VERTICAL_LINES] : true,
+  [Setting.GRID_LEFT_RIGHT_DIAGONAL] : false,
+  [Setting.GRID_RIGHT_LEFT_DIAGONAL] : false,
+  [Setting.GRID_CONCENTRIC_CIRCLES] : false,
+  [Setting.GRID_SPACING] : 10,
+  [Setting.GRID_COLOR] : ""
 };
