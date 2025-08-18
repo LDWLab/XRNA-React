@@ -62,7 +62,7 @@ export const Grid: React.FC<GridProps> = ({
   // Calculate grid parameters - use smaller base spacing and scale with zoom
   const baseSpacing = Math.max(10, gridSpacing * 0.5); // Reduce base spacing
   const scaledSpacing = Math.max(1, baseSpacing * viewportScale); // Ensure minimum spacing
-  const strokeWidth = Math.max(0.3, 0.8 / Math.max(0.1, viewportScale)); // Thinner lines that scale better
+  const strokeWidth = Math.max(0.3, Math.max(0.1, viewportScale)); // Thinner lines that scale better
 
   // Calculate grid bounds based on viewport, not scene bounds
   // This ensures grid is always visible and scales properly with zoom
