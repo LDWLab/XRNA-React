@@ -14,7 +14,7 @@ import {
   DuplicateBasePairKeysHandler,
 } from "../../app_specific/RnaComplex";
 import { Context } from "../../../context/Context";
-import { Pencil, Check, Trash2, X } from "lucide-react";
+import { Pencil, Check, Trash2, X, Download, Upload } from "lucide-react";
 
 export type FullKeysRecord = Record<
   RnaComplexKey,
@@ -124,6 +124,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const sheetRef = useRef<HTMLDivElement>(null);
   const startYRef = useRef<number>(0);
   const startHRef = useRef<number>(360);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAdd, setShowAdd] = useState<boolean>(false);
   const [addForm, setAddForm] = useState<{
     rnaComplexIndex?: number;
@@ -244,6 +245,300 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
 
   const allRows = computeRowsAll();
   const rows = activeTab === "Global" ? allRows : computeRowsSelected(allRows);
+
+  function csvEscape(value: string): string {
+    if (value == null) return "";
+    const needsQuotes = /[",\n]/.test(value);
+    const escaped = value.replace(/"/g, '""');
+    return needsQuotes ? `"${escaped}"` : escaped;
+  }
+
+  function splitCsvLine(line: string): string[] {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (i + 1 < line.length && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          current += ch;
+        }
+      } else {
+        if (ch === ',') {
+          result.push(current);
+          current = "";
+        } else if (ch === '"') {
+          inQuotes = true;
+        } else {
+          current += ch;
+        }
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
+  function exportCsv() {
+    const header = [
+      "rnaComplexName",
+      "rnaMoleculeName0",
+      "formattedNucleotideIndex0",
+      "rnaMoleculeName1",
+      "formattedNucleotideIndex1",
+      "typeBase",
+      "orientation",
+      "edgeA",
+      "edgeB",
+    ].join(",");
+    const lines = rows.map((r) => {
+      const base = decomposeTypeBase(r.type);
+      const { orientation, edgeA, edgeB } = parseDirectedType(r.type);
+      return [
+        csvEscape(r.rnaComplexName),
+        csvEscape(r.rnaMoleculeName0),
+        String(r.formattedNucleotideIndex0),
+        csvEscape(r.rnaMoleculeName1),
+        String(r.formattedNucleotideIndex1),
+        csvEscape(base),
+        csvEscape(orientation ?? ""),
+        csvEscape(edgeA ?? ""),
+        csvEscape(edgeB ?? ""),
+      ].join(",");
+    });
+    const csv = [header, ...lines].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "base_pairs.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function parseAndApplyCsv(text: string) {
+    const normalized = text.replace(/\r\n?/g, "\n");
+    const lines = normalized.split("\n").filter((l) => l.trim().length > 0);
+    if (lines.length === 0) {
+      throw "CSV is empty.";
+    }
+    const header = splitCsvLine(lines[0]).map((s) => s.trim());
+    const expected = [
+      "rnaComplexName",
+      "rnaMoleculeName0",
+      "formattedNucleotideIndex0",
+      "rnaMoleculeName1",
+      "formattedNucleotideIndex1",
+      "typeBase",
+      "orientation",
+      "edgeA",
+      "edgeB",
+    ];
+    if (
+      header.length !== expected.length ||
+      !expected.every((h, i) => header[i] === h)
+    ) {
+      throw `CSV header is invalid. Expected: ${expected.join(",")}`;
+    }
+
+    type Op = {
+      rnaComplexIndex: number;
+      mol0: string;
+      idx0: number;
+      mol1: string;
+      idx1: number;
+      type?: _BasePair.Type;
+    };
+
+    const ops: Op[] = [];
+
+    const allowedTypeBases = new Set([
+      "auto",
+      "canonical",
+      "wobble",
+      "mismatch",
+      "custom",
+    ] as const);
+    const allowedOrientations = new Set(["cis", "trans"] as const);
+    const allowedEdges = new Set([
+      "watson_crick",
+      "hoogsteen",
+      "sugar_edge",
+    ] as const);
+
+    for (let i = 1; i < lines.length; i++) {
+      const raw = lines[i];
+      if (raw.trim().length === 0) continue;
+      const cols = splitCsvLine(raw).map((c) => c.trim());
+      if (cols.length !== expected.length) {
+        throw `Line #${i + 1} has ${cols.length} column(s); expected ${expected.length}.`;
+      }
+      const [
+        complexName,
+        mol0,
+        idx0Str,
+        mol1,
+        idx1Str,
+        typeBaseStr,
+        orientationStr,
+        edgeAStr,
+        edgeBStr,
+      ] = cols;
+
+      const entry = Object.entries(rnaComplexProps).find(
+        ([, c]) => c.name === complexName
+      );
+      if (!entry) {
+        throw `Line #${i + 1}: Unknown RNA complex name '${complexName}'.`;
+      }
+      const rnaComplexIndex = parseInt(entry[0]);
+      const complex = rnaComplexProps[rnaComplexIndex];
+
+      if (!(mol0 in complex.rnaMoleculeProps)) {
+        throw `Line #${i + 1}: Unknown RNA molecule #1 '${mol0}'.`;
+      }
+      if (!(mol1 in complex.rnaMoleculeProps)) {
+        throw `Line #${i + 1}: Unknown RNA molecule #2 '${mol1}'.`;
+      }
+      const mp0 = complex.rnaMoleculeProps[mol0];
+      const mp1 = complex.rnaMoleculeProps[mol1];
+
+      if (!/^[-+]?\d+$/.test(idx0Str)) {
+        throw `Line #${i + 1}: formattedNucleotideIndex0 is not an integer.`;
+      }
+      if (!/^[-+]?\d+$/.test(idx1Str)) {
+        throw `Line #${i + 1}: formattedNucleotideIndex1 is not an integer.`;
+      }
+      const formatted0 = parseInt(idx0Str);
+      const formatted1 = parseInt(idx1Str);
+      const idx0 = formatted0 - mp0.firstNucleotideIndex;
+      const idx1 = formatted1 - mp1.firstNucleotideIndex;
+      if (!(idx0 in mp0.nucleotideProps)) {
+        throw `Line #${i + 1}: Nucleotide #1 index '${formatted0}' does not exist in '${mol0}'.`;
+      }
+      if (!(idx1 in mp1.nucleotideProps)) {
+        throw `Line #${i + 1}: Nucleotide #2 index '${formatted1}' does not exist in '${mol1}'.`;
+      }
+
+      const tb = typeBaseStr.toLowerCase();
+      if (!allowedTypeBases.has(tb as any)) {
+        throw `Line #${i + 1}: Invalid typeBase '${typeBaseStr}'.`;
+      }
+      let newType: _BasePair.Type | undefined;
+      if (tb === "auto") newType = undefined;
+      else if (tb === "canonical") newType = _BasePair.Type.CANONICAL;
+      else if (tb === "wobble") newType = _BasePair.Type.WOBBLE;
+      else if (tb === "mismatch") newType = _BasePair.Type.MISMATCH;
+      else if (tb === "custom") {
+        const o = orientationStr as Orientation;
+        const eA = edgeAStr as Edge;
+        const eB = edgeBStr as Edge;
+        if (!allowedOrientations.has(o as any)) {
+          throw `Line #${i + 1}: orientation must be 'cis' or 'trans' for custom types.`;
+        }
+        if (!allowedEdges.has(eA as any) || !allowedEdges.has(eB as any)) {
+          throw `Line #${i + 1}: edgeA/edgeB must be one of watson_crick, hoogsteen, sugar_edge.`;
+        }
+        newType = assembleDirectedType(o, eA, eB);
+        if (!newType) {
+          throw `Line #${i + 1}: invalid custom type configuration.`;
+        }
+      }
+
+      ops.push({ rnaComplexIndex, mol0, idx0, mol1, idx1, type: newType });
+    }
+
+    // Build previous full set of existing base pairs (to delete)
+    const prevDeletes: Record<number, Array<{ keys0: any; keys1: any }>> = {};
+    for (const [rcIndexStr, complex] of Object.entries(rnaComplexProps)) {
+      const rcIndex = parseInt(rcIndexStr);
+      prevDeletes[rcIndex] = [];
+      for (const [molName, perMol] of Object.entries(complex.basePairs)) {
+        for (const [nucIdxStr, perNuc] of Object.entries(perMol)) {
+          const nucIdx = parseInt(nucIdxStr);
+          for (const mapped of perNuc) {
+            const keysA = { rnaMoleculeName: molName, nucleotideIndex: nucIdx };
+            const keysB = {
+              rnaMoleculeName: mapped.rnaMoleculeName,
+              nucleotideIndex: mapped.nucleotideIndex,
+            };
+            const [keys0, keys1] = [keysA, keysB].sort(compareBasePairKeys);
+            // include only one direction
+            if (keys0.rnaMoleculeName === keysA.rnaMoleculeName && keys0.nucleotideIndex === keysA.nucleotideIndex) {
+              prevDeletes[rcIndex].push({ keys0, keys1 });
+            }
+          }
+        }
+      }
+    }
+
+    // Prepare 'add' signals from ops
+    const adds: Record<number, Array<{ keys0: any; keys1: any }>> = {};
+    for (const op of ops) {
+      if (!(op.rnaComplexIndex in adds)) adds[op.rnaComplexIndex] = [];
+      const [keys0, keys1] = [
+        { rnaMoleculeName: op.mol0, nucleotideIndex: op.idx0 },
+        { rnaMoleculeName: op.mol1, nucleotideIndex: op.idx1 },
+      ].sort(compareBasePairKeys);
+      adds[op.rnaComplexIndex].push({ keys0, keys1 });
+    }
+
+    // Override: clear all base pairs then apply CSV as ground truth
+    pushToUndoStack();
+    for (const [rcIndexStr, complex] of Object.entries(rnaComplexProps)) {
+      const rcIndex = parseInt(rcIndexStr);
+      // Clear all existing base pairs
+      (complex as any).basePairs = {};
+    }
+    // Insert new base pairs
+    for (const op of ops) {
+      const complex = rnaComplexProps[op.rnaComplexIndex];
+      insertBasePair(
+        complex,
+        op.mol0,
+        op.idx0,
+        op.mol1,
+        op.idx1,
+        DuplicateBasePairKeysHandler.DO_NOTHING,
+        { basePairType: op.type }
+      );
+    }
+    // Signal UI of deletes then adds per complex
+    const edits: any = {};
+    const complexIndices = new Set<number>([...Object.keys(rnaComplexProps).map((k) => parseInt(k)), ...ops.map((o) => o.rnaComplexIndex)]);
+    for (const rcIndex of complexIndices) {
+      edits[rcIndex] = {
+        add: adds[rcIndex] ?? [],
+        delete: prevDeletes[rcIndex] ?? [],
+      };
+    }
+    setBasePairKeysToEdit(edits);
+  }
+
+  function onImportClick() {
+    fileInputRef.current?.click();
+  }
+
+  async function onCsvFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Reset for subsequent selections of the same file name
+    e.currentTarget.value = "";
+    if (!file) return;
+    const text = await file.text();
+    try {
+      parseAndApplyCsv(text);
+    } catch (error) {
+      alert(typeof error === "string" ? error : (error as Error).message);
+    }
+  }
 
   function resolveMoleculeByFormattedIndex(
     rnaComplexIndex: number,
@@ -1056,6 +1351,54 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Import/Export CSV */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: "none" }}
+            onChange={onCsvFileChange}
+          />
+          <button
+            onClick={exportCsv}
+            title="Export table to CSV"
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: `1px solid ${theme.colors.border}`,
+              background: theme.colors.background,
+              color: theme.colors.text,
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 0.3,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Download size={14} /> Export
+          </button>
+          <button
+            onClick={onImportClick}
+            title="Import table from CSV"
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: `1px solid ${theme.colors.border}`,
+              background: theme.colors.background,
+              color: theme.colors.text,
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 0.3,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Upload size={14} /> Import
+          </button>
           {/* Stylized Reformat button (note: behavior delegated to existing editor elsewhere) */}
           <button
             onClick={() =>
