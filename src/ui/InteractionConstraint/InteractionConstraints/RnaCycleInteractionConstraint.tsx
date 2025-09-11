@@ -62,6 +62,19 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     const singularRnaComplexProps = rnaComplexProps[fullKeys0.rnaComplexIndex];
     this.initialDrag = structuredClone(singularRnaComplexProps.rnaMoleculeProps[fullKeys0.rnaMoleculeName].nucleotideProps[fullKeys0.nucleotideIndex]);
     const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+    if (
+      fullKeys0.rnaMoleculeName in basePairsPerRnaComplex &&
+      fullKeys0.nucleotideIndex in basePairsPerRnaComplex[fullKeys0.rnaMoleculeName] &&
+      basePairsPerRnaComplex[fullKeys0.rnaMoleculeName][fullKeys0.nucleotideIndex].some(basePair => BasePair.isEnabledBasePair(
+        basePair.basePairType ?? getBasePairType(
+          singularRnaComplexProps.rnaMoleculeProps[fullKeys0.rnaMoleculeName].nucleotideProps[fullKeys0.nucleotideIndex].symbol,
+          singularRnaComplexProps.rnaMoleculeProps[basePair.rnaMoleculeName].nucleotideProps[basePair.nucleotideIndex].symbol
+        ),
+        treatNoncanonicalBasePairsAsUnpairedFlag
+      ))
+    ) {
+      throw basePairedNucleotideError;
+    }
     type Node = {
       rnaMoleculeName : RnaMoleculeKey,
       nucleotideIndex : NucleotideKey

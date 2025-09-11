@@ -165,13 +165,24 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
                 residueIndex2 : singularRnaMoleculeProps.firstNucleotideIndex + basePairPerNucleotide.nucleotideIndex,
                 points : basePairPerNucleotide.points
               };
-              if (basePairPerNucleotide.rnaMoleculeName === rnaMoleculeName) {
+              let rnaMoleculeName1 = rnaMoleculeName;
+              let rnaMoleculeName2 = basePairPerNucleotide.rnaMoleculeName;
+              if (BasePair.isRedundantLeontisWesthofType(basePair.basePairType)) {
+                basePair.basePairType = BasePair.reverseDirectedTypeMap[basePair.basePairType];
+                const tempRnaMoleculeName = rnaMoleculeName1;
+                rnaMoleculeName1 = rnaMoleculeName2;
+                rnaMoleculeName2 = tempRnaMoleculeName;
+                const tempResidueIndex = basePair.residueIndex1;
+                basePair.residueIndex1 = basePair.residueIndex2;
+                basePair.residueIndex2 = tempResidueIndex;
+              }
+              if (rnaMoleculeName1 === rnaMoleculeName2) {
                 outputBasePairsPerRnaMolecule.push(basePair);
               } else {
                 outputBasePairsPerRnaComplex.push({
                   ...basePair,
-                  rnaMoleculeName1 : rnaMoleculeName,
-                  rnaMoleculeName2 : basePairPerNucleotide.rnaMoleculeName
+                  rnaMoleculeName1,
+                  rnaMoleculeName2
                 });
               }
             }
