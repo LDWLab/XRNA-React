@@ -78,6 +78,26 @@ export namespace BasePair {
 
   export const directedTypes = Object.values(DirectedType);
 
+  export type RedundantLeontisWesthofType = Extract<
+    DirectedType,
+    Type.CIS_SUGAR_EDGE_WATSON_CRICK | Type.CIS_HOOGSTEEN_WATSON_CRICK | Type.CIS_SUGAR_EDGE_HOOGSTEEN | Type.TRANS_SUGAR_EDGE_WATSON_CRICK | Type.TRANS_HOOGSTEEN_WATSON_CRICK | Type.TRANS_SUGAR_EDGE_HOOGSTEEN
+  >;
+  
+  export const RedundantLeontisWesthofType = {
+    [Type.CIS_SUGAR_EDGE_WATSON_CRICK] : Type.CIS_SUGAR_EDGE_WATSON_CRICK,
+    [Type.CIS_HOOGSTEEN_WATSON_CRICK] : Type.CIS_HOOGSTEEN_WATSON_CRICK,
+    [Type.CIS_SUGAR_EDGE_HOOGSTEEN] : Type.CIS_SUGAR_EDGE_HOOGSTEEN,
+    [Type.TRANS_SUGAR_EDGE_WATSON_CRICK] : Type.TRANS_SUGAR_EDGE_WATSON_CRICK,
+    [Type.TRANS_HOOGSTEEN_WATSON_CRICK] : Type.TRANS_HOOGSTEEN_WATSON_CRICK,
+    [Type.TRANS_SUGAR_EDGE_HOOGSTEEN] : Type.TRANS_SUGAR_EDGE_HOOGSTEEN
+  };
+
+  export const redundantLeontisWesthofTypes = Object.values(RedundantLeontisWesthofType);
+
+  export function isRedundantLeontisWesthofType(type : Type) : type is RedundantLeontisWesthofType {
+    return redundantLeontisWesthofTypes.includes(type);
+  }
+
   export const reverseDirectedTypeMap : Record<DirectedType, DirectedType> = {
     [Type.CIS_WATSON_CRICK_HOOGSTEEN] : Type.CIS_HOOGSTEEN_WATSON_CRICK,
     [Type.CIS_HOOGSTEEN_WATSON_CRICK] : Type.CIS_WATSON_CRICK_HOOGSTEEN,
