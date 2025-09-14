@@ -178,16 +178,26 @@ export namespace Nucleotide {
             `nucleotide: ${idx}\n` +
             `symbol:     ${symbol}\n` +
             `molecule:   ${rnaMoleculeName}\n` +
-            `complex:    ${rnaComplexName}`
+            `complex:    ${rnaComplexName}\n` +
+            `status:     ${frozenFlag ? 'LOCKED (cannot move)' : 'unlocked (can move)'}`
           );
         }}
         onMouseLeave = {function() {
           setMouseOverText("");
         }}
       >
-        {frozenFlag && <animate attributeName = "opacity" values={`0;1;0`} dur = "2s" repeatCount = "indefinite"/>}
         {symbol}
       </text>
+      {frozenFlag && (
+        <circle
+          cx="0"
+          cy="0"
+          r="3"
+          fill="none"
+          stroke="#e56565"
+          strokeWidth="1"
+        />
+      )}
       <Context.Nucleotide.Symbol.Provider
         value = {symbol}
       >

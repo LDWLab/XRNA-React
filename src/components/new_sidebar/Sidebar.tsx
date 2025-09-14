@@ -23,6 +23,11 @@ export interface SidebarProps {
   onJumpToHistory?: (index: number) => void;
   onResetToLastCheckpoint?: () => void;
   onFormatModeClick?: () => void;
+  onFreezeSelected?: () => void;
+  onUnfreezeSelected?: () => void;
+  onUnfreezeAll?: () => void;
+  hasFrozenNucleotides?: boolean;
+  hasSelectedNucleotides?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = (props) => {
@@ -32,6 +37,8 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     onToggleBasePairEditor, onTogglePropertiesDrawer,
     onToggleSettingsDrawer, onToggleAboutDrawer,
     undoStack, redoStack, onJumpToHistory, onResetToLastCheckpoint, onFormatModeClick,
+    onFreezeSelected, onUnfreezeSelected, onUnfreezeAll,
+    hasFrozenNucleotides, hasSelectedNucleotides,
   } = props;
 
   return (
@@ -44,6 +51,11 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
         onResetToLastCheckpoint={onResetToLastCheckpoint}
         constraint={constraint}
         onFormatModeClick={onFormatModeClick}
+        onFreezeSelected={onFreezeSelected}
+        onUnfreezeSelected={onUnfreezeSelected}
+        onUnfreezeAll={onUnfreezeAll}
+        hasFrozenNucleotides={hasFrozenNucleotides}
+        hasSelectedNucleotides={hasSelectedNucleotides}
       />
       
       <UtilitiesPanel

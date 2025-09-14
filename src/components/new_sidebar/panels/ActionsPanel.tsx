@@ -9,6 +9,9 @@ import {
   Clock,
   ChevronDown,
   ChevronRight,
+  Lock,
+  LockOpen,
+  Trash2,
 } from "lucide-react";
 import { Tab } from "../../../app_data/Tab";
 import { InteractionConstraint } from "../../../ui/InteractionConstraint/InteractionConstraints";
@@ -24,6 +27,11 @@ export interface ActionsPanelProps {
   onResetToLastCheckpoint?: () => void;
   mode?: Tab;
   constraint?: InteractionConstraint.Enum;
+  onFreezeSelected?: () => void;
+  onUnfreezeSelected?: () => void;
+  onUnfreezeAll?: () => void;
+  hasFrozenNucleotides?: boolean;
+  hasSelectedNucleotides?: boolean;
 }
 
 const HistoryViewer: React.FC<{
@@ -337,7 +345,14 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   onResetToLastCheckpoint,
   mode,
   constraint,
+  onFreezeSelected,
+  onUnfreezeSelected,
+  onUnfreezeAll,
+  hasFrozenNucleotides = false,
+  hasSelectedNucleotides = false,
 }) => {
+  const { theme } = useTheme();
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div style={{ display: "flex", gap: "6px" }}>
@@ -365,6 +380,65 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
           hint="Restore to last checkpoint"
           variant="danger"
         />
+      </div>
+
+      {/* Freeze Controls Section */}
+      <div
+        style={{
+          border: `1px solid ${theme.colors.border}`,
+          borderRadius: theme.borderRadius.lg,
+          padding: "12px",
+          background: theme.colors.surface,
+        }}
+      >
+        <div
+          style={{
+            fontSize: theme.typography.fontSize.xs,
+            fontWeight: "600",
+            color: theme.colors.text,
+            marginBottom: "8px",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          Position Lock Controls
+        </div>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          <Button
+            onClick={onFreezeSelected}
+            disabled={!onFreezeSelected || !hasSelectedNucleotides}
+            icon={<Lock size={12} />}
+            label="Freeze"
+            hint="Lock selected nucleotides in place (prevents movement)"
+            variant="secondary"
+          />
+          <Button
+            onClick={onUnfreezeSelected}
+            disabled={!onUnfreezeSelected || !hasSelectedNucleotides}
+            icon={<LockOpen size={12} />}
+            label="Unfreeze"
+            hint="Unlock selected nucleotides (allows movement)"
+            variant="secondary"
+          />
+          <Button
+            onClick={onUnfreezeAll}
+            disabled={!onUnfreezeAll || !hasFrozenNucleotides}
+            icon={<Trash2 size={12} />}
+            label="Unfreeze All"
+            hint="Unlock all nucleotides (allows movement)"
+            variant="danger"
+          />
+        </div>
+        <div
+          style={{
+            fontSize: "9px",
+            color: theme.colors.textSecondary,
+            marginTop: "8px",
+            lineHeight: "1.4",
+          }}
+        >
+          <strong>Tip:</strong> Freeze nucleotides to lock them in place while moving others. Middle-click or F key to toggle.
+        </div>
       </div>
 
       <HistoryViewer

@@ -8,7 +8,7 @@ import { LabelLine as _LabelLine } from "../components/app_specific/LabelLine";
 import { DEFAULT_SETTINGS } from "../ui/Setting";
 import { InteractionConstraint } from "../ui/InteractionConstraint/InteractionConstraints";
 import Font from "../data_structures/Font";
-import Color, { BLACK } from "../data_structures/Color";
+import Color from "../data_structures/Color";
 import { DEFAULT_STROKE_WIDTH } from "../utils/Constants";
 
 export type NucleotideKeysToRerenderPerRnaMolecule = Array<NucleotideKey>;
