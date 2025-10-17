@@ -99,6 +99,7 @@ export namespace Nucleotide {
         }
       }
     }
+    // Note: frozenFlag is now only used for tooltip text. Visual indicator is rendered in RnaMolecule.tsx
     // Begin state data.
     const [
       textDimensions,
@@ -188,16 +189,6 @@ export namespace Nucleotide {
       >
         {symbol}
       </text>
-      {frozenFlag && (
-        <circle
-          cx="0"
-          cy="0"
-          r="3"
-          fill="none"
-          stroke="#e56565"
-          strokeWidth="1"
-        />
-      )}
       <Context.Nucleotide.Symbol.Provider
         value = {symbol}
       >
