@@ -5,7 +5,9 @@ import { Nucleotide } from "../../../components/app_specific/Nucleotide";
 import { ColorEditor } from "../../../components/generic/editors/ColorEditor";
 import Font from "../../../data_structures/Font";
 import { FontEditor } from "../../../components/generic/editors/FontEditor";
+import { PathEditor } from "../../../components/generic/editors/PathEditor";
 import { Context } from "../../../context/Context";
+import { DEFAULT_STROKE_WIDTH } from "../../../utils/Constants";
 
 export namespace AllInOneEditor {
   export type Props = AppSpecificOrientationEditor.Props
@@ -25,6 +27,14 @@ export namespace AllInOneEditor {
       font,
       setFont
     ] = useState(Font.DEFAULT);
+    const [
+      pathStyle,
+      setPathStyle
+    ] = useState<PathEditor.PathStyle>({
+      pathColor: BLACK,
+      pathLineWidth: DEFAULT_STROKE_WIDTH,
+      pathCurvature: 0
+    });
     const [
       positionsChangedFlag,
       setPositionsChangedFlag
@@ -68,8 +78,45 @@ export namespace AllInOneEditor {
             break;
           }
         }
+        
+        // Check for single path style
+        let singlePathColorFlag = true;
+        const singlePathColorCandidate = singularNucleotideProps0.pathColor ?? BLACK;
+        for (let i = 1; i < allNucleotides.length; i++) {
+          if (!areEqual(
+            singlePathColorCandidate,
+            allNucleotides[i].pathColor ?? BLACK
+          )) {
+            singlePathColorFlag = false;
+            break;
+          }
+        }
+        
+        let singlePathLineWidthFlag = true;
+        const singlePathLineWidthCandidate = singularNucleotideProps0.pathLineWidth ?? DEFAULT_STROKE_WIDTH;
+        for (let i = 1; i < allNucleotides.length; i++) {
+          if (singlePathLineWidthCandidate !== (allNucleotides[i].pathLineWidth ?? DEFAULT_STROKE_WIDTH)) {
+            singlePathLineWidthFlag = false;
+            break;
+          }
+        }
+        
+        let singlePathCurvatureFlag = true;
+        const singlePathCurvatureCandidate = singularNucleotideProps0.pathCurvature ?? 0;
+        for (let i = 1; i < allNucleotides.length; i++) {
+          if (singlePathCurvatureCandidate !== (allNucleotides[i].pathCurvature ?? 0)) {
+            singlePathCurvatureFlag = false;
+            break;
+          }
+        }
+        
         setColor(singleColorFlag ? singleColorCandidate : BLACK);
         setFont(singleFontFlag ? singleFontCandidate : Font.DEFAULT);
+        setPathStyle({
+          pathColor: singlePathColorFlag ? singlePathColorCandidate : BLACK,
+          pathLineWidth: singlePathLineWidthFlag ? singlePathLineWidthCandidate : DEFAULT_STROKE_WIDTH,
+          pathCurvature: singlePathCurvatureFlag ? singlePathCurvatureCandidate : 0
+        });
       },
       [positions]
     );
@@ -98,6 +145,24 @@ export namespace AllInOneEditor {
           _onUpdatePositions(false);
         }}
       />
+      <PathEditor.Component
+        pathStyle = {pathStyle}
+        setPathStyle = {function(newPathStyle) {
+          for (const singularNucleotideProps of allNucleotides) {
+            if (newPathStyle.pathColor !== undefined) {
+              singularNucleotideProps.pathColor = newPathStyle.pathColor;
+            }
+            if (newPathStyle.pathLineWidth !== undefined) {
+              singularNucleotideProps.pathLineWidth = newPathStyle.pathLineWidth;
+            }
+            if (newPathStyle.pathCurvature !== undefined) {
+              singularNucleotideProps.pathCurvature = newPathStyle.pathCurvature;
+            }
+          }
+          setPathStyle(newPathStyle);
+          _onUpdatePositions(false);
+        }}
+      />
     </>;
   }
 
@@ -118,6 +183,14 @@ export namespace AllInOneEditor {
       font,
       setFont
     ] = useState(Font.DEFAULT);
+    const [
+      pathStyle,
+      setPathStyle
+    ] = useState<PathEditor.PathStyle>({
+      pathColor: BLACK,
+      pathLineWidth: DEFAULT_STROKE_WIDTH,
+      pathCurvature: 0
+    });
     const [
       positionsChangedFlag,
       setPositionsChangedFlag
@@ -160,8 +233,45 @@ export namespace AllInOneEditor {
             break;
           }
         }
+        
+        // Check for single path style
+        let singlePathColorFlag = true;
+        const singlePathColorCandidate = singularNucleotideProps0.pathColor ?? BLACK;
+        for (let i = 1; i < allNucleotides.length; i++) {
+          if (!areEqual(
+            singlePathColorCandidate,
+            allNucleotides[i].pathColor ?? BLACK
+          )) {
+            singlePathColorFlag = false;
+            break;
+          }
+        }
+        
+        let singlePathLineWidthFlag = true;
+        const singlePathLineWidthCandidate = singularNucleotideProps0.pathLineWidth ?? DEFAULT_STROKE_WIDTH;
+        for (let i = 1; i < allNucleotides.length; i++) {
+          if (singlePathLineWidthCandidate !== (allNucleotides[i].pathLineWidth ?? DEFAULT_STROKE_WIDTH)) {
+            singlePathLineWidthFlag = false;
+            break;
+          }
+        }
+        
+        let singlePathCurvatureFlag = true;
+        const singlePathCurvatureCandidate = singularNucleotideProps0.pathCurvature ?? 0;
+        for (let i = 1; i < allNucleotides.length; i++) {
+          if (singlePathCurvatureCandidate !== (allNucleotides[i].pathCurvature ?? 0)) {
+            singlePathCurvatureFlag = false;
+            break;
+          }
+        }
+        
         setColor(singleColorFlag ? singleColorCandidate : BLACK);
         setFont(singleFontFlag ? singleFontCandidate : Font.DEFAULT);
+        setPathStyle({
+          pathColor: singlePathColorFlag ? singlePathColorCandidate : BLACK,
+          pathLineWidth: singlePathLineWidthFlag ? singlePathLineWidthCandidate : DEFAULT_STROKE_WIDTH,
+          pathCurvature: singlePathCurvatureFlag ? singlePathCurvatureCandidate : 0
+        });
       },
       [positions]
     );
@@ -187,6 +297,24 @@ export namespace AllInOneEditor {
             singularNucleotideProps.font = newFont;
           }
           setFont(newFont);
+          _onUpdatePositions(false);
+        }}
+      />
+      <PathEditor.Component
+        pathStyle = {pathStyle}
+        setPathStyle = {function(newPathStyle) {
+          for (const singularNucleotideProps of allNucleotides) {
+            if (newPathStyle.pathColor !== undefined) {
+              singularNucleotideProps.pathColor = newPathStyle.pathColor;
+            }
+            if (newPathStyle.pathLineWidth !== undefined) {
+              singularNucleotideProps.pathLineWidth = newPathStyle.pathLineWidth;
+            }
+            if (newPathStyle.pathCurvature !== undefined) {
+              singularNucleotideProps.pathCurvature = newPathStyle.pathCurvature;
+            }
+          }
+          setPathStyle(newPathStyle);
           _onUpdatePositions(false);
         }}
       />

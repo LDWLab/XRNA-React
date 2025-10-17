@@ -31,6 +31,8 @@ export namespace RnaMolecule {
     const settingsRecord = useContext(Context.App.Settings);
     const displayContourLineFlag = settingsRecord[Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE] as boolean;
     const contourLineWidth = settingsRecord[Setting.CONTOUR_LINE_WIDTH] as number;
+    const pathModeFlag = settingsRecord[Setting.PATH_MODE] as boolean;
+    const pathLineWidth = settingsRecord[Setting.PATH_LINE_WIDTH] as number;
     const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
     // Begin memo data
     // const flattenedNucleotideProps = useMemo(
@@ -359,6 +361,102 @@ export namespace RnaMolecule {
         strokeWidth = {contourLineWidth}
         fill = "none"
       />}
+      {/* Render path line in path mode */}
+      {pathModeFlag && !displayContourLineFlag && (() => {
+        // Helper function to create smooth curved path using Catmull-Rom splines
+        const createCurvedPath = (points: Array<{ x: number, y: number }>, curvature: number): string => {
+          if (points.length < 2) return '';
+          if (points.length === 2 || curvature === 0) {
+            // Straight line for 2 points or no curvature
+            return `M ${points[0].x} ${points[0].y} L ${points.map(p => `${p.x} ${p.y}`).join(' L ')}`;
+          }
+          
+          // Catmull-Rom spline with tension controlled by curvature
+          const tension = 1 - curvature; // 0 = maximum curve, 1 = straight
+          let path = `M ${points[0].x} ${points[0].y}`;
+          
+          for (let i = 0; i < points.length - 1; i++) {
+            const p0 = points[i === 0 ? i : i - 1];
+            const p1 = points[i];
+            const p2 = points[i + 1];
+            const p3 = points[i + 2] || p2;
+            
+            // Calculate control points for cubic Bezier curve
+            const t = tension;
+            const d1x = (p2.x - p0.x) * (1 - t) / 2;
+            const d1y = (p2.y - p0.y) * (1 - t) / 2;
+            const d2x = (p3.x - p1.x) * (1 - t) / 2;
+            const d2y = (p3.y - p1.y) * (1 - t) / 2;
+            
+            const cp1x = p1.x + d1x / 3;
+            const cp1y = p1.y + d1y / 3;
+            const cp2x = p2.x - d2x / 3;
+            const cp2y = p2.y - d2y / 3;
+            
+            path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+          }
+          
+          return path;
+        };
+        
+        // Group consecutive nucleotides by their path properties
+        const pathSegments: Array<{
+          points: Array<{ x: number, y: number }>,
+          color: string,
+          width: number,
+          curvature: number
+        }> = [];
+        
+        let currentSegment: {
+          points: Array<{ x: number, y: number }>,
+          color: string,
+          width: number,
+          curvature: number
+        } | null = null;
+        
+        for (const nucleotide of flattenedNucleotideProps) {
+          const color = nucleotide.pathColor 
+            ? `rgb(${nucleotide.pathColor.red}, ${nucleotide.pathColor.green}, ${nucleotide.pathColor.blue})`
+            : 'var(--color-text)';
+          const width = nucleotide.pathLineWidth ?? pathLineWidth;
+          const curvature = nucleotide.pathCurvature ?? 0;
+          
+          if (!currentSegment || currentSegment.color !== color || currentSegment.width !== width || currentSegment.curvature !== curvature) {
+            if (currentSegment && currentSegment.points.length > 0) {
+              // Add the first point of the new segment to connect them
+              currentSegment.points.push({ x: nucleotide.x, y: nucleotide.y });
+              pathSegments.push(currentSegment);
+            }
+            currentSegment = {
+              points: [{ x: nucleotide.x, y: nucleotide.y }],
+              color,
+              width,
+              curvature
+            };
+          } else {
+            currentSegment.points.push({ x: nucleotide.x, y: nucleotide.y });
+          }
+        }
+        
+        if (currentSegment && currentSegment.points.length > 0) {
+          pathSegments.push(currentSegment);
+        }
+        
+        return <>
+          {pathSegments.map((segment, index) => (
+            <path
+              key={`path-segment-${index}`}
+              d={createCurvedPath(segment.points, segment.curvature)}
+              pointerEvents="none"
+              stroke={segment.color}
+              strokeWidth={segment.width}
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          ))}
+        </>;
+      })()}
       {!displayContourLineFlag && <Context.RnaMolecule.FirstNucleotideIndex.Provider
         value = {firstNucleotideIndex}
         // value = {flattenedNucleotideProps.length === 0 ? NaN : flattenedNucleotideProps[0].scaffoldingKey}

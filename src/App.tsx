@@ -4530,9 +4530,17 @@ export namespace App {
                                                 setOutputFileExtension(
                                                   format as OutputFileExtension
                                                 );
-                                                (
-                                                  downloadOutputFileHtmlButtonReference.current as HTMLButtonElement
-                                                )?.click();
+                                                // Clear cached file handle to force new file picker with updated name
+                                                setOutputFileHandle(undefined);
+                                                // Update references directly to avoid race condition
+                                                outputFileNameReference.current = filename;
+                                                outputFileExtensionReference.current = format as OutputFileExtension;
+                                                // Use setTimeout to ensure state updates are processed
+                                                setTimeout(() => {
+                                                  (
+                                                    downloadOutputFileHtmlButtonReference.current as HTMLButtonElement
+                                                  )?.click();
+                                                }, 0);
                                               }}
                                               onUndo={undo}
                                               onRedo={redo}
