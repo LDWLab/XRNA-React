@@ -47,13 +47,25 @@ export function svgFileWriter(
 
   const MISCELLANEOUS = "Miscellaneous";
   const xrnaTypeToGroupHtmlIdMap : Partial<Record<SvgPropertyXrnaType, string>> = {
+    [SvgPropertyXrnaType.NUCLEOTIDE] : "Nucleotides",
     [SvgPropertyXrnaType.BASE_PAIR] : "BasePairs",
-    [SvgPropertyXrnaType.LABEL_CONTENT] : "LabelContents",
     [SvgPropertyXrnaType.LABEL_LINE] : "LabelLines",
-    [SvgPropertyXrnaType.NUCLEOTIDE] : "Nucleotides"
+    [SvgPropertyXrnaType.LABEL_CONTENT] : "LabelContents",
+    [SvgPropertyXrnaType.PATH] : "Paths",
+    [SvgPropertyXrnaType.CENTERLINE] : "Centerline"
   };
+  // Layer order for Adobe Illustrator (bottom to top)
+  const layerOrder = [
+    "Nucleotides",    // 1. Sequence (the letters)
+    "BasePairs",      // 2. Base pairs (lines and shapes between nucleotides)
+    "LabelLines",     // 3. Label lines
+    "LabelContents",  // 4. Label content (text)
+    "Paths",          // 5. Path lines
+    "Centerline",     // 6. Centerline (hidden by default)
+    MISCELLANEOUS     // Any other elements
+  ];
   const htmlIdToGroupMap : Record<string, HTMLElement>  = {};
-  for (const htmlId of [...Object.values(xrnaTypeToGroupHtmlIdMap), MISCELLANEOUS]) {
+  for (const htmlId of layerOrder) {
     const group = document.createElement("g");
     group.setAttribute("id", htmlId);
     htmlIdToGroupMap[htmlId] = group;
@@ -108,8 +120,10 @@ export function svgFileWriter(
     // Remove unnecessary groups/duplicates.
     childElement.remove();
   }
-  for (const group of Object.values(htmlIdToGroupMap)) {
-    if (group.children.length > 0) {
+  // Append groups in the correct layer order
+  for (const layerName of layerOrder) {
+    const group = htmlIdToGroupMap[layerName];
+    if (group && group.children.length > 0) {
       svgSceneGroup.appendChild(group);
     }
   }

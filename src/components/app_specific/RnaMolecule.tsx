@@ -453,9 +453,63 @@ export namespace RnaMolecule {
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
+              data-xrna_type="path"
             />
           ))}
         </>;
+      })()}
+      {/* Centerline path - always rendered but hidden by default */}
+      {!displayContourLineFlag && flattenedNucleotideProps.length > 0 && (() => {
+        // Helper function to create smooth curved path using Catmull-Rom splines
+        const createCurvedPath = (points: Array<{ x: number, y: number }>, curvature: number): string => {
+          if (points.length < 2) return '';
+          if (points.length === 2 || curvature === 0) {
+            // Straight line for 2 points or no curvature
+            return `M ${points[0].x} ${points[0].y} L ${points.map(p => `${p.x} ${p.y}`).join(' L ')}`;
+          }
+          
+          // Catmull-Rom spline with tension controlled by curvature
+          const tension = 1 - curvature; // 0 = maximum curve, 1 = straight
+          let path = `M ${points[0].x} ${points[0].y}`;
+          
+          for (let i = 0; i < points.length - 1; i++) {
+            const p0 = points[i === 0 ? i : i - 1];
+            const p1 = points[i];
+            const p2 = points[i + 1];
+            const p3 = points[i + 2] || p2;
+            
+            // Calculate control points for cubic Bezier curve
+            const t = tension;
+            const d1x = (p2.x - p0.x) * (1 - t) / 2;
+            const d1y = (p2.y - p0.y) * (1 - t) / 2;
+            const d2x = (p3.x - p1.x) * (1 - t) / 2;
+            const d2y = (p3.y - p1.y) * (1 - t) / 2;
+            
+            const cp1x = p1.x + d1x / 3;
+            const cp1y = p1.y + d1y / 3;
+            const cp2x = p2.x - d2x / 3;
+            const cp2y = p2.y - d2y / 3;
+            
+            path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+          }
+          
+          return path;
+        };
+        
+        const centerPoints = flattenedNucleotideProps.map(n => ({ x: n.x, y: n.y }));
+        const centerlinePath = createCurvedPath(centerPoints, 0.5);
+        
+        return <path
+          d={centerlinePath}
+          pointerEvents="none"
+          stroke="rgb(0, 0, 0)"
+          strokeWidth={0.5}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          visibility="hidden"
+          data-xrna_type="centerline"
+        />;
       })()}
       {!displayContourLineFlag && <Context.RnaMolecule.FirstNucleotideIndex.Provider
         value = {firstNucleotideIndex}
