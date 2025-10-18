@@ -63,4 +63,5 @@ XRNA-React is currently unpublished. Upon publication, citation instructions wil
 ## Contact
 For questions, issues or collaboration inquiries, please contact:
 - **Caeden Meade**: caedenmeade@gmail.com
+- **Biswajit Banerjee**: biswajitbannerje@gmail.com
 - **Anton Petrov**: anton.s.petrov@gmail.com
