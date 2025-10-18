@@ -235,7 +235,16 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         break;
       }
       const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[decremented];
-      if (decremented in basePairsPerRnaMolecule || (truncateRnaSingleStrandFlag && indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(decremented))) {
+      if (
+        decremented in basePairsPerRnaMolecule ||
+        (
+          truncateRnaSingleStrandFlag &&
+          (
+            indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex) !==
+            indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(decremented)
+          )
+        )
+      ) {
         lowerBoundingNucleotidePosition = singularNucleotideProps;
         lowerTerminalIsBasePairedFlag = true;
         break;
@@ -266,7 +275,16 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         break;
       }
       const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[incremented];
-      if (incremented in basePairsPerRnaMolecule || (truncateRnaSingleStrandFlag && indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(incremented))) {
+      if (
+        incremented in basePairsPerRnaMolecule || 
+        (
+          truncateRnaSingleStrandFlag &&
+          (
+            indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex) !==
+            indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(incremented)
+          )
+        )
+      ) {
         upperBoundingNucleotidePosition = singularNucleotideProps;
         upperTerminalIsBasePairedFlag = true;
         break;
