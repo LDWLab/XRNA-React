@@ -7,6 +7,7 @@ import {
   RnaComplexKey,
 } from "../../../App";
 import { BasePair as _BasePair } from "../../app_specific/BasePair";
+import { RnaMolecule } from "../../app_specific/RnaMolecule";
 import {
   RnaComplex,
   compareBasePairKeys,
@@ -245,18 +246,18 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const allRows = computeRowsAll();
   const rows = activeTab === "Global" ? allRows : computeRowsSelected(allRows);
 
-  function resolveMoleculeByFormattedIndex(
-    rnaComplexIndex: number,
-    formattedIndex: number
-  ): string | undefined {
-    const complex = rnaComplexProps[rnaComplexIndex];
-    if (!complex) return undefined;
-    for (const [molName, mp] of Object.entries(complex.rnaMoleculeProps)) {
-      const idx = formattedIndex - mp.firstNucleotideIndex;
-      if (idx in mp.nucleotideProps) return molName;
-    }
-    return undefined;
-  }
+  // function resolveMoleculeByFormattedIndex(
+  //   rnaComplexIndex: number,
+  //   formattedIndex: number
+  // ): string | undefined {
+  //   const complex = rnaComplexProps[rnaComplexIndex];
+  //   if (!complex) return undefined;
+  //   for (const [molName, mp] of Object.entries(complex.rnaMoleculeProps)) {
+  //     const idx = formattedIndex - mp.firstNucleotideIndex;
+  //     if (idx in mp.nucleotideProps) return molName;
+  //   }
+  //   return undefined;
+  // }
 
   function getSymbolByFormattedIndex(
     rnaComplexIndex: number,
@@ -495,17 +496,19 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     if (form.rnaComplexIndex == null) return;
     const complex = rnaComplexProps[form.rnaComplexIndex];
     if (!complex) return;
+    const mol0 = form.rnaMoleculeName0!;
+    const mol1 = form.rnaMoleculeName1!;
     // Auto-resolve molecules by formatted index
-    const mol0 =
-      resolveMoleculeByFormattedIndex(
-        form.rnaComplexIndex,
-        form.formattedNucleotideIndex0 ?? NaN
-      ) ?? Object.keys(complex.rnaMoleculeProps)[0];
-    const mol1 =
-      resolveMoleculeByFormattedIndex(
-        form.rnaComplexIndex,
-        form.formattedNucleotideIndex1 ?? NaN
-      ) ?? Object.keys(complex.rnaMoleculeProps)[0];
+    // const mol0 =
+    //   resolveMoleculeByFormattedIndex(
+    //     form.rnaComplexIndex,
+    //     form.formattedNucleotideIndex0 ?? NaN
+    //   ) ?? Object.keys(complex.rnaMoleculeProps)[0];
+    // const mol1 =
+    //   resolveMoleculeByFormattedIndex(
+    //     form.rnaComplexIndex,
+    //     form.formattedNucleotideIndex1 ?? NaN
+    //   ) ?? Object.keys(complex.rnaMoleculeProps)[0];
     const mp0 = complex.rnaMoleculeProps[mol0 as string];
     const mp1 = complex.rnaMoleculeProps[mol1 as string];
     if (!mp0 || !mp1) return;
@@ -585,14 +588,16 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     // Re-resolve molecules by edited formatted indices
     const fallbackMol0 = form.rnaMoleculeName0 as string;
     const fallbackMol1 = form.rnaMoleculeName1 as string;
-    const resolvedMol0 = (resolveMoleculeByFormattedIndex(
-      form.rnaComplexIndex,
-      form.formattedNucleotideIndex0
-    ) ?? fallbackMol0) as string;
-    const resolvedMol1 = (resolveMoleculeByFormattedIndex(
-      form.rnaComplexIndex,
-      form.formattedNucleotideIndex1
-    ) ?? fallbackMol1) as string;
+    const resolvedMol0 = form.rnaMoleculeName0;
+    const resolvedMol1 = form.rnaMoleculeName1;
+    // const resolvedMol0 = (resolveMoleculeByFormattedIndex(
+    //   form.rnaComplexIndex,
+    //   form.formattedNucleotideIndex0
+    // ) ?? fallbackMol0) as string;
+    // const resolvedMol1 = (resolveMoleculeByFormattedIndex(
+    //   form.rnaComplexIndex,
+    //   form.formattedNucleotideIndex1
+    // ) ?? fallbackMol1) as string;
     const complex = rnaComplexProps[form.rnaComplexIndex];
     const mp0 = complex.rnaMoleculeProps[resolvedMol0 as string];
     const mp1 = complex.rnaMoleculeProps[resolvedMol1 as string];
@@ -1125,8 +1130,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                 }
                 style={{ ...sel(), marginRight: 8 }}
               >
-                <option value="" hidden>
-                  complex
+                <option 
+                  value=""
+                  hidden
+                >
+                  Complex Name
                 </option>
                 {Object.entries(rnaComplexProps).map(([k, c]) => (
                   <option key={k} value={k}>
@@ -1135,7 +1143,49 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                 ))}
               </select>
 
-              {/* Mol #1 (index) compressed */}
+              {/* Molecule selector #1 */}
+              <select
+                value = {addForm.rnaMoleculeName0 ?? ""}
+                onChange = {(e) => setAddForm((f) => ({
+                  ...f,
+                  rnaMoleculeName0:
+                    e.target.value === ""
+                      ? undefined
+                      : e.target.value,
+                }))}
+                style={{ 
+                  ...sel(),
+                  marginRight: 8,
+                  opacity: addForm.rnaComplexIndex == null ? 0.6 : 1,
+                  cursor: addForm.rnaComplexIndex == null ? "not-allowed" : "text",
+                  background:
+                    addForm.rnaComplexIndex == null
+                    ? theme.colors.surfaceHover
+                    : theme.colors.background,
+                  color:
+                    addForm.rnaComplexIndex == null
+                    ? theme.colors.textSecondary
+                    : theme.colors.text
+                }}
+              >
+                <option 
+                  value=""
+                  hidden
+                >
+                  Mol Name #1
+                </option>
+                {(addForm.rnaComplexIndex == undefined ? [] : Object.entries(rnaComplexProps[addForm.rnaComplexIndex].rnaMoleculeProps)).map(
+                  ([rnaMoleculeName, singularRnaMoleculeProps]) => <option
+                    key={rnaMoleculeName}
+                    value={rnaMoleculeName}
+                  >
+                    {rnaMoleculeName}
+                  </option>
+                )}
+                disabled = {addForm.rnaComplexIndex == null}
+              </select>
+
+              {/* Nuc #1 (index) compressed */}
               <div
                 style={{
                   display: "flex",
@@ -1150,7 +1200,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   const idx = addForm.formattedNucleotideIndex0;
                   let initial = "UNK";
                   if (rc != null && idx != null) {
-                    const mol = resolveMoleculeByFormattedIndex(rc, idx);
+                    const mol = addForm.rnaMoleculeName0;/* resolveMoleculeByFormattedIndex(rc, idx); */
                     if (mol) {
                       const sym = getSymbolByFormattedIndex(rc, mol, idx);
                       initial = sym === "UNK" ? "UNK" : sym[0].toUpperCase();
@@ -1175,53 +1225,120 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                           : parseInt(e.target.value),
                     }))
                   }
-                  style={inpCell()}
+                  disabled = {addForm.rnaMoleculeName0 == null}
+                  style={{
+                    ...inpCell(),
+                    opacity: addForm.rnaMoleculeName0 == null ? 0.6 : 1,
+                    cursor: addForm.rnaMoleculeName0 == null ? "not-allowed" : "text",
+                    background:
+                      addForm.rnaMoleculeName0 == null
+                      ? theme.colors.surfaceHover
+                      : theme.colors.background,
+                    color:
+                      addForm.rnaMoleculeName0 == null
+                      ? theme.colors.textSecondary
+                      : theme.colors.text,
+                  }}
                 />
               </div>
 
-              {/* Mol #2 (index) compressed */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  width: 180,
+              {/* Molecule selector #2 */}
+              <select
+                value = {addForm.rnaMoleculeName1 ?? ""}
+                onChange = {(e) => setAddForm((f) => ({
+                  ...f,
+                  rnaMoleculeName1:
+                    e.target.value === ""
+                      ? undefined
+                      : e.target.value,
+                }))}
+                style={{ 
+                  ...sel(),
                   marginRight: 8,
+                  opacity: addForm.rnaComplexIndex == null ? 0.6 : 1,
+                  cursor: addForm.rnaComplexIndex == null ? "not-allowed" : "text",
+                  background:
+                    addForm.rnaComplexIndex == null
+                    ? theme.colors.surfaceHover
+                    : theme.colors.background,
+                  color:
+                    addForm.rnaComplexIndex == null
+                    ? theme.colors.textSecondary
+                    : theme.colors.text
                 }}
               >
-                {(() => {
-                  const rc = addForm.rnaComplexIndex;
-                  const idx = addForm.formattedNucleotideIndex1;
-                  let initial = "UNK";
-                  if (rc != null && idx != null) {
-                    const mol = resolveMoleculeByFormattedIndex(rc, idx);
+                <option 
+                  value=""
+                  hidden
+                >
+                  Mol Name #2
+                </option>
+                {(addForm.rnaComplexIndex == undefined ? [] : Object.entries(rnaComplexProps[addForm.rnaComplexIndex].rnaMoleculeProps)).map(
+                  ([rnaMoleculeName, singularRnaMoleculeProps]) => <option
+                    key={rnaMoleculeName}
+                    value={rnaMoleculeName}
+                  >
+                    {rnaMoleculeName}
+                  </option>
+                )}
+                disabled = {addForm.rnaComplexIndex == null}
+              </select>
+
+              {/* Nuc #2 (index) compressed */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    width: 180,
+                    marginRight: 8,
+                  }}
+                >
+                  {(() => {
+                    const rc = addForm.rnaComplexIndex;
+                    const idx = addForm.formattedNucleotideIndex1;
+                    let initial = "UNK";
+                    if (rc != null && idx != null) {
+                    const mol = addForm.rnaMoleculeName1; /* resolveMoleculeByFormattedIndex(rc, idx); */
                     if (mol) {
                       const sym = getSymbolByFormattedIndex(rc, mol, idx);
                       initial = sym === "UNK" ? "UNK" : sym[0].toUpperCase();
                     }
-                  }
-                  return (
+                    }
+                    return (
                     <span title={initial} style={{ fontWeight: 700 }}>
                       {initial}
                     </span>
-                  );
-                })()}
-                <input
-                  type="number"
-                  placeholder="nt #2"
-                  value={addForm.formattedNucleotideIndex1 ?? ""}
-                  onChange={(e) =>
+                    );
+                  })()}
+                  <input
+                    type="number"
+                    placeholder="nt #2"
+                    value={addForm.formattedNucleotideIndex1 ?? ""}
+                    onChange={(e) =>
                     setAddForm((f) => ({
                       ...f,
                       formattedNucleotideIndex1:
-                        e.target.value === ""
-                          ? undefined
-                          : parseInt(e.target.value),
-                    }))
-                  }
-                  style={inpCell()}
-                />
-              </div>
+                      e.target.value === ""
+                        ? undefined
+                        : parseInt(e.target.value),
+                    }))}
+                    style={{
+                      ...inpCell(),
+                      opacity: addForm.rnaMoleculeName1 == null ? 0.6 : 1,
+                      cursor: addForm.rnaMoleculeName1 == null ? "not-allowed" : "text",
+                      background:
+                        addForm.rnaMoleculeName1 == null
+                        ? theme.colors.surfaceHover
+                        : theme.colors.background,
+                      color:
+                        addForm.rnaMoleculeName1 == null
+                        ? theme.colors.textSecondary
+                        : theme.colors.text,
+                    }}
+                    disabled={addForm.rnaMoleculeName1 == null}
+                  />
+                </div>
 
               {/* Type and custom sub-fields */}
               <select
@@ -1307,13 +1424,32 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   fontWeight: 700,
                   color: theme.colors.text,
                 }}
+                disabled = {
+                  addForm.rnaComplexIndex == null ||
+                  addForm.rnaMoleculeName0 === undefined ||
+                  addForm.rnaMoleculeName1 === undefined ||
+                  addForm.formattedNucleotideIndex0 == null ||
+                  addForm.formattedNucleotideIndex1 == null
+                }
               >
                 Add
               </button>
             </div>
           )}
           <button
-            onClick={() => setShowAdd(!showAdd)}
+            onClick={() => {
+              if (!showAdd) {
+                setAddForm({
+                  rnaComplexIndex : undefined,
+                  rnaMoleculeName0 : undefined,
+                  rnaMoleculeName1 : undefined,
+                  formattedNucleotideIndex0 : undefined,
+                  formattedNucleotideIndex1 : undefined,
+                  typeBase : "auto"
+                });
+              }
+              setShowAdd(!showAdd);
+            }}
             style={{
               padding: "6px 10px",
               borderRadius: 8,
