@@ -126,7 +126,9 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const startYRef = useRef<number>(0);
   const startHRef = useRef<number>(360);
   const [showAdd, setShowAdd] = useState<boolean>(false);
-  const [addForm, setAddForm] = useState<{
+  const [rnaComplexesAreASingleton, setRnaComplexesAreASingleton] = useState<boolean>(true);
+  const [rnaMoleculesAreASingleton, setRnaMoleculesAreASingleton] = useState<boolean>(true);
+  type AddForm = {
     rnaComplexIndex?: number;
     rnaMoleculeName0?: string;
     formattedNucleotideIndex0?: number;
@@ -136,7 +138,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     orientation?: Orientation;
     edgeA?: Edge;
     edgeB?: Edge;
-  }>({ typeBase: "auto" });
+  };
+  const [addForm, setAddForm] = useState<AddForm>({ 
+    typeBase: "auto",
+    rnaComplexIndex : rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined
+  });
   const [editRowKey, setEditRowKey] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
     rnaComplexIndex?: number;
@@ -925,6 +931,18 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     );
   }
 
+  useEffect(
+    () => {
+      const newRnaComplexesAreASingleton = Object.keys(rnaComplexProps).length === 1;
+      setRnaComplexesAreASingleton(newRnaComplexesAreASingleton);
+      setRnaMoleculesAreASingleton(
+        newRnaComplexesAreASingleton &&
+        Object.keys(Object.values(rnaComplexProps)[0].rnaMoleculeProps).length === 1
+      );
+    },
+    [rnaComplexProps]
+  );
+
   return (
     <div
       ref={sheetRef}
@@ -1117,17 +1135,30 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               }}
             >
               {/* Complex selector */}
-              <select
+              {!rnaComplexesAreASingleton && <select
                 value={addForm.rnaComplexIndex ?? ""}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const rnaComplexIndex = e.target.value === ""
+                    ? undefined
+                    : parseInt(e.target.value);
+                  const rnaMoleculesAreASingleton = (
+                    rnaComplexIndex !== undefined &&
+                    Object.keys(rnaComplexProps[rnaComplexIndex].rnaMoleculeProps).length === 1
+                  );
+                  setRnaMoleculesAreASingleton(rnaMoleculesAreASingleton);
+                  const newAddForm : Partial<AddForm> = {
+                    rnaComplexIndex
+                  };
+                  if (rnaMoleculesAreASingleton) {
+                    const rnaMoleculeName = Object.keys(rnaComplexProps[rnaComplexIndex].rnaMoleculeProps)[0];
+                    newAddForm.rnaMoleculeName0 = rnaMoleculeName;
+                    newAddForm.rnaMoleculeName1 = rnaMoleculeName;
+                  }
                   setAddForm((f) => ({
                     ...f,
-                    rnaComplexIndex:
-                      e.target.value === ""
-                        ? undefined
-                        : parseInt(e.target.value),
-                  }))
-                }
+                    newAddForm
+                  }));
+                }}
                 style={{ ...sel(), marginRight: 8 }}
               >
                 <option 
@@ -1141,10 +1172,10 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </select>}
 
               {/* Molecule selector #1 */}
-              <select
+              {!rnaMoleculesAreASingleton && <select
                 value = {addForm.rnaMoleculeName0 ?? ""}
                 onChange = {(e) => setAddForm((f) => ({
                   ...f,
@@ -1183,7 +1214,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   </option>
                 )}
                 disabled = {addForm.rnaComplexIndex == null}
-              </select>
+              </select>}
 
               {/* Nuc #1 (index) compressed */}
               <div
@@ -1243,7 +1274,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               </div>
 
               {/* Molecule selector #2 */}
-              <select
+              {!rnaMoleculesAreASingleton && <select
                 value = {addForm.rnaMoleculeName1 ?? ""}
                 onChange = {(e) => setAddForm((f) => ({
                   ...f,
@@ -1282,7 +1313,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   </option>
                 )}
                 disabled = {addForm.rnaComplexIndex == null}
-              </select>
+              </select>}
 
               {/* Nuc #2 (index) compressed */}
                 <div
@@ -1468,9 +1499,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={thStyle(120)}>Complex</th>
-              <th style={thStyle(80)}>Mol#1 (index)</th>
-              <th style={thStyle(80)}>Mol#2 (index)</th>
+              {!rnaComplexesAreASingleton && <th style={thStyle(120)}>Complex</th>}
+              {!rnaMoleculesAreASingleton && <th style={thStyle(80)}>Mol#1</th>}
+              <th style={thStyle(80)}>Nuc#1</th>
+              {!rnaMoleculesAreASingleton && <th style={thStyle(80)}>Mol#2</th>}
+              <th style={thStyle(80)}>Nuc#2</th>
               <th style={thStyle(120)}>Type</th>
               <th style={thStyle(100)}>Orientation</th>
               <th style={thStyle(130)}>Edge A</th>
@@ -1508,8 +1541,41 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         : theme.colors.surface,
                   }}
                 >
-                  <td style={tdStyle(120)}>{r.rnaComplexName}</td>
-                  {/* Mol #1 (index) */}
+                  {!rnaComplexesAreASingleton &&<td style={tdStyle(120)}>{r.rnaComplexName}</td>}
+                  {/* Mol #1 */}
+                  {!rnaMoleculesAreASingleton && <td style={tdStyle(60)}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      {isEditing ? (
+                        <select
+                          value = {
+                            editForm.rnaMoleculeName0 ??
+                            r.rnaMoleculeName0
+                          }
+                          onChange={(e) =>
+                            setEditForm((f) => ({
+                              ...f,
+                              rnaMoleculeName0:
+                                e.target.value === ""
+                                  ? undefined
+                                  : e.target.value,
+                            }))
+                          }
+                        >
+                          {Object.entries(rnaComplexProps[r.rnaComplexIndex].rnaMoleculeProps).map(([rnaMoleculeName, singularRnaMoleculeProps]) => <option
+                            key = {rnaMoleculeName}
+                            value = {rnaMoleculeName}
+                          >
+                            {rnaMoleculeName}
+                          </option>)}
+                        </select>
+                      ) : (
+                        <span>{r.rnaMoleculeName0}</span>
+                      )}
+                    </div>
+                  </td>}
+                  {/* Nuc #1 (index) */}
                   <td style={tdStyle(60)}>
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
@@ -1557,7 +1623,40 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                       )}
                     </div>
                   </td>
-                  {/* Mol #2 (index) */}
+                  {/* Mol #2 */}
+                  {!rnaMoleculesAreASingleton && <td style={tdStyle(60)}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      {isEditing ? (
+                        <select
+                          value = {
+                            editForm.rnaMoleculeName1 ??
+                            r.rnaMoleculeName1
+                          }
+                          onChange={(e) =>
+                            setEditForm((f) => ({
+                              ...f,
+                              rnaMoleculeName1:
+                                e.target.value === ""
+                                  ? undefined
+                                  : e.target.value,
+                            }))
+                          }
+                        >
+                          {Object.entries(rnaComplexProps[r.rnaComplexIndex].rnaMoleculeProps).map(([rnaMoleculeName, singularRnaMoleculeProps]) => <option
+                            key = {rnaMoleculeName}
+                            value = {rnaMoleculeName}
+                          >
+                            {rnaMoleculeName}
+                          </option>)}
+                        </select>
+                      ) : (
+                        <span>{r.rnaMoleculeName1}</span>
+                      )}
+                    </div>
+                  </td>}
+                  {/* Nuc #2 (index) */}
                   <td style={tdStyle(60)}>
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
