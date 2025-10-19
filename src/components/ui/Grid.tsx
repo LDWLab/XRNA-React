@@ -316,7 +316,11 @@ export const Grid: React.FC<GridProps> = ({
   if (!hasAnyGridEnabled) return null;
 
   return (
-    <g id="canvas-grid" data-theme-ignore>
+    <g
+      id="canvas-grid"
+      data-theme-ignore
+      pointerEvents="none"
+    >
       {horizontalLinesElements}
       {verticalLinesElements}
       {leftRightDiagonalElements}
