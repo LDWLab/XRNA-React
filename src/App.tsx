@@ -109,6 +109,8 @@ for (
   );
 }
 
+export const LEFT_PANEL_WIDTH = 420;
+
 export const PARENT_DIV_HTML_ID = "parent_div";
 export const SVG_ELEMENT_HTML_ID = "viewport";
 export const TEST_SPACE_ID = "testSpace";
@@ -494,7 +496,7 @@ export namespace App {
     );
     const svgWidth = useMemo(
       function () {
-        return Math.max((parentDivResizeDetector.width ?? 0) - 420, 0);
+        return Math.max((parentDivResizeDetector.width ?? 0) - LEFT_PANEL_WIDTH, 0);
       },
       [parentDivResizeDetector.width]
     );
@@ -3918,7 +3920,7 @@ export namespace App {
                                                 top: 0,
                                                 left: 0,
                                                 height: "100%",
-                                                width: 420,
+                                                width: LEFT_PANEL_WIDTH,
                                                 zIndex: 1000,
                                               }}
                                             >
@@ -4302,7 +4304,7 @@ export namespace App {
                                               ref={toolsDivResizeDetector.ref}
                                               style={{
                                                 position: "absolute",
-                                                left: 420,
+                                                left: LEFT_PANEL_WIDTH,
                                                 top: TOPBAR_HEIGHT,
                                                 width: toolsDivWidthAttribute,
                                                 height: `calc(100% - ${TOPBAR_HEIGHT}px)`,
@@ -4326,7 +4328,7 @@ export namespace App {
                                                   overflowX: "auto",
                                                   overflowY: "auto",
                                                   top: 0,
-                                                  left: 420,
+                                                  left: LEFT_PANEL_WIDTH,
                                                   background: "inherit",
                                                   resize: "both",
                                                   borderBottom: `2px solid black`,
@@ -4392,7 +4394,7 @@ export namespace App {
                                                   top:
                                                     (topToolsDivResizeDetector.height ??
                                                       0) + DIV_BUFFER_DIMENSION,
-                                                  left: 420,
+                                                  left: LEFT_PANEL_WIDTH,
                                                   background: "inherit",
                                                   position: "absolute",
                                                   whiteSpace: "nowrap",
@@ -4462,13 +4464,13 @@ export namespace App {
                                               id={SVG_ELEMENT_HTML_ID}
                                               style={{
                                                 top: TOPBAR_HEIGHT,
-                                                left: 420,
+                                                left: LEFT_PANEL_WIDTH,
                                                 position: "absolute",
                                               }}
                                               xmlns="http://www.w3.org/2000/svg"
                                               viewBox={`0 0 ${Math.max(
                                                 (parentDivResizeDetector.width ??
-                                                  0) - 420,
+                                                  0) - LEFT_PANEL_WIDTH,
                                                 0
                                               )} ${Math.max(
                                                 (parentDivResizeDetector.height ??

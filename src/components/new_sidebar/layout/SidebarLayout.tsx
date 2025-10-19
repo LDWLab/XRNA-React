@@ -1,12 +1,13 @@
 import React from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { PencilRuler } from 'lucide-react';
+import { LEFT_PANEL_WIDTH } from '../../../App';
 type SidebarLayoutProps = {
   width?: number | string;
   children: React.ReactNode;
 };
 
-export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = 420, children }) => {
+export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = LEFT_PANEL_WIDTH, children }) => {
   const { theme } = useTheme();
   
   return (
