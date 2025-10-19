@@ -495,10 +495,18 @@ export namespace App {
       [rnaComplexProps]
     );
     const svgWidth = useMemo(
-      function () {
-        return Math.max((parentDivResizeDetector.width ?? 0) - LEFT_PANEL_WIDTH, 0);
-      },
-      [parentDivResizeDetector.width]
+      () => Math.max((parentDivResizeDetector.width ?? 0) - LEFT_PANEL_WIDTH, 0),
+      [
+        parentDivResizeDetector.width,
+        LEFT_PANEL_WIDTH
+      ]
+    );
+    const svgHeight = useMemo(
+      () => Math.max((parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT, 0),
+      [
+        parentDivResizeDetector.height,
+        TOPBAR_HEIGHT
+      ]
     );
     const sceneDimensionsReciprocals = useMemo(
       function () {
@@ -511,15 +519,18 @@ export namespace App {
     );
     const sceneBoundsScaleMin = useMemo(
       function () {
-        const heightScale = parentDivResizeDetector.height ?? 0;
         (window as any).widthScale = svgWidth;
-        (window as any).heightScale = heightScale;
+        (window as any).heightScale = svgHeight;
         return Math.min(
           svgWidth * sceneDimensionsReciprocals.width,
-          heightScale * sceneDimensionsReciprocals.height
+          svgHeight * sceneDimensionsReciprocals.height
         );
       },
-      [parentDivResizeDetector.height, svgWidth, sceneDimensionsReciprocals]
+      [
+        svgWidth,
+        svgHeight,
+        sceneDimensionsReciprocals
+      ]
     );
     sceneBoundsScaleMinReference.current = sceneBoundsScaleMin;
     const transformTranslate0 = useMemo(
