@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useCallback
 } from "react";
 import { DEFAULT_TAB, Tab, tabs } from "./app_data/Tab";
 import { add, scaleDown, subtract, Vector2D } from "./data_structures/Vector2D";
@@ -2539,8 +2540,8 @@ export namespace App {
         setViewportScale(newScale);
         setViewportScaleExponent(newScaleExponent);
         let uiVector = {
-          x: e.clientX - toolsDivResizeDetectorWidth - DIV_BUFFER_DIMENSION,
-          y: e.clientY,
+          x: e.clientX - LEFT_PANEL_WIDTH - DIV_BUFFER_DIMENSION,
+          y: e.clientY - TOPBAR_HEIGHT,
         };
         let reciprocal = totalScale.negativeScale;
         let inputVector = {
@@ -3409,12 +3410,10 @@ export namespace App {
       },
       [tab]
     );
-    const transformIntoDataSpace = useMemo(function () {
-      return function (clickedOnCoordinates: Vector2D) {
-        const toolsDivResizeDetectorWidth =
-          toolsDivResizeDetectorWidthReference.current as number;
-        const sceneBoundsScaleMin =
-          sceneBoundsScaleMinReference.current as number;
+    const transformIntoDataSpace = useCallback(
+      function (clickedOnCoordinates: Vector2D) {
+        const toolsDivResizeDetectorWidth = toolsDivResizeDetectorWidthReference.current as number;
+        const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
         const viewportScale = viewportScaleReference.current as number;
         const transformTranslate0 = transformTranslate0Reference.current as {
           asVector: Vector2D;
@@ -3426,19 +3425,21 @@ export namespace App {
         };
 
         let transformedCoordinates = structuredClone(clickedOnCoordinates);
-        transformedCoordinates.x -= toolsDivResizeDetectorWidth;
+        transformedCoordinates.x -= LEFT_PANEL_WIDTH;
         transformedCoordinates = scaleDown(
           transformedCoordinates,
           sceneBoundsScaleMin * viewportScale
         );
+        transformedCoordinates.y -= TOPBAR_HEIGHT;
         transformedCoordinates.y = -transformedCoordinates.y;
         transformedCoordinates = subtract(
           transformedCoordinates,
           add(transformTranslate0.asVector, transformTranslate1.asVector)
         );
         return transformedCoordinates;
-      };
-    }, []);
+      },
+      []
+    );
     const resetRightClickMenuContent = useMemo(function () {
       return function () {
         const flattenedRnaComplexProps =
