@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { Setting } from '../ui/Setting';
 
 /* -------------------------------------------------
@@ -298,6 +298,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   updateSettings,
 }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const isDarkModeReference = React.useRef(isDarkMode);
+  isDarkModeReference.current = isDarkMode;
+  const updateSettingsReference = React.useRef(updateSettings);
+  updateSettingsReference.current = updateSettings;
 
   // Initialize from settings or OS preference
   useEffect(() => {
@@ -321,11 +325,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     return () => m.removeEventListener?.('change', handler);
   }, [settingsRecord]);
 
-  const setTheme = (isDark: boolean) => {
-    setIsDarkMode(isDark);
-    if (updateSettings) updateSettings({ [Setting.DARK_MODE]: isDark });
-  };
-  const toggleTheme = () => setTheme(!isDarkMode);
+  const setTheme = useCallback(
+    (isDark : boolean) => {
+      const updateSettings = updateSettingsReference.current;
+      setIsDarkMode(isDark);
+      if (updateSettings) updateSettings({ [Setting.DARK_MODE]: isDark });
+    },
+    []
+  );
+  const toggleTheme = useCallback(
+    () => setTheme(!isDarkModeReference.current),
+    []
+  );
 
   const theme = isDarkMode ? darkTheme : lightTheme;
 
@@ -366,7 +377,20 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     root.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
   }, [theme, isDarkMode]);
 
-  const contextValue: ThemeContextType = { theme, isDarkMode, toggleTheme, setTheme };
+  const contextValue: ThemeContextType = useMemo(
+    () => ({
+      theme,
+      isDarkMode,
+      toggleTheme,
+      setTheme
+    }),
+    [
+      theme,
+      isDarkMode,
+      toggleTheme,
+      setTheme
+    ]
+  );
   return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
 };
 

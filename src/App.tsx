@@ -82,7 +82,7 @@ import {
 import "./App.css";
 import { Sidebar } from "./components/new_sidebar";
 import {
-  BasePairBottomSheet,
+  MemoizedBasePairBottomSheet,
   CommandTerminal,
   BasePairEditorDrawer,
 } from "./components/new_sidebar";
@@ -3525,6 +3525,28 @@ export namespace App {
         await writable.close();
       };
     }, []);
+    const renderedBasePairBottomSheet = useMemo(
+      function () {
+        return (<MemoizedBasePairBottomSheet
+          open={basepairSheetOpen}
+          onClose={() => {
+            setBasepairSheetOpen(false);
+            setTab(Tab.EDIT);
+          }}
+          rnaComplexProps={rnaComplexProps}
+          selected={
+            rightClickMenuAffectedNucleotideIndices
+          }
+          formatMode={tab === Tab.FORMAT}
+        />);
+      },
+      [
+        basepairSheetOpen,
+        rnaComplexProps,
+        rightClickMenuAffectedNucleotideIndices,
+        tab
+      ]
+    );
     // Global event hooks for bottom-sheet UX
     useEffect(() => {
       function onOpenSheet() {
@@ -5074,18 +5096,7 @@ export namespace App {
                                             </div>
 
                                             {/* Bottom Sheet: Base-Pair Editor */}
-                                            <BasePairBottomSheet
-                                              open={basepairSheetOpen}
-                                              onClose={() => {
-                                                setBasepairSheetOpen(false);
-                                                setTab(Tab.EDIT);
-                                              }}
-                                              rnaComplexProps={rnaComplexProps}
-                                              selected={
-                                                rightClickMenuAffectedNucleotideIndices
-                                              }
-                                              formatMode={tab === Tab.FORMAT}
-                                            />
+                                            {renderedBasePairBottomSheet}
 
                                             {/* Bottom-docked command terminal (hidden by default, toggle with ~) */}
                                             <CommandTerminal

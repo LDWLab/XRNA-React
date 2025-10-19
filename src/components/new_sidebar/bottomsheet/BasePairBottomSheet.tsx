@@ -1895,3 +1895,5 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     </div>
   );
 };
+
+export const MemoizedBasePairBottomSheet = React.memo(BasePairBottomSheet);
