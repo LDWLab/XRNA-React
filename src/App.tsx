@@ -4271,15 +4271,15 @@ export namespace App {
                                               }
                                               exportFormats={outputFileExtensions.map(
                                                 (ext) => {
-                                                  const tooltips: Record<string, string> = {
-                                                    'json': 'Structured format, maximum support for all features',
-                                                    'bpseq': 'Base Pair Sequence - No support for non-canonical base pairs',
-                                                    'svg': 'Scalable Vector Graphics - No support for non-canonical base pairs',
-                                                    'png': 'Portable Network Graphics - No support for non-canonical base pairs',
-                                                    'pdf': 'Portable Document Format - No support for non-canonical base pairs',
-                                                    'csv': 'Comma Separated Values - No support for non-canonical base pairs',
-                                                    'tr': 'Text Report - No support for non-canonical base pairs',
-                                                    'xrna': 'XRNA native format - No support for non-canonical base pairs'
+                                                  const tooltips: Record<OutputFileExtension, string> = {
+                                                    [OutputFileExtension.json] : 'Structured format, maximum support for all features',
+                                                    [OutputFileExtension.bpseq]: 'Base Pair Sequence - No support for non-canonical base pairs',
+                                                    [OutputFileExtension.svg]: 'Scalable Vector Graphics - No support for non-canonical base pairs',
+                                                    // 'png': 'Portable Network Graphics - No support for non-canonical base pairs',
+                                                    // 'pdf': 'Portable Document Format - No support for non-canonical base pairs',
+                                                    [OutputFileExtension.csv]: 'Comma Separated Values - No support for non-canonical base pairs',
+                                                    [OutputFileExtension.tr]: 'Text Report - No support for non-canonical base pairs',
+                                                    [OutputFileExtension.xrna]: 'XRNA native format - No support for non-canonical base pairs'
                                                   };
                                                   return {
                                                     value: ext,
