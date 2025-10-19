@@ -911,3 +911,5 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
     </div>
   );
 };
+
+export const MemoizedFloatingControls = React.memo(FloatingControls);

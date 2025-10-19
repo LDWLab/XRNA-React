@@ -94,7 +94,7 @@ import { Topbar, TOPBAR_HEIGHT } from "./components/new_sidebar/layout/Topbar";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SettingsDrawer } from "./components/new_sidebar/drawer/SettingsDrawer";
 import { AboutDrawer } from "./components/new_sidebar/drawer/AboutDrawer";
-import { StructureTooltip, Grid, FloatingControls } from "./components/ui";
+import { StructureTooltip, Grid, FloatingControls, MemoizedFloatingControls } from "./components/ui";
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -109,6 +109,8 @@ for (
     viewportScaleExponent
   );
 }
+
+const FLOATING_CONTROLS_POSITION = { top: 80, right: 17 };
 
 export const LEFT_PANEL_WIDTH = 420;
 
@@ -4563,13 +4565,13 @@ export namespace App {
                                             </svg>
                                             
                                             {/* Floating Controls */}
-                                            <FloatingControls
+                                            <MemoizedFloatingControls
                                               settings={settingsRecord}
                                               setSettings={setSettingsRecord}
                                               onZoomIn={onZoomIn}
                                               onZoomOut={onZoomOut}
                                               onResetViewport={resetViewport}
-                                              position={{ top: 80, right: 17 }}
+                                              position={FLOATING_CONTROLS_POSITION}
                                             />
                                             {sceneState ===
                                               SceneState.DATA_IS_LOADING && (
