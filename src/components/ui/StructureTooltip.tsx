@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { LEFT_PANEL_WIDTH } from '../../App';
+
 export interface StructureTooltipProps {
   mouseOverText: string;
   mouseOverTextDimensions: {
@@ -37,7 +39,7 @@ export const StructureTooltip: React.FC<StructureTooltipProps> = ({
     Math.min(
       mouseUIPosition.x + 12,
       Math.max(
-        (parentDivResizeDetector.width ?? 0) - 420,
+        (parentDivResizeDetector.width ?? 0) - LEFT_PANEL_WIDTH,
         0
       ) -
       (mouseOverTextDimensions.width + 12)

@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useCallback
 } from "react";
 import { DEFAULT_TAB, Tab, tabs } from "./app_data/Tab";
 import { add, scaleDown, subtract, Vector2D } from "./data_structures/Vector2D";
@@ -82,18 +83,18 @@ import {
 import "./App.css";
 import { Sidebar } from "./components/new_sidebar";
 import {
-  BasePairBottomSheet,
-  CommandTerminal,
+  MemoizedBasePairBottomSheet,
+  MemoizedCommandTerminal,
   BasePairEditorDrawer,
 } from "./components/new_sidebar";
-import { RightDrawer } from "./components/new_sidebar/drawer/RightDrawer";
+import { MemoizedRightDrawer } from "./components/new_sidebar/drawer/RightDrawer";
 import { ElementInfo } from "./components/new_sidebar";
 import { extractElementInfo } from "./utils/ElementInfoExtractor";
 import { Topbar, TOPBAR_HEIGHT } from "./components/new_sidebar/layout/Topbar";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SettingsDrawer } from "./components/new_sidebar/drawer/SettingsDrawer";
 import { AboutDrawer } from "./components/new_sidebar/drawer/AboutDrawer";
-import { StructureTooltip, Grid, FloatingControls } from "./components/ui";
+import { StructureTooltip, Grid, FloatingControls, MemoizedFloatingControls } from "./components/ui";
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -108,6 +109,10 @@ for (
     viewportScaleExponent
   );
 }
+
+const FLOATING_CONTROLS_POSITION = { top: 80, right: 17 };
+
+export const LEFT_PANEL_WIDTH = 420;
 
 export const PARENT_DIV_HTML_ID = "parent_div";
 export const SVG_ELEMENT_HTML_ID = "viewport";
@@ -429,14 +434,15 @@ export namespace App {
     const [listenForResizeFlag, setListenForResizeFlag] = useState(false);
     const [outputFileHandle, setOutputFileHandle] = useState<any>(undefined);
     const [basePairRadius, setBasePairRadius] = useState<number>(0);
-    type DrawerKind =
-      | "none"
-      | "properties"
-      | "basepair"
-      | "basePairEditor"
-      | "settings"
-      | "about";
-    const [drawerKind, setDrawerKind] = useState<DrawerKind>("none");
+    enum DrawerKind {
+      NONE = "none",
+      PROPERTIES = "properties",
+      BASEPAIR = "basepair",
+      BASE_PAIR_EDITOR = "basePairEditor",
+      SETTINGS = "settings",
+      ABOUT = "about"
+    };
+    const [drawerKind, setDrawerKind] = useState<DrawerKind>(DrawerKind.NONE);
     const [basepairSheetOpen, setBasepairSheetOpen] = useState<boolean>(false);
     const [rightDrawerTitle, setRightDrawerTitle] = useState<string>("");
     const [selectedElementInfo, setSelectedElementInfo] = useState<
@@ -601,10 +607,18 @@ export namespace App {
       [rnaComplexProps]
     );
     const svgWidth = useMemo(
-      function () {
-        return Math.max((parentDivResizeDetector.width ?? 0) - 420, 0);
-      },
-      [parentDivResizeDetector.width]
+      () => Math.max((parentDivResizeDetector.width ?? 0) - LEFT_PANEL_WIDTH, 0),
+      [
+        parentDivResizeDetector.width,
+        LEFT_PANEL_WIDTH
+      ]
+    );
+    const svgHeight = useMemo(
+      () => Math.max((parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT, 0),
+      [
+        parentDivResizeDetector.height,
+        TOPBAR_HEIGHT
+      ]
     );
     const sceneDimensionsReciprocals = useMemo(
       function () {
@@ -617,15 +631,18 @@ export namespace App {
     );
     const sceneBoundsScaleMin = useMemo(
       function () {
-        const heightScale = parentDivResizeDetector.height ?? 0;
         (window as any).widthScale = svgWidth;
-        (window as any).heightScale = heightScale;
+        (window as any).heightScale = svgHeight;
         return Math.min(
           svgWidth * sceneDimensionsReciprocals.width,
-          heightScale * sceneDimensionsReciprocals.height
+          svgHeight * sceneDimensionsReciprocals.height
         );
       },
-      [parentDivResizeDetector.height, svgWidth, sceneDimensionsReciprocals]
+      [
+        svgWidth,
+        svgHeight,
+        sceneDimensionsReciprocals
+      ]
     );
     sceneBoundsScaleMinReference.current = sceneBoundsScaleMin;
     const transformTranslate0 = useMemo(
@@ -1427,7 +1444,7 @@ export namespace App {
 
         if (currentTabRef.current !== Tab.FORMAT) {
           setRightDrawerTitle("Properties");
-          setDrawerKind("properties");
+          setDrawerKind(DrawerKind.PROPERTIES);
         }
       } else {
         setSelectedElementInfo(undefined);
@@ -2604,8 +2621,8 @@ export namespace App {
         setViewportScale(newScale);
         setViewportScaleExponent(newScaleExponent);
         let uiVector = {
-          x: e.clientX - toolsDivResizeDetectorWidth - DIV_BUFFER_DIMENSION,
-          y: e.clientY,
+          x: e.clientX - LEFT_PANEL_WIDTH - DIV_BUFFER_DIMENSION,
+          y: e.clientY - TOPBAR_HEIGHT,
         };
         let reciprocal = totalScale.negativeScale;
         let inputVector = {
@@ -3474,12 +3491,10 @@ export namespace App {
       },
       [tab]
     );
-    const transformIntoDataSpace = useMemo(function () {
-      return function (clickedOnCoordinates: Vector2D) {
-        const toolsDivResizeDetectorWidth =
-          toolsDivResizeDetectorWidthReference.current as number;
-        const sceneBoundsScaleMin =
-          sceneBoundsScaleMinReference.current as number;
+    const transformIntoDataSpace = useCallback(
+      function (clickedOnCoordinates: Vector2D) {
+        const toolsDivResizeDetectorWidth = toolsDivResizeDetectorWidthReference.current as number;
+        const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
         const viewportScale = viewportScaleReference.current as number;
         const transformTranslate0 = transformTranslate0Reference.current as {
           asVector: Vector2D;
@@ -3491,19 +3506,21 @@ export namespace App {
         };
 
         let transformedCoordinates = structuredClone(clickedOnCoordinates);
-        transformedCoordinates.x -= toolsDivResizeDetectorWidth;
+        transformedCoordinates.x -= LEFT_PANEL_WIDTH;
         transformedCoordinates = scaleDown(
           transformedCoordinates,
           sceneBoundsScaleMin * viewportScale
         );
+        transformedCoordinates.y -= TOPBAR_HEIGHT;
         transformedCoordinates.y = -transformedCoordinates.y;
         transformedCoordinates = subtract(
           transformedCoordinates,
           add(transformTranslate0.asVector, transformTranslate1.asVector)
         );
         return transformedCoordinates;
-      };
-    }, []);
+      },
+      []
+    );
     const resetRightClickMenuContent = useMemo(function () {
       return function () {
         const flattenedRnaComplexProps =
@@ -3603,6 +3620,441 @@ export namespace App {
         await writable.close();
       };
     }, []);
+    const renderedRightDrawer = useMemo(
+      function () {
+        const settingsRecord = settingsRecordReference.current!;
+        const basePairAverageDistances = basePairAverageDistancesReference.current!;
+        
+        let children : JSX.Element;
+        switch (drawerKind) {
+          case DrawerKind.NONE : {
+            children = <></>;
+            break;
+          }
+          case DrawerKind.PROPERTIES : {
+            children = <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                height: "100%",
+              }}
+            >
+              <div
+                style={{
+                  padding: "12px 10px",
+                  background:
+                    "var(--color-surface)",
+                  borderBottom:
+                    "1px solid var(--color-border)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform:
+                    "uppercase",
+                  color:
+                    "var(--color-text)",
+                }}
+              >
+                Selected Element
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  overflow: "auto",
+                  padding: 12,
+                }}
+              >
+                {rightClickMenuContent}
+              </div>
+            </div>;
+            break;
+          }
+          case DrawerKind.BASEPAIR : {
+            children = <div
+              style={{
+                height: "100%",
+                overflow: "auto",
+              }}
+            >
+              <BasePairsEditor.Component
+                rnaComplexProps={
+                  rnaComplexProps
+                }
+                approveBasePairs={function () {}}
+              />
+            </div>;
+            break;
+          }
+          case DrawerKind.SETTINGS : {
+            children = <SettingsDrawer
+              open={true}
+              onClose={() =>
+                setDrawerKind(DrawerKind.NONE)
+              }
+              settings={settingsRecord}
+              setSettings={
+                setSettingsRecord
+              }
+              getDistanceDefaults={() => {
+                const flattened =
+                  flattenedRnaComplexPropsReference.current as Array<
+                    [
+                      string,
+                      RnaComplex.ExternalProps
+                    ]
+                  >;
+                if (
+                  flattened &&
+                  flattened.length > 0
+                ) {
+                  const rnaComplexIndex =
+                    Number.parseInt(
+                      flattened[0][0]
+                    );
+                  const {
+                    helixDistance,
+                    distances,
+                  } =
+                    basePairAverageDistances[
+                      rnaComplexIndex
+                    ];
+                  if (
+                    helixDistance != null &&
+                    distances
+                  ) {
+                    return {
+                      [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]:
+                        helixDistance,
+                      [Setting.CANONICAL_BASE_PAIR_DISTANCE]:
+                        distances[
+                          BasePair.Type
+                            .CANONICAL
+                        ],
+                      [Setting.MISMATCH_BASE_PAIR_DISTANCE]:
+                        distances[
+                          BasePair.Type
+                            .MISMATCH
+                        ],
+                      [Setting.WOBBLE_BASE_PAIR_DISTANCE]:
+                        distances[
+                          BasePair.Type
+                            .WOBBLE
+                        ],
+                    };
+                  }
+                }
+                return {};
+              }}
+            />;
+            break;
+          }
+          case DrawerKind.ABOUT : {
+            children = <AboutDrawer
+              open={true}
+              onClose={() =>
+                setDrawerKind(DrawerKind.NONE)
+              }
+              renderTabInstructions={(
+                tab
+              ) => {
+                switch (tab) {
+                  case Tab.INPUT_OUTPUT:
+                    return (
+                      <div>
+                        <p>
+                          Upload and
+                          download RNA
+                          structure files in
+                          various formats
+                          including JSON,
+                          SVG, and more.
+                        </p>
+                        <ul>
+                          <li>
+                            Upload files to
+                            import RNA
+                            structures
+                          </li>
+                          <li>
+                            Download files
+                            to save your
+                            work
+                          </li>
+                          <li>
+                            Support for
+                            multiple file
+                            formats
+                          </li>
+                        </ul>
+                      </div>
+                    );
+                  case Tab.VIEWPORT:
+                    return (
+                      <div>
+                        <p>
+                          Control the
+                          viewport and
+                          navigation of your
+                          RNA structure.
+                        </p>
+                        <ul>
+                          <li>
+                            Zoom in/out with
+                            mouse wheel
+                          </li>
+                          <li>
+                            Pan by dragging
+                            the canvas
+                          </li>
+                          <li>
+                            Reset viewport
+                            to default
+                            position
+                          </li>
+                        </ul>
+                      </div>
+                    );
+                  case Tab.EDIT:
+                    return (
+                      <div>
+                        <p>
+                          Edit RNA
+                          structures by
+                          modifying
+                          nucleotides,
+                          positions, and
+                          properties.
+                        </p>
+                        <ul>
+                          <li>
+                            Move nucleotides
+                            by dragging
+                          </li>
+                          <li>
+                            Edit nucleotide
+                            properties
+                          </li>
+                          <li>
+                            Modify labels
+                            and annotations
+                          </li>
+                        </ul>
+                      </div>
+                    );
+                  case Tab.FORMAT:
+                    return (
+                      <div>
+                        <p>
+                          Format RNA
+                          structures by
+                          adjusting base
+                          pairs and
+                          structural
+                          elements.
+                        </p>
+                        <ul>
+                          <li>
+                            Add/remove base
+                            pairs
+                          </li>
+                          <li>
+                            Adjust base pair
+                            distances
+                          </li>
+                          <li>
+                            Optimize
+                            structure layout
+                          </li>
+                        </ul>
+                      </div>
+                    );
+                  case Tab.ANNOTATE:
+                    return (
+                      <div>
+                        <p>
+                          Add annotations
+                          and labels to your
+                          RNA structure.
+                        </p>
+                        <ul>
+                          <li>
+                            Add text labels
+                          </li>
+                          <li>
+                            Create
+                            annotation
+                            regions
+                          </li>
+                          <li>
+                            Customize
+                            annotation
+                            styles
+                          </li>
+                        </ul>
+                      </div>
+                    );
+                  case Tab.SETTINGS:
+                    return (
+                      <div>
+                        <p>
+                          Configure
+                          application
+                          preferences and
+                          behavior.
+                        </p>
+                        <ul>
+                          <li>
+                            Adjust display
+                            settings
+                          </li>
+                          <li>
+                            Configure
+                            interaction
+                            constraints
+                          </li>
+                          <li>
+                            Import/export
+                            settings
+                          </li>
+                        </ul>
+                      </div>
+                    );
+                  case Tab.ABOUT:
+                    return (
+                      <div>
+                        <p>
+                          XRNA.js is an
+                          interactive web
+                          app for editing,
+                          formatting, and
+                          annotating 2D RNA
+                          diagrams with
+                          precision.
+                        </p>
+                        <h4>
+                          Getting Started:
+                        </h4>
+                        <ol>
+                          <li>
+                            Download a
+                            sample input
+                            file from the
+                            Input/Output
+                            area
+                          </li>
+                          <li>
+                            Upload it via
+                            the File panel
+                            in the left
+                            sidebar
+                          </li>
+                          <li>
+                            Use
+                            Edit/Format/Annotate
+                            tools for
+                            operations on
+                            nucleotides and
+                            base pairs
+                          </li>
+                        </ol>
+                        <h4>Shortcuts:</h4>
+                        <ul>
+                          <li>
+                            Ctrl + O — Open
+                            file
+                          </li>
+                          <li>
+                            Ctrl + S — Save
+                            file
+                          </li>
+                          <li>
+                            Ctrl + 0 — Reset
+                            viewport
+                          </li>
+                          <li>
+                            Ctrl + Z — Undo
+                          </li>
+                          <li>
+                            Ctrl + Shift + Z
+                            / Ctrl + Y —
+                            Redo
+                          </li>
+                        </ul>
+                        <h4>Contact:</h4>
+                        <p>
+                          <a
+                            href="https://github.com/LDWLab/XRNA-React/issues"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Report a bug
+                          </a>
+                        </p>
+                      </div>
+                    );
+                  default:
+                    return (
+                      <div>
+                        No instructions
+                        available for this
+                        tab.
+                      </div>
+                    );
+                }
+              }}
+            />;
+            break;
+          }
+          default : {
+            throw "Unhandled switch case.";
+          }
+        }
+        return <MemoizedRightDrawer
+          open={drawerKind !== DrawerKind.NONE}
+          onClose={() => {
+            setDrawerKind(DrawerKind.NONE);
+            setRightClickMenuContent(
+              <></>,
+              {}
+            );
+            setSelectedElementInfo(
+              undefined
+            );
+          }}
+          // title={rightDrawerTitle}
+          // startWidth={drawerKind === 'about' ? 720 : drawerKind === 'settings' ? 560 : 480}
+        >
+          {children}
+        </MemoizedRightDrawer>;
+      },
+      [
+        settingsRecord,
+        basePairAverageDistances,
+        drawerKind,
+        rightClickMenuContent
+      ]
+    );
+    const renderedBasePairBottomSheet = useMemo(
+      function () {
+        return (<MemoizedBasePairBottomSheet
+          open={basepairSheetOpen}
+          onClose={() => {
+            setBasepairSheetOpen(false);
+            setTab(Tab.EDIT);
+          }}
+          rnaComplexProps={rnaComplexProps}
+          selected={
+            rightClickMenuAffectedNucleotideIndices
+          }
+          formatMode={tab === Tab.FORMAT}
+        />);
+      },
+      [
+        basepairSheetOpen,
+        rnaComplexProps,
+        rightClickMenuAffectedNucleotideIndices,
+        tab
+      ]
+    );
     // Global event hooks for bottom-sheet UX
     useEffect(() => {
       function onOpenSheet() {
@@ -3974,7 +4426,7 @@ export namespace App {
                                                 top: 0,
                                                 left: 0,
                                                 height: "100%",
-                                                width: 420,
+                                                width: LEFT_PANEL_WIDTH,
                                                 zIndex: 1000,
                                               }}
                                             >
@@ -4114,19 +4566,19 @@ export namespace App {
                                                   if (
                                                     drawerKind === "properties"
                                                   ) {
-                                                    setDrawerKind("none");
+                                                    setDrawerKind(DrawerKind.NONE);
                                                   } else {
                                                     setRightDrawerTitle(
                                                       "Properties"
                                                     );
-                                                    setDrawerKind("properties");
+                                                    setDrawerKind(DrawerKind.PROPERTIES);
                                                   }
                                                 }}
                                                 onToggleSettingsDrawer={() => {
                                                   if (
                                                     drawerKind === "settings"
                                                   ) {
-                                                    setDrawerKind("none");
+                                                    setDrawerKind(DrawerKind.NONE);
                                                   } else {
                                                     setRightClickMenuContent(
                                                       <></>,
@@ -4135,12 +4587,12 @@ export namespace App {
                                                     setRightDrawerTitle(
                                                       "Settings"
                                                     );
-                                                    setDrawerKind("settings");
+                                                    setDrawerKind(DrawerKind.SETTINGS);
                                                   }
                                                 }}
                                                 onToggleAboutDrawer={() => {
                                                   if (drawerKind === "about") {
-                                                    setDrawerKind("none");
+                                                    setDrawerKind(DrawerKind.NONE);
                                                   } else {
                                                     setRightClickMenuContent(
                                                       <></>,
@@ -4149,7 +4601,7 @@ export namespace App {
                                                     setRightDrawerTitle(
                                                       "About XRNA"
                                                     );
-                                                    setDrawerKind("about");
+                                                    setDrawerKind(DrawerKind.ABOUT);
                                                   }
                                                 }}
                                                 undoStack={undoStack}
@@ -4324,7 +4776,7 @@ export namespace App {
                                                     setTab(Tab.EDIT); // Reset to EDIT mode when closing
                                                   } else {
                                                     setBasepairSheetOpen(true);
-                                                    setDrawerKind("none");
+                                                    setDrawerKind(DrawerKind.NONE);
                                                     setTab(Tab.FORMAT);
 
                                                     // Get constraint-based selection instead of empty drag selection
@@ -4551,15 +5003,15 @@ export namespace App {
                                               }
                                               exportFormats={outputFileExtensions.map(
                                                 (ext) => {
-                                                  const tooltips: Record<string, string> = {
-                                                    'json': 'Structured format, maximum support for all features',
-                                                    'bpseq': 'Base Pair Sequence - No support for non-canonical base pairs',
-                                                    'svg': 'Scalable Vector Graphics - No support for non-canonical base pairs',
-                                                    'png': 'Portable Network Graphics - No support for non-canonical base pairs',
-                                                    'pdf': 'Portable Document Format - No support for non-canonical base pairs',
-                                                    'csv': 'Comma Separated Values - No support for non-canonical base pairs',
-                                                    'tr': 'Text Report - No support for non-canonical base pairs',
-                                                    'xrna': 'XRNA native format - No support for non-canonical base pairs'
+                                                  const tooltips: Record<OutputFileExtension, string> = {
+                                                    [OutputFileExtension.json] : 'Structured format, maximum support for all features',
+                                                    [OutputFileExtension.bpseq]: 'Base Pair Sequence - No support for non-canonical base pairs',
+                                                    [OutputFileExtension.svg]: 'Scalable Vector Graphics - No support for non-canonical base pairs',
+                                                    // 'png': 'Portable Network Graphics - No support for non-canonical base pairs',
+                                                    // 'pdf': 'Portable Document Format - No support for non-canonical base pairs',
+                                                    [OutputFileExtension.csv]: 'Comma Separated Values - No support for non-canonical base pairs',
+                                                    [OutputFileExtension.tr]: 'Text Report - No support for non-canonical base pairs',
+                                                    [OutputFileExtension.xrna]: 'XRNA native format - No support for non-canonical base pairs'
                                                   };
                                                   return {
                                                     value: ext,
@@ -4582,7 +5034,7 @@ export namespace App {
                                               ref={toolsDivResizeDetector.ref}
                                               style={{
                                                 position: "absolute",
-                                                left: 420,
+                                                left: LEFT_PANEL_WIDTH,
                                                 top: TOPBAR_HEIGHT,
                                                 width: toolsDivWidthAttribute,
                                                 height: `calc(100% - ${TOPBAR_HEIGHT}px)`,
@@ -4606,7 +5058,7 @@ export namespace App {
                                                   overflowX: "auto",
                                                   overflowY: "auto",
                                                   top: 0,
-                                                  left: 420,
+                                                  left: LEFT_PANEL_WIDTH,
                                                   background: "inherit",
                                                   resize: "both",
                                                   borderBottom: `2px solid black`,
@@ -4653,102 +5105,20 @@ export namespace App {
                                                       </b>
                                                     </>
                                                   )}
-                                                  {/* undoStack.length {undoStack.length} redoStack.length {redoStack.length} */}
                                                 </div>
-                                              </div>
-                                              {/* Bottom tools div */}
-                                              <div
-                                                style={{
-                                                  width: "100%",
-                                                  height: "100%",
-                                                  maxHeight:
-                                                    (parentDivResizeDetector.height ??
-                                                      0) -
-                                                    (topToolsDivResizeDetector.height ??
-                                                      0),
-                                                  display: "inline-block",
-                                                  overflowX: "hidden",
-                                                  overflowY: "auto",
-                                                  top:
-                                                    (topToolsDivResizeDetector.height ??
-                                                      0) + DIV_BUFFER_DIMENSION,
-                                                  left: 420,
-                                                  background: "inherit",
-                                                  position: "absolute",
-                                                  whiteSpace: "nowrap",
-                                                }}
-                                              >
-                                                {sceneState ===
-                                                  SceneState.DATA_LOADING_FAILED && (
-                                                  <>
-                                                    <div
-                                                      style={{
-                                                        display: "inline-block",
-                                                        width: "auto",
-                                                      }}
-                                                      ref={
-                                                        errorMessageResizeDetector.ref
-                                                      }
-                                                    >
-                                                      <b
-                                                        style={{
-                                                          color: "red",
-                                                        }}
-                                                      >
-                                                        Parsing the provided
-                                                        input file failed.&nbsp;
-                                                        {dataLoadingFailedErrorMessage
-                                                          ? dataLoadingFailedErrorMessage
-                                                          : "Try another file, or report a bug."}
-                                                      </b>
-                                                      &nbsp;
-                                                      <a
-                                                        href="https://github.com/LDWLab/XRNA-React/issues"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                      >
-                                                        Report a bug
-                                                      </a>
-                                                    </div>
-                                                    <br />
-                                                  </>
-                                                )}
-                                                <Context.App.ComplexDocumentName.Provider
-                                                  value={complexDocumentName}
-                                                >
-                                                  <Context.App.SetComplexDocumentName.Provider
-                                                    value={
-                                                      setComplexDocumentName
-                                                    }
-                                                  >
-                                                    <Context.OrientationEditor.ResetDataTrigger.Provider
-                                                      value={
-                                                        resetOrientationDataTrigger
-                                                      }
-                                                    >
-                                                      <Context.Collapsible.Width.Provider
-                                                        value={
-                                                          toolsDivWidthAttribute
-                                                        }
-                                                      >
-                                                        {/* Right-click menu content is now displayed in Properties drawer */}
-                                                      </Context.Collapsible.Width.Provider>
-                                                    </Context.OrientationEditor.ResetDataTrigger.Provider>
-                                                  </Context.App.SetComplexDocumentName.Provider>
-                                                </Context.App.ComplexDocumentName.Provider>
                                               </div>
                                             </div>
                                             <svg
                                               id={SVG_ELEMENT_HTML_ID}
                                               style={{
                                                 top: TOPBAR_HEIGHT,
-                                                left: 420,
+                                                left: LEFT_PANEL_WIDTH,
                                                 position: "absolute",
                                               }}
                                               xmlns="http://www.w3.org/2000/svg"
                                               viewBox={`0 0 ${Math.max(
                                                 (parentDivResizeDetector.width ??
-                                                  0) - 420,
+                                                  0) - LEFT_PANEL_WIDTH,
                                                 0
                                               )} ${Math.max(
                                                 (parentDivResizeDetector.height ??
@@ -4911,13 +5281,13 @@ export namespace App {
                                             </svg>
                                             
                                             {/* Floating Controls */}
-                                            <FloatingControls
+                                            <MemoizedFloatingControls
                                               settings={settingsRecord}
                                               setSettings={setSettingsRecord}
                                               onZoomIn={onZoomIn}
                                               onZoomOut={onZoomOut}
                                               onResetViewport={resetViewport}
-                                              position={{ top: 80, right: 17 }}
+                                              position={FLOATING_CONTROLS_POSITION}
                                             />
                                             {sceneState ===
                                               SceneState.DATA_IS_LOADING && (
@@ -4953,417 +5323,7 @@ export namespace App {
                                               id={TEST_SPACE_ID}
                                             />
                                             {/* Unified Right Drawer */}
-                                            <RightDrawer
-                                              open={drawerKind !== "none"}
-                                              onClose={() => {
-                                                setDrawerKind("none");
-                                                setRightClickMenuContent(
-                                                  <></>,
-                                                  {}
-                                                );
-                                                setSelectedElementInfo(
-                                                  undefined
-                                                );
-                                              }}
-                                              // title={rightDrawerTitle}
-                                              // startWidth={drawerKind === 'about' ? 720 : drawerKind === 'settings' ? 560 : 480}
-                                            >
-                                              {drawerKind === "properties" && (
-                                                <div
-                                                  style={{
-                                                    display: "flex",
-                                                    flexDirection: "column",
-                                                    height: "100%",
-                                                  }}
-                                                >
-                                                  <div
-                                                    style={{
-                                                      padding: "12px 10px",
-                                                      background:
-                                                        "var(--color-surface)",
-                                                      borderBottom:
-                                                        "1px solid var(--color-border)",
-                                                      fontSize: 11,
-                                                      fontWeight: 700,
-                                                      textTransform:
-                                                        "uppercase",
-                                                      color:
-                                                        "var(--color-text)",
-                                                    }}
-                                                  >
-                                                    Selected Element
-                                                  </div>
-                                                  <div
-                                                    style={{
-                                                      flex: 1,
-                                                      overflow: "auto",
-                                                      padding: 12,
-                                                    }}
-                                                  >
-                                                    {rightClickMenuContent}
-                                                  </div>
-                                                </div>
-                                              )}
-                                              {drawerKind === "basepair" && (
-                                                <div
-                                                  style={{
-                                                    height: "100%",
-                                                    overflow: "auto",
-                                                  }}
-                                                >
-                                                  <BasePairsEditor.Component
-                                                    rnaComplexProps={
-                                                      rnaComplexProps
-                                                    }
-                                                    approveBasePairs={function () {}}
-                                                  />
-                                                </div>
-                                              )}
-                                              {drawerKind === "settings" && (
-                                                <SettingsDrawer
-                                                  open={true}
-                                                  onClose={() =>
-                                                    setDrawerKind("none")
-                                                  }
-                                                  settings={settingsRecord}
-                                                  setSettings={
-                                                    setSettingsRecord
-                                                  }
-                                                  getDistanceDefaults={() => {
-                                                    const flattened =
-                                                      flattenedRnaComplexPropsReference.current as Array<
-                                                        [
-                                                          string,
-                                                          RnaComplex.ExternalProps
-                                                        ]
-                                                      >;
-                                                    if (
-                                                      flattened &&
-                                                      flattened.length > 0
-                                                    ) {
-                                                      const rnaComplexIndex =
-                                                        Number.parseInt(
-                                                          flattened[0][0]
-                                                        );
-                                                      const {
-                                                        helixDistance,
-                                                        distances,
-                                                      } =
-                                                        basePairAverageDistances[
-                                                          rnaComplexIndex
-                                                        ];
-                                                      if (
-                                                        helixDistance != null &&
-                                                        distances
-                                                      ) {
-                                                        return {
-                                                          [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]:
-                                                            helixDistance,
-                                                          [Setting.CANONICAL_BASE_PAIR_DISTANCE]:
-                                                            distances[
-                                                              BasePair.Type
-                                                                .CANONICAL
-                                                            ],
-                                                          [Setting.MISMATCH_BASE_PAIR_DISTANCE]:
-                                                            distances[
-                                                              BasePair.Type
-                                                                .MISMATCH
-                                                            ],
-                                                          [Setting.WOBBLE_BASE_PAIR_DISTANCE]:
-                                                            distances[
-                                                              BasePair.Type
-                                                                .WOBBLE
-                                                            ],
-                                                        };
-                                                      }
-                                                    }
-                                                    return {};
-                                                  }}
-                                                />
-                                              )}
-                                              {drawerKind === "about" && (
-                                                <AboutDrawer
-                                                  open={true}
-                                                  onClose={() =>
-                                                    setDrawerKind("none")
-                                                  }
-                                                  renderTabInstructions={(
-                                                    tab
-                                                  ) => {
-                                                    switch (tab) {
-                                                      case Tab.INPUT_OUTPUT:
-                                                        return (
-                                                          <div>
-                                                            <p>
-                                                              Upload and
-                                                              download RNA
-                                                              structure files in
-                                                              various formats
-                                                              including JSON,
-                                                              SVG, and more.
-                                                            </p>
-                                                            <ul>
-                                                              <li>
-                                                                Upload files to
-                                                                import RNA
-                                                                structures
-                                                              </li>
-                                                              <li>
-                                                                Download files
-                                                                to save your
-                                                                work
-                                                              </li>
-                                                              <li>
-                                                                Support for
-                                                                multiple file
-                                                                formats
-                                                              </li>
-                                                            </ul>
-                                                          </div>
-                                                        );
-                                                      case Tab.VIEWPORT:
-                                                        return (
-                                                          <div>
-                                                            <p>
-                                                              Control the
-                                                              viewport and
-                                                              navigation of your
-                                                              RNA structure.
-                                                            </p>
-                                                            <ul>
-                                                              <li>
-                                                                Zoom in/out with
-                                                                mouse wheel
-                                                              </li>
-                                                              <li>
-                                                                Pan by dragging
-                                                                the canvas
-                                                              </li>
-                                                              <li>
-                                                                Reset viewport
-                                                                to default
-                                                                position
-                                                              </li>
-                                                            </ul>
-                                                          </div>
-                                                        );
-                                                      case Tab.EDIT:
-                                                        return (
-                                                          <div>
-                                                            <p>
-                                                              Edit RNA
-                                                              structures by
-                                                              modifying
-                                                              nucleotides,
-                                                              positions, and
-                                                              properties.
-                                                            </p>
-                                                            <ul>
-                                                              <li>
-                                                                Move nucleotides
-                                                                by dragging
-                                                              </li>
-                                                              <li>
-                                                                Edit nucleotide
-                                                                properties
-                                                              </li>
-                                                              <li>
-                                                                Modify labels
-                                                                and annotations
-                                                              </li>
-                                                            </ul>
-                                                          </div>
-                                                        );
-                                                      case Tab.FORMAT:
-                                                        return (
-                                                          <div>
-                                                            <p>
-                                                              Format RNA
-                                                              structures by
-                                                              adjusting base
-                                                              pairs and
-                                                              structural
-                                                              elements.
-                                                            </p>
-                                                            <ul>
-                                                              <li>
-                                                                Add/remove base
-                                                                pairs
-                                                              </li>
-                                                              <li>
-                                                                Adjust base pair
-                                                                distances
-                                                              </li>
-                                                              <li>
-                                                                Optimize
-                                                                structure layout
-                                                              </li>
-                                                            </ul>
-                                                          </div>
-                                                        );
-                                                      case Tab.ANNOTATE:
-                                                        return (
-                                                          <div>
-                                                            <p>
-                                                              Add annotations
-                                                              and labels to your
-                                                              RNA structure.
-                                                            </p>
-                                                            <ul>
-                                                              <li>
-                                                                Add text labels
-                                                              </li>
-                                                              <li>
-                                                                Create
-                                                                annotation
-                                                                regions
-                                                              </li>
-                                                              <li>
-                                                                Customize
-                                                                annotation
-                                                                styles
-                                                              </li>
-                                                            </ul>
-                                                          </div>
-                                                        );
-                                                      case Tab.SETTINGS:
-                                                        return (
-                                                          <div>
-                                                            <p>
-                                                              Configure
-                                                              application
-                                                              preferences and
-                                                              behavior.
-                                                            </p>
-                                                            <ul>
-                                                              <li>
-                                                                Adjust display
-                                                                settings
-                                                              </li>
-                                                              <li>
-                                                                Configure
-                                                                interaction
-                                                                constraints
-                                                              </li>
-                                                              <li>
-                                                                Import/export
-                                                                settings
-                                                              </li>
-                                                            </ul>
-                                                          </div>
-                                                        );
-                                                      case Tab.ABOUT:
-                                                        return (
-                                                          <div>
-                                                            <p>
-                                                              XRNA.js is an
-                                                              interactive web
-                                                              app for editing,
-                                                              formatting, and
-                                                              annotating 2D RNA
-                                                              diagrams with
-                                                              precision.
-                                                            </p>
-                                                            <h4>
-                                                              Getting Started:
-                                                            </h4>
-                                                            <ol>
-                                                              <li>
-                                                                Download a
-                                                                sample input
-                                                                file from the
-                                                                Input/Output
-                                                                area
-                                                              </li>
-                                                              <li>
-                                                                Upload it via
-                                                                the File panel
-                                                                in the left
-                                                                sidebar
-                                                              </li>
-                                                              <li>
-                                                                Use
-                                                                Edit/Format/Annotate
-                                                                tools for
-                                                                operations on
-                                                                nucleotides and
-                                                                base pairs
-                                                              </li>
-                                                            </ol>
-                                                            <h4>Shortcuts:</h4>
-                                                            <ul>
-                                                              <li>
-                                                                Ctrl + O — Open
-                                                                file
-                                                              </li>
-                                                              <li>
-                                                                Ctrl + S — Save
-                                                                file
-                                                              </li>
-                                                              <li>
-                                                                Ctrl + 0 — Reset
-                                                                viewport
-                                                              </li>
-                                                              <li>
-                                                                Ctrl + Z — Undo
-                                                              </li>
-                                                              <li>
-                                                                Ctrl + Shift + Z
-                                                                / Ctrl + Y —
-                                                                Redo
-                                                              </li>
-                                                            </ul>
-                                                            <h4>Contact:</h4>
-                                                            <p>
-                                                              <a
-                                                                href="https://github.com/LDWLab/XRNA-React/issues"
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                              >
-                                                                Report a bug
-                                                              </a>
-                                                            </p>
-                                                          </div>
-                                                        );
-                                                      default:
-                                                        return (
-                                                          <div>
-                                                            No instructions
-                                                            available for this
-                                                            tab.
-                                                          </div>
-                                                        );
-                                                    }
-                                                  }}
-                                                />
-                                              )}
-                                              {drawerKind ===
-                                                "basePairEditor" && (
-                                                <BasePairEditorDrawer
-                                                  open={true}
-                                                  onClose={() =>
-                                                    setDrawerKind("none")
-                                                  }
-                                                  rnaComplexProps={
-                                                    rnaComplexProps
-                                                  }
-                                                  approveBasePairs={(bps) => {
-                                                    // Handle base pair approval
-                                                    console.log(
-                                                      "Base pairs approved:",
-                                                      bps
-                                                    );
-                                                    // You can implement the logic to apply the approved base pairs here
-                                                  }}
-                                                  selected={
-                                                    rightClickMenuAffectedNucleotideIndices
-                                                  }
-                                                  formatMode={
-                                                    tab === Tab.FORMAT
-                                                  }
-                                                />
-                                              )}
-                                            </RightDrawer>
+                                            {renderedRightDrawer}
 
                                             {/* Hidden Base-Pairs Editor host (for global reformat trigger) */}
                                             <div style={{ display: "none" }}>
@@ -5376,21 +5336,10 @@ export namespace App {
                                             </div>
 
                                             {/* Bottom Sheet: Base-Pair Editor */}
-                                            <BasePairBottomSheet
-                                              open={basepairSheetOpen}
-                                              onClose={() => {
-                                                setBasepairSheetOpen(false);
-                                                setTab(Tab.EDIT);
-                                              }}
-                                              rnaComplexProps={rnaComplexProps}
-                                              selected={
-                                                rightClickMenuAffectedNucleotideIndices
-                                              }
-                                              formatMode={tab === Tab.FORMAT}
-                                            />
+                                            {renderedBasePairBottomSheet}
 
                                             {/* Bottom-docked command terminal (hidden by default, toggle with ~) */}
-                                            <CommandTerminal
+                                            <MemoizedCommandTerminal
                                               rnaComplexProps={rnaComplexProps}
                                             />
                                           </div>

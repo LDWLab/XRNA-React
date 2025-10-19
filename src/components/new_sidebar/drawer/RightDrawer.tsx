@@ -69,4 +69,4 @@ export const RightDrawer: React.FC<RightDrawerProps> = ({ open, onClose, childre
   );
 };
 
-
+export const MemoizedRightDrawer = React.memo(RightDrawer);

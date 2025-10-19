@@ -3,6 +3,8 @@ import { useTheme } from "../../../context/ThemeContext";
 import { ThemeToggle } from "../../ui/ThemeToggle";
 import { Button } from "./Button";
 import { FileDown, FolderOpen, Save, ChevronDown } from "lucide-react";
+import { OutputFileExtension } from "../../../io/OutputUI";
+import { LEFT_PANEL_WIDTH } from '../../../App';
 
 // Custom Dropdown Component
 interface CustomDropdownProps {
@@ -193,8 +195,8 @@ export type TopbarProps = {
   fileName?: string;
   onFileNameChange?: (name: string) => void;
   exportFormat?: string;
-  exportFormats?: Array<{ value: string; label: string; tooltip?: string }>;
-  onExportFormatChange?: (format: string) => void;
+  exportFormats?: Array<{ value: OutputFileExtension; label: string; tooltip?: string }>;
+  onExportFormatChange?: (format: OutputFileExtension) => void;
 };
 
 export const TOPBAR_HEIGHT = 56;
@@ -221,7 +223,7 @@ export const Topbar: React.FC<TopbarProps> = ({
       style={{
         position: "absolute",
         top: 0,
-        left: 420,
+        left: LEFT_PANEL_WIDTH,
         right: 0,
         height: TOPBAR_HEIGHT,
         display: "flex",
@@ -281,7 +283,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         <CustomDropdown
           value={exportFormat}
           options={exportFormats}
-          onChange={(value) => onExportFormatChange?.(value)}
+          onChange={(value) => onExportFormatChange?.(value as OutputFileExtension)}
           theme={theme}
         />
         <Button
