@@ -652,4 +652,4 @@ export const CommandTerminal: React.FC<CommandTerminalProps> = ({ rnaComplexProp
 
 export default CommandTerminal;
 
-
+export const MemoizedCommandTerminal = React.memo(CommandTerminal);

@@ -84,7 +84,7 @@ import "./App.css";
 import { Sidebar } from "./components/new_sidebar";
 import {
   MemoizedBasePairBottomSheet,
-  CommandTerminal,
+  MemoizedCommandTerminal,
   BasePairEditorDrawer,
 } from "./components/new_sidebar";
 import { RightDrawer } from "./components/new_sidebar/drawer/RightDrawer";
@@ -4387,89 +4387,7 @@ export namespace App {
                                                       </b>
                                                     </>
                                                   )}
-                                                  {/* undoStack.length {undoStack.length} redoStack.length {redoStack.length} */}
                                                 </div>
-                                              </div>
-                                              {/* Bottom tools div */}
-                                              <div
-                                                style={{
-                                                  width: "100%",
-                                                  height: "100%",
-                                                  maxHeight:
-                                                    (parentDivResizeDetector.height ??
-                                                      0) -
-                                                    (topToolsDivResizeDetector.height ??
-                                                      0),
-                                                  display: "inline-block",
-                                                  overflowX: "hidden",
-                                                  overflowY: "auto",
-                                                  top:
-                                                    (topToolsDivResizeDetector.height ??
-                                                      0) + DIV_BUFFER_DIMENSION,
-                                                  left: LEFT_PANEL_WIDTH,
-                                                  background: "inherit",
-                                                  position: "absolute",
-                                                  whiteSpace: "nowrap",
-                                                }}
-                                              >
-                                                {sceneState ===
-                                                  SceneState.DATA_LOADING_FAILED && (
-                                                  <>
-                                                    <div
-                                                      style={{
-                                                        display: "inline-block",
-                                                        width: "auto",
-                                                      }}
-                                                      ref={
-                                                        errorMessageResizeDetector.ref
-                                                      }
-                                                    >
-                                                      <b
-                                                        style={{
-                                                          color: "red",
-                                                        }}
-                                                      >
-                                                        Parsing the provided
-                                                        input file failed.&nbsp;
-                                                        {dataLoadingFailedErrorMessage
-                                                          ? dataLoadingFailedErrorMessage
-                                                          : "Try another file, or report a bug."}
-                                                      </b>
-                                                      &nbsp;
-                                                      <a
-                                                        href="https://github.com/LDWLab/XRNA-React/issues"
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                      >
-                                                        Report a bug
-                                                      </a>
-                                                    </div>
-                                                    <br />
-                                                  </>
-                                                )}
-                                                <Context.App.ComplexDocumentName.Provider
-                                                  value={complexDocumentName}
-                                                >
-                                                  <Context.App.SetComplexDocumentName.Provider
-                                                    value={
-                                                      setComplexDocumentName
-                                                    }
-                                                  >
-                                                    <Context.OrientationEditor.ResetDataTrigger.Provider
-                                                      value={
-                                                        resetOrientationDataTrigger
-                                                      }
-                                                    >
-                                                      <Context.Collapsible.Width.Provider
-                                                        value={
-                                                          toolsDivWidthAttribute
-                                                        }
-                                                      >
-                                                        {/* Right-click menu content is now displayed in Properties drawer */}
-                                                      </Context.Collapsible.Width.Provider>
-                                                    </Context.OrientationEditor.ResetDataTrigger.Provider>
-                                                  </Context.App.SetComplexDocumentName.Provider>
-                                                </Context.App.ComplexDocumentName.Provider>
                                               </div>
                                             </div>
                                             <svg
@@ -5113,7 +5031,7 @@ export namespace App {
                                             {renderedBasePairBottomSheet}
 
                                             {/* Bottom-docked command terminal (hidden by default, toggle with ~) */}
-                                            <CommandTerminal
+                                            <MemoizedCommandTerminal
                                               rnaComplexProps={rnaComplexProps}
                                             />
                                           </div>

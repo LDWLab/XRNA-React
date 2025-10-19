@@ -13,4 +13,4 @@ export {
     BasePairBottomSheet,
     MemoizedBasePairBottomSheet
 } from './bottomsheet/BasePairBottomSheet';
-export { default as CommandTerminal } from './dock/CommandTerminal';
+export { default as CommandTerminal, MemoizedCommandTerminal } from './dock/CommandTerminal';
