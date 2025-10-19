@@ -46,6 +46,24 @@ type Row = {
   type?: _BasePair.Type;
 };
 
+type GroupedRow = {
+  rnaComplexIndex: number;
+  rnaComplexName: string;
+  rnaMoleculeName0: string;
+  nucleotideIndex0Start: number;
+  nucleotideIndex0End: number;
+  formattedNucleotideIndex0Start: number;
+  formattedNucleotideIndex0End: number;
+  rnaMoleculeName1: string;
+  nucleotideIndex1Start: number;
+  nucleotideIndex1End: number;
+  formattedNucleotideIndex1Start: number;
+  formattedNucleotideIndex1End: number;
+  type?: _BasePair.Type;
+  length: number;
+  isGrouped: true;
+};
+
 function parseDirectedType(t?: _BasePair.Type): {
   orientation?: Orientation;
   edgeA?: Edge;
@@ -122,6 +140,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const [height, setHeight] = useState<number>(360);
   const [isResizing, setIsResizing] = useState(false);
   const [activeTab, setActiveTab] = useState<"Global" | "Selected">("Global");
+  const [viewMode, setViewMode] = useState<"Individual" | "Grouped">("Individual");
   const sheetRef = useRef<HTMLDivElement>(null);
   const startYRef = useRef<number>(0);
   const startHRef = useRef<number>(360);
@@ -250,8 +269,91 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     );
   }
 
+  function computeGroupedRows(individualRows: Row[]): (Row | GroupedRow)[] {
+    if (individualRows.length === 0) return [];
+    
+    const grouped: (Row | GroupedRow)[] = [];
+    let i = 0;
+    
+    while (i < individualRows.length) {
+      const current = individualRows[i];
+      let j = i + 1;
+      
+      // Determine the direction of the second strand (parallel or antiparallel)
+      let direction1: number | null = null;
+      if (i + 1 < individualRows.length) {
+        const next = individualRows[i + 1];
+        if (
+          next.rnaComplexIndex === current.rnaComplexIndex &&
+          next.rnaMoleculeName0 === current.rnaMoleculeName0 &&
+          next.rnaMoleculeName1 === current.rnaMoleculeName1 &&
+          next.type === current.type &&
+          next.nucleotideIndex0 === current.nucleotideIndex0 + 1
+        ) {
+          // Determine if strand 1 is going up (+1) or down (-1)
+          direction1 = next.nucleotideIndex1 - current.nucleotideIndex1;
+        }
+      }
+      
+      // Try to find consecutive rows with same properties
+      while (j < individualRows.length) {
+        const next = individualRows[j];
+        const prev = individualRows[j - 1];
+        
+        // Check if next row can be grouped with previous
+        // Strand 0 must increment by 1, strand 1 can increment or decrement by 1
+        const canGroup = (
+          next.rnaComplexIndex === prev.rnaComplexIndex &&
+          next.rnaMoleculeName0 === prev.rnaMoleculeName0 &&
+          next.rnaMoleculeName1 === prev.rnaMoleculeName1 &&
+          next.type === prev.type &&
+          next.nucleotideIndex0 === prev.nucleotideIndex0 + 1 &&
+          (
+            (direction1 === null && (next.nucleotideIndex1 === prev.nucleotideIndex1 + 1 || next.nucleotideIndex1 === prev.nucleotideIndex1 - 1)) ||
+            (direction1 !== null && next.nucleotideIndex1 === prev.nucleotideIndex1 + direction1)
+          )
+        );
+        
+        if (!canGroup) break;
+        j++;
+      }
+      
+      // If we found a group (more than one consecutive row)
+      if (j - i > 1) {
+        const first = individualRows[i];
+        const last = individualRows[j - 1];
+        grouped.push({
+          rnaComplexIndex: first.rnaComplexIndex,
+          rnaComplexName: first.rnaComplexName,
+          rnaMoleculeName0: first.rnaMoleculeName0,
+          nucleotideIndex0Start: first.nucleotideIndex0,
+          nucleotideIndex0End: last.nucleotideIndex0,
+          formattedNucleotideIndex0Start: first.formattedNucleotideIndex0,
+          formattedNucleotideIndex0End: last.formattedNucleotideIndex0,
+          rnaMoleculeName1: first.rnaMoleculeName1,
+          nucleotideIndex1Start: first.nucleotideIndex1,
+          nucleotideIndex1End: last.nucleotideIndex1,
+          formattedNucleotideIndex1Start: first.formattedNucleotideIndex1,
+          formattedNucleotideIndex1End: last.formattedNucleotideIndex1,
+          type: first.type,
+          length: j - i,
+          isGrouped: true,
+        });
+      } else {
+        // Single row, keep as is
+        grouped.push(current);
+      }
+      
+      i = j;
+    }
+    
+    return grouped;
+  }
+
   const allRows = computeRowsAll();
-  const rows = activeTab === "Global" ? allRows : computeRowsSelected(allRows);
+  const selectedRows = computeRowsSelected(allRows);
+  const baseRows = activeTab === "Global" ? allRows : selectedRows;
+  const rows = viewMode === "Grouped" ? computeGroupedRows(baseRows) : baseRows;
 
   function csvEscape(value: string): string {
     if (value == null) return "";
@@ -304,7 +406,35 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       "edgeA",
       "edgeB",
     ].join(",");
-    const lines = rows.map((r) => {
+    
+    // Expand grouped rows back to individual rows for export
+    const expandedRows: Row[] = [];
+    for (const r of rows) {
+      if (isGroupedRow(r)) {
+        // Expand grouped row into individual rows
+        // Determine direction of second strand
+        const direction1 = r.nucleotideIndex1End > r.nucleotideIndex1Start ? 1 : -1;
+        const direction1Formatted = r.formattedNucleotideIndex1End > r.formattedNucleotideIndex1Start ? 1 : -1;
+        
+        for (let i = 0; i < r.length; i++) {
+          expandedRows.push({
+            rnaComplexIndex: r.rnaComplexIndex,
+            rnaComplexName: r.rnaComplexName,
+            rnaMoleculeName0: r.rnaMoleculeName0,
+            nucleotideIndex0: r.nucleotideIndex0Start + i,
+            formattedNucleotideIndex0: r.formattedNucleotideIndex0Start + i,
+            rnaMoleculeName1: r.rnaMoleculeName1,
+            nucleotideIndex1: r.nucleotideIndex1Start + (i * direction1),
+            formattedNucleotideIndex1: r.formattedNucleotideIndex1Start + (i * direction1Formatted),
+            type: r.type,
+          });
+        }
+      } else {
+        expandedRows.push(r);
+      }
+    }
+    
+    const lines = expandedRows.map((r) => {
       const base = decomposeTypeBase(r.type);
       const { orientation, edgeA, edgeB } = parseDirectedType(r.type);
       return [
@@ -1061,7 +1191,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     });
   }
 
-  function displayOrientation(row: Row): string {
+  function isGroupedRow(row: Row | GroupedRow): row is GroupedRow {
+    return (row as GroupedRow).isGrouped === true;
+  }
+
+  function displayOrientation(row: Row | GroupedRow): string {
     const { orientation } = parseDirectedType(row.type);
     if (orientation) return orientation;
     // If not custom, derive meaningful default
@@ -1072,7 +1206,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     if (base === "auto") return "auto";
     return "cis";
   }
-  function displayEdgeA(row: Row): string {
+  function displayEdgeA(row: Row | GroupedRow): string {
     const { edgeA } = parseDirectedType(row.type);
     if (edgeA) return edgeA;
     const base = decomposeTypeBase(row.type);
@@ -1084,7 +1218,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       ? "watson_crick"
       : "unknown";
   }
-  function displayEdgeB(row: Row): string {
+  function displayEdgeB(row: Row | GroupedRow): string {
     const { edgeB } = parseDirectedType(row.type);
     if (edgeB) return edgeB;
     const base = decomposeTypeBase(row.type);
@@ -1313,64 +1447,28 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               borderRadius: 8,
             }}
           >
-            {formatMode
-              ? // In Format mode, show "All" and "Selected" tabs
-                (["All", "Selected"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() =>
-                      setActiveTab(t === "All" ? "Global" : "Selected")
-                    }
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 6,
-                      border: "none",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      background: (
-                        t === "All"
-                          ? activeTab === "Global"
-                          : activeTab === "Selected"
-                      )
-                        ? theme.colors.background
-                        : "transparent",
-                      color: theme.colors.text,
-                      boxShadow: (
-                        t === "All"
-                          ? activeTab === "Global"
-                          : activeTab === "Selected"
-                      )
-                        ? theme.shadows.sm
-                        : "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {t}
-                  </button>
-                ))
-              : // Normal mode, show "Global" and "Selected" tabs
-                (["Global", "Selected"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setActiveTab(t)}
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 6,
-                      border: "none",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      background:
-                        activeTab === t
-                          ? theme.colors.background
-                          : "transparent",
-                      color: theme.colors.text,
-                      boxShadow: activeTab === t ? theme.shadows.sm : "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {t}
-                  </button>
-                ))}
+            {(["Individual", "Grouped"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setViewMode(t)}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: "none",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background:
+                    viewMode === t
+                      ? theme.colors.background
+                      : "transparent",
+                  color: theme.colors.text,
+                  boxShadow: viewMode === t ? theme.shadows.sm : "none",
+                  cursor: "pointer",
+                }}
+              >
+                {t}
+              </button>
+            ))}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1847,6 +1945,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               <th style={thStyle(80)}>Nuc#1</th>
               {!rnaMoleculesAreASingleton && <th style={thStyle(80)}>Mol#2</th>}
               <th style={thStyle(80)}>Nuc#2</th>
+              {viewMode === "Grouped" && <th style={thStyle(60)}>Length</th>}
               <th style={thStyle(120)}>Type</th>
               <th style={thStyle(100)}>Orientation</th>
               <th style={thStyle(130)}>Edge A</th>
@@ -1856,8 +1955,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           </thead>
           <tbody>
             {rows.map((r, i) => {
-              const rowKey = `${r.rnaComplexIndex}:${r.rnaMoleculeName0}:${r.nucleotideIndex0}:${r.rnaMoleculeName1}:${r.nucleotideIndex1}`;
-              const isEditing = editRowKey === rowKey;
+              const isGrouped = isGroupedRow(r);
+              const rowKey = isGrouped 
+                ? `${r.rnaComplexIndex}:${r.rnaMoleculeName0}:${r.nucleotideIndex0Start}-${r.nucleotideIndex0End}:${r.rnaMoleculeName1}:${r.nucleotideIndex1Start}-${r.nucleotideIndex1End}`
+                : `${r.rnaComplexIndex}:${r.rnaMoleculeName0}:${r.nucleotideIndex0}:${r.rnaMoleculeName1}:${r.nucleotideIndex1}`;
+              const isEditing = !isGrouped && editRowKey === rowKey;
               const base = isEditing
                 ? editForm.typeBase ?? decomposeTypeBase(r.type)
                 : decomposeTypeBase(r.type);
@@ -1924,6 +2026,27 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
                       {(() => {
+                        if (isGrouped) {
+                          const symbolStart = getSymbolByFormattedIndex(
+                            r.rnaComplexIndex,
+                            r.rnaMoleculeName0,
+                            r.formattedNucleotideIndex0Start
+                          );
+                          const initialStart = symbolStart === "UNK" ? "UNK" : symbolStart[0].toUpperCase();
+                          return (
+                            <>
+                              <span
+                                title={`${r.rnaMoleculeName0} (${symbolStart})`}
+                                style={{ fontWeight: 700 }}
+                              >
+                                {initialStart}
+                              </span>
+                              <span>
+                                {r.formattedNucleotideIndex0Start}
+                              </span>
+                            </>
+                          );
+                        }
                         const symbol = getSymbolByFormattedIndex(
                           r.rnaComplexIndex,
                           r.rnaMoleculeName0,
@@ -1935,35 +2058,37 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         const initial =
                           symbol === "UNK" ? "UNK" : symbol[0].toUpperCase();
                         return (
-                          <span
-                            title={`${r.rnaMoleculeName0} (${symbol})`}
-                            style={{ fontWeight: 700 }}
-                          >
-                            {initial}
-                          </span>
+                          <>
+                            <span
+                              title={`${r.rnaMoleculeName0} (${symbol})`}
+                              style={{ fontWeight: 700 }}
+                            >
+                              {initial}
+                            </span>
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                value={
+                                  editForm.formattedNucleotideIndex0 ??
+                                  r.formattedNucleotideIndex0
+                                }
+                                onChange={(e) =>
+                                  setEditForm((f) => ({
+                                    ...f,
+                                    formattedNucleotideIndex0:
+                                      e.target.value === ""
+                                        ? undefined
+                                        : parseInt(e.target.value),
+                                  }))
+                                }
+                                style={inpCell()}
+                              />
+                            ) : (
+                              <span>{r.formattedNucleotideIndex0}</span>
+                            )}
+                          </>
                         );
                       })()}
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          value={
-                            editForm.formattedNucleotideIndex0 ??
-                            r.formattedNucleotideIndex0
-                          }
-                          onChange={(e) =>
-                            setEditForm((f) => ({
-                              ...f,
-                              formattedNucleotideIndex0:
-                                e.target.value === ""
-                                  ? undefined
-                                  : parseInt(e.target.value),
-                            }))
-                          }
-                          style={inpCell()}
-                        />
-                      ) : (
-                        <span>{r.formattedNucleotideIndex0}</span>
-                      )}
                     </div>
                   </td>
                   {/* Mol #2 */}
@@ -2005,6 +2130,27 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
                       {(() => {
+                        if (isGrouped) {
+                          const symbolStart = getSymbolByFormattedIndex(
+                            r.rnaComplexIndex,
+                            r.rnaMoleculeName1,
+                            r.formattedNucleotideIndex1Start
+                          );
+                          const initialStart = symbolStart === "UNK" ? "UNK" : symbolStart[0].toUpperCase();
+                          return (
+                            <>
+                              <span
+                                title={`${r.rnaMoleculeName1} (${symbolStart})`}
+                                style={{ fontWeight: 700 }}
+                              >
+                                {initialStart}
+                              </span>
+                              <span>
+                                {r.formattedNucleotideIndex1Start}
+                              </span>
+                            </>
+                          );
+                        }
                         const symbol = getSymbolByFormattedIndex(
                           r.rnaComplexIndex,
                           r.rnaMoleculeName1,
@@ -2016,37 +2162,47 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         const initial =
                           symbol === "UNK" ? "UNK" : symbol[0].toUpperCase();
                         return (
-                          <span
-                            title={`${r.rnaMoleculeName1} (${symbol})`}
-                            style={{ fontWeight: 700 }}
-                          >
-                            {initial}
-                          </span>
+                          <>
+                            <span
+                              title={`${r.rnaMoleculeName1} (${symbol})`}
+                              style={{ fontWeight: 700 }}
+                            >
+                              {initial}
+                            </span>
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                value={
+                                  editForm.formattedNucleotideIndex1 ??
+                                  r.formattedNucleotideIndex1
+                                }
+                                onChange={(e) =>
+                                  setEditForm((f) => ({
+                                    ...f,
+                                    formattedNucleotideIndex1:
+                                      e.target.value === ""
+                                        ? undefined
+                                        : parseInt(e.target.value),
+                                  }))
+                                }
+                                style={inpCell()}
+                              />
+                            ) : (
+                              <span>{r.formattedNucleotideIndex1}</span>
+                            )}
+                          </>
                         );
                       })()}
-                      {isEditing ? (
-                        <input
-                          type="number"
-                          value={
-                            editForm.formattedNucleotideIndex1 ??
-                            r.formattedNucleotideIndex1
-                          }
-                          onChange={(e) =>
-                            setEditForm((f) => ({
-                              ...f,
-                              formattedNucleotideIndex1:
-                                e.target.value === ""
-                                  ? undefined
-                                  : parseInt(e.target.value),
-                            }))
-                          }
-                          style={inpCell()}
-                        />
-                      ) : (
-                        <span>{r.formattedNucleotideIndex1}</span>
-                      )}
                     </div>
                   </td>
+                  {/* Length (only in grouped mode) */}
+                  {viewMode === "Grouped" && (
+                    <td style={tdStyle(60)}>
+                      <span style={{ fontSize: 12, color: theme.colors.text }}>
+                        {isGrouped ? r.length : 1}
+                      </span>
+                    </td>
+                  )}
                   {/* Type base */}
                   <td style={tdStyle(120)}>
                     {isEditing ? (
@@ -2174,7 +2330,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   </td>
                   {/* Action */}
                   <td style={{ ...tdStyle(70), textAlign: "center" }}>
-                    {isEditing ? (
+                    {isGrouped ? (
+                      <span style={{ fontSize: 11, color: theme.colors.textSecondary }}>
+                        —
+                      </span>
+                    ) : isEditing ? (
                       <div
                         style={{
                           display: "flex",
