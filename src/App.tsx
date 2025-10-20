@@ -3994,6 +3994,34 @@ export namespace App {
         viewportScale
       ]
     );
+    const renderedTopBar = useMemo(
+      () => {
+        return <Topbar
+          onOpenFile={() => uploadInputFileHtmlInputReference.current!.click()}
+          onSave={() => downloadOutputFileHtmlButtonReference.current?.click()}
+          onExportWithFormat={function (
+            filename,
+            format
+          ) {
+            setOutputFileName(filename);
+            setOutputFileExtension(
+              format as OutputFileExtension
+            );
+            (
+              downloadOutputFileHtmlButtonReference.current as HTMLButtonElement
+            )?.click();
+          }}
+          fileName={outputFileName}
+          onFileNameChange={setOutputFileName}
+          exportFormat={outputFileExtension}
+          onExportFormatChange={setOutputFileExtension}
+        />;
+      },
+      [
+        outputFileName,
+        outputFileExtension
+      ]
+    );
     // Global event hooks for bottom-sheet UX
     useEffect(() => {
       function onOpenSheet() {
@@ -4686,62 +4714,7 @@ export namespace App {
                                             </div>
 
                                             {/* Topbar */}
-                                            <Topbar
-                                              onOpenFile={function () {
-                                                (
-                                                  uploadInputFileHtmlInputReference.current as HTMLInputElement
-                                                ).click();
-                                              }}
-                                              onSave={function () {
-                                                (
-                                                  downloadOutputFileHtmlButtonReference.current as HTMLButtonElement
-                                                )?.click();
-                                              }}
-                                              onExportWithFormat={function (
-                                                filename,
-                                                format
-                                              ) {
-                                                setOutputFileName(filename);
-                                                setOutputFileExtension(
-                                                  format as OutputFileExtension
-                                                );
-                                                (
-                                                  downloadOutputFileHtmlButtonReference.current as HTMLButtonElement
-                                                )?.click();
-                                              }}
-                                              onUndo={undo}
-                                              onRedo={redo}
-                                              onResetViewport={resetViewport}
-                                              fileName={outputFileName}
-                                              onFileNameChange={
-                                                setOutputFileName
-                                              }
-                                              exportFormats={outputFileExtensions.map(
-                                                (ext) => {
-                                                  const tooltips: Record<OutputFileExtension, string> = {
-                                                    [OutputFileExtension.json] : 'Structured format, maximum support for all features',
-                                                    [OutputFileExtension.bpseq]: 'Base Pair Sequence - No support for non-canonical base pairs',
-                                                    [OutputFileExtension.svg]: 'Scalable Vector Graphics - No support for non-canonical base pairs',
-                                                    // 'png': 'Portable Network Graphics - No support for non-canonical base pairs',
-                                                    // 'pdf': 'Portable Document Format - No support for non-canonical base pairs',
-                                                    [OutputFileExtension.csv]: 'Comma Separated Values - No support for non-canonical base pairs',
-                                                    [OutputFileExtension.tr]: 'Text Report - No support for non-canonical base pairs',
-                                                    [OutputFileExtension.xrna]: 'XRNA native format - No support for non-canonical base pairs'
-                                                  };
-                                                  return {
-                                                    value: ext,
-                                                    label: ext.toUpperCase(),
-                                                    tooltip: tooltips[ext] || `Export as ${ext.toUpperCase()} format`
-                                                  };
-                                                }
-                                              )}
-                                              exportFormat={outputFileExtension}
-                                              onExportFormatChange={(format) =>
-                                                setOutputFileExtension(
-                                                  format as OutputFileExtension
-                                                )
-                                              }
-                                            />
+                                            {renderedTopBar}
 
                                             {/* Tools div */}
                                             <div

@@ -5,6 +5,7 @@ import { Button } from "./Button";
 import { FileDown, FolderOpen, Save, ChevronDown } from "lucide-react";
 import { OutputFileExtension } from "../../../io/OutputUI";
 import { LEFT_PANEL_WIDTH } from '../../../App';
+import { outputFileExtensions } from "../../../io/OutputUI";
 
 // Custom Dropdown Component
 interface CustomDropdownProps {
@@ -184,18 +185,36 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
     </div>
   );
 };
+const tooltipMap: Record<OutputFileExtension, string> = {
+  [OutputFileExtension.json] : 'Structured format, maximum support for all features',
+  [OutputFileExtension.bpseq]: 'Base Pair Sequence - No support for non-canonical base pairs',
+  [OutputFileExtension.svg]: 'Scalable Vector Graphics - No support for non-canonical base pairs',
+  // 'png': 'Portable Network Graphics - No support for non-canonical base pairs',
+  // 'pdf': 'Portable Document Format - No support for non-canonical base pairs',
+  [OutputFileExtension.csv]: 'Comma Separated Values - No support for non-canonical base pairs',
+  [OutputFileExtension.tr]: 'Text Report - No support for non-canonical base pairs',
+  [OutputFileExtension.xrna]: 'XRNA native format - No support for non-canonical base pairs'
+};
+type ExportFormats = Array<{ value: OutputFileExtension; label: string; tooltip?: string }>;
+
+const EXPORT_FORMATS : ExportFormats = outputFileExtensions.map(
+  (ext) => {
+    return {
+      value: ext,
+      label: ext.toUpperCase(),
+      tooltip: tooltipMap[ext] || `Export as ${ext.toUpperCase()} format`
+    };
+  }
+);
 
 export type TopbarProps = {
   onOpenFile?: () => void;
   onSave?: () => void;
-  onExportWithFormat?: (filename: string, format: string) => void;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  onResetViewport?: () => void;
+  onExportWithFormat?: (filename: string, format: OutputFileExtension) => void;
   fileName?: string;
   onFileNameChange?: (name: string) => void;
-  exportFormat?: string;
-  exportFormats?: Array<{ value: OutputFileExtension; label: string; tooltip?: string }>;
+  exportFormat?: OutputFileExtension;
+  exportFormats?: ExportFormats;
   onExportFormatChange?: (format: OutputFileExtension) => void;
 };
 
@@ -205,18 +224,13 @@ export const Topbar: React.FC<TopbarProps> = ({
   onOpenFile,
   onSave,
   onExportWithFormat,
-  onUndo,
-  onRedo,
-  onResetViewport,
   fileName = "",
   onFileNameChange,
-  exportFormat = "",
-  exportFormats = [],
+  exportFormat,
+  exportFormats = EXPORT_FORMATS,
   onExportFormatChange,
 }) => {
   const { theme } = useTheme();
-  
-
   
   return (
     <div
@@ -281,7 +295,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           }}
         />
         <CustomDropdown
-          value={exportFormat}
+          value={exportFormat ?? ""}
           options={exportFormats}
           onChange={(value) => onExportFormatChange?.(value as OutputFileExtension)}
           theme={theme}
@@ -297,7 +311,12 @@ export const Topbar: React.FC<TopbarProps> = ({
           variant="primary"
           icon={<FileDown size={12} />}
           disabled={!fileName || !exportFormat}
-          onClick={() => onExportWithFormat?.(fileName, exportFormat)}
+          onClick={() => {
+            if (!exportFormat) {
+              return;
+            }
+            onExportWithFormat?.(fileName, exportFormat)
+          }}
         />
       </div>
       <ThemeToggle />
