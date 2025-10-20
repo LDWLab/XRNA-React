@@ -3977,6 +3977,23 @@ export namespace App {
         tab
       ]
     );
+    const renderedGrid = useMemo(
+      function() {
+        return <Grid
+          settings={settingsRecord}
+          viewportWidth={svgWidth}
+          viewportHeight={Math.max((parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT, 0)}
+          viewportScale={viewportScale}
+        />;
+      },
+      [
+        settingsRecord,
+        svgWidth,
+        parentDivResizeDetector.height,
+        TOPBAR_HEIGHT,
+        viewportScale
+      ]
+    );
     // Global event hooks for bottom-sheet UX
     useEffect(() => {
       function onOpenSheet() {
@@ -4912,15 +4929,7 @@ export namespace App {
                                                 }}
                                               />
                                               {/* Grid component - always visible, zooms with canvas but doesn't move with pan */}
-                                              <Grid
-                                                settings={settingsRecord}
-                                                viewportWidth={svgWidth}
-                                                viewportHeight={Math.max((parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT, 0)}
-                                                viewportScale={viewportScale}
-                                                viewportTranslateX={viewportTranslateX}
-                                                viewportTranslateY={viewportTranslateY}
-                                                sceneBounds={sceneBounds}
-                                              />
+                                              {renderedGrid}
                                               <g
                                                 style={{
                                                   visibility:

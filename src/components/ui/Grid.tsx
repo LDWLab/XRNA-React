@@ -7,24 +7,13 @@ export interface GridProps {
   viewportWidth: number;
   viewportHeight: number;
   viewportScale: number;
-  viewportTranslateX: number;
-  viewportTranslateY: number;
-  sceneBounds: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
 }
 
 export const Grid: React.FC<GridProps> = ({
   settings,
   viewportWidth,
   viewportHeight,
-  viewportScale,
-  viewportTranslateX,
-  viewportTranslateY,
-  sceneBounds,
+  viewportScale
 }) => {
   const { isDarkMode } = useTheme();
 
