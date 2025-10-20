@@ -4861,14 +4861,14 @@ export namespace App {
                                             >
                                               {/* Having this here, rather than in an external App.css file, allows these to be directly exported to .SVG files. */}
                                               <style>{`
-                                            .${NUCLEOTIDE_CLASS_NAME} { stroke:none; }
-                                            .${NUCLEOTIDE_CLASS_NAME}:hover { stroke:inherit; }
-                                            .${BASE_PAIR_CLASS_NAME} { stroke:none; }
-                                            .${BASE_PAIR_CLASS_NAME}:hover { stroke:inherit; stroke-dasharray:0.5,0.5;}
-                                            .${LABEL_CLASS_NAME} { stroke:none; }
-                                            .${LABEL_CLASS_NAME}:hover { stroke:inherit; }
-                                            .${NO_STROKE_CLASS_NAME} { stroke:none; }
-                                          `}</style>
+                                                .${NUCLEOTIDE_CLASS_NAME} { stroke:none; }
+                                                .${NUCLEOTIDE_CLASS_NAME}:hover { stroke:inherit; }
+                                                .${BASE_PAIR_CLASS_NAME} { stroke:none; }
+                                                .${BASE_PAIR_CLASS_NAME}:hover { stroke:inherit; stroke-dasharray:0.5,0.5;}
+                                                .${LABEL_CLASS_NAME} { stroke:none; }
+                                                .${LABEL_CLASS_NAME}:hover { stroke:inherit; }
+                                                .${NO_STROKE_CLASS_NAME} { stroke:none; }
+                                              `}</style>
                                               <defs>
                                                 <filter
                                                   id="xrTooltipShadow"
