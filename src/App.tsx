@@ -238,7 +238,7 @@ export namespace App {
     }, [tab]);
     const [interactionConstraint, setInteractionConstraint] = useState<
       InteractionConstraint.Enum | undefined
-    >(InteractionConstraint.Enum.ENTIRE_SCENE);
+    >(InteractionConstraint.Enum.SINGLE_NUCLEOTIDE);
     const [settingsRecord, setSettingsRecord] =
       useState<SettingsRecord>(DEFAULT_SETTINGS);
     const [rightClickMenuContent, _setRightClickMenuContent] = useState(<></>);
