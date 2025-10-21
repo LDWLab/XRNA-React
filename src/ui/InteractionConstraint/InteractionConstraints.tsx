@@ -393,11 +393,6 @@ export function findHelix(
       keys1.nucleotideIndex >= min1 &&
       keys1.nucleotideIndex <= max1
     ) {
-      const { start, stop } = helixDatum;
-      const min0 = Math.min(start[0], stop[0]);
-      const max0 = Math.max(start[0], stop[0]);
-      const min1 = Math.min(start[1], stop[1]);
-      const max1 = Math.max(start[1], stop[1]);
       const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
       for (let nucleotideIndex0 = min0; nucleotideIndex0 <= max0; nucleotideIndex0++) {
         forEachHelper({

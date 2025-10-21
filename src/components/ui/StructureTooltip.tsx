@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 import { LEFT_PANEL_WIDTH } from '../../App';
 
@@ -30,9 +30,62 @@ export const StructureTooltip: React.FC<StructureTooltipProps> = ({
   MOUSE_OVER_TEXT_FONT_SIZE,
   mouseOverTextSvgTextElementReference,
 }) => {
-  if (mouseOverText.length === 0) {
-    return null;
-  }
+  const renderedTooltip = useMemo(
+    () => {
+      if (mouseOverText.length === 0) {
+        return null;
+      }
+      return (<>
+        {/* Tooltip Background */}
+        <rect
+          x={0}
+          y={0}
+          width={mouseOverTextDimensions.width + 16}
+          height={mouseOverTextDimensions.height + 16}
+          fill="#f8fafc"
+          stroke="#cbd5e1"
+          rx={8}
+          ry={8}
+          strokeWidth={1.5}
+        />
+        
+        {/* Tooltip Text */}
+        <text
+          fill="#1e293b"
+          stroke="none"
+          x={8}
+          y={8 + MOUSE_OVER_TEXT_FONT_SIZE}
+          ref={mouseOverTextSvgTextElementReference}
+          xmlSpace="preserve"
+          fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+          fontSize={MOUSE_OVER_TEXT_FONT_SIZE}
+          fontWeight="500"
+        >
+          {mouseOverText
+            .split("\n")
+            .map((line, idx) => (
+              <tspan
+                key={idx}
+                x={8}
+                dy={
+                  idx === 0
+                    ? 0
+                    : MOUSE_OVER_TEXT_FONT_SIZE * 1.4
+                }
+              >
+                {line}
+              </tspan>
+            ))}
+        </text>
+      </>)
+    },
+    [
+      mouseOverText,
+      mouseOverTextDimensions,
+      MOUSE_OVER_TEXT_FONT_SIZE,
+      mouseOverTextSvgTextElementReference
+    ]
+  );
 
   const tooltipX = Math.max(
     0,
@@ -67,47 +120,7 @@ export const StructureTooltip: React.FC<StructureTooltipProps> = ({
       }}
       transform={`translate(${tooltipX}, ${tooltipY})`}
     >
-      {/* Tooltip Background */}
-      <rect
-        x={0}
-        y={0}
-        width={mouseOverTextDimensions.width + 16}
-        height={mouseOverTextDimensions.height + 16}
-        fill="#f8fafc"
-        stroke="#cbd5e1"
-        rx={8}
-        ry={8}
-        strokeWidth={1.5}
-      />
-      
-      {/* Tooltip Text */}
-      <text
-        fill="#1e293b"
-        stroke="none"
-        x={8}
-        y={8 + MOUSE_OVER_TEXT_FONT_SIZE}
-        ref={mouseOverTextSvgTextElementReference}
-        xmlSpace="preserve"
-        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-        fontSize={MOUSE_OVER_TEXT_FONT_SIZE}
-        fontWeight="500"
-      >
-        {mouseOverText
-          .split("\n")
-          .map((line, idx) => (
-            <tspan
-              key={idx}
-              x={8}
-              dy={
-                idx === 0
-                  ? 0
-                  : MOUSE_OVER_TEXT_FONT_SIZE * 1.4
-              }
-            >
-              {line}
-            </tspan>
-          ))}
-      </text>
+      {renderedTooltip}
     </g>
   );
 };

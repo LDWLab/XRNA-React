@@ -166,6 +166,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       }
     }
 
+    const frozenNucleotides = new Array<Vector2D>();
     const nucleotideKeysToRerender : NucleotideKeysToRerender = {
       [fullKeys0.rnaComplexIndex] : {
         [this.rnaMoleculeName0] : [],
@@ -232,9 +233,20 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
           arrayIndex--;
         }
       }
-      allNucleotides.push(...nucleotideIndices.map((nucleotideIndex) => (
-        singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex]
-      )));
+      function nucleotideIndexToNucleotide(nucleotideIndex : number) {
+        return singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex];
+      }
+      function filterHelper(nucleotideIndex : number) : boolean {
+        if (!(fullKeys0.rnaComplexIndex in indicesOfFrozenNucleotides)) {
+          return true;
+        }
+        const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[fullKeys0.rnaComplexIndex];
+        if (!(rnaMoleculeName in indicesOfFrozenNucleotidesPerRnaComplex)) {
+          return true;
+        }
+        return !indicesOfFrozenNucleotidesPerRnaComplex[rnaMoleculeName].has(nucleotideIndex);
+      }
+      allNucleotides.push(...nucleotideIndices.filter(filterHelper).map(nucleotideIndexToNucleotide));
       nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName].push(...nucleotideIndices);
       const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
       for (const nucleotideIndex of nucleotideIndices) {
@@ -302,6 +314,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       setNucleotideKeysToRerender(structuredClone(nucleotideKeysToRerender));
       setBasePairKeysToRerender(structuredClone(basePairKeysToRerender));
     }
+    allNucleotides = allNucleotides.filter(nucleotide => !frozenNucleotides.includes(nucleotide));
     this.dragListener = linearDrag(
       structuredClone(rnaComplexProps[fullKeys0.rnaComplexIndex].rnaMoleculeProps[fullKeys0.rnaMoleculeName].nucleotideProps[fullKeys0.nucleotideIndex]),
       allNucleotides,
@@ -390,6 +403,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       In RNA complex "{singularRnaComplexProps.name}"
       <br/>
     </>;
+    this.addFullIndicesPerNucleotideKeysToRerender(nucleotideKeysToRerender);
   }
 
   public override drag() {
