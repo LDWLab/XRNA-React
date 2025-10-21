@@ -1990,7 +1990,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   {/* Mol #1 */}
                   {!rnaMoleculesAreASingleton && <td style={tdStyle(60)}>
                     <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                     >
                       {isEditing ? (
                         <select
@@ -2023,7 +2023,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   {/* Nuc #1 (index) */}
                   <td style={tdStyle(60)}>
                     <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                     >
                       {(() => {
                         if (isGrouped) {
@@ -2094,7 +2094,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   {/* Mol #2 */}
                   {!rnaMoleculesAreASingleton && <td style={tdStyle(60)}>
                     <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                     >
                       {isEditing ? (
                         <select
@@ -2127,7 +2127,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   {/* Nuc #2 (index) */}
                   <td style={tdStyle(60)}>
                     <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                     >
                       {(() => {
                         if (isGrouped) {
