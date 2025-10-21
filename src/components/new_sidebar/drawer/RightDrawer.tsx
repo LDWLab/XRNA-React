@@ -40,7 +40,7 @@ export const RightDrawer: React.FC<RightDrawerProps> = ({ open, onClose, childre
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: theme.colors.primary }} />
           <span style={{ fontSize: theme.typography.fontSize.sm, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: theme.colors.text }}>
-            Right Panel
+            Properties Panel
           </span>
         </div>
         <button
