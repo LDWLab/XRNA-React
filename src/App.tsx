@@ -636,6 +636,7 @@ export namespace App {
               );
             } catch (error: any) {
               if (typeof error === "object" && "errorMessage" in error) {
+                setDrawerKind(DrawerKind.PROPERTIES);
                 setRightClickMenuContent(
                   <b
                     style={{
@@ -863,6 +864,7 @@ export namespace App {
           );
         } catch (error: any) {
           if (typeof error === "object" && "errorMessage" in error) {
+            setDrawerKind(DrawerKind.PROPERTIES);
             setRightClickMenuContent(
               <b
                 style={{
@@ -933,6 +935,7 @@ export namespace App {
                 }
               } catch (error: any) {
                 if (typeof error === "object" && "errorMessage" in error) {
+                  setDrawerKind(DrawerKind.PROPERTIES);
                   setRightClickMenuContent(
                     <b
                       style={{
@@ -1099,6 +1102,7 @@ export namespace App {
               }
             } catch (error: any) {
               if (typeof error === "object" && "errorMessage" in error) {
+                setDrawerKind(DrawerKind.PROPERTIES);
                 setRightClickMenuContent(
                   <b
                     style={{
@@ -1180,6 +1184,7 @@ export namespace App {
                 );
               } catch (error: any) {
                 if (typeof error === "object" && "errorMessage" in error) {
+                  setDrawerKind(DrawerKind.PROPERTIES);
                   setRightClickMenuContent(
                     <b
                       style={{
@@ -1660,6 +1665,7 @@ export namespace App {
             }
             setComplexDocumentName(parsedInput.complexDocumentName);
           } catch (error) {
+            setDrawerKind(DrawerKind.PROPERTIES);
             setSceneState(SceneState.DATA_LOADING_FAILED);
             if (typeof error === "string") {
               setDataLoadingFailedErrorMessage(error);
@@ -4403,9 +4409,7 @@ export namespace App {
                                                 onResetViewport={resetViewport}
                                                 mode={tab}
                                                 onModeChange={setTab}
-                                                constraint={
-                                                  interactionConstraint
-                                                }
+                                                constraint={interactionConstraint}
                                                 onConstraintChange={
                                                   setInteractionConstraint
                                                 }

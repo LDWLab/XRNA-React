@@ -158,8 +158,8 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
     //   pushToListOfNucleotideIndices
     // ).extrema;
     listOfNucleotideIndices.sort(subtractNumbers);
-    let startingNucleotideIndex = listOfNucleotideIndices[(listOfNucleotideIndices.length - 1) >> 1];
-    let endingNucleotideIndex = listOfNucleotideIndices[listOfNucleotideIndices.length >> 1];
+    // let startingNucleotideIndex = listOfNucleotideIndices[(listOfNucleotideIndices.length - 1) >> 1];
+    // let endingNucleotideIndex = listOfNucleotideIndices[listOfNucleotideIndices.length >> 1];
     this.minimumNucleotideIndex = Math.min(
       extremaDecremented[0],
       extremaDecremented[1],
@@ -172,7 +172,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       extremaIncremented[0],
       extremaIncremented[1]
     );
-    for (let nucleotideIndex = startingNucleotideIndex + 1; nucleotideIndex < endingNucleotideIndex; nucleotideIndex++) {
+    for (let nucleotideIndex = this.minimumNucleotideIndex; nucleotideIndex <= this.maximumNucleotideIndex; nucleotideIndex++) {
       // if (nucleotideIndex in basePairsPerRnaMolecule) {
       //   const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
       //   if (basePairsPerNucleotide.length > 1) {

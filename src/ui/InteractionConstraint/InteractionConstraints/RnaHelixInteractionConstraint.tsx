@@ -102,8 +102,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     };
     const nucleotideKeysToRerenderPerRnaMolecule0 = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName0];
     const nucleotideKeysToRerenderPerRnaMolecule1 = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName1];
-    nucleotideKeysToRerenderPerRnaMolecule0.push(nucleotideIndex);
-    nucleotideKeysToRerenderPerRnaMolecule1.push(basePairPerNucleotide.nucleotideIndex);
+    // nucleotideKeysToRerenderPerRnaMolecule0.push(nucleotideIndex);
+    // nucleotideKeysToRerenderPerRnaMolecule1.push(basePairPerNucleotide.nucleotideIndex);
     const nucleotideKeysToRerender : NucleotideKeysToRerender = {
       [rnaComplexIndex] : nucleotideKeysToRerenderPerRnaComplex
     };
@@ -131,7 +131,11 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       nucleotideIndex1,
       allNucleotides,
       treatNoncanonicalBasePairsAsUnpairedFlag,
-      basePairKeysToRerenderPerRnaComplex
+      basePairKeysToRerenderPerRnaComplex,
+      (basePairKeys) => {
+        const nucleotideKeysToRerenderPerRnaMolecule = nucleotideKeysToRerenderPerRnaComplex[basePairKeys.rnaMoleculeName];
+        nucleotideKeysToRerenderPerRnaMolecule.push(basePairKeys.nucleotideIndex);
+      }
     );
     const extrema0 = helix.start;
     const extrema1 = helix.stop;
