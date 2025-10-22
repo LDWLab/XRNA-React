@@ -40,13 +40,10 @@ const Tooltip = ({ hint, position, theme }: { hint: string, position: { left: nu
     portalRoot
   );
 };
-
-
-export const Button: React.FC<ButtonProps> = ({ onClick, icon, label, description, hint, disabled = false, variant = 'secondary' }) => {
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ onClick, icon, label, description, hint, disabled = false, variant = 'secondary' }, forwardedRef) => {
   const { theme } = useTheme();
   const [isHovered, setIsHovered] = React.useState(false);
   const [isPressed, setIsPressed] = React.useState(false);
-
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const [tooltipPosition, setTooltipPosition] = React.useState({ top: 0, left: 0 });
 
@@ -95,7 +92,7 @@ export const Button: React.FC<ButtonProps> = ({ onClick, icon, label, descriptio
   return (
     <>
       <button
-        ref={buttonRef}
+        ref={forwardedRef || buttonRef}
         onClick={onClick}
         disabled={disabled}
         onMouseEnter={handleMouseEnter}
@@ -163,6 +160,4 @@ export const Button: React.FC<ButtonProps> = ({ onClick, icon, label, descriptio
       )}
     </>
   );
-};
-
-
+});

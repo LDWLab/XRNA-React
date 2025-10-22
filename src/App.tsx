@@ -175,7 +175,6 @@ enum SceneState {
 // Begin app-specific constants.
 const DIV_BUFFER_DIMENSION = 2;
 const MOUSE_OVER_TEXT_FONT_SIZE = 20;
-const OPEN_ROW_TEXT = "Open File";
 const OPEN_BUTTON_TEXT = "Open";
 const SAVE_ROW_TEXT = "Save File";
 const SAVE_BUTTON_TEXT = "Save";
@@ -221,7 +220,7 @@ export namespace App {
       height: 1,
     });
     const [basePairKeysToEdit, setBasePairKeysToEdit] = useState<
-      Record<RnaComplexKey, Context.BasePair.KeysToEditPerRnaComplexType>
+      Record<RnaComplexKey, Context.BasePair.KeysToEditPerRnaComplex>
     >({});
     const [labelsOnlyFlag, setLabelsOnlyFlag] = useState(false);
     const [indicesOfFrozenNucleotides, setIndicesOfFrozenNucleotides] =
@@ -426,12 +425,6 @@ export namespace App {
     const [debugVisualElements, setDebugVisualElements] = useState<
       Array<JSX.Element>
     >([]);
-    type ToolsDivWidthOrHeightAttribute = "auto" | number | undefined;
-    const [toolsDivWidthAttribute, setToolsDivWidthAttribute] =
-      useState<ToolsDivWidthOrHeightAttribute>("auto");
-    const [topToolsDivHeightAttribute, setTopToolsDivHeightAttribute] =
-      useState<ToolsDivWidthOrHeightAttribute>("auto");
-    const [listenForResizeFlag, setListenForResizeFlag] = useState(false);
     const [outputFileHandle, setOutputFileHandle] = useState<any>(undefined);
     const [basePairRadius, setBasePairRadius] = useState<number>(0);
     enum DrawerKind {
@@ -465,21 +458,9 @@ export namespace App {
       );
     }
     // Begin reference data.
-    const downloadOutputFileHtmlButtonReference = useRef<HTMLButtonElement>();
-    const downloadOutputFileHtmlAnchorReference =
-      createRef<HTMLAnchorElement>();
-    const downloadSampleInputFileHtmlAnchorReference =
-      createRef<HTMLAnchorElement>();
-    const settingsFileDownloadHtmlAnchorReference =
-      createRef<HTMLAnchorElement>();
-    const settingsFileUploadHtmlInputReference = createRef<HTMLInputElement>();
+    const downloadOutputFileHtmlButtonReference = useRef<HTMLButtonElement>(null);
     const mouseOverTextSvgTextElementReference = createRef<SVGTextElement>();
     const parentDivResizeDetector = useResizeDetector();
-    const toolsDivResizeDetector = useResizeDetector();
-    const topToolsDivResizeDetector = useResizeDetector();
-    const rightClickMenuContentResizeDetector = useResizeDetector();
-    const userDrivenResizeDetector = useResizeDetector();
-    const errorMessageResizeDetector = useResizeDetector();
     const interactionConstraintReference = useRef<
       InteractionConstraint.Enum | undefined
     >(interactionConstraint);
@@ -515,8 +496,6 @@ export namespace App {
     const triggerRightClickMenuFlagReference = useRef<boolean>();
     const viewportScaleExponentReference = useRef<number>();
     viewportScaleExponentReference.current = viewportScaleExponent;
-    const toolsDivResizeDetectorWidthReference = useRef<number | undefined>();
-    toolsDivResizeDetectorWidthReference.current = toolsDivResizeDetector.width;
     type TotalScale = {
       positiveScale: number;
       negativeScale: number;
@@ -532,7 +511,6 @@ export namespace App {
     const settingsRecordReference = useRef<SettingsRecord>();
     settingsRecordReference.current = settingsRecord;
     const tabInstructionsRecordReference = useRef<Record<Tab, JSX.Element>>();
-    const tabRenderRecordReference = useRef<Record<Tab, JSX.Element>>();
     const outputFileNameReference = useRef<string>();
     outputFileNameReference.current = outputFileName;
     const outputFileExtensionReference = useRef<
@@ -541,7 +519,7 @@ export namespace App {
     outputFileExtensionReference.current = outputFileExtension;
     const downloadButtonErrorMessageReference = useRef<string>();
     downloadButtonErrorMessageReference.current = downloadButtonErrorMessage;
-    const uploadInputFileHtmlInputReference = useRef<HTMLInputElement>();
+    const uploadInputFileHtmlInputReference = useRef<HTMLInputElement>(null);
     const flattenedRnaComplexPropsLengthReference = useRef<number>(0);
     flattenedRnaComplexPropsLengthReference.current =
       flattenedRnaComplexPropsLength;
@@ -557,9 +535,6 @@ export namespace App {
     dataSpaceOriginOfDragReference.current = dataSpaceOriginOfDrag;
     const flattenedRnaComplexPropsReference =
       useRef<Array<[string, RnaComplex.ExternalProps]>>();
-    const toolsDivWidthAttributeReference =
-      useRef<ToolsDivWidthOrHeightAttribute>();
-    toolsDivWidthAttributeReference.current = toolsDivWidthAttribute;
     const inputFileNameAndExtensionReference = useRef<string>();
     const indicesOfFrozenNucleotidesReference =
       useRef<typeof indicesOfFrozenNucleotides>();
@@ -1385,76 +1360,80 @@ export namespace App {
         });
       };
     }, []);
-    function setRightClickMenuContent(
-      rightClickMenuContent: JSX.Element,
-      rightClickMenuAffectedNucleotides: FullKeysRecord
-    ) {
-      _setRightClickMenuContent(
-        <div
-          style={{
-            width: "auto",
-            display: "inline-block",
-          }}
-          ref={rightClickMenuContentResizeDetector.ref}
-        >
-          {rightClickMenuContent}
-        </div>
-      );
-      setRightClickMenuAffectedNucleotideIndices(
-        rightClickMenuAffectedNucleotides
-      );
+    const setRightClickMenuContent = useCallback(
+      function(
+        rightClickMenuContent: JSX.Element,
+        rightClickMenuAffectedNucleotides: FullKeysRecord
+      ) {
+        const rnaComplexProps = rnaComplexPropsReference.current!;
+        _setRightClickMenuContent(
+          <div
+            style={{
+              width: "auto",
+              display: "inline-block",
+            }}
+          >
+            {rightClickMenuContent}
+          </div>
+        );
+        setRightClickMenuAffectedNucleotideIndices(
+          rightClickMenuAffectedNucleotides
+        );
 
-      // Extract element information from the first affected nucleotide
-      if (Object.keys(rightClickMenuAffectedNucleotides).length > 0) {
-        try {
-          const rnaComplexIndex = parseInt(
-            Object.keys(rightClickMenuAffectedNucleotides)[0]
-          );
-          const rnaMoleculeName = Object.keys(
-            rightClickMenuAffectedNucleotides[rnaComplexIndex]
-          )[0];
-          const nucleotideIndices = Array.from(
-            rightClickMenuAffectedNucleotides[rnaComplexIndex][rnaMoleculeName]
-          );
-
-          if (nucleotideIndices.length > 0) {
-            const fullKeys = {
-              rnaComplexIndex,
-              rnaMoleculeName,
-              nucleotideIndex: nucleotideIndices[0],
-            };
-
-            // Determine element type based on context
-            let elementType: "nucleotide" | "basepair" | "label" = "nucleotide";
-            // Check if this is a base pair interaction by looking at the right-click menu content
-            const menuString = rightClickMenuContent.toString();
-            if (
-              menuString.includes("basepair") ||
-              menuString.includes("BasePair")
-            ) {
-              elementType = "basepair";
-            }
-
-            const elementInfo = extractElementInfo(
-              fullKeys,
-              rnaComplexProps,
-              elementType
+        // Extract element information from the first affected nucleotide
+        if (Object.keys(rightClickMenuAffectedNucleotides).length > 0) {
+          try {
+            const rnaComplexIndex = parseInt(
+              Object.keys(rightClickMenuAffectedNucleotides)[0]
             );
-            setSelectedElementInfo(elementInfo);
+            const rnaMoleculeName = Object.keys(
+              rightClickMenuAffectedNucleotides[rnaComplexIndex]
+            )[0];
+            const nucleotideIndices = Array.from(
+              rightClickMenuAffectedNucleotides[rnaComplexIndex][rnaMoleculeName]
+            );
+
+            if (nucleotideIndices.length > 0) {
+              const fullKeys = {
+                rnaComplexIndex,
+                rnaMoleculeName,
+                nucleotideIndex: nucleotideIndices[0],
+              };
+
+              // Determine element type based on context
+              let elementType: "nucleotide" | "basepair" | "label" = "nucleotide";
+              // Check if this is a base pair interaction by looking at the right-click menu content
+              const menuString = rightClickMenuContent.toString();
+              if (
+                menuString.includes("basepair") ||
+                menuString.includes("BasePair")
+              ) {
+                elementType = "basepair";
+              }
+
+              const elementInfo = extractElementInfo(
+                fullKeys,
+                rnaComplexProps,
+                elementType
+              );
+              setSelectedElementInfo(elementInfo);
+            }
+          } catch (error) {
+            console.warn("Error extracting element info:", error);
+            setSelectedElementInfo(undefined);
           }
-        } catch (error) {
-          console.warn("Error extracting element info:", error);
+
+          if (currentTabRef.current !== Tab.FORMAT) {
+            setRightDrawerTitle("Properties");
+            setDrawerKind(DrawerKind.PROPERTIES);
+          }
+        } else {
           setSelectedElementInfo(undefined);
         }
-
-        if (currentTabRef.current !== Tab.FORMAT) {
-          setRightDrawerTitle("Properties");
-          setDrawerKind(DrawerKind.PROPERTIES);
-        }
-      } else {
-        setSelectedElementInfo(undefined);
-      }
-    }
+      },
+      []
+    );
+    
     const renderedRnaComplexes = useMemo(
       function () {
         const basePairKeysToEdit = basePairKeysToEditReference.current!;
@@ -1848,113 +1827,6 @@ export namespace App {
         );
       };
     }, []);
-    const interactionConstraintSelectHtmlElement = useMemo(
-      function () {
-        const undoStack = undoStackReference.current!;
-        const redoStack = redoStackReference.current!;
-        const interactionConstraint = interactionConstraintReference.current as
-          | InteractionConstraint.Enum
-          | undefined;
-        return (
-          <>
-            {INTERACTION_CONSTRAINT_TEXT}:&nbsp;
-            <select
-              value={interactionConstraint}
-              // value = {interactionConstraintReference.current}
-              onChange={function (e) {
-                const newInteractionConstraint = e.target
-                  .value as InteractionConstraint.Enum;
-                setInteractionConstraint(newInteractionConstraint);
-                setAutoDetectedInteractionConstraintMessage("");
-                resetRightClickMenuContent();
-                if (
-                  newInteractionConstraint in
-                  InteractionConstraint.optionsMenuRecord
-                ) {
-                  setRightClickMenuOptionsMenu(
-                    createElement(
-                      InteractionConstraint.optionsMenuRecord[
-                        newInteractionConstraint
-                      ] as FunctionComponent<{}>,
-                      {}
-                    )
-                  );
-                } else {
-                  setRightClickMenuOptionsMenu(<></>);
-                }
-              }}
-            >
-              <option
-                style={{
-                  display: "none",
-                }}
-                value={undefined}
-              >
-                Select a constraint.
-              </option>
-              {InteractionConstraint.all.map(function (
-                interactionConstraint: InteractionConstraint.Enum
-              ) {
-                return (
-                  <option
-                    key={interactionConstraint}
-                    value={interactionConstraint}
-                  >
-                    {interactionConstraint}
-                  </option>
-                );
-              })}
-            </select>
-            <span
-              style={{
-                color: "red",
-              }}
-            >
-              {autoDetectedInteractionConstraintMessage}
-            </span>
-            <br />
-            {tab == Tab.EDIT && (
-              <>
-                <label>
-                  Labels Only:&nbsp;
-                  <input
-                    type="checkbox"
-                    checked={labelsOnlyFlag}
-                    onChange={function () {
-                      setLabelsOnlyFlag(!labelsOnlyFlag);
-                    }}
-                  />
-                </label>
-                <br />
-              </>
-            )}
-            <button
-              onClick={undo}
-              title="undo"
-              disabled={undoStack.length === 0}
-            >
-              ↺
-            </button>
-            <button
-              onClick={redo}
-              title="redo"
-              disabled={redoStack.length === 0}
-            >
-              ↻
-            </button>
-            <br />
-          </>
-        );
-      },
-      [
-        interactionConstraint,
-        interactionConstraintOptions,
-        labelsOnlyFlag,
-        tab,
-        undoStack,
-        redoStack,
-      ]
-    );
     const tabInstructionsRecord: Record<Tab, JSX.Element> = useMemo(
       function () {
         return {
@@ -2607,8 +2479,6 @@ export namespace App {
 
         const viewportScaleExponent =
           viewportScaleExponentReference.current as number;
-        const toolsDivResizeDetectorWidth =
-          toolsDivResizeDetectorWidthReference.current ?? 0;
         const totalScale = totalScaleReference.current as TotalScale;
         const sceneBounds = sceneBoundsReference.current as SceneBounds;
         const viewportTranslateX =
@@ -2700,721 +2570,6 @@ export namespace App {
       };
     }, []);
 
-    const uploadInputFileUI = useMemo(
-      function () {
-        const settingsRecord =
-          settingsRecordReference.current as SettingsRecord;
-        return (
-          <label>
-            {OPEN_ROW_TEXT}:&nbsp;
-            <input
-              ref={function (x) {
-                if (x !== null) {
-                  uploadInputFileHtmlInputReference.current = x;
-                }
-              }}
-              style={{
-                display: "none",
-              }}
-              type="file"
-              accept={inputFileExtensions
-                .map(function (inputFileExtension: InputFileExtension) {
-                  return "." + inputFileExtension;
-                })
-                .join(",")}
-              onChange={function (e) {
-                let files = e.target.files;
-                if (files === null || files.length === 0) {
-                  return;
-                }
-                setSceneState(SceneState.DATA_IS_LOADING);
-                let file = files[0];
-                let inputFileNameAndExtension = file.name;
-                inputFileNameAndExtensionReference.current =
-                  inputFileNameAndExtension;
-                setInputFileNameAndExtension(inputFileNameAndExtension);
-                let regexMatch = /^(.*)\.(.+)$/.exec(
-                  inputFileNameAndExtension
-                ) as RegExpExecArray;
-                let fileName = regexMatch[1];
-                let fileExtension = regexMatch[2];
-                if (settingsRecord[Setting.COPY_FILE_NAME]) {
-                  setOutputFileName(fileName);
-                }
-                if (
-                  settingsRecord[Setting.COPY_FILE_EXTENSION] &&
-                  fileExtension in outputFileWritersMap
-                ) {
-                  setOutputFileExtension(fileExtension as OutputFileExtension);
-                }
-                let reader = new FileReader();
-                reader.addEventListener("load", function (event) {
-                  // Read the content of the input file.
-                  parseInputFileContent(
-                    (event.target as FileReader).result as string,
-                    fileExtension.toLocaleLowerCase() as InputFileExtension
-                  );
-                });
-                reader.readAsText(files[0] as File);
-              }}
-              onClick={function (e) {
-                e.currentTarget.value = "";
-              }}
-            />
-          </label>
-        );
-      },
-      [settingsRecord, outputFileWritersMap]
-    );
-    const tabRenderRecord = useMemo(
-      function () {
-        const viewportTranslateX =
-          viewportTranslateXReference.current as number;
-        const viewportTranslateY =
-          viewportTranslateYReference.current as number;
-        const viewportScaleExponent =
-          viewportScaleExponentReference.current as number;
-        const viewportScale = viewportScaleReference.current as number;
-        const rightClickMenuOptionsMenu =
-          rightClickMenuOptionsMenuReference.current as JSX.Element;
-        const settingsRecord =
-          settingsRecordReference.current as SettingsRecord;
-        const tabInstructionsRecord =
-          tabInstructionsRecordReference.current as Record<Tab, JSX.Element>;
-        const outputFileExtension =
-          outputFileExtensionReference.current as string;
-        const inputFileNameAndExtension =
-          inputFileNameAndExtensionReference.current as string;
-
-        const tabRenderRecord: Record<Tab, JSX.Element> = {
-          [Tab.INPUT_OUTPUT]: (
-            <>
-              {uploadInputFileUI}
-              <button
-                onClick={function (e) {
-                  (
-                    uploadInputFileHtmlInputReference.current as HTMLInputElement
-                  ).click();
-                }}
-              >
-                {OPEN_BUTTON_TEXT}
-              </button>
-              <em>{inputFileNameAndExtension}</em>
-              <br />
-              <label>
-                {SAVE_ROW_TEXT}:&nbsp;
-                <input
-                  type="text"
-                  placeholder="save_file_name"
-                  value={outputFileName}
-                  onChange={function (e) {
-                    setOutputFileName(e.target.value);
-                  }}
-                />
-              </label>
-              <select
-                value={outputFileExtension}
-                onChange={function (e) {
-                  setOutputFileExtension(e.target.value as OutputFileExtension);
-                  // Resolves a save-file bug.
-                  setOutputFileHandle(undefined);
-                }}
-              >
-                <option
-                  style={{
-                    display: "none",
-                  }}
-                  value={""}
-                >
-                  .file_extension
-                </option>
-                {outputFileExtensions.map(function (
-                  outputFileExtension: OutputFileExtension,
-                  index: number
-                ) {
-                  return (
-                    <option key={index} value={outputFileExtension}>
-                      .{outputFileExtension}
-                    </option>
-                  );
-                })}
-              </select>
-              <button
-                ref={function (htmlButtonElement: HTMLButtonElement) {
-                  downloadOutputFileHtmlButtonReference.current =
-                    htmlButtonElement;
-                }}
-                onClick={async function () {
-                  const outputFileHandle = outputFileHandleReference.current!;
-                  let localOutputFileHandle = outputFileHandle;
-                  if (outputFileHandle === undefined) {
-                    localOutputFileHandle = await getOutputFileHandle();
-                    setOutputFileHandle(localOutputFileHandle);
-                  }
-                  saveFile(localOutputFileHandle);
-                }}
-                disabled={downloadButtonErrorMessage !== ""}
-                title={downloadButtonErrorMessage}
-              >
-                {SAVE_BUTTON_TEXT}
-              </button>
-              <button
-                onClick={async function () {
-                  const localOutputFileHandle = await getOutputFileHandle();
-                  setOutputFileHandle(localOutputFileHandle);
-                  saveFile(localOutputFileHandle);
-                }}
-                disabled={downloadButtonErrorMessage !== ""}
-                title={downloadButtonErrorMessage}
-              >
-                Save As
-              </button>
-              <a
-                ref={downloadOutputFileHtmlAnchorReference}
-                style={{
-                  display: "none",
-                }}
-                download={`${outputFileName}.${outputFileExtension}`}
-              />
-            </>
-          ),
-          [Tab.VIEWPORT]: (
-            <>
-              <b>{TRANSLATION_TEXT}:</b>
-              <br />
-              <label>
-                x:&nbsp;
-                <InputWithValidator.Number
-                  value={viewportTranslateX}
-                  setValue={setViewportTranslateX}
-                  disabledFlag={flattenedRnaComplexPropsLength === 0}
-                />
-              </label>
-              <br />
-              <label>
-                y:&nbsp;
-                <InputWithValidator.Number
-                  value={viewportTranslateY}
-                  setValue={setViewportTranslateY}
-                  disabledFlag={flattenedRnaComplexPropsLength === 0}
-                />
-              </label>
-              <br />
-              <b>{SCALE_TEXT}:&nbsp;</b>
-              <br />
-              <input
-                type="range"
-                value={viewportScaleExponent}
-                onChange={function (e) {
-                  const newScaleExponent = Number.parseInt(e.target.value);
-                  setViewportScaleExponent(newScaleExponent);
-                  setViewportScale(
-                    viewportScalePowPrecalculation[newScaleExponent]
-                  );
-                }}
-                min={VIEWPORT_SCALE_EXPONENT_MINIMUM}
-                max={VIEWPORT_SCALE_EXPONENT_MAXIMUM}
-                disabled={flattenedRnaComplexPropsLength === 0}
-              />
-              <InputWithValidator.Number
-                value={viewportScale}
-                setValue={function (newViewportScale: number) {
-                  setViewportScale(newViewportScale);
-                  // scale = SCALE_BASE ^ scaleExponent
-                  // log(scale) = log(SCALE_BASE ^ scaleExponent)
-                  // log(scale) = scaleExponent * log(SCALE_BASE)
-                  // log(scale) / log(SCALE_BASE) = scaleExponent
-                  if (newViewportScale > 0) {
-                    setViewportScaleExponent(
-                      Math.log(newViewportScale) * ONE_OVER_LOG_OF_SCALE_BASE
-                    );
-                  }
-                }}
-                disabledFlag={flattenedRnaComplexPropsLength === 0}
-              />
-              <br />
-              <button
-                onClick={resetViewport}
-                disabled={flattenedRnaComplexPropsLength === 0}
-              >
-                {RESET_TEXT}
-              </button>
-            </>
-          ),
-          [Tab.EDIT]: (
-            <>
-              {interactionConstraintSelectHtmlElement}
-              {rightClickMenuOptionsMenu}
-            </>
-          ),
-          [Tab.FORMAT]: (
-            <>
-              {interactionConstraintSelectHtmlElement}
-              {rightClickMenuOptionsMenu}
-            </>
-          ),
-          [Tab.ANNOTATE]: (
-            <>
-              {interactionConstraintSelectHtmlElement}
-              {rightClickMenuOptionsMenu}
-            </>
-          ),
-          [Tab.SETTINGS]: (
-            <>
-              <button
-                onClick={function () {
-                  (
-                    settingsFileUploadHtmlInputReference.current as HTMLInputElement
-                  ).click();
-                }}
-              >
-                Upload
-              </button>
-              <input
-                style={{
-                  display: "none",
-                }}
-                ref={settingsFileUploadHtmlInputReference}
-                type="file"
-                accept=".json"
-                onChange={function (e) {
-                  let files = e.target.files;
-                  if (files === null || files.length === 0) {
-                    return;
-                  }
-                  let reader = new FileReader();
-                  reader.addEventListener("load", function (event) {
-                    // Read the content of the settings file.
-                    let settingsJson = JSON.parse(
-                      (event.target as FileReader).result as string
-                    );
-                    let keys = Object.keys(settingsJson);
-                    let formatCheckPassedFlag = true;
-                    for (let key of keys) {
-                      const value = settingsJson[key];
-                      if (
-                        !isSetting(key) ||
-                        (typeof value !== settingsTypeMap[key] &&
-                          !(
-                            settingsTypeMap[key] === "BasePairsEditorType" &&
-                            BasePairsEditor.isEditorType(value)
-                          ))
-                      ) {
-                        setDataLoadingFailedErrorMessage(
-                          "Parsing the uploaded settings file failed. The content of that file is unrecognized."
-                        );
-                        formatCheckPassedFlag = false;
-                        break;
-                      }
-                    }
-                    if (formatCheckPassedFlag) {
-                      let updatedSettings: Partial<SettingsRecord> = {};
-                      for (let key of keys) {
-                        updatedSettings[key as Setting] = settingsJson[key];
-                      }
-                      setSettingsRecord({
-                        ...settingsRecord,
-                        ...updatedSettings,
-                      });
-                    }
-                  });
-                  reader.readAsText(files[0] as File);
-                }}
-              />
-              <button
-                onClick={function () {
-                  let settingsFileDownloadHtmlAnchor =
-                    settingsFileDownloadHtmlAnchorReference.current as HTMLAnchorElement;
-                  let settingsObject: Partial<SettingsRecord> = {};
-                  const flattenedRnaComplexProps =
-                    flattenedRnaComplexPropsReference.current as Array<
-                      [string, RnaComplex.ExternalProps]
-                    >;
-                  if (flattenedRnaComplexProps.length > 0) {
-                    const rnaComplexIndex = Number.parseInt(
-                      flattenedRnaComplexProps[0][0]
-                    );
-                    const { helixDistance, distances } =
-                      basePairAverageDistances[rnaComplexIndex];
-                    settingsObject[
-                      Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS
-                    ] = helixDistance;
-                    settingsObject[Setting.CANONICAL_BASE_PAIR_DISTANCE] =
-                      distances[BasePair.Type.CANONICAL];
-                    settingsObject[Setting.MISMATCH_BASE_PAIR_DISTANCE] =
-                      distances[BasePair.Type.MISMATCH];
-                    settingsObject[Setting.WOBBLE_BASE_PAIR_DISTANCE] =
-                      distances[BasePair.Type.WOBBLE];
-                  }
-
-                  for (let key of settings) {
-                    let value = settingsRecord[key];
-                    if (Number.isNaN(value)) {
-                      if (key in settingsObject) {
-                        continue;
-                      } else {
-                        value = 1;
-                      }
-                    }
-                    settingsObject[key] = value;
-                  }
-                  settingsFileDownloadHtmlAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
-                    JSON.stringify(settingsObject)
-                  )}`;
-                  settingsFileDownloadHtmlAnchor.click();
-                }}
-              >
-                Download
-              </button>
-              <a
-                ref={settingsFileDownloadHtmlAnchorReference}
-                style={{
-                  display: "none",
-                }}
-                download={`${XRNA_SETTINGS_FILE_NAME}.json`}
-              />
-              <br />
-              {settings.map(function (setting: Setting, index: number) {
-                let input: JSX.Element = <></>;
-                switch (settingsTypeMap[setting]) {
-                  case "boolean": {
-                    input = (
-                      <input
-                        type="checkbox"
-                        checked={settingsRecord[setting] as boolean}
-                        onChange={function () {
-                          setSettingsRecord({
-                            ...settingsRecord,
-                            [setting]: !settingsRecord[setting],
-                          });
-                        }}
-                      />
-                    );
-                    break;
-                  }
-                  case "number": {
-                    input = (
-                      <InputWithValidator.Number
-                        value={settingsRecord[setting] as number}
-                        setValue={function (newValue: number) {
-                          setSettingsRecord({
-                            ...settingsRecord,
-                            [setting]: newValue,
-                          });
-                        }}
-                      />
-                    );
-                    break;
-                  }
-                  case "BasePairsEditorType": {
-                    input = (
-                      <BasePairsEditor.EditorTypeSelector.Component
-                        editorType={
-                          settingsRecord[setting] as BasePairsEditor.EditorType
-                        }
-                        onChange={function (
-                          newEditorType: BasePairsEditor.EditorType
-                        ) {
-                          setSettingsRecord({
-                            ...settingsRecord,
-                            [setting]: newEditorType,
-                          });
-                        }}
-                      />
-                    );
-                    break;
-                  }
-                  case "string": {
-                    input = (
-                      <input
-                        type="text"
-                        value={settingsRecord[setting] as string}
-                        onChange={function (e: React.ChangeEvent<HTMLInputElement>) {
-                          setSettingsRecord({
-                            ...settingsRecord,
-                            [setting]: e.target.value,
-                          });
-                        }}
-                        placeholder="Enter value..."
-                        style={{
-                          padding: "4px 8px",
-                          border: "1px solid #ccc",
-                          borderRadius: "4px",
-                        }}
-                      />
-                    );
-                    break;
-                  }
-                  default: {
-                    throw "Unhandled switch case.";
-                  }
-                }
-                return (
-                  <Fragment key={index}>
-                    <label title={settingsLongDescriptionsMap[setting]}>
-                      {settingsShortDescriptionsMap[setting]}:&nbsp;
-                      {input}
-                    </label>
-                    <br />
-                  </Fragment>
-                );
-              })}
-            </>
-          ),
-          [Tab.ABOUT]: (
-            <>
-              <span
-                style={{
-                  whiteSpace: "normal",
-                }}
-              >
-                <Collapsible.Component title="Getting Started">
-                  <ol
-                    style={{
-                      margin: 0,
-                    }}
-                  >
-                    <li>
-                      <label>
-                        To begin working with XRNA, you need an input
-                        file:&nbsp;
-                        <button
-                          onClick={function () {
-                            const downloadAnchor =
-                              downloadSampleInputFileHtmlAnchorReference.current as HTMLAnchorElement;
-                            downloadAnchor.href = `data:text/plain;charset=utf-8,${encodeURIComponent(
-                              SAMPLE_XRNA_FILE
-                            )}`;
-                            downloadAnchor.click();
-                          }}
-                        >
-                          Download
-                        </button>
-                        <a
-                          style={{
-                            display: "none",
-                          }}
-                          ref={downloadSampleInputFileHtmlAnchorReference}
-                          download="example.xrna"
-                        />
-                      </label>
-                    </li>
-                    <li>
-                      Now that you have an input file, navigate to the "
-                      {Tab.INPUT_OUTPUT}" tab to upload it. XRNA.js should
-                      import its data in only a few seconds.
-                      <br />
-                    </li>
-                    <li>
-                      Once the data is imported, you can continue work in
-                      several different ways:
-                      <ul>
-                        <li>
-                          Download its data to a different file (
-                          {Tab.INPUT_OUTPUT} tab)
-                        </li>
-                        <li>Edit its data ({Tab.EDIT} tab)</li>
-                        <li>
-                          Add/remove/edit base base pairs ({Tab.FORMAT} tab)
-                        </li>
-                        <li>Add/remove annotations ({Tab.ANNOTATE} tab)</li>
-                      </ul>
-                      For explanation of these, read the relevant section of the
-                      "{Tab.ABOUT}" tab.
-                    </li>
-                  </ol>
-                  <Collapsible.Component title="Demo">
-                    <iframe
-                      src="https://youtube.com/embed/h56dluFPR3w"
-                      allowFullScreen={true}
-                      width={960}
-                      height={540}
-                    />
-                  </Collapsible.Component>
-                </Collapsible.Component>
-                <Collapsible.Component title="Tabs">
-                  {tabs.map(function (tabI) {
-                    let content = <></>;
-                    if (tabI !== Tab.ABOUT) {
-                      content = (
-                        <Collapsible.Component title={`The ${tabI} tab`}>
-                          {tabInstructionsRecord[tabI]}
-                        </Collapsible.Component>
-                      );
-                    }
-                    return <Fragment key={tabI}>{content}</Fragment>;
-                  })}
-                </Collapsible.Component>
-                <Collapsible.Component title="Constraints">
-                  {InteractionConstraint.all.map(function (
-                    interactionConstraint
-                  ) {
-                    return (
-                      <Collapsible.Component
-                        key={interactionConstraint}
-                        title={`The "${interactionConstraint}" constraint`}
-                      >
-                        {
-                          InteractionConstraint.descriptionRecord[
-                            interactionConstraint
-                          ]
-                        }
-                      </Collapsible.Component>
-                    );
-                  })}
-                </Collapsible.Component>
-                <Collapsible.Component title="Tips and Tricks">
-                  Hotkey combinations:
-                  <ul
-                    style={{
-                      margin: 0,
-                    }}
-                  >
-                    <li>Ctrl + O - opens a new input file</li>
-                    <li>
-                      Ctrl + S - saves a new output file, using the current
-                      output-file name and output-file extension.
-                      <br />
-                      Fails if either of these are not provided.
-                    </li>
-                    <li>
-                      Ctrl + 0 - resets the properties of the "{Tab.VIEWPORT}"
-                      tab.
-                    </li>
-                    <li>Ctrl + Z - undo</li>
-                    <li>Ctrl + Shift + Z (Ctrl + Y) - redo</li>
-                  </ul>
-                  <Collapsible.Component title="Demo">
-                    <iframe
-                      src="https://youtube.com/embed/5QiSc445DyU"
-                      allowFullScreen={true}
-                      width={960}
-                      height={540}
-                    />
-                  </Collapsible.Component>
-                  In order to have a more enjoyable and intuitive experience
-                  with XRNA.js, try right-mouse click-and-drag to highlight
-                  nucleotides.
-                  <br />
-                  This will:
-                  <ol
-                    style={{
-                      margin: 0,
-                    }}
-                  >
-                    <li>
-                      Automatically change the constraint to an appropriate
-                      value which matches the nucleotides you selected
-                    </li>
-                    <li>
-                      Populate a menu for precisely editing, formatting, or
-                      annotating data within the viewport.
-                    </li>
-                  </ol>
-                  <Collapsible.Component title="Demo">
-                    <iframe
-                      src="https://youtube.com/embed/5QiSc445DyU?start=130"
-                      allowFullScreen={true}
-                      width={960}
-                      height={540}
-                    />
-                  </Collapsible.Component>
-                </Collapsible.Component>
-                <Collapsible.Component title="Important File Formats">
-                  <iframe
-                    src="https://youtube.com/embed/lwlfTPwrD8Q"
-                    allowFullScreen={true}
-                    width={960}
-                    height={540}
-                  />
-                </Collapsible.Component>
-                <Collapsible.Component title="How to cite XRNA">
-                  XRNA.js is currently unpublished; once it becomes published,
-                  citation instructions will replace this text block.
-                </Collapsible.Component>
-                <Collapsible.Component title="Contact us">
-                  <a
-                    href="https://www.linkedin.com/in/caedenmeade/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Message the developer
-                  </a>
-                  <br />
-                  <a
-                    href="https://github.com/LDWLab/XRNA-React/issues"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Report a bug
-                  </a>
-                </Collapsible.Component>
-              </span>
-            </>
-          ),
-        };
-        return tabRenderRecord;
-      },
-      [
-        outputFileName,
-        outputFileExtension,
-        downloadButtonErrorMessage,
-        uploadInputFileUI,
-        interactionConstraintSelectHtmlElement,
-        viewportTranslateX,
-        viewportTranslateY,
-        viewportScaleExponent,
-        viewportScale,
-        flattenedRnaComplexPropsLength,
-        inputFileNameAndExtension,
-        flattenedRnaComplexProps,
-        outputFileWritersMap,
-      ]
-    );
-    const renderedTabs = useMemo(
-      function () {
-        const tab = tabReference.current as Tab;
-        return (
-          <>
-            {tabs.map(function (tabI: Tab) {
-              const color = tab === tabI ? "#add8e6" : "#ccc";
-              return (
-                <button
-                  style={{
-                    border: `1px solid ${color}`,
-                    backgroundColor: color,
-                    borderRadius: 6,
-                    padding: "6px 10px",
-                    marginRight: 4,
-                  }}
-                  key={tabI}
-                  onClick={function () {
-                    setTab(tabI);
-                  }}
-                >
-                  {tabI}
-                </button>
-              );
-            })}
-            <br />
-            {tabs.map(function (tabI: Tab) {
-              return (
-                <div
-                  key={tabI}
-                  style={{
-                    display: tab === tabI ? "block" : "none",
-                    background: "inherit",
-                  }}
-                >
-                  {tabRenderRecord[tabI]}
-                </div>
-              );
-            })}
-          </>
-        );
-      },
-      [tab, tabRenderRecord]
-    );
     const pushToUndoStack = useMemo(function () {
       return function () {
         const rnaComplexProps = rnaComplexPropsReference.current!;
@@ -3443,9 +2598,7 @@ export namespace App {
             case "o": {
               if (event.ctrlKey) {
                 event.preventDefault();
-                (
-                  uploadInputFileHtmlInputReference.current as HTMLInputElement
-                ).click();
+                uploadInputFileHtmlInputReference.current!.click();
               }
               break;
             }
@@ -3453,9 +2606,7 @@ export namespace App {
               if (event.ctrlKey) {
                 event.preventDefault();
                 if (downloadButtonErrorMessage == "") {
-                  (
-                    downloadOutputFileHtmlButtonReference.current as HTMLButtonElement
-                  ).click();
+                  downloadOutputFileHtmlButtonReference.current!.click();
                 } else {
                   setDataLoadingFailedErrorMessage(downloadButtonErrorMessage);
                 }
@@ -3499,7 +2650,6 @@ export namespace App {
     );
     const transformIntoDataSpace = useCallback(
       function (clickedOnCoordinates: Vector2D) {
-        const toolsDivResizeDetectorWidth = toolsDivResizeDetectorWidthReference.current as number;
         const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
         const viewportScale = viewportScaleReference.current as number;
         const transformTranslate0 = transformTranslate0Reference.current as {
@@ -3985,7 +3135,7 @@ export namespace App {
                             Redo
                           </li>
                         </ul>
-                        <h4>Contact:</h4>
+                        <h4>Contact Us:</h4>
                         <p>
                           <a
                             href="https://github.com/LDWLab/XRNA-React/issues"
@@ -4081,8 +3231,50 @@ export namespace App {
     const renderedTopBar = useMemo(
       () => {
         return <Topbar
-          onOpenFile={() => uploadInputFileHtmlInputReference.current!.click()}
-          onSave={() => downloadOutputFileHtmlButtonReference.current?.click()}
+          onOpenFile={function (e : React.ChangeEvent<HTMLInputElement>) {
+            let files = e.target.files;
+            if (files === null || files.length === 0) {
+              return;
+            }
+            setSceneState(SceneState.DATA_IS_LOADING);
+            let file = files[0];
+            let inputFileNameAndExtension = file.name;
+            inputFileNameAndExtensionReference.current =
+              inputFileNameAndExtension;
+            setInputFileNameAndExtension(inputFileNameAndExtension);
+            let regexMatch = /^(.*)\.(.+)$/.exec(
+              inputFileNameAndExtension
+            ) as RegExpExecArray;
+            let fileName = regexMatch[1];
+            let fileExtension = regexMatch[2];
+            if (settingsRecord[Setting.COPY_FILE_NAME]) {
+              setOutputFileName(fileName);
+            }
+            if (
+              settingsRecord[Setting.COPY_FILE_EXTENSION] &&
+              fileExtension in outputFileWritersMap
+            ) {
+              setOutputFileExtension(fileExtension as OutputFileExtension);
+            }
+            let reader = new FileReader();
+            reader.addEventListener("load", function (event) {
+              // Read the content of the input file.
+              parseInputFileContent(
+                (event.target as FileReader).result as string,
+                fileExtension.toLocaleLowerCase() as InputFileExtension
+              );
+            });
+            reader.readAsText(files[0] as File);
+          }}
+          onSave={async function () {
+            const outputFileHandle = outputFileHandleReference.current!;
+            let localOutputFileHandle = outputFileHandle;
+            if (outputFileHandle === undefined) {
+              localOutputFileHandle = await getOutputFileHandle();
+              setOutputFileHandle(localOutputFileHandle);
+            }
+            saveFile(localOutputFileHandle);
+          }}
           onExportWithFormat={function (
             filename,
             format
@@ -4107,6 +3299,8 @@ export namespace App {
           onFileNameChange={setOutputFileName}
           exportFormat={outputFileExtension}
           onExportFormatChange={setOutputFileExtension}
+          downloadButtonReference={downloadOutputFileHtmlButtonReference}
+          fileNameInputReference={uploadInputFileHtmlInputReference}
         />;
       },
       [
@@ -4349,44 +3543,6 @@ export namespace App {
     );
     useEffect(
       function () {
-        setTopToolsDivHeightAttribute(topToolsDivResizeDetector.height);
-
-        setTimeout(function () {
-          setTopToolsDivHeightAttribute("auto");
-        }, 100);
-      },
-      [rightClickMenuContent]
-    );
-    useEffect(
-      function () {
-        if (listenForResizeFlag) {
-          return;
-        }
-        const newWidth = Math.max(
-          topToolsDivResizeDetector.width ?? 0,
-          rightClickMenuContentResizeDetector.width ?? 0,
-          errorMessageResizeDetector.width ?? 0
-        );
-        setToolsDivWidthAttribute(newWidth);
-      },
-      [
-        topToolsDivResizeDetector.width,
-        rightClickMenuContentResizeDetector.width,
-        errorMessageResizeDetector.width,
-      ]
-    );
-    useEffect(
-      function () {
-        if (!listenForResizeFlag) {
-          return;
-        }
-        const newWidth = userDrivenResizeDetector.width ?? 0;
-        setToolsDivWidthAttribute(newWidth);
-      },
-      [userDrivenResizeDetector.width]
-    );
-    useEffect(
-      function () {
         if (dragListener !== null && dragListener !== viewportDragListener) {
           pushToUndoStack();
         }
@@ -4407,946 +3563,806 @@ export namespace App {
       [settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED]]
     );
     return (
-      <ThemeProvider
-        settingsRecord={settingsRecord}
-        updateSettings={(newSettings) => {
-          const updatedSettings = { ...settingsRecord, ...newSettings };
-          setSettingsRecord(updatedSettings);
-        }}
+      <Context.MemoizedComponent
+        settingsRecord = {settingsRecord}
+        setSettingsRecord = {setSettingsRecord}
+        basePairOnMouseDownHelper = {basePairOnMouseDownHelper}
+        labelClassName = {labelClassName}
+        basePairClassName = {basePairClassName}
+        pushToUndoStack = {pushToUndoStack}
+        basePairRadius = {basePairRadius}
+        indicesOfFrozenNucleotides = {indicesOfFrozenNucleotides}
+        labelContentDefaultStyles = {labelContentDefaultStyles}
+        basePairAverageDistances = {basePairAverageDistances}
+        updateBasePairAverageDistances = {updateBasePairAverageDistances}
+        updateLabelContentDefaultStyles = {updateLabelContentDefaultStyles}
+        interactionConstraintOptions = {interactionConstraintOptions}
+        updateInteractionConstraintOptions = {updateInteractionConstraintOptions}
+        setNucleotideKeysToRerender = {setNucleotideKeysToRerender}
+        setBasePairKeysToRerender = {setBasePairKeysToRerender}
+        updateRnaMoleculeNameHelper = {updateRnaMoleculeNameHelper}
+        setBasePairKeysToEdit = {setBasePairKeysToEdit}
       >
-        <Context.BasePair.OnMouseDownHelper.Provider
-          value={basePairOnMouseDownHelper}
+        <div
+          id={PARENT_DIV_HTML_ID}
+          onKeyDown={onKeyDown}
+          ref={parentDivResizeDetector.ref}
+          style={{
+            position: "absolute",
+            display: "block",
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            background:
+              "var(--color-background)",
+            color: "var(--color-text)",
+            marginLeft: `${MARGIN_LEFT}px`,
+            transition:
+              "var(--transition-default)",
+          }}
         >
-          <Context.App.PushToUndoStack.Provider value={pushToUndoStack}>
-            <Context.App.IndicesOfFrozenNucleotides.Provider
-              value={indicesOfFrozenNucleotides}
+          {/* NEW Sidebar - docked left */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              height: "100%",
+              width: LEFT_PANEL_WIDTH,
+              zIndex: 1000,
+            }}
+          >
+            {/* Freeze/Unfreeze functionality */}
+            {(() => {
+              // Helper function to check if there are any frozen nucleotides
+              const hasFrozenNucleotides = Object.keys(indicesOfFrozenNucleotides).length > 0;
+              
+              // Helper function to check if there are any selected nucleotides
+              const hasSelectedNucleotides = Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0;
+              
+              // Freeze selected nucleotides
+              const freezeSelected = () => {
+                if (!hasSelectedNucleotides) return;
+                
+                const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
+                
+                for (const [rnaComplexIndexAsString, rightClickMenuAffectedNucleotideIndicesPerRnaComplex] of Object.entries(rightClickMenuAffectedNucleotideIndices)) {
+                  const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+                  if (!(rnaComplexIndex in newIndicesOfFrozenNucleotides)) {
+                    newIndicesOfFrozenNucleotides[rnaComplexIndex] = {};
+                  }
+                  
+                  for (const [rnaMoleculeName, rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule] of Object.entries(rightClickMenuAffectedNucleotideIndicesPerRnaComplex)) {
+                    if (!(rnaMoleculeName in newIndicesOfFrozenNucleotides[rnaComplexIndex])) {
+                      newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName] = new Set<number>();
+                    }
+                    
+                    for (const nucleotideIndex of rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule) {
+                      newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].add(nucleotideIndex);
+                    }
+                  }
+                }
+                
+                setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
+                
+                // Add to undo stack
+                const undoStack = undoStackReference.current!;
+                setUndoStack([
+                  ...undoStack,
+                  {
+                    data: structuredClone(indicesOfFrozenNucleotides),
+                    dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
+                  },
+                ]);
+                setRedoStack([]);
+              };
+              
+              // Unfreeze selected nucleotides
+              const unfreezeSelected = () => {
+                if (!hasSelectedNucleotides) return;
+                
+                const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
+                
+                for (const [rnaComplexIndexAsString, rightClickMenuAffectedNucleotideIndicesPerRnaComplex] of Object.entries(rightClickMenuAffectedNucleotideIndices)) {
+                  const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+                  if (rnaComplexIndex in newIndicesOfFrozenNucleotides) {
+                    for (const [rnaMoleculeName, rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule] of Object.entries(rightClickMenuAffectedNucleotideIndicesPerRnaComplex)) {
+                      if (rnaMoleculeName in newIndicesOfFrozenNucleotides[rnaComplexIndex]) {
+                        for (const nucleotideIndex of rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule) {
+                          newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].delete(nucleotideIndex);
+                        }
+                        
+                        // Clean up empty sets
+                        if (newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].size === 0) {
+                          delete newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName];
+                        }
+                      }
+                    }
+                    
+                    // Clean up empty objects
+                    if (Object.keys(newIndicesOfFrozenNucleotides[rnaComplexIndex]).length === 0) {
+                      delete newIndicesOfFrozenNucleotides[rnaComplexIndex];
+                    }
+                  }
+                }
+                
+                setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
+                
+                // Add to undo stack
+                const undoStack = undoStackReference.current!;
+                setUndoStack([
+                  ...undoStack,
+                  {
+                    data: structuredClone(indicesOfFrozenNucleotides),
+                    dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
+                  },
+                ]);
+                setRedoStack([]);
+              };
+              
+              // Unfreeze all nucleotides
+              const unfreezeAll = () => {
+                if (!hasFrozenNucleotides) return;
+                
+                if (window.confirm("Are you sure you want to unfreeze all nucleotides?")) {
+                  // Add to undo stack
+                  const undoStack = undoStackReference.current!;
+                  setUndoStack([
+                    ...undoStack,
+                    {
+                      data: structuredClone(indicesOfFrozenNucleotides),
+                      dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
+                    },
+                  ]);
+                  setRedoStack([]);
+                  
+                  setIndicesOfFrozenNucleotides({});
+                }
+              };
+              
+              return null; // This is just for the helper functions, no JSX
+            })()}
+            
+            <Sidebar
+              onUndo={undo}
+              onRedo={redo}
+              onResetViewport={resetViewport}
+              mode={tab}
+              onModeChange={setTab}
+              constraint={interactionConstraint}
+              onConstraintChange={
+                setInteractionConstraint
+              }
+              onToggleBasePairEditor={() => {
+                setRightClickMenuContent(
+                  <></>,
+                  {}
+                );
+                setBasepairSheetOpen(
+                  (prev) => !prev
+                );
+              }}
+              onTogglePropertiesDrawer={() => {
+                if (
+                  drawerKind === "properties"
+                ) {
+                  setDrawerKind(DrawerKind.NONE);
+                } else {
+                  setRightDrawerTitle(
+                    "Properties"
+                  );
+                  setDrawerKind(DrawerKind.PROPERTIES);
+                }
+              }}
+              onToggleSettingsDrawer={() => {
+                if (
+                  drawerKind === "settings"
+                ) {
+                  setDrawerKind(DrawerKind.NONE);
+                } else {
+                  setRightClickMenuContent(
+                    <></>,
+                    {}
+                  );
+                  setRightDrawerTitle(
+                    "Settings"
+                  );
+                  setDrawerKind(DrawerKind.SETTINGS);
+                }
+              }}
+              onToggleAboutDrawer={() => {
+                if (drawerKind === "about") {
+                  setDrawerKind(DrawerKind.NONE);
+                } else {
+                  setRightClickMenuContent(
+                    <></>,
+                    {}
+                  );
+                  setRightDrawerTitle(
+                    "About XRNA"
+                  );
+                  setDrawerKind(DrawerKind.ABOUT);
+                }
+              }}
+              undoStack={undoStack}
+              redoStack={redoStack}
+              onJumpToHistory={(index) => {
+                const currentUndoStack =
+                  undoStackReference.current!;
+                const currentRedoStack =
+                  redoStackReference.current!;
+
+                if (
+                  index < 0 ||
+                  index >
+                    currentUndoStack.length +
+                      currentRedoStack.length
+                ) {
+                  return;
+                }
+
+                if (
+                  index ===
+                  currentUndoStack.length
+                ) {
+                  return;
+                }
+
+                if (
+                  index <
+                  currentUndoStack.length
+                ) {
+                  const targetState =
+                    currentUndoStack[index];
+                  if (targetState) {
+                    switch (
+                      targetState.dataType
+                    ) {
+                      case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
+                        setIndicesOfFrozenNucleotides(
+                          targetState.data as FullKeysRecord
+                        );
+                        break;
+                      case UndoRedoStacksDataTypes.RnaComplexProps:
+                        setBasePairKeysToEdit(
+                          {}
+                        );
+                        setRnaComplexProps(
+                          targetState.data as RnaComplexProps
+                        );
+                        break;
+                    }
+
+                    const newUndoStack =
+                      currentUndoStack.slice(
+                        0,
+                        index + 1
+                      );
+                    const newRedoStack = [
+                      ...currentRedoStack,
+                      ...currentUndoStack
+                        .slice(index + 1)
+                        .reverse(),
+                    ];
+
+                    setUndoStack(
+                      newUndoStack
+                    );
+                    setRedoStack(
+                      newRedoStack
+                    );
+                  }
+                } else {
+                  const redoIndex =
+                    index -
+                    currentUndoStack.length;
+                  const targetState =
+                    currentRedoStack[
+                      redoIndex
+                    ];
+                  if (targetState) {
+                    switch (
+                      targetState.dataType
+                    ) {
+                      case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
+                        setIndicesOfFrozenNucleotides(
+                          targetState.data as FullKeysRecord
+                        );
+                        break;
+                      case UndoRedoStacksDataTypes.RnaComplexProps:
+                        setBasePairKeysToEdit(
+                          {}
+                        );
+                        setRnaComplexProps(
+                          targetState.data as RnaComplexProps
+                        );
+                        break;
+                    }
+
+                    const newUndoStack = [
+                      ...currentUndoStack,
+                      ...currentRedoStack.slice(
+                        0,
+                        redoIndex + 1
+                      ),
+                    ];
+                    const newRedoStack =
+                      currentRedoStack.slice(
+                        redoIndex + 1
+                      );
+
+                    setUndoStack(
+                      newUndoStack
+                    );
+                    setRedoStack(
+                      newRedoStack
+                    );
+                  }
+                }
+              }}
+              onResetToLastCheckpoint={() => {
+                const currentUndoStack =
+                  undoStackReference.current!;
+
+                if (
+                  currentUndoStack.length > 0
+                ) {
+                  const initialState =
+                    currentUndoStack[0];
+                  if (initialState) {
+                    switch (
+                      initialState.dataType
+                    ) {
+                      case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
+                        setIndicesOfFrozenNucleotides(
+                          initialState.data as FullKeysRecord
+                        );
+                        break;
+                      case UndoRedoStacksDataTypes.RnaComplexProps:
+                        setBasePairKeysToEdit(
+                          {}
+                        );
+                        setRnaComplexProps(
+                          initialState.data as RnaComplexProps
+                        );
+                        break;
+                    }
+
+                    const newRedoStack = [
+                      ...redoStackReference.current!,
+                      ...currentUndoStack
+                        .slice(1)
+                        .reverse(),
+                    ];
+
+                    setUndoStack([
+                      initialState,
+                    ]);
+                    setRedoStack(
+                      newRedoStack
+                    );
+                  }
+                }
+              }}
+              onFormatModeClick={() => {
+                setRightClickMenuContent(
+                  <></>,
+                  {}
+                );
+                
+                // Toggle basepair editor: close if open, open if closed
+                if (basepairSheetOpen) {
+                  setBasepairSheetOpen(false);
+                  setTab(Tab.EDIT); // Reset to EDIT mode when closing
+                } else {
+                  setBasepairSheetOpen(true);
+                  setDrawerKind(DrawerKind.NONE);
+                  setTab(Tab.FORMAT);
+
+                  // Get constraint-based selection instead of empty drag selection
+                  console.log(
+                    "Format mode clicked, current constraint:",
+                    interactionConstraint
+                  );
+
+                  // Create selection based on current constraint
+                  let constraintSelection: FullKeysRecord =
+                    {};
+
+                  if (
+                    interactionConstraint &&
+                    rnaComplexProps
+                  ) {
+                    // Get all elements that match the current constraint
+                    Object.entries(
+                      rnaComplexProps
+                    ).forEach(
+                      ([rcKey, rcProps]) => {
+                        const rcKeyNum =
+                          parseInt(rcKey, 10);
+                        constraintSelection[
+                          rcKeyNum
+                        ] = {};
+                        Object.entries(
+                          rcProps.rnaMoleculeProps
+                        ).forEach(
+                          ([
+                            molKey,
+                            molProps,
+                          ]) => {
+                            // For now, select all nucleotides in the molecule
+                            // This can be refined based on specific constraint types
+                            const nucleotideSet =
+                              new Set<number>();
+                            Object.keys(
+                              molProps.nucleotideProps
+                            ).forEach(
+                              (nucKey) => {
+                                const nucIndex =
+                                  parseInt(
+                                    nucKey,
+                                    10
+                                  );
+                                nucleotideSet.add(
+                                  nucIndex
+                                );
+                              }
+                            );
+                            if (
+                              nucleotideSet.size >
+                              0
+                            ) {
+                              constraintSelection[
+                                rcKeyNum
+                              ][molKey] =
+                                nucleotideSet;
+                            }
+                          }
+                        );
+                      }
+                    );
+                  }
+
+                  console.log(
+                    "Format mode clicked, constraint-based selection:",
+                    constraintSelection
+                  );
+
+                  // Set the constraint-based selection
+                  setRightClickMenuAffectedNucleotideIndices(
+                    constraintSelection
+                  );
+                }
+              }}
+              onFreezeSelected={(() => {
+                const hasSelectedNucleotides = Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0;
+                if (!hasSelectedNucleotides) return undefined;
+                
+                return () => {
+                  const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
+                  
+                  for (const [rnaComplexIndexAsString, rightClickMenuAffectedNucleotideIndicesPerRnaComplex] of Object.entries(rightClickMenuAffectedNucleotideIndices)) {
+                    const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+                    if (!(rnaComplexIndex in newIndicesOfFrozenNucleotides)) {
+                      newIndicesOfFrozenNucleotides[rnaComplexIndex] = {};
+                    }
+                    
+                    for (const [rnaMoleculeName, rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule] of Object.entries(rightClickMenuAffectedNucleotideIndicesPerRnaComplex)) {
+                      if (!(rnaMoleculeName in newIndicesOfFrozenNucleotides[rnaComplexIndex])) {
+                        newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName] = new Set<number>();
+                      }
+                      
+                      for (const nucleotideIndex of rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule) {
+                        newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].add(nucleotideIndex);
+                      }
+                    }
+                  }
+                  
+                  setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
+                  
+                  // Add to undo stack
+                  const undoStack = undoStackReference.current!;
+                  setUndoStack([
+                    ...undoStack,
+                    {
+                      data: structuredClone(indicesOfFrozenNucleotides),
+                      dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
+                    },
+                  ]);
+                  setRedoStack([]);
+                };
+              })()}
+              onUnfreezeSelected={(() => {
+                const hasSelectedNucleotides = Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0;
+                if (!hasSelectedNucleotides) return undefined;
+                
+                return () => {
+                  const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
+                  
+                  for (const [rnaComplexIndexAsString, rightClickMenuAffectedNucleotideIndicesPerRnaComplex] of Object.entries(rightClickMenuAffectedNucleotideIndices)) {
+                    const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+                    if (rnaComplexIndex in newIndicesOfFrozenNucleotides) {
+                      for (const [rnaMoleculeName, rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule] of Object.entries(rightClickMenuAffectedNucleotideIndicesPerRnaComplex)) {
+                        if (rnaMoleculeName in newIndicesOfFrozenNucleotides[rnaComplexIndex]) {
+                          for (const nucleotideIndex of rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule) {
+                            newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].delete(nucleotideIndex);
+                          }
+                          
+                          // Clean up empty sets
+                          if (newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].size === 0) {
+                            delete newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName];
+                          }
+                        }
+                      }
+                      
+                      // Clean up empty objects
+                      if (Object.keys(newIndicesOfFrozenNucleotides[rnaComplexIndex]).length === 0) {
+                        delete newIndicesOfFrozenNucleotides[rnaComplexIndex];
+                      }
+                    }
+                  }
+                  
+                  setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
+                  
+                  // Add to undo stack
+                  const undoStack = undoStackReference.current!;
+                  setUndoStack([
+                    ...undoStack,
+                    {
+                      data: structuredClone(indicesOfFrozenNucleotides),
+                      dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
+                    },
+                  ]);
+                  setRedoStack([]);
+                };
+              })()}
+              onUnfreezeAll={(() => {
+                const hasFrozenNucleotides = Object.keys(indicesOfFrozenNucleotides).length > 0;
+                if (!hasFrozenNucleotides) return undefined;
+                
+                return () => {
+                  if (window.confirm("Are you sure you want to unfreeze all nucleotides?")) {
+                    // Add to undo stack
+                    const undoStack = undoStackReference.current!;
+                    setUndoStack([
+                      ...undoStack,
+                      {
+                        data: structuredClone(indicesOfFrozenNucleotides),
+                        dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
+                      },
+                    ]);
+                    setRedoStack([]);
+                    
+                    setIndicesOfFrozenNucleotides({});
+                  }
+                };
+              })()}
+              hasFrozenNucleotides={Object.keys(indicesOfFrozenNucleotides).length > 0}
+              hasSelectedNucleotides={Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0}
+            />
+          </div>
+
+          {/* Topbar */}
+          {renderedTopBar}
+
+          <svg
+            id={SVG_ELEMENT_HTML_ID}
+            style={{
+              top: TOPBAR_HEIGHT,
+              left: LEFT_PANEL_WIDTH,
+              position: "absolute",
+            }}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox={`0 0 ${Math.max(
+              (parentDivResizeDetector.width ??
+                0) - LEFT_PANEL_WIDTH,
+              0
+            )} ${Math.max(
+              (parentDivResizeDetector.height ??
+                0) - TOPBAR_HEIGHT,
+              0
+            )}`}
+            tabIndex={1}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={onMouseUp}
+            onMouseLeave={onMouseLeave}
+            onContextMenu={function (event) {
+              event.preventDefault();
+            }}
+            onWheel={onWheel}
+            fill={canvasFill}
+            stroke={
+              InteractionConstraint.isSupportedTab(
+                tab
+              )
+                ? strokesPerTab[tab]
+                : "none"
+            }
+            filter="none"
+          >
+            {/* Having this here, rather than in an external App.css file, allows these to be directly exported to .SVG files. */}
+            <style>{`
+              .${NUCLEOTIDE_CLASS_NAME} { stroke:none; }
+              .${NUCLEOTIDE_CLASS_NAME}:hover { stroke:inherit; }
+              .${BASE_PAIR_CLASS_NAME} { stroke:none; }
+              .${BASE_PAIR_CLASS_NAME}:hover { stroke:inherit; stroke-dasharray:0.5,0.5;}
+              .${LABEL_CLASS_NAME} { stroke:none; }
+              .${LABEL_CLASS_NAME}:hover { stroke:inherit; }
+              .${NO_STROKE_CLASS_NAME} { stroke:none; }
+            `}</style>
+            <defs>
+              <filter
+                id="xrTooltipShadow"
+                x="-20%"
+                y="-20%"
+                width="140%"
+                height="140%"
+              >
+                <feDropShadow
+                  dx="0"
+                  dy="4"
+                  stdDeviation="3"
+                  floodColor="#000000"
+                  floodOpacity="0.15"
+                />
+                <feDropShadow
+                  dx="0"
+                  dy="2"
+                  stdDeviation="2"
+                  floodColor="#000000"
+                  floodOpacity="0.05"
+                />
+              </filter>
+              <filter
+                id="xrTooltipGlow"
+                x="-50%"
+                y="-50%"
+                width="200%"
+                height="200%"
+              >
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            <rect
+              id={SVG_BACKGROUND_HTML_ID}
+              width="100%"
+              height="100%"
+              stroke="none"
+              fill={
+                settingsRecord[Setting.CANVAS_COLOR] as string
+                  ? settingsRecord[Setting.CANVAS_COLOR] as string
+                  : undefined
+              }
+              onMouseDown={function (e) {
+                switch (e.button) {
+                  case MouseButtonIndices.Left: {
+                    setDragListener(
+                      viewportDragListener,
+                      {}
+                    );
+                    break;
+                  }
+                }
+              }}
+            />
+            {/* Grid component - always visible, zooms with canvas but doesn't move with pan */}
+            {renderedGrid}
+            <g
+              style={{
+                visibility:
+                  sceneState ===
+                  SceneState.DATA_IS_LOADED
+                    ? "visible"
+                    : "hidden",
+              }}
+              id={
+                VIEWPORT_SCALE_GROUP_0_HTML_ID
+              }
+              transform={
+                totalScale.asTransform[0]
+              }
             >
-              <Context.Label.ClassName.Provider value={labelClassName}>
-                <Context.BasePair.ClassName.Provider value={basePairClassName}>
-                  <Context.BasePair.Radius.Provider value={basePairRadius}>
-                    <Context.BasePair.AverageDistances.Provider
-                      value={basePairAverageDistances}
-                    >
-                      <Context.BasePair.UpdateAverageDistances.Provider
-                        value={updateBasePairAverageDistances}
-                      >
-                        <Context.Label.Content.DefaultStyles.Provider
-                          value={labelContentDefaultStyles}
-                        >
-                          <Context.Label.Content.UpdateDefaultStyle.Provider
-                            value={updateLabelContentDefaultStyles}
-                          >
-                            <Context.App.InteractionConstraintOptions.Provider
-                              value={interactionConstraintOptions}
-                            >
-                              <Context.App.UpdateInteractionConstraintOptions.Provider
-                                value={updateInteractionConstraintOptions}
-                              >
-                                <Context.Nucleotide.SetKeysToRerender.Provider
-                                  value={setNucleotideKeysToRerender}
-                                >
-                                  <Context.BasePair.SetKeysToRerender.Provider
-                                    value={setBasePairKeysToRerender}
-                                  >
-                                    <Context.App.Settings.Provider
-                                      value={settingsRecord}
-                                    >
-                                      <Context.App.UpdateRnaMoleculeNameHelper.Provider
-                                        value={updateRnaMoleculeNameHelper}
-                                      >
-                                        <Context.BasePair.SetKeysToEdit.Provider
-                                          value={setBasePairKeysToEdit}
-                                        >
-                                          <div
-                                            id={PARENT_DIV_HTML_ID}
-                                            onKeyDown={onKeyDown}
-                                            ref={parentDivResizeDetector.ref}
-                                            style={{
-                                              position: "absolute",
-                                              display: "block",
-                                              width: "100%",
-                                              height: "100%",
-                                              overflow: "hidden",
-                                              background:
-                                                "var(--color-background)",
-                                              color: "var(--color-text)",
-                                              marginLeft: `${MARGIN_LEFT}px`,
-                                              transition:
-                                                "var(--transition-default)",
-                                            }}
-                                            onMouseUp={function () {
-                                              setListenForResizeFlag(false);
-                                            }}
-                                          >
-                                            {/* NEW Sidebar - docked left */}
-                                            <div
-                                              style={{
-                                                position: "absolute",
-                                                top: 0,
-                                                left: 0,
-                                                height: "100%",
-                                                width: LEFT_PANEL_WIDTH,
-                                                zIndex: 1000,
-                                              }}
-                                            >
-                                              {/* Freeze/Unfreeze functionality */}
-                                              {(() => {
-                                                // Helper function to check if there are any frozen nucleotides
-                                                const hasFrozenNucleotides = Object.keys(indicesOfFrozenNucleotides).length > 0;
-                                                
-                                                // Helper function to check if there are any selected nucleotides
-                                                const hasSelectedNucleotides = Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0;
-                                                
-                                                // Freeze selected nucleotides
-                                                const freezeSelected = () => {
-                                                  if (!hasSelectedNucleotides) return;
-                                                  
-                                                  const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
-                                                  
-                                                  for (const [rnaComplexIndexAsString, rightClickMenuAffectedNucleotideIndicesPerRnaComplex] of Object.entries(rightClickMenuAffectedNucleotideIndices)) {
-                                                    const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-                                                    if (!(rnaComplexIndex in newIndicesOfFrozenNucleotides)) {
-                                                      newIndicesOfFrozenNucleotides[rnaComplexIndex] = {};
-                                                    }
-                                                    
-                                                    for (const [rnaMoleculeName, rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule] of Object.entries(rightClickMenuAffectedNucleotideIndicesPerRnaComplex)) {
-                                                      if (!(rnaMoleculeName in newIndicesOfFrozenNucleotides[rnaComplexIndex])) {
-                                                        newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName] = new Set<number>();
-                                                      }
-                                                      
-                                                      for (const nucleotideIndex of rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule) {
-                                                        newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].add(nucleotideIndex);
-                                                      }
-                                                    }
-                                                  }
-                                                  
-                                                  setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
-                                                  
-                                                  // Add to undo stack
-                                                  const undoStack = undoStackReference.current!;
-                                                  setUndoStack([
-                                                    ...undoStack,
-                                                    {
-                                                      data: structuredClone(indicesOfFrozenNucleotides),
-                                                      dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                                                    },
-                                                  ]);
-                                                  setRedoStack([]);
-                                                };
-                                                
-                                                // Unfreeze selected nucleotides
-                                                const unfreezeSelected = () => {
-                                                  if (!hasSelectedNucleotides) return;
-                                                  
-                                                  const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
-                                                  
-                                                  for (const [rnaComplexIndexAsString, rightClickMenuAffectedNucleotideIndicesPerRnaComplex] of Object.entries(rightClickMenuAffectedNucleotideIndices)) {
-                                                    const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-                                                    if (rnaComplexIndex in newIndicesOfFrozenNucleotides) {
-                                                      for (const [rnaMoleculeName, rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule] of Object.entries(rightClickMenuAffectedNucleotideIndicesPerRnaComplex)) {
-                                                        if (rnaMoleculeName in newIndicesOfFrozenNucleotides[rnaComplexIndex]) {
-                                                          for (const nucleotideIndex of rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule) {
-                                                            newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].delete(nucleotideIndex);
-                                                          }
-                                                          
-                                                          // Clean up empty sets
-                                                          if (newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].size === 0) {
-                                                            delete newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName];
-                                                          }
-                                                        }
-                                                      }
-                                                      
-                                                      // Clean up empty objects
-                                                      if (Object.keys(newIndicesOfFrozenNucleotides[rnaComplexIndex]).length === 0) {
-                                                        delete newIndicesOfFrozenNucleotides[rnaComplexIndex];
-                                                      }
-                                                    }
-                                                  }
-                                                  
-                                                  setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
-                                                  
-                                                  // Add to undo stack
-                                                  const undoStack = undoStackReference.current!;
-                                                  setUndoStack([
-                                                    ...undoStack,
-                                                    {
-                                                      data: structuredClone(indicesOfFrozenNucleotides),
-                                                      dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                                                    },
-                                                  ]);
-                                                  setRedoStack([]);
-                                                };
-                                                
-                                                // Unfreeze all nucleotides
-                                                const unfreezeAll = () => {
-                                                  if (!hasFrozenNucleotides) return;
-                                                  
-                                                  if (window.confirm("Are you sure you want to unfreeze all nucleotides?")) {
-                                                    // Add to undo stack
-                                                    const undoStack = undoStackReference.current!;
-                                                    setUndoStack([
-                                                      ...undoStack,
-                                                      {
-                                                        data: structuredClone(indicesOfFrozenNucleotides),
-                                                        dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                                                      },
-                                                    ]);
-                                                    setRedoStack([]);
-                                                    
-                                                    setIndicesOfFrozenNucleotides({});
-                                                  }
-                                                };
-                                                
-                                                return null; // This is just for the helper functions, no JSX
-                                              })()}
-                                              
-                                              <Sidebar
-                                                onUndo={undo}
-                                                onRedo={redo}
-                                                onResetViewport={resetViewport}
-                                                mode={tab}
-                                                onModeChange={setTab}
-                                                constraint={interactionConstraint}
-                                                onConstraintChange={
-                                                  setInteractionConstraint
-                                                }
-                                                onToggleBasePairEditor={() => {
-                                                  setRightClickMenuContent(
-                                                    <></>,
-                                                    {}
-                                                  );
-                                                  setBasepairSheetOpen(
-                                                    (prev) => !prev
-                                                  );
-                                                }}
-                                                onTogglePropertiesDrawer={() => {
-                                                  if (
-                                                    drawerKind === "properties"
-                                                  ) {
-                                                    setDrawerKind(DrawerKind.NONE);
-                                                  } else {
-                                                    setRightDrawerTitle(
-                                                      "Properties"
-                                                    );
-                                                    setDrawerKind(DrawerKind.PROPERTIES);
-                                                  }
-                                                }}
-                                                onToggleSettingsDrawer={() => {
-                                                  if (
-                                                    drawerKind === "settings"
-                                                  ) {
-                                                    setDrawerKind(DrawerKind.NONE);
-                                                  } else {
-                                                    setRightClickMenuContent(
-                                                      <></>,
-                                                      {}
-                                                    );
-                                                    setRightDrawerTitle(
-                                                      "Settings"
-                                                    );
-                                                    setDrawerKind(DrawerKind.SETTINGS);
-                                                  }
-                                                }}
-                                                onToggleAboutDrawer={() => {
-                                                  if (drawerKind === "about") {
-                                                    setDrawerKind(DrawerKind.NONE);
-                                                  } else {
-                                                    setRightClickMenuContent(
-                                                      <></>,
-                                                      {}
-                                                    );
-                                                    setRightDrawerTitle(
-                                                      "About XRNA"
-                                                    );
-                                                    setDrawerKind(DrawerKind.ABOUT);
-                                                  }
-                                                }}
-                                                undoStack={undoStack}
-                                                redoStack={redoStack}
-                                                onJumpToHistory={(index) => {
-                                                  const currentUndoStack =
-                                                    undoStackReference.current!;
-                                                  const currentRedoStack =
-                                                    redoStackReference.current!;
+              <g
+                id={
+                  VIEWPORT_SCALE_GROUP_1_HTML_ID
+                }
+                transform={
+                  totalScale.asTransform[1]
+                }
+              >
+                <g
+                  id={
+                    VIEWPORT_TRANSLATE_GROUP_0_HTML_ID
+                  }
+                  transform={
+                    "scale(1, -1) " +
+                    transformTranslate0.asString
+                  }
+                >
+                  <g
+                    id={
+                      VIEWPORT_TRANSLATE_GROUP_1_HTML_ID
+                    }
+                    transform={
+                      transformTranslate1.asString
+                    }
+                  >
+                    {debugVisualElements}
+                    {renderedRnaComplexes}
+                  </g>
+                </g>
+              </g>
+            </g>
+            <StructureTooltip
+              mouseOverText={mouseOverText}
+              mouseOverTextDimensions={mouseOverTextDimensions}
+              mouseUIPosition={mouseUIPosition}
+              parentDivResizeDetector={parentDivResizeDetector}
+              TOPBAR_HEIGHT={TOPBAR_HEIGHT}
+              MOUSE_OVER_TEXT_FONT_SIZE={MOUSE_OVER_TEXT_FONT_SIZE}
+              mouseOverTextSvgTextElementReference={mouseOverTextSvgTextElementReference}
+            />
+          </svg>
+          
+          {/* Floating Controls */}
+          <MemoizedFloatingControls
+            settings={settingsRecord}
+            setSettings={setSettingsRecord}
+            onZoomIn={onZoomIn}
+            onZoomOut={onZoomOut}
+            onResetViewport={resetViewport}
+            position={FLOATING_CONTROLS_POSITION}
+          />
+          {sceneState ===
+            SceneState.DATA_IS_LOADING && (
+            <img
+              style={{
+                top: (parentDivResizeDetector.height ?? 0) * 0.5 - 100,
+                left: (parentDivResizeDetector.width ?? 0) * 0.5 - 50,
+                position: "absolute",
+              }}
+              src={loadingGif}
+              alt="Loading..."
+            />
+          )}
+          <div
+            style={{
+              position: "absolute",
+              visibility: "hidden",
+              height: "auto",
+              width: "auto",
+              whiteSpace: "nowrap",
+              background: "inherit",
+            }}
+            id={TEST_SPACE_ID}
+          />
+          {/* Unified Right Drawer */}
+          {renderedRightDrawer}
 
-                                                  if (
-                                                    index < 0 ||
-                                                    index >
-                                                      currentUndoStack.length +
-                                                        currentRedoStack.length
-                                                  ) {
-                                                    return;
-                                                  }
+          {/* Hidden Base-Pairs Editor host (for global reformat trigger) */}
+          <div style={{ display: "none" }}>
+            <BasePairsEditor.Component
+              rnaComplexProps={
+                rnaComplexProps
+              }
+              approveBasePairs={function () {}}
+            />
+          </div>
 
-                                                  if (
-                                                    index ===
-                                                    currentUndoStack.length
-                                                  ) {
-                                                    return;
-                                                  }
+          {/* Bottom Sheet: Base-Pair Editor */}
+          {renderedBasePairBottomSheet}
 
-                                                  if (
-                                                    index <
-                                                    currentUndoStack.length
-                                                  ) {
-                                                    const targetState =
-                                                      currentUndoStack[index];
-                                                    if (targetState) {
-                                                      switch (
-                                                        targetState.dataType
-                                                      ) {
-                                                        case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
-                                                          setIndicesOfFrozenNucleotides(
-                                                            targetState.data as FullKeysRecord
-                                                          );
-                                                          break;
-                                                        case UndoRedoStacksDataTypes.RnaComplexProps:
-                                                          setBasePairKeysToEdit(
-                                                            {}
-                                                          );
-                                                          setRnaComplexProps(
-                                                            targetState.data as RnaComplexProps
-                                                          );
-                                                          break;
-                                                      }
-
-                                                      const newUndoStack =
-                                                        currentUndoStack.slice(
-                                                          0,
-                                                          index + 1
-                                                        );
-                                                      const newRedoStack = [
-                                                        ...currentRedoStack,
-                                                        ...currentUndoStack
-                                                          .slice(index + 1)
-                                                          .reverse(),
-                                                      ];
-
-                                                      setUndoStack(
-                                                        newUndoStack
-                                                      );
-                                                      setRedoStack(
-                                                        newRedoStack
-                                                      );
-                                                    }
-                                                  } else {
-                                                    const redoIndex =
-                                                      index -
-                                                      currentUndoStack.length;
-                                                    const targetState =
-                                                      currentRedoStack[
-                                                        redoIndex
-                                                      ];
-                                                    if (targetState) {
-                                                      switch (
-                                                        targetState.dataType
-                                                      ) {
-                                                        case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
-                                                          setIndicesOfFrozenNucleotides(
-                                                            targetState.data as FullKeysRecord
-                                                          );
-                                                          break;
-                                                        case UndoRedoStacksDataTypes.RnaComplexProps:
-                                                          setBasePairKeysToEdit(
-                                                            {}
-                                                          );
-                                                          setRnaComplexProps(
-                                                            targetState.data as RnaComplexProps
-                                                          );
-                                                          break;
-                                                      }
-
-                                                      const newUndoStack = [
-                                                        ...currentUndoStack,
-                                                        ...currentRedoStack.slice(
-                                                          0,
-                                                          redoIndex + 1
-                                                        ),
-                                                      ];
-                                                      const newRedoStack =
-                                                        currentRedoStack.slice(
-                                                          redoIndex + 1
-                                                        );
-
-                                                      setUndoStack(
-                                                        newUndoStack
-                                                      );
-                                                      setRedoStack(
-                                                        newRedoStack
-                                                      );
-                                                    }
-                                                  }
-                                                }}
-                                                onResetToLastCheckpoint={() => {
-                                                  const currentUndoStack =
-                                                    undoStackReference.current!;
-
-                                                  if (
-                                                    currentUndoStack.length > 0
-                                                  ) {
-                                                    const initialState =
-                                                      currentUndoStack[0];
-                                                    if (initialState) {
-                                                      switch (
-                                                        initialState.dataType
-                                                      ) {
-                                                        case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
-                                                          setIndicesOfFrozenNucleotides(
-                                                            initialState.data as FullKeysRecord
-                                                          );
-                                                          break;
-                                                        case UndoRedoStacksDataTypes.RnaComplexProps:
-                                                          setBasePairKeysToEdit(
-                                                            {}
-                                                          );
-                                                          setRnaComplexProps(
-                                                            initialState.data as RnaComplexProps
-                                                          );
-                                                          break;
-                                                      }
-
-                                                      const newRedoStack = [
-                                                        ...redoStackReference.current!,
-                                                        ...currentUndoStack
-                                                          .slice(1)
-                                                          .reverse(),
-                                                      ];
-
-                                                      setUndoStack([
-                                                        initialState,
-                                                      ]);
-                                                      setRedoStack(
-                                                        newRedoStack
-                                                      );
-                                                    }
-                                                  }
-                                                }}
-                                                onFormatModeClick={() => {
-                                                  setRightClickMenuContent(
-                                                    <></>,
-                                                    {}
-                                                  );
-                                                  
-                                                  // Toggle basepair editor: close if open, open if closed
-                                                  if (basepairSheetOpen) {
-                                                    setBasepairSheetOpen(false);
-                                                    setTab(Tab.EDIT); // Reset to EDIT mode when closing
-                                                  } else {
-                                                    setBasepairSheetOpen(true);
-                                                    setDrawerKind(DrawerKind.NONE);
-                                                    setTab(Tab.FORMAT);
-
-                                                    // Get constraint-based selection instead of empty drag selection
-                                                    console.log(
-                                                      "Format mode clicked, current constraint:",
-                                                      interactionConstraint
-                                                    );
-
-                                                    // Create selection based on current constraint
-                                                    let constraintSelection: FullKeysRecord =
-                                                      {};
-
-                                                    if (
-                                                      interactionConstraint &&
-                                                      rnaComplexProps
-                                                    ) {
-                                                      // Get all elements that match the current constraint
-                                                      Object.entries(
-                                                        rnaComplexProps
-                                                      ).forEach(
-                                                        ([rcKey, rcProps]) => {
-                                                          const rcKeyNum =
-                                                            parseInt(rcKey, 10);
-                                                          constraintSelection[
-                                                            rcKeyNum
-                                                          ] = {};
-                                                          Object.entries(
-                                                            rcProps.rnaMoleculeProps
-                                                          ).forEach(
-                                                            ([
-                                                              molKey,
-                                                              molProps,
-                                                            ]) => {
-                                                              // For now, select all nucleotides in the molecule
-                                                              // This can be refined based on specific constraint types
-                                                              const nucleotideSet =
-                                                                new Set<number>();
-                                                              Object.keys(
-                                                                molProps.nucleotideProps
-                                                              ).forEach(
-                                                                (nucKey) => {
-                                                                  const nucIndex =
-                                                                    parseInt(
-                                                                      nucKey,
-                                                                      10
-                                                                    );
-                                                                  nucleotideSet.add(
-                                                                    nucIndex
-                                                                  );
-                                                                }
-                                                              );
-                                                              if (
-                                                                nucleotideSet.size >
-                                                                0
-                                                              ) {
-                                                                constraintSelection[
-                                                                  rcKeyNum
-                                                                ][molKey] =
-                                                                  nucleotideSet;
-                                                              }
-                                                            }
-                                                          );
-                                                        }
-                                                      );
-                                                    }
-
-                                                    console.log(
-                                                      "Format mode clicked, constraint-based selection:",
-                                                      constraintSelection
-                                                    );
-
-                                                    // Set the constraint-based selection
-                                                    setRightClickMenuAffectedNucleotideIndices(
-                                                      constraintSelection
-                                                    );
-                                                  }
-                                                }}
-                                                onFreezeSelected={(() => {
-                                                  const hasSelectedNucleotides = Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0;
-                                                  if (!hasSelectedNucleotides) return undefined;
-                                                  
-                                                  return () => {
-                                                    const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
-                                                    
-                                                    for (const [rnaComplexIndexAsString, rightClickMenuAffectedNucleotideIndicesPerRnaComplex] of Object.entries(rightClickMenuAffectedNucleotideIndices)) {
-                                                      const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-                                                      if (!(rnaComplexIndex in newIndicesOfFrozenNucleotides)) {
-                                                        newIndicesOfFrozenNucleotides[rnaComplexIndex] = {};
-                                                      }
-                                                      
-                                                      for (const [rnaMoleculeName, rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule] of Object.entries(rightClickMenuAffectedNucleotideIndicesPerRnaComplex)) {
-                                                        if (!(rnaMoleculeName in newIndicesOfFrozenNucleotides[rnaComplexIndex])) {
-                                                          newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName] = new Set<number>();
-                                                        }
-                                                        
-                                                        for (const nucleotideIndex of rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule) {
-                                                          newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].add(nucleotideIndex);
-                                                        }
-                                                      }
-                                                    }
-                                                    
-                                                    setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
-                                                    
-                                                    // Add to undo stack
-                                                    const undoStack = undoStackReference.current!;
-                                                    setUndoStack([
-                                                      ...undoStack,
-                                                      {
-                                                        data: structuredClone(indicesOfFrozenNucleotides),
-                                                        dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                                                      },
-                                                    ]);
-                                                    setRedoStack([]);
-                                                  };
-                                                })()}
-                                                onUnfreezeSelected={(() => {
-                                                  const hasSelectedNucleotides = Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0;
-                                                  if (!hasSelectedNucleotides) return undefined;
-                                                  
-                                                  return () => {
-                                                    const newIndicesOfFrozenNucleotides = structuredClone(indicesOfFrozenNucleotides);
-                                                    
-                                                    for (const [rnaComplexIndexAsString, rightClickMenuAffectedNucleotideIndicesPerRnaComplex] of Object.entries(rightClickMenuAffectedNucleotideIndices)) {
-                                                      const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
-                                                      if (rnaComplexIndex in newIndicesOfFrozenNucleotides) {
-                                                        for (const [rnaMoleculeName, rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule] of Object.entries(rightClickMenuAffectedNucleotideIndicesPerRnaComplex)) {
-                                                          if (rnaMoleculeName in newIndicesOfFrozenNucleotides[rnaComplexIndex]) {
-                                                            for (const nucleotideIndex of rightClickMenuAffectedNucleotideIndicesPerRnaComplexPerRnaMolecule) {
-                                                              newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].delete(nucleotideIndex);
-                                                            }
-                                                            
-                                                            // Clean up empty sets
-                                                            if (newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName].size === 0) {
-                                                              delete newIndicesOfFrozenNucleotides[rnaComplexIndex][rnaMoleculeName];
-                                                            }
-                                                          }
-                                                        }
-                                                        
-                                                        // Clean up empty objects
-                                                        if (Object.keys(newIndicesOfFrozenNucleotides[rnaComplexIndex]).length === 0) {
-                                                          delete newIndicesOfFrozenNucleotides[rnaComplexIndex];
-                                                        }
-                                                      }
-                                                    }
-                                                    
-                                                    setIndicesOfFrozenNucleotides(newIndicesOfFrozenNucleotides);
-                                                    
-                                                    // Add to undo stack
-                                                    const undoStack = undoStackReference.current!;
-                                                    setUndoStack([
-                                                      ...undoStack,
-                                                      {
-                                                        data: structuredClone(indicesOfFrozenNucleotides),
-                                                        dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                                                      },
-                                                    ]);
-                                                    setRedoStack([]);
-                                                  };
-                                                })()}
-                                                onUnfreezeAll={(() => {
-                                                  const hasFrozenNucleotides = Object.keys(indicesOfFrozenNucleotides).length > 0;
-                                                  if (!hasFrozenNucleotides) return undefined;
-                                                  
-                                                  return () => {
-                                                    if (window.confirm("Are you sure you want to unfreeze all nucleotides?")) {
-                                                      // Add to undo stack
-                                                      const undoStack = undoStackReference.current!;
-                                                      setUndoStack([
-                                                        ...undoStack,
-                                                        {
-                                                          data: structuredClone(indicesOfFrozenNucleotides),
-                                                          dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                                                        },
-                                                      ]);
-                                                      setRedoStack([]);
-                                                      
-                                                      setIndicesOfFrozenNucleotides({});
-                                                    }
-                                                  };
-                                                })()}
-                                                hasFrozenNucleotides={Object.keys(indicesOfFrozenNucleotides).length > 0}
-                                                hasSelectedNucleotides={Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0}
-                                              />
-                                            </div>
-
-                                            {/* Topbar */}
-                                            {renderedTopBar}
-
-                                            {/* Tools div */}
-                                            <div
-                                              tabIndex={0}
-                                              ref={toolsDivResizeDetector.ref}
-                                              style={{
-                                                position: "absolute",
-                                                left: LEFT_PANEL_WIDTH,
-                                                top: TOPBAR_HEIGHT,
-                                                width: toolsDivWidthAttribute,
-                                                height: `calc(100% - ${TOPBAR_HEIGHT}px)`,
-                                                display: "block",
-                                                borderRight: `1px solid #e2e8f0`,
-                                                background: "inherit",
-                                              }}
-                                            >
-                                              {/* Top tools div */}
-                                              <div
-                                                ref={
-                                                  userDrivenResizeDetector.ref
-                                                }
-                                                style={{
-                                                  width: toolsDivWidthAttribute,
-                                                  minWidth: "inherit",
-                                                  maxHeight: "100%",
-                                                  height:
-                                                    topToolsDivHeightAttribute,
-                                                  display: "inline-block",
-                                                  overflowX: "auto",
-                                                  overflowY: "auto",
-                                                  top: 0,
-                                                  left: LEFT_PANEL_WIDTH,
-                                                  background: "inherit",
-                                                  resize: "both",
-                                                  borderBottom: `2px solid black`,
-                                                  whiteSpace: "nowrap",
-                                                }}
-                                                onMouseDown={function () {
-                                                  setListenForResizeFlag(true);
-                                                }}
-                                              >
-                                                <div
-                                                  ref={
-                                                    topToolsDivResizeDetector.ref
-                                                  }
-                                                  style={{
-                                                    width: "auto",
-                                                    height: "inherit",
-                                                    display: "inline-block",
-                                                  }}
-                                                >
-                                                  {renderedTabs}
-                                                  {sceneState ===
-                                                    SceneState.URL_PARSING_ERROR && (
-                                                    <>
-                                                      <b
-                                                        style={{
-                                                          color: "red",
-                                                        }}
-                                                      >
-                                                        {urlParsingErrorMessage
-                                                          ? urlParsingErrorMessage
-                                                          : "An error occurred while parsing the URL."}
-                                                      </b>
-                                                    </>
-                                                  )}
-                                                  {sceneState ===
-                                                    SceneState.NO_DATA && (
-                                                    <>
-                                                      <b
-                                                        style={{
-                                                          color: "red",
-                                                        }}
-                                                      >
-                                                        No data to display.
-                                                      </b>
-                                                    </>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </div>
-                                            <svg
-                                              id={SVG_ELEMENT_HTML_ID}
-                                              style={{
-                                                top: TOPBAR_HEIGHT,
-                                                left: LEFT_PANEL_WIDTH,
-                                                position: "absolute",
-                                              }}
-                                              xmlns="http://www.w3.org/2000/svg"
-                                              viewBox={`0 0 ${Math.max(
-                                                (parentDivResizeDetector.width ??
-                                                  0) - LEFT_PANEL_WIDTH,
-                                                0
-                                              )} ${Math.max(
-                                                (parentDivResizeDetector.height ??
-                                                  0) - TOPBAR_HEIGHT,
-                                                0
-                                              )}`}
-                                              tabIndex={1}
-                                              onMouseDown={onMouseDown}
-                                              onMouseMove={onMouseMove}
-                                              onMouseUp={onMouseUp}
-                                              onMouseLeave={onMouseLeave}
-                                              onContextMenu={function (event) {
-                                                event.preventDefault();
-                                              }}
-                                              onWheel={onWheel}
-                                              fill={canvasFill}
-                                              stroke={
-                                                InteractionConstraint.isSupportedTab(
-                                                  tab
-                                                )
-                                                  ? strokesPerTab[tab]
-                                                  : "none"
-                                              }
-                                              filter="none"
-                                            >
-                                              {/* Having this here, rather than in an external App.css file, allows these to be directly exported to .SVG files. */}
-                                              <style>{`
-                                                .${NUCLEOTIDE_CLASS_NAME} { stroke:none; }
-                                                .${NUCLEOTIDE_CLASS_NAME}:hover { stroke:inherit; }
-                                                .${BASE_PAIR_CLASS_NAME} { stroke:none; }
-                                                .${BASE_PAIR_CLASS_NAME}:hover { stroke:inherit; stroke-dasharray:0.5,0.5;}
-                                                .${LABEL_CLASS_NAME} { stroke:none; }
-                                                .${LABEL_CLASS_NAME}:hover { stroke:inherit; }
-                                                .${NO_STROKE_CLASS_NAME} { stroke:none; }
-                                              `}</style>
-                                              <defs>
-                                                <filter
-                                                  id="xrTooltipShadow"
-                                                  x="-20%"
-                                                  y="-20%"
-                                                  width="140%"
-                                                  height="140%"
-                                                >
-                                                  <feDropShadow
-                                                    dx="0"
-                                                    dy="4"
-                                                    stdDeviation="3"
-                                                    floodColor="#000000"
-                                                    floodOpacity="0.15"
-                                                  />
-                                                  <feDropShadow
-                                                    dx="0"
-                                                    dy="2"
-                                                    stdDeviation="2"
-                                                    floodColor="#000000"
-                                                    floodOpacity="0.05"
-                                                  />
-                                                </filter>
-                                                <filter
-                                                  id="xrTooltipGlow"
-                                                  x="-50%"
-                                                  y="-50%"
-                                                  width="200%"
-                                                  height="200%"
-                                                >
-                                                  <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                                                  <feMerge>
-                                                    <feMergeNode in="coloredBlur"/>
-                                                    <feMergeNode in="SourceGraphic"/>
-                                                  </feMerge>
-                                                </filter>
-                                              </defs>
-                                              <rect
-                                                id={SVG_BACKGROUND_HTML_ID}
-                                                width="100%"
-                                                height="100%"
-                                                stroke="none"
-                                                fill={
-                                                  settingsRecord[Setting.CANVAS_COLOR] as string
-                                                    ? settingsRecord[Setting.CANVAS_COLOR] as string
-                                                    : undefined
-                                                }
-                                                onMouseDown={function (e) {
-                                                  switch (e.button) {
-                                                    case MouseButtonIndices.Left: {
-                                                      setDragListener(
-                                                        viewportDragListener,
-                                                        {}
-                                                      );
-                                                      break;
-                                                    }
-                                                  }
-                                                }}
-                                              />
-                                              {/* Grid component - always visible, zooms with canvas but doesn't move with pan */}
-                                              {renderedGrid}
-                                              <g
-                                                style={{
-                                                  visibility:
-                                                    sceneState ===
-                                                    SceneState.DATA_IS_LOADED
-                                                      ? "visible"
-                                                      : "hidden",
-                                                }}
-                                                id={
-                                                  VIEWPORT_SCALE_GROUP_0_HTML_ID
-                                                }
-                                                transform={
-                                                  totalScale.asTransform[0]
-                                                }
-                                              >
-                                                <g
-                                                  id={
-                                                    VIEWPORT_SCALE_GROUP_1_HTML_ID
-                                                  }
-                                                  transform={
-                                                    totalScale.asTransform[1]
-                                                  }
-                                                >
-                                                  <g
-                                                    id={
-                                                      VIEWPORT_TRANSLATE_GROUP_0_HTML_ID
-                                                    }
-                                                    transform={
-                                                      "scale(1, -1) " +
-                                                      transformTranslate0.asString
-                                                    }
-                                                  >
-                                                    <g
-                                                      id={
-                                                        VIEWPORT_TRANSLATE_GROUP_1_HTML_ID
-                                                      }
-                                                      transform={
-                                                        transformTranslate1.asString
-                                                      }
-                                                    >
-                                                      {debugVisualElements}
-                                                      {renderedRnaComplexes}
-                                                    </g>
-                                                  </g>
-                                                </g>
-                                              </g>
-                                              <StructureTooltip
-                                                mouseOverText={mouseOverText}
-                                                mouseOverTextDimensions={mouseOverTextDimensions}
-                                                mouseUIPosition={mouseUIPosition}
-                                                parentDivResizeDetector={parentDivResizeDetector}
-                                                TOPBAR_HEIGHT={TOPBAR_HEIGHT}
-                                                MOUSE_OVER_TEXT_FONT_SIZE={MOUSE_OVER_TEXT_FONT_SIZE}
-                                                mouseOverTextSvgTextElementReference={mouseOverTextSvgTextElementReference}
-                                              />
-                                            </svg>
-                                            
-                                            {/* Floating Controls */}
-                                            <MemoizedFloatingControls
-                                              settings={settingsRecord}
-                                              setSettings={setSettingsRecord}
-                                              onZoomIn={onZoomIn}
-                                              onZoomOut={onZoomOut}
-                                              onResetViewport={resetViewport}
-                                              position={FLOATING_CONTROLS_POSITION}
-                                            />
-                                            {sceneState ===
-                                              SceneState.DATA_IS_LOADING && (
-                                              <img
-                                                style={{
-                                                  top:
-                                                    (parentDivResizeDetector.height ??
-                                                      0) *
-                                                      0.5 -
-                                                    100,
-                                                  left:
-                                                    ((toolsDivResizeDetector.width ??
-                                                      0) +
-                                                      (parentDivResizeDetector.width ??
-                                                        0)) *
-                                                      0.5 -
-                                                    50,
-                                                  position: "absolute",
-                                                }}
-                                                src={loadingGif}
-                                                alt="Loading..."
-                                              />
-                                            )}
-                                            <div
-                                              style={{
-                                                position: "absolute",
-                                                visibility: "hidden",
-                                                height: "auto",
-                                                width: "auto",
-                                                whiteSpace: "nowrap",
-                                                background: "inherit",
-                                              }}
-                                              id={TEST_SPACE_ID}
-                                            />
-                                            {/* Unified Right Drawer */}
-                                            {renderedRightDrawer}
-
-                                            {/* Hidden Base-Pairs Editor host (for global reformat trigger) */}
-                                            <div style={{ display: "none" }}>
-                                              <BasePairsEditor.Component
-                                                rnaComplexProps={
-                                                  rnaComplexProps
-                                                }
-                                                approveBasePairs={function () {}}
-                                              />
-                                            </div>
-
-                                            {/* Bottom Sheet: Base-Pair Editor */}
-                                            {renderedBasePairBottomSheet}
-
-                                            {/* Bottom-docked command terminal (hidden by default, toggle with ~) */}
-                                            <MemoizedCommandTerminal
-                                              rnaComplexProps={rnaComplexProps}
-                                            />
-                                          </div>
-                                        </Context.BasePair.SetKeysToEdit.Provider>
-                                      </Context.App.UpdateRnaMoleculeNameHelper.Provider>
-                                    </Context.App.Settings.Provider>
-                                  </Context.BasePair.SetKeysToRerender.Provider>
-                                </Context.Nucleotide.SetKeysToRerender.Provider>
-                              </Context.App.UpdateInteractionConstraintOptions.Provider>
-                            </Context.App.InteractionConstraintOptions.Provider>
-                          </Context.Label.Content.UpdateDefaultStyle.Provider>
-                        </Context.Label.Content.DefaultStyles.Provider>
-                      </Context.BasePair.UpdateAverageDistances.Provider>
-                    </Context.BasePair.AverageDistances.Provider>
-                  </Context.BasePair.Radius.Provider>
-                </Context.BasePair.ClassName.Provider>
-              </Context.Label.ClassName.Provider>
-            </Context.App.IndicesOfFrozenNucleotides.Provider>
-          </Context.App.PushToUndoStack.Provider>
-        </Context.BasePair.OnMouseDownHelper.Provider>
-      </ThemeProvider>
+          {/* Bottom-docked command terminal (hidden by default, toggle with ~) */}
+          <MemoizedCommandTerminal
+            rnaComplexProps={rnaComplexProps}
+          />
+        </div>
+      </Context.MemoizedComponent>
     );
   }
 }

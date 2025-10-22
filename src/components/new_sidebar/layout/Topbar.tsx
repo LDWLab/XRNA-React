@@ -6,6 +6,10 @@ import { FileDown, FolderOpen, Save, ChevronDown } from "lucide-react";
 import { OutputFileExtension } from "../../../io/OutputUI";
 import { LEFT_PANEL_WIDTH } from '../../../App';
 import { outputFileExtensions } from "../../../io/OutputUI";
+import {
+  inputFileExtensions,
+  InputFileExtension
+} from "../../../io/InputUI";
 
 // Custom Dropdown Component
 interface CustomDropdownProps {
@@ -208,7 +212,7 @@ const EXPORT_FORMATS : ExportFormats = outputFileExtensions.map(
 );
 
 export type TopbarProps = {
-  onOpenFile?: () => void;
+  onOpenFile?: (e : React.ChangeEvent<HTMLInputElement>) => void;
   onSave?: () => void;
   onExportWithFormat?: (filename: string, format: OutputFileExtension) => void;
   fileName?: string;
@@ -216,6 +220,8 @@ export type TopbarProps = {
   exportFormat?: OutputFileExtension;
   exportFormats?: ExportFormats;
   onExportFormatChange?: (format: OutputFileExtension) => void;
+  downloadButtonReference: React.MutableRefObject<HTMLButtonElement | null>;
+  fileNameInputReference: React.MutableRefObject<HTMLInputElement | null>;
 };
 
 export const TOPBAR_HEIGHT = 56;
@@ -229,6 +235,8 @@ export const Topbar: React.FC<TopbarProps> = ({
   exportFormat,
   exportFormats = EXPORT_FORMATS,
   onExportFormatChange,
+  downloadButtonReference,
+  fileNameInputReference
 }) => {
   const { theme } = useTheme();
   
@@ -265,9 +273,27 @@ export const Topbar: React.FC<TopbarProps> = ({
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <Button
           label="Open"
-          onClick={onOpenFile}
+          onClick={() => fileNameInputReference.current?.click()}
           variant="secondary"
           icon={<FolderOpen size={12} />}
+        />
+        <input
+          ref={function (x) {
+            if (x !== null) {
+              fileNameInputReference.current = x;
+            }
+          }}
+          style={{
+            display: "none",
+          }}
+          type="file"
+          accept={inputFileExtensions
+            .map(inputFileExtension => `.${inputFileExtension}`)
+            .join(",")}
+          onChange={onOpenFile}
+          onClick={function (e) {
+            e.currentTarget.value = "";
+          }}
         />
         <input
           type="text"
@@ -305,6 +331,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           onClick={onSave}
           variant="secondary"
           icon={<Save size={12} />}
+          ref = {downloadButtonReference}
         />
         <Button
           label="Export"
