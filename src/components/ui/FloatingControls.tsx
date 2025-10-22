@@ -16,6 +16,8 @@ import {
   MoveVertical,
   MoveHorizontal,
   RotateCcw as ResetIcon,
+  Route,
+  Type,
 } from "lucide-react";
 
 export interface FloatingControlsProps {
@@ -653,7 +655,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
             transition: "all 0.2s ease",
             transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
           }}
-          title="Grid Settings"
+          title="View Settings"
         >
           <Settings size={20} />
         </button>
@@ -692,7 +694,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
                   fontWeight: "600",
                 }}
               >
-                Grid Settings
+                View Settings
               </h3>
               <button
                 onClick={toggleExpanded}
@@ -710,6 +712,95 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
               >
                 <X size={20} />
               </button>
+            </div>
+
+            {/* Display Mode Toggle */}
+            <div style={{ marginBottom: "24px" }}>
+              <h4
+                style={{
+                  margin: "0 0 12px 0",
+                  color: theme.colors.text,
+                  fontSize: "14px",
+                  fontWeight: "500",
+                }}
+              >
+                Display Mode
+              </h4>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "8px",
+                  padding: "4px",
+                  background: theme.colors.backgroundSecondary,
+                  borderRadius: "10px",
+                }}
+              >
+                <button
+                  onClick={() => setSettings({ ...settings, [Setting.PATH_MODE]: false })}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: !settings[Setting.PATH_MODE]
+                      ? theme.colors.primary
+                      : "transparent",
+                    color: !settings[Setting.PATH_MODE]
+                      ? "#FFFFFF"
+                      : theme.colors.text,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                  }}
+                  title="Show nucleotide sequence text"
+                >
+                  <Type size={16} />
+                  Sequence
+                </button>
+                <button
+                  onClick={() => setSettings({ ...settings, [Setting.PATH_MODE]: true })}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: settings[Setting.PATH_MODE]
+                      ? theme.colors.primary
+                      : "transparent",
+                    color: settings[Setting.PATH_MODE]
+                      ? "#FFFFFF"
+                      : theme.colors.text,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                  }}
+                  title="Show path lines tracing nucleotide centers"
+                >
+                  <Route size={16} />
+                  Path
+                </button>
+              </div>
+              <p
+                style={{
+                  margin: "8px 0 0 0",
+                  color: theme.colors.textSecondary,
+                  fontSize: "11px",
+                  lineHeight: "1.4",
+                }}
+              >
+                {settings[Setting.PATH_MODE]
+                  ? "Path mode shows lines tracing nucleotide centers for an abstracted view of larger structures."
+                  : "Sequence mode displays nucleotide text with full details."}
+              </p>
             </div>
 
             {/* Grid Type Selection */}

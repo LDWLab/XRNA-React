@@ -19,7 +19,9 @@ export enum SvgPropertyXrnaType {
   NUCLEOTIDE = "nucleotide",
   LABEL_LINE = "label_line",
   LABEL_CONTENT = "label_content",
-  BASE_PAIR = "base_pair"
+  BASE_PAIR = "base_pair",
+  PATH = "path",
+  CENTERLINE = "centerline"
 };
 const svgPropertyXrnaDataTypes = Object.values(SvgPropertyXrnaType);
 
@@ -627,6 +629,12 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
             //   throw "cache.singularNucleotideProps should not be undefined at this point. The input SVG file is broken.";
             // }
             // singularNucleotideProps.labelContentProps = labelContentProps;
+            break;
+          }
+          case SvgPropertyXrnaType.PATH :
+          case SvgPropertyXrnaType.CENTERLINE : {
+            // These types are used for export/layer organization only.
+            // They don't need to be imported back into the app state.
             break;
           }
           default : {

@@ -8,6 +8,7 @@ import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
 import { LabelContent } from "./LabelContent";
 import { LabelLine } from "./LabelLine";
 import { SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_RNA_MOLECULE_FIRST_NUCLEOTIDE_INDEX, SVG_PROPERTY_XRNA_RNA_MOLECULE_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
+import { Setting } from "../../ui/Setting";
 import "../../App.css";
 
 export function getLabelLineHtmlElementId(
@@ -59,7 +60,10 @@ export namespace Nucleotide {
     strokeWidth? : number,
     font? : Font,
     labelContentProps? : LabelContent.ExternalProps,
-    labelLineProps? : LabelLine.ExternalProps
+    labelLineProps? : LabelLine.ExternalProps,
+    pathColor? : Color,
+    pathLineWidth? : number,
+    pathCurvature? : number
   };
   
   export type Props = ExternalProps & {
@@ -88,6 +92,8 @@ export namespace Nucleotide {
     const setMouseOverText = useContext(Context.App.SetMouseOverText);
     const onMouseDownHelper = useContext(Context.Nucleotide.OnMouseDownHelper);
     const labelsOnlyFlag = useContext(Context.Nucleotide.LabelsOnlyFlag);
+    const settingsRecord = useContext(Context.App.Settings);
+    const pathModeFlag = settingsRecord[Setting.PATH_MODE] as boolean;
     const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
     let frozenFlag = false;
     if (rnaComplexIndex in indicesOfFrozenNucleotides) {
@@ -99,6 +105,7 @@ export namespace Nucleotide {
         }
       }
     }
+    // Note: frozenFlag is now only used for tooltip text. Visual indicator is rendered in RnaMolecule.tsx
     // Begin state data.
     const [
       textDimensions,
@@ -164,6 +171,7 @@ export namespace Nucleotide {
         fontSize = {font.size}
         strokeWidth = {strokeWidth}
         fill = {toCSS(color)}
+        fillOpacity = {pathModeFlag ? 0 : 1}
         pointerEvents = {labelsOnlyFlag ? "none" : "all"}
         // stroke = {stroke}
         onMouseDown = {function(e : React.MouseEvent<Nucleotide.SvgRepresentation>) {
@@ -178,14 +186,14 @@ export namespace Nucleotide {
             `nucleotide: ${idx}\n` +
             `symbol:     ${symbol}\n` +
             `molecule:   ${rnaMoleculeName}\n` +
-            `complex:    ${rnaComplexName}`
+            `complex:    ${rnaComplexName}\n` +
+            `status:     ${frozenFlag ? 'LOCKED (cannot move)' : 'unlocked (can move)'}`
           );
         }}
         onMouseLeave = {function() {
           setMouseOverText("");
         }}
       >
-        {frozenFlag && <animate attributeName = "opacity" values={`0;1;0`} dur = "2s" repeatCount = "indefinite"/>}
         {symbol}
       </text>
       <Context.Nucleotide.Symbol.Provider

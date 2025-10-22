@@ -141,7 +141,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '28px', background: theme.colors.backgroundSecondary }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: '28px 28px 48px 28px', background: theme.colors.backgroundSecondary }}>
         {/* Import/Export Section */}
         <PanelContainer title="Import/Export" borderRadius={12}>
           <div style={{ 

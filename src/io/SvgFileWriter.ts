@@ -9,41 +9,63 @@ export function svgFileWriter(
   const sceneBounds = (document.querySelector(`#${SVG_SCENE_GROUP_HTML_ID}`) as SVGGElement).getBBox();
   let svgHtmlElement = document.getElementById(SVG_ELEMENT_HTML_ID)!;
   // Clone the svg HTML element to avoid changing XRNA.js
-  const svgHtmlElementClone = <HTMLElement>svgHtmlElement.cloneNode(true);
+  const svgHtmlElementClone = svgHtmlElement.cloneNode(true) as SVGSVGElement;
   // Remove unnecessary elements.
-  (<HTMLElement>svgHtmlElementClone.querySelector(`#${SVG_BACKGROUND_HTML_ID}`)).remove();
-  (<HTMLElement>svgHtmlElementClone.querySelector(`#${MOUSE_OVER_TEXT_HTML_ID}`)).remove();
+  const svgBackground = svgHtmlElementClone.querySelector(`#${SVG_BACKGROUND_HTML_ID}`);
+  if (svgBackground) {
+    svgBackground.remove();
+  }
+  const mouseOverText = svgHtmlElementClone.querySelector(`#${MOUSE_OVER_TEXT_HTML_ID}`);
+  if (mouseOverText) {
+    mouseOverText.remove();
+  }
 
+  // Set transparent background
+  svgHtmlElementClone.setAttribute("fill", "none");
   svgHtmlElementClone.setAttribute("filter", "none");
   svgHtmlElementClone.setAttribute("stroke", "none");
-
-  const tempLeft = svgHtmlElement.style.left;
-  let regexMatch = /^(\d+)/.exec(tempLeft);
-  if (regexMatch === null) {
-    throw "regexMatch should never be null.";
-  }
-  const left = Number.parseInt(regexMatch[0]);
-  const tempTop = svgHtmlElementClone.style.top;
-  regexMatch = /^(\d+)/.exec(tempTop);
-  if (regexMatch === null) {
-    throw "regexMatch should never be null.";
-  }
-  const top = Number.parseInt(regexMatch[0]);
-  svgHtmlElementClone.setAttribute("transform", `translate(${left * -0.5}, ${top * -0.5})`);
-  svgHtmlElementClone.style.left = "0px";
+  
+  // Remove position styling
+  svgHtmlElementClone.style.removeProperty("top");
+  svgHtmlElementClone.style.removeProperty("left");
+  svgHtmlElementClone.style.removeProperty("position");
 
   const svgSceneGroup = <SVGGElement>svgHtmlElementClone.querySelector(`#${SVG_SCENE_GROUP_HTML_ID}`);
-  svgSceneGroup.setAttribute("transform", `scale(${Math.min((window as any).widthScale / sceneBounds.width, (window as any).heightScale / sceneBounds.height)}) scale(1, -1) translate(${-sceneBounds.x}, ${-(sceneBounds.y + sceneBounds.height)})`);
+  
+  // Add padding around the content
+  const padding = 20;
+  const width = sceneBounds.width + (padding * 2);
+  const height = sceneBounds.height + (padding * 2);
+  
+  // Set viewBox to capture the entire structure with padding
+  svgHtmlElementClone.setAttribute("viewBox", `${sceneBounds.x - padding} ${sceneBounds.y - padding} ${width} ${height}`);
+  svgHtmlElementClone.setAttribute("width", width.toString());
+  svgHtmlElementClone.setAttribute("height", height.toString());
+  
+  // Reset the scene group transform to just flip the Y-axis
+  svgSceneGroup.setAttribute("transform", `scale(1, -1) translate(0, ${-(sceneBounds.y * 2 + sceneBounds.height)})`);
 
   const MISCELLANEOUS = "Miscellaneous";
   const xrnaTypeToGroupHtmlIdMap : Partial<Record<SvgPropertyXrnaType, string>> = {
+    [SvgPropertyXrnaType.NUCLEOTIDE] : "Nucleotides",
     [SvgPropertyXrnaType.BASE_PAIR] : "BasePairs",
-    [SvgPropertyXrnaType.LABEL_CONTENT] : "LabelContents",
     [SvgPropertyXrnaType.LABEL_LINE] : "LabelLines",
-    [SvgPropertyXrnaType.NUCLEOTIDE] : "Nucleotides"
+    [SvgPropertyXrnaType.LABEL_CONTENT] : "LabelContents",
+    [SvgPropertyXrnaType.PATH] : "Paths",
+    [SvgPropertyXrnaType.CENTERLINE] : "Centerline"
   };
+  // Layer order for Adobe Illustrator (bottom to top)
+  const layerOrder = [
+    "Nucleotides",    // 1. Sequence (the letters)
+    "BasePairs",      // 2. Base pairs (lines and shapes between nucleotides)
+    "LabelLines",     // 3. Label lines
+    "LabelContents",  // 4. Label content (text)
+    "Paths",          // 5. Path lines
+    "Centerline",     // 6. Centerline (hidden by default)
+    MISCELLANEOUS     // Any other elements
+  ];
   const htmlIdToGroupMap : Record<string, HTMLElement>  = {};
-  for (const htmlId of [...Object.values(xrnaTypeToGroupHtmlIdMap), MISCELLANEOUS]) {
+  for (const htmlId of layerOrder) {
     const group = document.createElement("g");
     group.setAttribute("id", htmlId);
     htmlIdToGroupMap[htmlId] = group;
@@ -98,8 +120,10 @@ export function svgFileWriter(
     // Remove unnecessary groups/duplicates.
     childElement.remove();
   }
-  for (const group of Object.values(htmlIdToGroupMap)) {
-    if (group.children.length > 0) {
+  // Append groups in the correct layer order
+  for (const layerName of layerOrder) {
+    const group = htmlIdToGroupMap[layerName];
+    if (group && group.children.length > 0) {
       svgSceneGroup.appendChild(group);
     }
   }

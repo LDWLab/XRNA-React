@@ -18,6 +18,11 @@ export interface ToolsPanelProps {
   onResetToLastCheckpoint?: () => void;
   constraint?: InteractionConstraint.Enum;
   onFormatModeClick?: () => void;
+  onFreezeSelected?: () => void;
+  onUnfreezeSelected?: () => void;
+  onUnfreezeAll?: () => void;
+  hasFrozenNucleotides?: boolean;
+  hasSelectedNucleotides?: boolean;
 }
 
 const ModeTab: React.FC<{
@@ -121,6 +126,11 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
   onResetToLastCheckpoint,
   constraint,
   onFormatModeClick,
+  onFreezeSelected,
+  onUnfreezeSelected,
+  onUnfreezeAll,
+  hasFrozenNucleotides,
+  hasSelectedNucleotides,
 }) => {
   const { theme } = useTheme();
 
@@ -175,6 +185,11 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
           onResetToLastCheckpoint={onResetToLastCheckpoint}
           mode={mode}
           constraint={constraint}
+          onFreezeSelected={onFreezeSelected}
+          onUnfreezeSelected={onUnfreezeSelected}
+          onUnfreezeAll={onUnfreezeAll}
+          hasFrozenNucleotides={hasFrozenNucleotides}
+          hasSelectedNucleotides={hasSelectedNucleotides}
         />
       </div>
     </PanelContainer>
