@@ -10,23 +10,23 @@ export interface SelectionPanelProps {
 }
 
 const constraintGroups = {
-  'Basic': [
+  'Primitives': [
     InteractionConstraint.Enum.SINGLE_NUCLEOTIDE,
     InteractionConstraint.Enum.SINGLE_BASE_PAIR,
   ],
-  'Structures': [
+  'Fragments': [
     InteractionConstraint.Enum.RNA_SINGLE_STRAND,
     InteractionConstraint.Enum.RNA_HELIX,
     InteractionConstraint.Enum.RNA_STACKED_HELIX,
-    InteractionConstraint.Enum.RNA_SUB_DOMAIN,
-  ],
-  'Advanced': [
     InteractionConstraint.Enum.RNA_CYCLE,
-    InteractionConstraint.Enum.SINGLE_COLOR,
   ],
-  'Scope': [
+  'Units': [
+    InteractionConstraint.Enum.RNA_SUB_DOMAIN,
     InteractionConstraint.Enum.RNA_MOLECULE,
     InteractionConstraint.Enum.RNA_COMPLEX,
+  ],
+  'Scope': [
+    InteractionConstraint.Enum.SINGLE_COLOR,
     InteractionConstraint.Enum.ENTIRE_SCENE,
   ],
 };
@@ -352,10 +352,10 @@ export const SelectionPanel: React.FC<SelectionPanelProps> = ({
   onConstraintChange,
 }) => {
   const { theme } = useTheme();
-  const [activeGroup, setActiveGroup] = React.useState<string>('Basic');
+  const [activeGroup, setActiveGroup] = React.useState<string>('Units');
 
   return (
-    <PanelContainer title="Selection" borderRadius={8}>
+    <PanelContainer title="Constraints modes" borderRadius={8}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <div>
           <div style={{ 

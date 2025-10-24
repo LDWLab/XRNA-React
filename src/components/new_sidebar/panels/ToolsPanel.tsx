@@ -143,7 +143,7 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
   };
 
   return (
-    <PanelContainer title="Tools" borderRadius={8}>
+    <PanelContainer title="drawing tools" borderRadius={8}>
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <div>
           <div

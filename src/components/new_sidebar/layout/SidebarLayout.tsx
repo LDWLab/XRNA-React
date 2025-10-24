@@ -61,7 +61,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = LEFT_PANEL
               color: theme.colors.text,
               margin: '0 0 2px 0',
             }}>
-              XRNA-React
+              Exornata
             </h1>
             <p style={{
               fontSize: theme.typography.fontSize.md,
@@ -69,7 +69,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ width = LEFT_PANEL
               color: theme.colors.textSecondary,
               margin: 0,
             }}>
-              Visualize, Edit, Repeat
+              Visualize, Edit, Share
             </p>
           </div>
         </div>
