@@ -1436,7 +1436,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               letterSpacing: 0.3,
             }}
           >
-            {formatMode ? "Format Mode - Base-Pair Editor" : "Base-Pair Editor"}
+            {formatMode ? "Base-Pair Editor" : "Base-Pair Editor"} -- Select Representation:
           </span>
           <div
             style={{
@@ -1942,9 +1942,9 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
             <tr>
               {!rnaComplexesAreASingleton && <th style={thStyle(120)}>Complex</th>}
               {!rnaMoleculesAreASingleton && <th style={thStyle(80)}>Mol#1</th>}
-              <th style={thStyle(80)}>Nuc#1</th>
+              <th style={thStyle(80)}>Nt (index) a</th>
               {!rnaMoleculesAreASingleton && <th style={thStyle(80)}>Mol#2</th>}
-              <th style={thStyle(80)}>Nuc#2</th>
+              <th style={thStyle(80)}>Nt (index) b</th>
               {viewMode === "Grouped" && <th style={thStyle(60)}>Length</th>}
               <th style={thStyle(120)}>Type</th>
               <th style={thStyle(100)}>Orientation</th>
@@ -2242,7 +2242,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         <option value={"canonical"}>canonical</option>
                         <option value={"wobble"}>wobble</option>
                         <option value={"mismatch"}>mismatch</option>
-                        <option value={"custom"}>custom</option>
+                        <option value={"custom"}>LW Schema</option>
                       </select>
                     ) : (
                       <span style={{ fontSize: 12, color: theme.colors.text }}>
