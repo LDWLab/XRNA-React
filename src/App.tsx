@@ -15,6 +15,8 @@ import { useResizeDetector } from "react-resize-detector";
 import {
   compareBasePairKeys,
   RnaComplex,
+  insertBasePair,
+  DuplicateBasePairKeysHandler,
 } from "./components/app_specific/RnaComplex";
 import {
   OutputFileExtension,
@@ -417,6 +419,9 @@ export namespace App {
       autoDetectedInteractionConstraintMessage,
       setAutoDetectedInteractionConstraintMessage,
     ] = useState<"" | "Auto-detected">("");
+    const [pendingPairNucleotide, setPendingPairNucleotide] = useState<
+      FullKeys | undefined
+    >(undefined);
     // Begin viewport-relevant state data.
     const [viewportTranslateX, setViewportTranslateX] = useState(0);
     const [viewportTranslateY, setViewportTranslateY] = useState(0);
@@ -553,6 +558,8 @@ export namespace App {
     complexDocumentNameReference.current = complexDocumentName;
     const outputFileHandleReference = useRef<typeof outputFileHandle>();
     outputFileHandleReference.current = outputFileHandle;
+    const pendingPairNucleotideReference = useRef<FullKeys | undefined>();
+    pendingPairNucleotideReference.current = pendingPairNucleotide;
 
     const outputFileWritersMap = r2dtLegacyVersionFlag
       ? outputFileWritersMapAbsoluteJsonCoordinates
@@ -665,6 +672,30 @@ export namespace App {
       [viewportScale, sceneBoundsScaleMin]
     );
     totalScaleReference.current = totalScale;
+    const pendingPairOverlayElement = useMemo(function () {
+      if (!pendingPairNucleotide) return null;
+      const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } =
+        pendingPairNucleotide;
+      const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+      if (!rnaComplexProps || !(rnaComplexIndex in rnaComplexProps)) return null;
+      const complex = rnaComplexProps[rnaComplexIndex];
+      const mol = complex.rnaMoleculeProps[rnaMoleculeName];
+      if (!mol || !(nucleotideIndex in mol.nucleotideProps)) return null;
+      const np = mol.nucleotideProps[nucleotideIndex];
+      const r = Math.max(basePairRadius * 1.5, DEFAULT_STROKE_WIDTH * 6);
+      return (
+        <circle
+          cx={np.x}
+          cy={np.y}
+          r={r}
+          fill="none"
+          stroke="#f2c94c"
+          strokeWidth={DEFAULT_STROKE_WIDTH * 2}
+          opacity={0.9}
+          pointerEvents="none"
+        />
+      );
+    }, [pendingPairNucleotide, basePairRadius]);
     const labelOnMouseDownRightClickHelper = useMemo(function () {
       return function (
         fullKeys: FullKeys,
@@ -970,6 +1001,60 @@ export namespace App {
         e: React.MouseEvent<Nucleotide.SvgRepresentation>,
         fullKeys: FullKeys
       ) {
+        if (e.button === MouseButtonIndices.Left && e.ctrlKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          const pending = pendingPairNucleotideReference.current;
+          if (!pending) {
+            setPendingPairNucleotide(fullKeys);
+            return;
+          }
+
+          if (pending.rnaComplexIndex !== fullKeys.rnaComplexIndex) {
+            setPendingPairNucleotide(fullKeys);
+            return;
+          }
+          const same =
+            pending.rnaMoleculeName === fullKeys.rnaMoleculeName &&
+            pending.nucleotideIndex === fullKeys.nucleotideIndex;
+          if (same) {
+            setPendingPairNucleotide(undefined);
+            return;
+          }
+          const rnaComplexProps =
+            rnaComplexPropsReference.current as RnaComplexProps;
+          const singularRnaComplexProps =
+            rnaComplexProps[fullKeys.rnaComplexIndex];
+          if (!singularRnaComplexProps) {
+            setPendingPairNucleotide(undefined);
+            return;
+          }
+          pushToUndoStack();
+          insertBasePair(
+            singularRnaComplexProps,
+            pending.rnaMoleculeName,
+            pending.nucleotideIndex,
+            fullKeys.rnaMoleculeName,
+            fullKeys.nucleotideIndex,
+            DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
+            {}
+          );
+          const [keys0, keys1] = [
+            {
+              rnaMoleculeName: pending.rnaMoleculeName,
+              nucleotideIndex: pending.nucleotideIndex,
+            },
+            {
+              rnaMoleculeName: fullKeys.rnaMoleculeName,
+              nucleotideIndex: fullKeys.nucleotideIndex,
+            },
+          ].sort(compareBasePairKeys);
+          setBasePairKeysToEdit({
+            [fullKeys.rnaComplexIndex]: { add: [{ keys0, keys1 }], delete: [] },
+          });
+          setPendingPairNucleotide(undefined);
+          return;
+        }
         const interactionConstraint = interactionConstraintReference.current;
         if (
           interactionConstraint === undefined ||
@@ -1221,6 +1306,57 @@ export namespace App {
         fullKeys0: FullKeys,
         fullKeys1: FullKeys
       ) {
+        if (e.ctrlKey && e.button === MouseButtonIndices.Left) {
+          const interactionConstraint = interactionConstraintReference.current!;
+          const rnaComplexProps =
+            rnaComplexPropsReference.current as RnaComplexProps;
+          const tab = tabReference.current!;
+          const { rnaComplexIndex, rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 } = fullKeys0;
+          const { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 } = fullKeys1;
+          pushToUndoStack();
+          const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+          if (singularRnaComplexProps) {
+            const basePairs0 = singularRnaComplexProps.basePairs[rnaMoleculeName0];
+            if (basePairs0 && nucleotideIndex0 in basePairs0) {
+              const arr0 = basePairs0[nucleotideIndex0];
+              const idx0 = arr0.findIndex(
+                (m) => m.rnaMoleculeName === rnaMoleculeName1 && m.nucleotideIndex === nucleotideIndex1
+              );
+              if (idx0 !== -1) {
+                if (arr0.length === 1) {
+                  delete basePairs0[nucleotideIndex0];
+                } else {
+                  arr0.splice(idx0, 1);
+                }
+              }
+            }
+            const basePairs1 = singularRnaComplexProps.basePairs[rnaMoleculeName1];
+            if (basePairs1 && nucleotideIndex1 in basePairs1) {
+              const arr1 = basePairs1[nucleotideIndex1];
+              const idx1 = arr1.findIndex(
+                (m) => m.rnaMoleculeName === rnaMoleculeName0 && m.nucleotideIndex === nucleotideIndex0
+              );
+              if (idx1 !== -1) {
+                if (arr1.length === 1) {
+                  delete basePairs1[nucleotideIndex1];
+                } else {
+                  arr1.splice(idx1, 1);
+                }
+              }
+            }
+            const [keys0, keys1] = [
+              { rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 },
+              { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 },
+            ].sort(compareBasePairKeys);
+            setBasePairKeysToEdit({
+              [rnaComplexIndex]: {
+                add: [],
+                delete: [{ keys0, keys1 }],
+              },
+            });
+          }
+          return;
+        }
         const interactionConstraint = interactionConstraintReference.current!;
         const rnaComplexProps =
           rnaComplexPropsReference.current as RnaComplexProps;
@@ -4327,6 +4463,9 @@ export namespace App {
               onMouseDown={function (e) {
                 switch (e.button) {
                   case MouseButtonIndices.Left: {
+                    if (!e.ctrlKey && pendingPairNucleotide !== undefined) {
+                      setPendingPairNucleotide(undefined);
+                    }
                     setDragListener(
                       viewportDragListener,
                       {}
@@ -4371,15 +4510,12 @@ export namespace App {
                   }
                 >
                   <g
-                    id={
-                      VIEWPORT_TRANSLATE_GROUP_1_HTML_ID
-                    }
-                    transform={
-                      transformTranslate1.asString
-                    }
+                    id={VIEWPORT_TRANSLATE_GROUP_1_HTML_ID}
+                    transform={transformTranslate1.asString}
                   >
                     {debugVisualElements}
                     {renderedRnaComplexes}
+                    {pendingPairOverlayElement}
                   </g>
                 </g>
               </g>
