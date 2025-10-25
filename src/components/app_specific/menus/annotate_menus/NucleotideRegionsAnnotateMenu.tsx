@@ -5,6 +5,7 @@ import { Context, NucleotideKeysToRerender } from "../../../../context/Context";
 import { asAngle, crossProduct, magnitude, normalize, orthogonalizeLeft, orthogonalizeRight, scaleUp, subtract, toNormalCartesian } from "../../../../data_structures/Vector2D";
 import { Nucleotide } from "../../Nucleotide";
 import { sign, subtractNumbers } from "../../../../utils/Utils";
+import { parseIntReturnUndefinedOnFail } from "../../../../utils/Constants";
 import { Collapsible } from "../../../generic/Collapsible";
 import BasePair from "../../BasePair";
 import { DEFAULT_STROKE_WIDTH } from "../../../../utils/Constants";
@@ -136,7 +137,43 @@ export namespace NucleotideRegionsAnnotateMenu {
       stopIndex,
       setStopIndex
     ] = useState<number | undefined>(undefined);
+    const [
+      selectedRnaComplexIndex,
+      setSelectedRnaComplexIndex
+    ] = useState<number>(-1);
+    const [
+      selectedRnaMoleculeName,
+      setSelectedRnaMoleculeName
+    ] = useState<string | -1>(-1);
+    const [
+      selectedRegionIndex,
+      setSelectedRegionIndex
+    ] = useState<number>(-1);
+    const [
+      selectedRegion,
+      setSelectedRegion
+    ] = useState<NucleotideRegionsAnnotateMenu.Region | undefined>(undefined);
     // Begin helper functions.
+    function updateStartingNucleotideIndexHelper(
+      rnaComplexIndex: RnaComplexKey,
+      rnaMoleculeName: RnaMoleculeKey,
+      regionIndex: number,
+      newStartingNucleotideIndex: NucleotideKey
+    ) {
+      startingNucleotideIndicesPerRegion[rnaComplexIndex][rnaMoleculeName][regionIndex] = newStartingNucleotideIndex;
+      setStartingNucleotideIndicesPerRegion(structuredClone(startingNucleotideIndicesPerRegion));
+    }
+
+    function updateStartingNucleotideOverridingIndexForLabelPerRegionHelper(
+      rnaComplexIndex: RnaComplexKey,
+      rnaMoleculeName: RnaMoleculeKey,
+      regionIndex: number,
+      newStartingNucleotideOverridingIndexForLabel: NucleotideKey
+    ) {
+      startingNucleotideOverridingIndicesForLabelsPerRegion[rnaComplexIndex][rnaMoleculeName][regionIndex] = newStartingNucleotideOverridingIndexForLabel;
+      setStartingNucleotideOverridingIndicesForLabelsPerRegion(structuredClone(startingNucleotideOverridingIndicesForLabelsPerRegion));
+    }
+
     function getNucleotidesUnitVector(
       nucleotideProps : Record<NucleotideKey, Nucleotide.ExternalProps>,
       nucleotideIndex : number
@@ -344,6 +381,64 @@ export namespace NucleotideRegionsAnnotateMenu {
       };
     }
     // Begin memo data.
+    const firstNucleotideIndexPerRnaMolecule = useMemo(
+      function() {
+        if (
+          selectedRnaComplexIndex === -1 ||
+          selectedRnaMoleculeName === -1 ||
+          selectedRegionIndex === -1
+        ) {
+          return undefined;
+        }
+        const singularRnaComplexProps = rnaComplexProps[selectedRnaComplexIndex];
+        const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[selectedRnaMoleculeName];
+        return singularRnaMoleculeProps.firstNucleotideIndex;
+      },
+      [
+        selectedRnaComplexIndex,
+        selectedRnaMoleculeName,
+        selectedRegionIndex
+      ]
+    );
+
+    const startingNucleotideIndexPerRegion = useMemo(
+      function() {
+        if (
+          selectedRnaComplexIndex === -1 ||
+          selectedRnaMoleculeName === -1 ||
+          selectedRegionIndex === -1
+        ) {
+          return undefined;
+        }
+        return startingNucleotideIndicesPerRegion[selectedRnaComplexIndex]?.[selectedRnaMoleculeName]?.[selectedRegionIndex];
+      },
+      [
+        selectedRnaComplexIndex,
+        selectedRnaMoleculeName,
+        selectedRegionIndex,
+        startingNucleotideIndicesPerRegion
+      ]
+    );
+
+    const startingNucleotideOverridingIndexForLabel = useMemo(
+      function() {
+        if (
+          selectedRnaComplexIndex === -1 ||
+          selectedRnaMoleculeName === -1 ||
+          selectedRegionIndex === -1
+        ) {
+          return undefined;
+        }
+        return startingNucleotideOverridingIndicesForLabelsPerRegion[selectedRnaComplexIndex]?.[selectedRnaMoleculeName]?.[selectedRegionIndex];
+      },
+      [
+        selectedRnaComplexIndex,
+        selectedRnaMoleculeName,
+        selectedRegionIndex,
+        startingNucleotideOverridingIndicesForLabelsPerRegion
+      ]
+    );
+
     const annotationData = useMemo(
       function() {
         const averageDistances : Record<
@@ -476,6 +571,38 @@ export namespace NucleotideRegionsAnnotateMenu {
       },
       [regions]
     );
+
+    useEffect(
+      function() {
+        const flattenedRegions = Object.entries(regions);
+        if (flattenedRegions.length === 1) {
+          const [
+            rnaComplexIndexAsString,
+            regionsPerRnaComplex
+          ] = flattenedRegions[0];
+          const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+          setSelectedRnaComplexIndex(rnaComplexIndex);
+          
+          const rnaMoleculeNames = Object.keys(regionsPerRnaComplex);
+          if (rnaMoleculeNames.length === 1) {
+            const rnaMoleculeName = rnaMoleculeNames[0];
+            setSelectedRnaMoleculeName(rnaMoleculeName);
+            
+            const regionsPerRnaMolecule = regionsPerRnaComplex[rnaMoleculeName];
+            if (regionsPerRnaMolecule.length === 1) {
+              setSelectedRegionIndex(0);
+              setSelectedRegion(regionsPerRnaMolecule[0]);
+            }
+          }
+        } else {
+          setSelectedRnaComplexIndex(-1);
+          setSelectedRnaMoleculeName(-1);
+          setSelectedRegionIndex(-1);
+          setSelectedRegion(undefined);
+        }
+      },
+      [regions]
+    );
     // Clean checkbox component
     const StyledCheckbox = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) => (
       <label style={{
@@ -507,31 +634,129 @@ export namespace NucleotideRegionsAnnotateMenu {
       </label>
     );
 
+    // Card component for consistent styling
+    const Card = ({ title, children, defaultCollapsed = false }: { title: string; children: React.ReactNode; defaultCollapsed?: boolean }) => {
+      const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+      
+      return (
+        <div style={{
+          background: theme.colors.surface,
+          border: `1px solid ${theme.colors.border}`,
+          borderRadius: '8px',
+          overflow: 'hidden',
+          marginBottom: '16px',
+        }}>
+          <div
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{
+              padding: '16px 20px',
+              background: theme.colors.background,
+              borderBottom: isCollapsed ? 'none' : `1px solid ${theme.colors.border}`,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              userSelect: 'none',
+            }}
+          >
+            <h3 style={{
+              margin: 0,
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: '600',
+              color: theme.colors.text,
+            }}>
+              {title}
+            </h3>
+            <div style={{
+              fontSize: theme.typography.fontSize.lg,
+              color: theme.colors.textSecondary,
+              transform: isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)',
+              transition: 'transform 0.2s ease',
+            }}>
+              ▼
+            </div>
+          </div>
+          {!isCollapsed && (
+            <div style={{ padding: '20px' }}>
+              {children}
+            </div>
+          )}
+        </div>
+      );
+    };
+
     return (
       <div style={{ 
         display: 'flex', 
         flexDirection: 'column',
-        gap: '24px',
         padding: '16px',
+        background: theme.colors.background,
+        minHeight: '100%',
       }}>
-        {/* Labeling Controls Grid */}
-        <div>
-          <div style={{
-            fontSize: theme.typography.fontSize.xs,
-            fontWeight: '600',
-            color: theme.colors.textSecondary,
-            marginBottom: '12px',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
-          }}>
-            Labeling Controls
-          </div>
-          
+        {/* Info Card */}
+        <Card title="Region Information">
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '16px',
-            marginBottom: '16px',
+          }}>
+            <div>
+              <div style={{
+                fontSize: theme.typography.fontSize.xs,
+                fontWeight: '600',
+                color: theme.colors.textSecondary,
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+              }}>
+                Selected Region
+              </div>
+              <div style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.text,
+                padding: '8px 12px',
+                background: theme.colors.surface,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '4px',
+              }}>
+                {selectedRegion !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined
+                  ? `Range: ${selectedRegion.minimumNucleotideIndexInclusive + firstNucleotideIndexPerRnaMolecule} - ${selectedRegion.maximumNucleotideIndexInclusive + firstNucleotideIndexPerRnaMolecule}`
+                  : 'No region selected'}
+              </div>
+            </div>
+            <div>
+              <div style={{
+                fontSize: theme.typography.fontSize.xs,
+                fontWeight: '600',
+                color: theme.colors.textSecondary,
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '1px',
+              }}>
+                Current Settings
+              </div>
+              <div style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.text,
+                padding: '8px 12px',
+                background: theme.colors.surface,
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: '4px',
+              }}>
+                Increment: {nucleotideIndexIncrement} | 
+                {affectLabelLineFlag ? ' Lines' : ''} 
+                {affectLabelContentFlag ? ' Text' : ''}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Labeling Controls Card */}
+        <Card title="Labeling Controls">
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '20px',
           }}>
             {/* Start Index */}
             <div>
@@ -539,7 +764,7 @@ export namespace NucleotideRegionsAnnotateMenu {
                 fontSize: theme.typography.fontSize.xs,
                 fontWeight: '600',
                 color: theme.colors.textSecondary,
-                marginBottom: '6px',
+                marginBottom: '8px',
                 display: 'block',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
@@ -547,14 +772,39 @@ export namespace NucleotideRegionsAnnotateMenu {
                 Start Index
               </label>
               <InputWithValidator.Integer
-                value={1}
-                setValue={() => {}}
-                min={1}
+                value={startingNucleotideIndexPerRegion !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined 
+                  ? startingNucleotideIndexPerRegion + firstNucleotideIndexPerRnaMolecule 
+                  : 1}
+                setValue={function(newFirstNucleotideIndex) {
+                  if (selectedRnaComplexIndex !== -1 && selectedRnaMoleculeName !== -1 && selectedRegionIndex !== -1) {
+                    const normalizedNewFirstNucleotideIndex = newFirstNucleotideIndex - (firstNucleotideIndexPerRnaMolecule ?? 0);
+                    updateStartingNucleotideIndexHelper(
+                      selectedRnaComplexIndex as number,
+                      selectedRnaMoleculeName as string,
+                      selectedRegionIndex,
+                      normalizedNewFirstNucleotideIndex
+                    );
+                    if (copyStartingIndexToOverridingLabelIndexFlag) {
+                      updateStartingNucleotideOverridingIndexForLabelPerRegionHelper(
+                        selectedRnaComplexIndex as number,
+                        selectedRnaMoleculeName as string,
+                        selectedRegionIndex,
+                        normalizedNewFirstNucleotideIndex
+                      );
+                    }
+                  }
+                }}
+                min={selectedRegion !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined 
+                  ? selectedRegion.minimumNucleotideIndexInclusive + firstNucleotideIndexPerRnaMolecule 
+                  : 1}
+                max={selectedRegion !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined 
+                  ? selectedRegion.maximumNucleotideIndexInclusive + firstNucleotideIndexPerRnaMolecule 
+                  : Number.MAX_SAFE_INTEGER}
               />
               <div style={{
                 fontSize: theme.typography.fontSize.xs,
                 color: theme.colors.textMuted,
-                marginTop: '4px',
+                marginTop: '6px',
               }}>
                 Where to start labeling
               </div>
@@ -566,7 +816,7 @@ export namespace NucleotideRegionsAnnotateMenu {
                 fontSize: theme.typography.fontSize.xs,
                 fontWeight: '600',
                 color: theme.colors.textSecondary,
-                marginBottom: '6px',
+                marginBottom: '8px',
                 display: 'block',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
@@ -574,16 +824,29 @@ export namespace NucleotideRegionsAnnotateMenu {
                 Override Start (Optional)
               </label>
               <InputWithValidator.Integer
-                value={1}
-                setValue={() => {}}
+                value={startingNucleotideOverridingIndexForLabel !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined 
+                  ? startingNucleotideOverridingIndexForLabel + firstNucleotideIndexPerRnaMolecule 
+                  : 1}
+                setValue={function(newNucleotideOverridingIndexForLabel) {
+                  if (selectedRnaComplexIndex !== -1 && selectedRnaMoleculeName !== -1 && selectedRegionIndex !== -1) {
+                    const singularRnaComplexProps = rnaComplexProps[selectedRnaComplexIndex];
+                    const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[selectedRnaMoleculeName];
+                    updateStartingNucleotideOverridingIndexForLabelPerRegionHelper(
+                      selectedRnaComplexIndex as number,
+                      selectedRnaMoleculeName as string,
+                      selectedRegionIndex,
+                      newNucleotideOverridingIndexForLabel - singularRnaMoleculeProps.firstNucleotideIndex
+                    );
+                  }
+                }}
                 min={1}
               />
               <div style={{
                 fontSize: theme.typography.fontSize.xs,
                 color: theme.colors.textMuted,
-                marginTop: '4px',
+                marginTop: '6px',
               }}>
-                Custom label numbering
+                Custom label numbering offset
               </div>
             </div>
 
@@ -593,7 +856,7 @@ export namespace NucleotideRegionsAnnotateMenu {
                 fontSize: theme.typography.fontSize.xs,
                 fontWeight: '600',
                 color: theme.colors.textSecondary,
-                marginBottom: '6px',
+                marginBottom: '8px',
                 display: 'block',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
@@ -608,7 +871,7 @@ export namespace NucleotideRegionsAnnotateMenu {
               <div style={{
                 fontSize: theme.typography.fontSize.xs,
                 color: theme.colors.textMuted,
-                marginTop: '4px',
+                marginTop: '6px',
               }}>
                 Label every Nth nucleotide
               </div>
@@ -620,7 +883,7 @@ export namespace NucleotideRegionsAnnotateMenu {
                 fontSize: theme.typography.fontSize.xs,
                 fontWeight: '600',
                 color: theme.colors.textSecondary,
-                marginBottom: '6px',
+                marginBottom: '8px',
                 display: 'block',
                 textTransform: 'uppercase',
                 letterSpacing: '1px',
@@ -629,151 +892,262 @@ export namespace NucleotideRegionsAnnotateMenu {
               </label>
               <InputWithValidator.Integer
                 value={stopIndex ?? 0}
-                setValue={setStopIndex}
-                min={0}
+                setValue={(value) => setStopIndex(value === 0 ? undefined : value)}
+                min={startingNucleotideIndexPerRegion !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined 
+                  ? startingNucleotideIndexPerRegion + firstNucleotideIndexPerRnaMolecule + 1
+                  : 1}
+                max={selectedRegion !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined 
+                  ? selectedRegion.maximumNucleotideIndexInclusive + firstNucleotideIndexPerRnaMolecule
+                  : Number.MAX_SAFE_INTEGER}
+                valueToString={(value) => value === 0 ? '' : value.toString()}
+                stringToValue={(valueAsString) => {
+                  if (valueAsString === '' || valueAsString === '0') {
+                    return 0; // This will be converted to undefined in setValue
+                  }
+                  const parsed = parseIntReturnUndefinedOnFail(valueAsString);
+                  if (parsed !== undefined) {
+                    if (startingNucleotideIndexPerRegion !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined && parsed <= startingNucleotideIndexPerRegion + firstNucleotideIndexPerRnaMolecule) {
+                      return {
+                        errorMessage: "End index must be greater than start index"
+                      };
+                    }
+                    if (selectedRegion !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined && parsed > selectedRegion.maximumNucleotideIndexInclusive + firstNucleotideIndexPerRnaMolecule) {
+                      return {
+                        errorMessage: "End index cannot exceed sequence length"
+                      };
+                    }
+                  }
+                  return parsed;
+                }}
               />
               <div style={{
                 fontSize: theme.typography.fontSize.xs,
                 color: theme.colors.textMuted,
-                marginTop: '4px',
+                marginTop: '6px',
               }}>
-                Stop labeling at this index
+                {startingNucleotideIndexPerRegion !== undefined && firstNucleotideIndexPerRnaMolecule !== undefined && selectedRegion !== undefined
+                  ? `Leave empty to label entire region (min: ${startingNucleotideIndexPerRegion + firstNucleotideIndexPerRnaMolecule + 1}, max: ${selectedRegion.maximumNucleotideIndexInclusive + firstNucleotideIndexPerRnaMolecule})`
+                  : 'Leave empty to label entire region'}
               </div>
             </div>
           </div>
 
-          {/* Advanced Settings - Collapsible */}
+          {/* Action Buttons */}
           <div style={{
-            paddingTop: '16px',
+            display: 'flex',
+            gap: '12px',
+            marginTop: '24px',
+            paddingTop: '20px',
             borderTop: `1px solid ${theme.colors.border}`,
           }}>
-            <Collapsible.Component title="Advanced: Region Selection & Auto-sync">
-              <div style={{ paddingTop: '16px' }}>
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textMuted,
-                  marginBottom: '16px',
-                  lineHeight: '1.5',
-                }}>
-                  Configure which regions to label and sync settings.
-                </div>
-
-                <StyledCheckbox
-                  label="Auto-sync Start with Override"
-                  checked={copyStartingIndexToOverridingLabelIndexFlag}
-                  onChange={() => setCopyStartingIndexToOverridingLabelIndexFlag(!copyStartingIndexToOverridingLabelIndexFlag)}
-                />
-
-                <div style={{ marginTop: '16px' }}>
-                  <StartingNucleotideIndicesEditor.Component
-                    regions={regions}
-                    rnaComplexProps={rnaComplexProps}
-                    startingNucleotideIndicesPerRegion={startingNucleotideIndicesPerRegion}
-                    updateStartingNucleotideIndexHelper={function(
-                      rnaComplexIndex: RnaComplexKey,
-                      rnaMoleculeName: RnaMoleculeKey,
-                      regionIndex: number,
-                      newStartingNucleotideIndex: NucleotideKey
-                    ) {
-                      startingNucleotideIndicesPerRegion[rnaComplexIndex][rnaMoleculeName][regionIndex] = newStartingNucleotideIndex;
-                      setStartingNucleotideIndicesPerRegion(structuredClone(startingNucleotideIndicesPerRegion));
-                    }}
-                    startingNucleotideOverridingIndicesForLabelsPerRegion={startingNucleotideOverridingIndicesForLabelsPerRegion}
-                    updateStartingNucleotideOverridingIndexForLabelPerRegionHelper={function(
-                      rnaComplexIndex: RnaComplexKey,
-                      rnaMoleculeName: RnaMoleculeKey,
-                      regionIndex: number,
-                      newStartingNucleotideOverridingIndexForLabel: NucleotideKey
-                    ) {
-                      startingNucleotideOverridingIndicesForLabelsPerRegion[rnaComplexIndex][rnaMoleculeName][regionIndex] = newStartingNucleotideOverridingIndexForLabel;
-                      setStartingNucleotideOverridingIndicesForLabelsPerRegion(structuredClone(startingNucleotideOverridingIndicesForLabelsPerRegion));
-                    }}
-                    copyStartingIndexToOverridingLabelIndexFlag={copyStartingIndexToOverridingLabelIndexFlag}
-                  />
-                </div>
-              </div>
-            </Collapsible.Component>
+            <button
+              onClick={function(e) {
+                pushToUndoStack();
+                performAnnotationAction(AnnotationAction.CREATE);
+              }}
+              style={{
+                flex: 1,
+                padding: '12px 16px',
+                background: theme.colors.primary,
+                color: 'white',
+                border: 'none',
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '6px',
+                transition: 'background-color 0.2s ease',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = theme.colors.primaryHover || theme.colors.primary;
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = theme.colors.primary;
+              }}
+            >
+              Create Annotations
+            </button>
+            
+            <button
+              onClick={function(e) {
+                pushToUndoStack();
+                performAnnotationAction(AnnotationAction.DELETE, 1);
+              }}
+              style={{
+                flex: 1,
+                padding: '12px 16px',
+                background: 'transparent',
+                color: theme.colors.textSecondary,
+                border: `1px solid ${theme.colors.border}`,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: '500',
+                cursor: 'pointer',
+                borderRadius: '6px',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = theme.colors.surface;
+                e.currentTarget.style.borderColor = theme.colors.textSecondary;
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.borderColor = theme.colors.border;
+              }}
+            >
+              Delete Selected
+            </button>
           </div>
-        </div>
+        </Card>
 
-        {/* Label Options */}
-        <div style={{
-          paddingTop: '24px',
-          borderTop: `1px solid ${theme.colors.border}`,
-        }}>
+        {/* Advanced Selections Card */}
+        <Card title="Advanced Selections" defaultCollapsed={true}>
           <div style={{
-            fontSize: theme.typography.fontSize.xs,
-            fontWeight: '600',
-            color: theme.colors.textSecondary,
-            marginBottom: '12px',
-            textTransform: 'uppercase',
-            letterSpacing: '1px',
+            fontSize: theme.typography.fontSize.sm,
+            color: theme.colors.textMuted,
+            marginBottom: '16px',
+            lineHeight: '1.5',
           }}>
-            Label Options
+            Configure which regions to label and sync settings.
           </div>
-          
-          <StyledCheckbox
-            label="Include Label Lines"
-            checked={affectLabelLineFlag}
-            onChange={() => setAffectLabelLineFlag(!affectLabelLineFlag)}
-          />
-          
-          <StyledCheckbox
-            label="Include Label Text"
-            checked={affectLabelContentFlag}
-            onChange={() => setAffectLabelContentFlag(!affectLabelContentFlag)}
-          />
-          
-          <StyledCheckbox
-            label="Recreate Existing Labels"
-            checked={recreateExistingAnnotationsFlag}
-            onChange={() => setRecreateExistingAnnotationsFlag(!recreateExistingAnnotationsFlag)}
-          />
-        </div>
 
-        {/* Action Buttons */}
+          <StyledCheckbox
+            label="Auto-sync Start with Override"
+            checked={copyStartingIndexToOverridingLabelIndexFlag}
+            onChange={() => setCopyStartingIndexToOverridingLabelIndexFlag(!copyStartingIndexToOverridingLabelIndexFlag)}
+          />
+
+          <div style={{ marginTop: '20px' }}>
+            <StartingNucleotideIndicesEditor.Component
+              regions={regions}
+              rnaComplexProps={rnaComplexProps}
+              startingNucleotideIndicesPerRegion={startingNucleotideIndicesPerRegion}
+              updateStartingNucleotideIndexHelper={function(
+                rnaComplexIndex: RnaComplexKey,
+                rnaMoleculeName: RnaMoleculeKey,
+                regionIndex: number,
+                newStartingNucleotideIndex: NucleotideKey
+              ) {
+                startingNucleotideIndicesPerRegion[rnaComplexIndex][rnaMoleculeName][regionIndex] = newStartingNucleotideIndex;
+                setStartingNucleotideIndicesPerRegion(structuredClone(startingNucleotideIndicesPerRegion));
+              }}
+              startingNucleotideOverridingIndicesForLabelsPerRegion={startingNucleotideOverridingIndicesForLabelsPerRegion}
+              updateStartingNucleotideOverridingIndexForLabelPerRegionHelper={function(
+                rnaComplexIndex: RnaComplexKey,
+                rnaMoleculeName: RnaMoleculeKey,
+                regionIndex: number,
+                newStartingNucleotideOverridingIndexForLabel: NucleotideKey
+              ) {
+                startingNucleotideOverridingIndicesForLabelsPerRegion[rnaComplexIndex][rnaMoleculeName][regionIndex] = newStartingNucleotideOverridingIndexForLabel;
+                setStartingNucleotideOverridingIndicesForLabelsPerRegion(structuredClone(startingNucleotideOverridingIndicesForLabelsPerRegion));
+              }}
+              copyStartingIndexToOverridingLabelIndexFlag={copyStartingIndexToOverridingLabelIndexFlag}
+            />
+          </div>
+        </Card>
+
+        {/* Labeling Options Card */}
+        <Card title="Labeling Options" defaultCollapsed={true}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            <StyledCheckbox
+              label="Include Label Lines"
+              checked={affectLabelLineFlag}
+              onChange={() => setAffectLabelLineFlag(!affectLabelLineFlag)}
+            />
+            
+            <StyledCheckbox
+              label="Include Label Text"
+              checked={affectLabelContentFlag}
+              onChange={() => setAffectLabelContentFlag(!affectLabelContentFlag)}
+            />
+            
+            <StyledCheckbox
+              label="Recreate Existing Labels"
+              checked={recreateExistingAnnotationsFlag}
+              onChange={() => setRecreateExistingAnnotationsFlag(!recreateExistingAnnotationsFlag)}
+            />
+          </div>
+        </Card>
+
+        {/* Clear All Button */}
         <div style={{
-          display: 'flex',
-          gap: '12px',
-          paddingTop: '24px',
-          borderTop: `1px solid ${theme.colors.border}`,
+          marginTop: '8px',
         }}>
           <button
             onClick={function(e) {
               pushToUndoStack();
-              performAnnotationAction(AnnotationAction.CREATE);
+              // Clear all annotations across all RNA complexes and molecules
+              const nucleotideKeysToRerender : NucleotideKeysToRerender = {};
+              for (const rnaComplexIndexAsString in rnaComplexProps) {
+                const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+                if (!(rnaComplexIndex in nucleotideKeysToRerender)) {
+                  nucleotideKeysToRerender[rnaComplexIndex] = {};
+                }
+                const nucleotideKeysToRerenderPerRnaComplex = nucleotideKeysToRerender[rnaComplexIndex];
+
+                const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+                const rnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps;
+                for (const rnaMoleculeName in rnaMoleculeProps) {
+                  if (!(rnaMoleculeName in nucleotideKeysToRerenderPerRnaComplex)) {
+                    nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] = [];
+                  }
+                  const nucleotideKeysToRerenderPerRnaMolecule = nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName];
+
+                  const singularRnaMoleculeProps = rnaMoleculeProps[rnaMoleculeName];
+                  const nucleotideProps = singularRnaMoleculeProps.nucleotideProps;
+                  
+                  // Clear all label lines and content for all nucleotides
+                  for (const nucleotideIndexAsString in nucleotideProps) {
+                    const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+                    const singularNucleotideProps = nucleotideProps[nucleotideIndex];
+                    
+                    if (singularNucleotideProps.labelLineProps !== undefined || singularNucleotideProps.labelContentProps !== undefined) {
+                      nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
+                      
+                      if (singularNucleotideProps.labelLineProps !== undefined) {
+                        delete singularNucleotideProps.labelLineProps;
+                      }
+                      if (singularNucleotideProps.labelContentProps !== undefined) {
+                        delete singularNucleotideProps.labelContentProps;
+                      }
+                    }
+                  }
+                }
+              }
+              
+              // Sort the keys for efficient rendering
+              for (const nucleotideKeysToRerenderPerRnaComplex of Object.values(nucleotideKeysToRerender)) {
+                for (const nucleotideKeysToRerenderPerRnaMolecule of Object.values(nucleotideKeysToRerenderPerRnaComplex)) {
+                  nucleotideKeysToRerenderPerRnaMolecule.sort(subtractNumbers);
+                }
+              }
+              
+              setNucleotideKeysToRerender(nucleotideKeysToRerender);
             }}
             style={{
-              flex: 1,
-              padding: '12px 16px',
-              background: theme.colors.primary,
-              color: 'white',
-              border: 'none',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: '500',
-              cursor: 'pointer',
-            }}
-          >
-            Create
-          </button>
-          
-          <button
-            onClick={function(e) {
-              pushToUndoStack();
-              performAnnotationAction(AnnotationAction.DELETE, 1);
-            }}
-            style={{
-              flex: 1,
+              width: '100%',
               padding: '12px 16px',
               background: 'transparent',
-              color: theme.colors.textSecondary,
-              border: `1px solid ${theme.colors.border}`,
+              color: theme.colors.error || '#dc3545',
+              border: `1px solid ${theme.colors.error || '#dc3545'}`,
               fontSize: theme.typography.fontSize.sm,
               fontWeight: '500',
               cursor: 'pointer',
+              borderRadius: '6px',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.background = theme.colors.error || '#dc3545';
+              e.currentTarget.style.color = 'white';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = theme.colors.error || '#dc3545';
             }}
           >
-            Delete
+            Clear All Annotations
           </button>
         </div>
       </div>
@@ -1114,72 +1488,6 @@ namespace StartingNucleotideIndicesEditor {
           </div>
         )}
 
-        {/* Index Configuration */}
-        {selectedRegionIndex !== -1 && selectedRegion !== undefined && startingNucleotideIndexPerRegion !== undefined && startingNucleotideOverridingIndexForLabel !== undefined && (
-          <>
-            <div style={{
-              ...fieldContainerStyle,
-              paddingTop: '20px',
-              borderTop: `1px solid ${theme.colors.border}`,
-            }}>
-              <label style={labelStyle}>Starting Index</label>
-              <InputWithValidator.Integer
-                value={startingNucleotideIndexPerRegion + (firstNucleotideIndexPerRnaMolecule ?? Number.NaN)}
-                setValue={function(newFirstNucleotideIndex) {
-                  const normalizedNewFirstNucleotideIndex = newFirstNucleotideIndex - (firstNucleotideIndexPerRnaMolecule ?? Number.NaN);
-                  updateStartingNucleotideIndexHelper(
-                    selectedRnaComplexIndex as number,
-                    selectedRnaMoleculeName as string,
-                    selectedRegionIndex,
-                    normalizedNewFirstNucleotideIndex
-                  );
-                  if (copyStartingIndexToOverridingLabelIndexFlag) {
-                    updateStartingNucleotideOverridingIndexForLabelPerRegionHelper(
-                      selectedRnaComplexIndex as number,
-                      selectedRnaMoleculeName as string,
-                      selectedRegionIndex,
-                      normalizedNewFirstNucleotideIndex
-                    );
-                    setStartingNucleotideOverridingIndexForLabel(normalizedNewFirstNucleotideIndex);
-                  }
-                }}
-                min={selectedRegion.minimumNucleotideIndexInclusive + (firstNucleotideIndexPerRnaMolecule ?? Number.NaN)}
-                max={selectedRegion.maximumNucleotideIndexInclusive + (firstNucleotideIndexPerRnaMolecule ?? Number.NaN)}
-              />
-              <div style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-                marginTop: '4px',
-              }}>
-                Range: {selectedRegion.minimumNucleotideIndexInclusive + (firstNucleotideIndexPerRnaMolecule ?? 0)} - {selectedRegion.maximumNucleotideIndexInclusive + (firstNucleotideIndexPerRnaMolecule ?? 0)}
-              </div>
-            </div>
-
-            <div style={fieldContainerStyle}>
-              <label style={labelStyle}>Overriding Label Index</label>
-              <InputWithValidator.Integer
-                value={startingNucleotideOverridingIndexForLabel + (firstNucleotideIndexPerRnaMolecule ?? Number.NaN)}
-                setValue={function(newNucleotideOverridingIndexForLabel) {
-                  const singularRnaComplexProps = rnaComplexProps[selectedRnaComplexIndex as number];
-                  const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[selectedRnaMoleculeName as string];
-                  updateStartingNucleotideOverridingIndexForLabelPerRegionHelper(
-                    selectedRnaComplexIndex as number,
-                    selectedRnaMoleculeName as string,
-                    selectedRegionIndex,
-                    newNucleotideOverridingIndexForLabel - singularRnaMoleculeProps.firstNucleotideIndex
-                  );
-                }}
-              />
-              <div style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-                marginTop: '4px',
-              }}>
-                Custom label numbering offset
-              </div>
-            </div>
-          </>
-        )}
       </div>
     );
   }

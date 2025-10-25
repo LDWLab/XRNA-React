@@ -66,6 +66,7 @@ import { BasePairsEditor } from "./components/app_specific/editors/BasePairsEdit
 import { Collapsible } from "./components/generic/Collapsible";
 import { SAMPLE_XRNA_FILE } from "./utils/sampleXrnaFile";
 import { fileExtensionDescriptions } from "./io/FileExtension";
+import { calculateBasePairDistances } from "./utils/BasePairDistanceCalculator";
 import loadingGif from "./images/loading.svg";
 import {
   SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME,
@@ -776,6 +777,39 @@ export namespace App {
         fullKeys: FullKeys
       ) {
         const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } = fullKeys;
+        
+        // Check for Ctrl+click to delete annotation
+        if (e.ctrlKey && e.button === MouseButtonIndices.Left) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          pushToUndoStack();
+          const singularNucleotideProps = (
+            rnaComplexPropsReference.current as RnaComplexProps
+          )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName]
+            .nucleotideProps[nucleotideIndex];
+          
+          // Delete both label content and label line
+          let hasChanges = false;
+          if (singularNucleotideProps.labelContentProps !== undefined) {
+            delete singularNucleotideProps.labelContentProps;
+            hasChanges = true;
+          }
+          if (singularNucleotideProps.labelLineProps !== undefined) {
+            delete singularNucleotideProps.labelLineProps;
+            hasChanges = true;
+          }
+          
+          if (hasChanges) {
+            setNucleotideKeysToRerender({
+              [rnaComplexIndex]: {
+                [rnaMoleculeName]: [nucleotideIndex],
+              },
+            });
+          }
+          return;
+        }
+        
         switch (e.button) {
           case MouseButtonIndices.Left: {
             let newDragListener: DragListener = viewportDragListener;
@@ -831,6 +865,40 @@ export namespace App {
         helper: () => void
       ) {
         const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } = fullKeys;
+        
+        // Check for Ctrl+click to delete annotation
+        if (e.ctrlKey && e.button === MouseButtonIndices.Left) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          pushToUndoStack();
+          const singularNucleotideProps = (
+            rnaComplexPropsReference.current as RnaComplexProps
+          )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
+            nucleotideIndex
+          ];
+          
+          // Delete both label content and label line
+          let hasChanges = false;
+          if (singularNucleotideProps.labelContentProps !== undefined) {
+            delete singularNucleotideProps.labelContentProps;
+            hasChanges = true;
+          }
+          if (singularNucleotideProps.labelLineProps !== undefined) {
+            delete singularNucleotideProps.labelLineProps;
+            hasChanges = true;
+          }
+          
+          if (hasChanges) {
+            setNucleotideKeysToRerender({
+              [rnaComplexIndex]: {
+                [rnaMoleculeName]: [nucleotideIndex],
+              },
+            });
+          }
+          return;
+        }
+        
         const singularNucleotideProps = (
           rnaComplexPropsReference.current as RnaComplexProps
         )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
@@ -898,6 +966,40 @@ export namespace App {
         helper: () => void
       ) {
         const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } = fullKeys;
+        
+        // Check for Ctrl+click to delete annotation
+        if (e.ctrlKey && e.button === MouseButtonIndices.Left) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          pushToUndoStack();
+          const singularNucleotideProps = (
+            rnaComplexPropsReference.current as RnaComplexProps
+          )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
+            nucleotideIndex
+          ];
+          
+          // Delete both label content and label line
+          let hasChanges = false;
+          if (singularNucleotideProps.labelContentProps !== undefined) {
+            delete singularNucleotideProps.labelContentProps;
+            hasChanges = true;
+          }
+          if (singularNucleotideProps.labelLineProps !== undefined) {
+            delete singularNucleotideProps.labelLineProps;
+            hasChanges = true;
+          }
+          
+          if (hasChanges) {
+            setNucleotideKeysToRerender({
+              [rnaComplexIndex]: {
+                [rnaMoleculeName]: [nucleotideIndex],
+              },
+            });
+          }
+          return;
+        }
+        
         const singularNucleotideProps = (
           rnaComplexPropsReference.current as RnaComplexProps
         )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
@@ -1913,6 +2015,17 @@ export namespace App {
             setUndoStack([]);
             setRedoStack([]);
             setBasePairKeysToEdit({});
+            
+            // Calculate and update base pair distance settings
+            const calculatedDistances = calculateBasePairDistances(parsedInput.rnaComplexProps);
+            setSettingsRecord(prevSettings => ({
+              ...prevSettings,
+              [Setting.CANONICAL_BASE_PAIR_DISTANCE]: calculatedDistances.canonicalDistance,
+              [Setting.WOBBLE_BASE_PAIR_DISTANCE]: calculatedDistances.wobbleDistance,
+              [Setting.MISMATCH_BASE_PAIR_DISTANCE]: calculatedDistances.mismatchDistance,
+              [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]: calculatedDistances.contiguousDistance
+            }));
+            
             setRnaComplexProps(parsedInput.rnaComplexProps);
             if (Object.keys(parsedInput.rnaComplexProps).length > 0) {
               let numSeconds = 2;

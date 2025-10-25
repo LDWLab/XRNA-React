@@ -15,6 +15,8 @@ import {
   DuplicateBasePairKeysHandler,
 } from "../../app_specific/RnaComplex";
 import { Context } from "../../../context/Context";
+import { Setting } from "../../../ui/Setting";
+import { Vector2D, add, subtract, scaleUp, normalize, magnitude } from "../../../data_structures/Vector2D";
 import { Pencil, Check, Trash2, X, Download, Upload } from "lucide-react";
 
 export type FullKeysRecord = Record<
@@ -146,6 +148,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const startHRef = useRef<number>(360);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAdd, setShowAdd] = useState<boolean>(false);
+  const [repositionWithCalculatedDistances, setRepositionWithCalculatedDistances] = useState<boolean>(false);
   const [rnaComplexesAreASingleton, setRnaComplexesAreASingleton] = useState<boolean>(true);
   const [rnaMoleculesAreASingleton, setRnaMoleculesAreASingleton] = useState<boolean>(true);
   type AddForm = {
@@ -154,14 +157,32 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     formattedNucleotideIndex0?: number;
     rnaMoleculeName1?: string;
     formattedNucleotideIndex1?: number;
+    length?: number;
     typeBase: TypeBase;
     orientation?: Orientation;
     edgeA?: Edge;
     edgeB?: Edge;
   };
-  const [addForm, setAddForm] = useState<AddForm>({ 
-    typeBase: "auto",
-    rnaComplexIndex : rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined
+  const [addForm, setAddForm] = useState<AddForm>(() => {
+    const defaultComplexIndex = rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined;
+    let defaultMoleculeName0: string | undefined = undefined;
+    let defaultMoleculeName1: string | undefined = undefined;
+    
+    if (defaultComplexIndex !== undefined && rnaComplexProps[defaultComplexIndex]) {
+      const moleculeNames = Object.keys(rnaComplexProps[defaultComplexIndex].rnaMoleculeProps);
+      if (moleculeNames.length > 0) {
+        defaultMoleculeName0 = moleculeNames[0];
+        defaultMoleculeName1 = moleculeNames[0];
+      }
+    }
+    
+    return {
+      typeBase: "auto",
+      rnaComplexIndex: defaultComplexIndex,
+      rnaMoleculeName0: defaultMoleculeName0,
+      rnaMoleculeName1: defaultMoleculeName1,
+      length: 1
+    };
   });
   const [editRowKey, setEditRowKey] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
@@ -178,6 +199,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
 
   const setBasePairKeysToEdit = useContext(Context.BasePair.SetKeysToEdit);
   const pushToUndoStack = useContext(Context.App.PushToUndoStack);
+  const settingsRecord = useContext(Context.App.Settings);
 
   useEffect(() => {
     function onMove(e: MouseEvent) {
@@ -922,6 +944,145 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     });
   }
 
+  function getBasePairTypeFromNucleotides(symbol0: string, symbol1: string): _BasePair.Type {
+    // Import the getBasePairType function logic
+    // This is a simplified version - in a real implementation, you'd want to use the actual function
+    const normalizedSymbol0 = symbol0.toUpperCase();
+    const normalizedSymbol1 = symbol1.toUpperCase();
+    
+    // Watson-Crick base pairs
+    if ((normalizedSymbol0 === 'A' && normalizedSymbol1 === 'U') || 
+        (normalizedSymbol0 === 'U' && normalizedSymbol1 === 'A') ||
+        (normalizedSymbol0 === 'G' && normalizedSymbol1 === 'C') || 
+        (normalizedSymbol0 === 'C' && normalizedSymbol1 === 'G')) {
+      return _BasePair.Type.CANONICAL;
+    }
+    
+    // Wobble base pairs (G-U)
+    if ((normalizedSymbol0 === 'G' && normalizedSymbol1 === 'U') || 
+        (normalizedSymbol0 === 'U' && normalizedSymbol1 === 'G')) {
+      return _BasePair.Type.WOBBLE;
+    }
+    
+    // Everything else is a mismatch
+    return _BasePair.Type.MISMATCH;
+  }
+
+  function repositionNucleotides(
+    complex: any,
+    mol0: string,
+    mol1: string,
+    startIdx0: number,
+    startIdx1: number,
+    length: number,
+    basePairType: _BasePair.Type | undefined
+  ) {
+    const mp0 = complex.rnaMoleculeProps[mol0];
+    const mp1 = complex.rnaMoleculeProps[mol1];
+    if (!mp0 || !mp1) return;
+
+    // Get calculated distances from settings
+    const canonicalDistance = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
+    const wobbleDistance = settingsRecord[Setting.WOBBLE_BASE_PAIR_DISTANCE] as number;
+    const mismatchDistance = settingsRecord[Setting.MISMATCH_BASE_PAIR_DISTANCE] as number;
+    const contiguousDistance = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
+
+    // Process each base pair from left to right
+    for (let i = 0; i < length; i++) {
+      const currentIdx0 = startIdx0 + i;
+      const currentIdx1 = startIdx1 - i;
+      
+      // Check if both indices exist
+      if (!(currentIdx0 in mp0.nucleotideProps) || !(currentIdx1 in mp1.nucleotideProps)) {
+        break;
+      }
+
+      const nuc0 = mp0.nucleotideProps[currentIdx0];
+      const nuc1 = mp1.nucleotideProps[currentIdx1];
+
+      // Determine the base pair type for this specific base pair based on nucleotide symbols
+      let currentBasePairType = basePairType;
+      
+      // If we have nucleotide symbols, determine the actual base pair type
+      if (nuc0.symbol && nuc1.symbol) {
+        currentBasePairType = getBasePairTypeFromNucleotides(nuc0.symbol, nuc1.symbol);
+      }
+      
+      // Determine the appropriate distance based on this base pair's type
+      let basePairDistance = canonicalDistance;
+      if (currentBasePairType === _BasePair.Type.WOBBLE) {
+        basePairDistance = wobbleDistance;
+      } else if (currentBasePairType === _BasePair.Type.MISMATCH) {
+        basePairDistance = mismatchDistance;
+      }
+
+      if (i === 0) {
+        // First base pair: hold center constant, reposition nucleotides symmetrically
+        const currentCenter = {
+          x: (nuc0.x + nuc1.x) / 2,
+          y: (nuc0.y + nuc1.y) / 2
+        };
+        
+        const currentVector = subtract(nuc1, nuc0);
+        const currentDistance = magnitude(currentVector);
+        
+        if (currentDistance > 0) {
+          const direction = normalize(currentVector);
+          const halfDistance = basePairDistance / 2;
+          
+          // Update positions symmetrically around the center
+          nuc0.x = currentCenter.x - direction.x * halfDistance;
+          nuc0.y = currentCenter.y - direction.y * halfDistance;
+          nuc1.x = currentCenter.x + direction.x * halfDistance;
+          nuc1.y = currentCenter.y + direction.y * halfDistance;
+        }
+      } else {
+        // Subsequent base pairs: follow from the previous one using contiguous distance
+        const prevIdx0 = startIdx0 + i - 1;
+        const prevIdx1 = startIdx1 - i + 1;
+        
+        if (prevIdx0 in mp0.nucleotideProps && prevIdx1 in mp1.nucleotideProps) {
+          const prevNuc0 = mp0.nucleotideProps[prevIdx0];
+          const prevNuc1 = mp1.nucleotideProps[prevIdx1];
+          
+          // Calculate direction from previous base pair
+          const prevCenter = {
+            x: (prevNuc0.x + prevNuc1.x) / 2,
+            y: (prevNuc0.y + prevNuc1.y) / 2
+          };
+          
+          const currentCenter = {
+            x: (nuc0.x + nuc1.x) / 2,
+            y: (nuc0.y + nuc1.y) / 2
+          };
+          
+          const direction = subtract(currentCenter, prevCenter);
+          const directionMagnitude = magnitude(direction);
+          
+          if (directionMagnitude > 0) {
+            const normalizedDirection = normalize(direction);
+            const newCenter = add(prevCenter, scaleUp(normalizedDirection, contiguousDistance));
+            
+            // Calculate the direction between the two nucleotides
+            const nucleotideVector = subtract(nuc1, nuc0);
+            const nucleotideDistance = magnitude(nucleotideVector);
+            
+            if (nucleotideDistance > 0) {
+              const nucleotideDirection = normalize(nucleotideVector);
+              const halfDistance = basePairDistance / 2;
+              
+              // Position nucleotides symmetrically around the new center
+              nuc0.x = newCenter.x - nucleotideDirection.x * halfDistance;
+              nuc0.y = newCenter.y - nucleotideDirection.y * halfDistance;
+              nuc1.x = newCenter.x + nucleotideDirection.x * halfDistance;
+              nuc1.y = newCenter.y + nucleotideDirection.y * halfDistance;
+            }
+          }
+        }
+      }
+    }
+  }
+
   function addBasePair() {
     const form = addForm;
     if (form.rnaComplexIndex == null) return;
@@ -929,17 +1090,6 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     if (!complex) return;
     const mol0 = form.rnaMoleculeName0!;
     const mol1 = form.rnaMoleculeName1!;
-    // Auto-resolve molecules by formatted index
-    // const mol0 =
-    //   resolveMoleculeByFormattedIndex(
-    //     form.rnaComplexIndex,
-    //     form.formattedNucleotideIndex0 ?? NaN
-    //   ) ?? Object.keys(complex.rnaMoleculeProps)[0];
-    // const mol1 =
-    //   resolveMoleculeByFormattedIndex(
-    //     form.rnaComplexIndex,
-    //     form.formattedNucleotideIndex1 ?? NaN
-    //   ) ?? Object.keys(complex.rnaMoleculeProps)[0];
     const mp0 = complex.rnaMoleculeProps[mol0 as string];
     const mp1 = complex.rnaMoleculeProps[mol1 as string];
     if (!mp0 || !mp1) return;
@@ -952,6 +1102,8 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     const idx1 = form.formattedNucleotideIndex1 - mp1.firstNucleotideIndex;
     if (!(idx0 in mp0.nucleotideProps) || !(idx1 in mp1.nucleotideProps))
       return;
+    
+    const length = form.length ?? 1;
     const newType =
       form.typeBase === "custom"
         ? assembleDirectedType(form.orientation, form.edgeA, form.edgeB)
@@ -962,22 +1114,52 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         : form.typeBase === "mismatch"
         ? _BasePair.Type.MISMATCH
         : undefined;
+    
     pushToUndoStack();
-    insertBasePair(
-      complex,
-      mol0,
-      idx0,
-      mol1,
-      idx1,
-      DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
-      { basePairType: newType }
-    );
-    const [keys0, keys1] = [
-      { rnaMoleculeName: mol0, nucleotideIndex: idx0 },
-      { rnaMoleculeName: mol1, nucleotideIndex: idx1 },
-    ].sort(compareBasePairKeys);
+    
+    // If reposition is enabled, reposition nucleotides before adding base pairs
+    if (repositionWithCalculatedDistances) {
+      repositionNucleotides(
+        complex,
+        mol0,
+        mol1,
+        idx0,
+        idx1,
+        length,
+        newType
+      );
+    }
+    
+    // Create multiple base pairs based on length
+    const addedPairs: Array<{ keys0: any; keys1: any }> = [];
+    for (let i = 0; i < length; i++) {
+      const currentIdx0 = idx0 + i;
+      const currentIdx1 = idx1 - i;
+      
+      // Check if both indices exist in their respective molecules
+      if (!(currentIdx0 in mp0.nucleotideProps) || !(currentIdx1 in mp1.nucleotideProps)) {
+        break; // Stop if we've reached the end of either molecule
+      }
+      
+      insertBasePair(
+        complex,
+        mol0,
+        currentIdx0,
+        mol1,
+        currentIdx1,
+        DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
+        { basePairType: newType }
+      );
+      
+      const [keys0, keys1] = [
+        { rnaMoleculeName: mol0, nucleotideIndex: currentIdx0 },
+        { rnaMoleculeName: mol1, nucleotideIndex: currentIdx1 },
+      ].sort(compareBasePairKeys);
+      addedPairs.push({ keys0, keys1 });
+    }
+    
     setBasePairKeysToEdit({
-      [form.rnaComplexIndex]: { add: [{ keys0, keys1 }], delete: [] },
+      [form.rnaComplexIndex]: { add: addedPairs, delete: [] },
     });
     setShowAdd(false);
     setAddForm({ typeBase: "auto" });
@@ -1590,10 +1772,13 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   const newAddForm : Partial<AddForm> = {
                     rnaComplexIndex
                   };
-                  if (rnaMoleculesAreASingleton) {
-                    const rnaMoleculeName = Object.keys(rnaComplexProps[rnaComplexIndex].rnaMoleculeProps)[0];
-                    newAddForm.rnaMoleculeName0 = rnaMoleculeName;
-                    newAddForm.rnaMoleculeName1 = rnaMoleculeName;
+                  // Always set the first available molecule names as defaults
+                  if (rnaComplexIndex !== undefined) {
+                    const moleculeNames = Object.keys(rnaComplexProps[rnaComplexIndex].rnaMoleculeProps);
+                    if (moleculeNames.length > 0) {
+                      newAddForm.rnaMoleculeName0 = moleculeNames[0];
+                      newAddForm.rnaMoleculeName1 = moleculeNames[0];
+                    }
                   }
                   setAddForm((f) => ({
                     ...f,
@@ -1885,6 +2070,58 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                 <option value={"hoogsteen"}>hoogsteen</option>
                 <option value={"sugar_edge"}>sugar_edge</option>
               </select>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                placeholder="Length"
+                value={addForm.length ?? ""}
+                onChange={(e) =>
+                  setAddForm((f) => ({
+                    ...f,
+                    length:
+                      e.target.value === ""
+                        ? undefined
+                        : Math.max(1, parseInt(e.target.value) || 1),
+                  }))
+                }
+                style={{
+                  ...inp(),
+                  width: 80,
+                  marginRight: 8,
+                }}
+                title="Number of consecutive base pairs to create"
+              />
+              
+              {/* Reposition checkbox */}
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                marginRight: '8px',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                backgroundColor: repositionWithCalculatedDistances ? theme.colors.primary + '20' : 'transparent',
+                border: repositionWithCalculatedDistances ? `1px solid ${theme.colors.primary}` : '1px solid transparent',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={repositionWithCalculatedDistances}
+                  onChange={(e) => setRepositionWithCalculatedDistances(e.target.checked)}
+                  style={{ margin: 0, transform: 'scale(0.9)' }}
+                />
+                <span style={{ 
+                  fontSize: '11px',
+                  fontWeight: repositionWithCalculatedDistances ? '600' : '400',
+                  color: repositionWithCalculatedDistances ? theme.colors.primary : theme.colors.text,
+                  whiteSpace: 'nowrap'
+                }}>
+                  Reposition
+                </span>
+              </label>
+              
               <button
                 onClick={addBasePair}
                 style={{
@@ -1901,7 +2138,8 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   addForm.rnaMoleculeName0 === undefined ||
                   addForm.rnaMoleculeName1 === undefined ||
                   addForm.formattedNucleotideIndex0 == null ||
-                  addForm.formattedNucleotideIndex1 == null
+                  addForm.formattedNucleotideIndex1 == null ||
+                  (addForm.length ?? 1) < 1
                 }
               >
                 Add
@@ -1911,13 +2149,27 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           <button
             onClick={() => {
               if (!showAdd) {
+                // Set default values with first available molecule names
+                const defaultComplexIndex = rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined;
+                let defaultMoleculeName0: string | undefined = undefined;
+                let defaultMoleculeName1: string | undefined = undefined;
+                
+                if (defaultComplexIndex !== undefined) {
+                  const moleculeNames = Object.keys(rnaComplexProps[defaultComplexIndex].rnaMoleculeProps);
+                  if (moleculeNames.length > 0) {
+                    defaultMoleculeName0 = moleculeNames[0];
+                    defaultMoleculeName1 = moleculeNames[0];
+                  }
+                }
+                
                 setAddForm({
-                  rnaComplexIndex : undefined,
-                  rnaMoleculeName0 : undefined,
-                  rnaMoleculeName1 : undefined,
-                  formattedNucleotideIndex0 : undefined,
-                  formattedNucleotideIndex1 : undefined,
-                  typeBase : "auto"
+                  rnaComplexIndex: defaultComplexIndex,
+                  rnaMoleculeName0: defaultMoleculeName0,
+                  rnaMoleculeName1: defaultMoleculeName1,
+                  formattedNucleotideIndex0: undefined,
+                  formattedNucleotideIndex1: undefined,
+                  length: 1,
+                  typeBase: "auto"
                 });
               }
               setShowAdd(!showAdd);

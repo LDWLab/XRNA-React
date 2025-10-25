@@ -327,6 +327,8 @@ export namespace BasePairsEditor {
       defaultRnaMoleculeName1,
       setBasePairKeysToEdit,
       populateBasePairKeysToEdit,
+      repositionWithCalculatedDistances,
+      setRepositionWithCalculatedDistances,
       // approveBasePairEdit
     } = props;
     useImperativeHandle(ref, function() {
@@ -810,6 +812,8 @@ export namespace BasePairsEditor {
               rnaComplexProps = {rnaComplexProps}
               flattenedRnaComplexProps = {flattenedRnaComplexProps}
               addButtonOnClick = {addButtonOnClick}
+              repositionWithCalculatedDistances = {repositionWithCalculatedDistances}
+              setRepositionWithCalculatedDistances = {setRepositionWithCalculatedDistances}
             />;
           })}
         </tbody>
@@ -875,6 +879,10 @@ export namespace BasePairsEditor {
       distanceBetweenContiguousBasePairs,
       setDistanceBetweenContiguousBasePairs
     ] = useState(1);
+    const [
+      repositionWithCalculatedDistances,
+      setRepositionWithCalculatedDistances
+    ] = useState(false);
     const [
       basePairs,
       _setBasePairs
@@ -1369,24 +1377,53 @@ export namespace BasePairsEditor {
                   nucleotidePropsWithIndicesI.allowRepositioningFlag &&
                   repositionNucleotidesAlongBasePairAxisFlag
                 ) {
-                  switch (basePairType) {
-                    case _BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK:
-                    case _BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK:
-                    case _BasePair.Type.CANONICAL : {
-                      distance = canonicalBasePairDistance;
-                      break;
+                  // Use calculated distances from settings if reposition checkbox is checked
+                  if (repositionWithCalculatedDistances) {
+                    const settingsCanonical = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
+                    const settingsMismatch = settingsRecord[Setting.MISMATCH_BASE_PAIR_DISTANCE] as number;
+                    const settingsWobble = settingsRecord[Setting.WOBBLE_BASE_PAIR_DISTANCE] as number;
+                    
+                    switch (basePairType) {
+                      case _BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK:
+                      case _BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK:
+                      case _BasePair.Type.CANONICAL : {
+                        distance = Number.isNaN(settingsCanonical) ? canonicalBasePairDistance : settingsCanonical;
+                        break;
+                      }
+                      case _BasePair.Type.MISMATCH : {
+                        distance = Number.isNaN(settingsMismatch) ? mismatchBasePairDistance : settingsMismatch;
+                        break;
+                      }
+                      case _BasePair.Type.WOBBLE : {
+                        distance = Number.isNaN(settingsWobble) ? wobbleBasePairDistance : settingsWobble;
+                        break;
+                      }
+                      default : {
+                        distance = Number.isNaN(settingsMismatch) ? mismatchBasePairDistance : settingsMismatch;
+                        break;
+                      }
                     }
-                    case _BasePair.Type.MISMATCH : {
-                      distance = mismatchBasePairDistance;
-                      break;
-                    }
-                    case _BasePair.Type.WOBBLE : {
-                      distance = wobbleBasePairDistance;
-                      break;
-                    }
-                    default : {
-                      distance = mismatchBasePairDistance;
-                      break;
+                  } else {
+                    // Use local state values (manually entered)
+                    switch (basePairType) {
+                      case _BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK:
+                      case _BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK:
+                      case _BasePair.Type.CANONICAL : {
+                        distance = canonicalBasePairDistance;
+                        break;
+                      }
+                      case _BasePair.Type.MISMATCH : {
+                        distance = mismatchBasePairDistance;
+                        break;
+                      }
+                      case _BasePair.Type.WOBBLE : {
+                        distance = wobbleBasePairDistance;
+                        break;
+                      }
+                      default : {
+                        distance = mismatchBasePairDistance;
+                        break;
+                      }
                     }
                   }
                 } else {
@@ -1397,11 +1434,18 @@ export namespace BasePairsEditor {
                   nucleotidePropsWithIndicesI.allowRepositioningFlag &&
                   repositionNucleotidesAlongHelixAxisFlag
                 ) {
+                  // Use calculated contiguous distance from settings if reposition checkbox is checked
+                  const contiguousDistance = repositionWithCalculatedDistances 
+                    ? (Number.isNaN(settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number) 
+                        ? distanceBetweenContiguousBasePairs 
+                        : settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number)
+                    : distanceBetweenContiguousBasePairs;
+                    
                   center = add(
                     anchor,
                     scaleUp(
                       normalDirection,
-                      i * distanceBetweenContiguousBasePairs
+                      i * contiguousDistance
                     )
                   );
                   dvDirection = anchorDirection;
@@ -1555,6 +1599,7 @@ export namespace BasePairsEditor {
       {/* Settings moved out of here per new bottom-sheet UX */}
       <Collapsible.Component
         title = "Base-pairs editor"
+        initialCollapsedFlag = {false}
       >
         <label>
           Editor type:&nbsp;
@@ -1562,6 +1607,42 @@ export namespace BasePairsEditor {
             editorType = {editorType}
             onChange = {setEditorType}
           />
+        </label>
+        <br/>
+        <label style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px', 
+          marginTop: '8px',
+          padding: '6px 8px',
+          borderRadius: '4px',
+          backgroundColor: repositionWithCalculatedDistances ? '#e8f5e8' : 'transparent',
+          border: repositionWithCalculatedDistances ? '1px solid #4caf50' : '1px solid transparent',
+          transition: 'all 0.2s ease'
+        }}>
+          <input
+            type="checkbox"
+            checked={repositionWithCalculatedDistances}
+            onChange={(e) => setRepositionWithCalculatedDistances(e.target.checked)}
+            style={{ margin: 0 }}
+          />
+          <span style={{ 
+            fontSize: '12px',
+            fontWeight: repositionWithCalculatedDistances ? '600' : '400',
+            color: repositionWithCalculatedDistances ? '#2e7d32' : 'inherit'
+          }}>
+            Reposition nucleotides with calculated distances
+          </span>
+          {repositionWithCalculatedDistances && (
+            <span style={{ 
+              fontSize: '10px',
+              color: '#666',
+              fontStyle: 'italic',
+              marginLeft: '4px'
+            }}>
+              (Using auto-calculated values from uploaded structure)
+            </span>
+          )}
         </label>
         <br/>
         {createElement(
@@ -1575,7 +1656,9 @@ export namespace BasePairsEditor {
             approveBasePairs,
             initialBasePairs,
             setBasePairKeysToEdit,
-            populateBasePairKeysToEdit
+            populateBasePairKeysToEdit,
+            repositionWithCalculatedDistances,
+            setRepositionWithCalculatedDistances
           }
         )}
       </Collapsible.Component>
@@ -1605,6 +1688,8 @@ export namespace BasePairsEditor {
     initialBasePairs? : Array<InitialBasePair>,
     setBasePairKeysToEdit : Context.BasePair.SetKeysToEdit,
     populateBasePairKeysToEdit : (basePair : BasePair, basePairKeysToEdit : Context.BasePair.KeysToEdit, addOrDelete : "add" | "delete") => void,
+    repositionWithCalculatedDistances? : boolean,
+    setRepositionWithCalculatedDistances? : (value : boolean) => void,
     // approveBasePairEdit : () => boolean
   };
 
@@ -1656,7 +1741,9 @@ export namespace BasePairsEditor {
     setNucleotideIndex1 : (nucleotideIndex : number) => void,
     setLength : (length : number) => void,
     setType : (type : _BasePair.Type | undefined) => void,
-    addButtonOnClick : () => void
+    addButtonOnClick : () => void,
+    repositionWithCalculatedDistances? : boolean,
+    setRepositionWithCalculatedDistances? : (value : boolean) => void
   }) {
     const {
       rnaComplexIndex,
@@ -1950,27 +2037,46 @@ export namespace BasePairsEditor {
       <td
         style = {{
           border : "1px solid black",
-          maxHeight : fontSize
+          maxHeight : fontSize,
+          padding : "4px"
         }}
       >
-        <button
-          disabled = {!(
-            rnaComplexIndex !== undefined &&
-            rnaMoleculeName0 !== undefined &&
-            rnaMoleculeName1 !== undefined &&
-            nucleotideIndex0 !== undefined && 
-            nucleotideIndex1 !== undefined &&
-            length !== undefined &&
-            length >= 0
-          )}
-          style = {{
-            width : "100%",
-            height : "100%"
-          }}
-          onClick = {addButtonOnClick}
-        >
-          Add
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '4px',
+            fontSize: '10px',
+            whiteSpace: 'nowrap'
+          }}>
+            <input
+              type="checkbox"
+              checked={props.repositionWithCalculatedDistances || false}
+              onChange={(e) => props.setRepositionWithCalculatedDistances?.(e.target.checked)}
+              style={{ margin: 0, transform: 'scale(0.8)' }}
+            />
+            <span>Reposition</span>
+          </label>
+          <button
+            disabled = {!(
+              rnaComplexIndex !== undefined &&
+              rnaMoleculeName0 !== undefined &&
+              rnaMoleculeName1 !== undefined &&
+              nucleotideIndex0 !== undefined && 
+              nucleotideIndex1 !== undefined &&
+              length !== undefined &&
+              length >= 0
+            )}
+            style = {{
+              width : "100%",
+              height : "20px",
+              fontSize: '10px'
+            }}
+            onClick = {addButtonOnClick}
+          >
+            Add
+          </button>
+        </div>
       </td>
     </tr>;
   }
