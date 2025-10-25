@@ -154,14 +154,32 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     formattedNucleotideIndex0?: number;
     rnaMoleculeName1?: string;
     formattedNucleotideIndex1?: number;
+    length?: number;
     typeBase: TypeBase;
     orientation?: Orientation;
     edgeA?: Edge;
     edgeB?: Edge;
   };
-  const [addForm, setAddForm] = useState<AddForm>({ 
-    typeBase: "auto",
-    rnaComplexIndex : rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined
+  const [addForm, setAddForm] = useState<AddForm>(() => {
+    const defaultComplexIndex = rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined;
+    let defaultMoleculeName0: string | undefined = undefined;
+    let defaultMoleculeName1: string | undefined = undefined;
+    
+    if (defaultComplexIndex !== undefined && rnaComplexProps[defaultComplexIndex]) {
+      const moleculeNames = Object.keys(rnaComplexProps[defaultComplexIndex].rnaMoleculeProps);
+      if (moleculeNames.length > 0) {
+        defaultMoleculeName0 = moleculeNames[0];
+        defaultMoleculeName1 = moleculeNames[0];
+      }
+    }
+    
+    return {
+      typeBase: "auto",
+      rnaComplexIndex: defaultComplexIndex,
+      rnaMoleculeName0: defaultMoleculeName0,
+      rnaMoleculeName1: defaultMoleculeName1,
+      length: 1
+    };
   });
   const [editRowKey, setEditRowKey] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
@@ -929,17 +947,6 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     if (!complex) return;
     const mol0 = form.rnaMoleculeName0!;
     const mol1 = form.rnaMoleculeName1!;
-    // Auto-resolve molecules by formatted index
-    // const mol0 =
-    //   resolveMoleculeByFormattedIndex(
-    //     form.rnaComplexIndex,
-    //     form.formattedNucleotideIndex0 ?? NaN
-    //   ) ?? Object.keys(complex.rnaMoleculeProps)[0];
-    // const mol1 =
-    //   resolveMoleculeByFormattedIndex(
-    //     form.rnaComplexIndex,
-    //     form.formattedNucleotideIndex1 ?? NaN
-    //   ) ?? Object.keys(complex.rnaMoleculeProps)[0];
     const mp0 = complex.rnaMoleculeProps[mol0 as string];
     const mp1 = complex.rnaMoleculeProps[mol1 as string];
     if (!mp0 || !mp1) return;
@@ -952,6 +959,8 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     const idx1 = form.formattedNucleotideIndex1 - mp1.firstNucleotideIndex;
     if (!(idx0 in mp0.nucleotideProps) || !(idx1 in mp1.nucleotideProps))
       return;
+    
+    const length = form.length ?? 1;
     const newType =
       form.typeBase === "custom"
         ? assembleDirectedType(form.orientation, form.edgeA, form.edgeB)
@@ -962,22 +971,39 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         : form.typeBase === "mismatch"
         ? _BasePair.Type.MISMATCH
         : undefined;
+    
     pushToUndoStack();
-    insertBasePair(
-      complex,
-      mol0,
-      idx0,
-      mol1,
-      idx1,
-      DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
-      { basePairType: newType }
-    );
-    const [keys0, keys1] = [
-      { rnaMoleculeName: mol0, nucleotideIndex: idx0 },
-      { rnaMoleculeName: mol1, nucleotideIndex: idx1 },
-    ].sort(compareBasePairKeys);
+    
+    // Create multiple base pairs based on length
+    const addedPairs: Array<{ keys0: any; keys1: any }> = [];
+    for (let i = 0; i < length; i++) {
+      const currentIdx0 = idx0 + i;
+      const currentIdx1 = idx1 - i;
+      
+      // Check if both indices exist in their respective molecules
+      if (!(currentIdx0 in mp0.nucleotideProps) || !(currentIdx1 in mp1.nucleotideProps)) {
+        break; // Stop if we've reached the end of either molecule
+      }
+      
+      insertBasePair(
+        complex,
+        mol0,
+        currentIdx0,
+        mol1,
+        currentIdx1,
+        DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
+        { basePairType: newType }
+      );
+      
+      const [keys0, keys1] = [
+        { rnaMoleculeName: mol0, nucleotideIndex: currentIdx0 },
+        { rnaMoleculeName: mol1, nucleotideIndex: currentIdx1 },
+      ].sort(compareBasePairKeys);
+      addedPairs.push({ keys0, keys1 });
+    }
+    
     setBasePairKeysToEdit({
-      [form.rnaComplexIndex]: { add: [{ keys0, keys1 }], delete: [] },
+      [form.rnaComplexIndex]: { add: addedPairs, delete: [] },
     });
     setShowAdd(false);
     setAddForm({ typeBase: "auto" });
@@ -1590,10 +1616,13 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   const newAddForm : Partial<AddForm> = {
                     rnaComplexIndex
                   };
-                  if (rnaMoleculesAreASingleton) {
-                    const rnaMoleculeName = Object.keys(rnaComplexProps[rnaComplexIndex].rnaMoleculeProps)[0];
-                    newAddForm.rnaMoleculeName0 = rnaMoleculeName;
-                    newAddForm.rnaMoleculeName1 = rnaMoleculeName;
+                  // Always set the first available molecule names as defaults
+                  if (rnaComplexIndex !== undefined) {
+                    const moleculeNames = Object.keys(rnaComplexProps[rnaComplexIndex].rnaMoleculeProps);
+                    if (moleculeNames.length > 0) {
+                      newAddForm.rnaMoleculeName0 = moleculeNames[0];
+                      newAddForm.rnaMoleculeName1 = moleculeNames[0];
+                    }
                   }
                   setAddForm((f) => ({
                     ...f,
@@ -1885,6 +1914,28 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                 <option value={"hoogsteen"}>hoogsteen</option>
                 <option value={"sugar_edge"}>sugar_edge</option>
               </select>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                placeholder="Length"
+                value={addForm.length ?? ""}
+                onChange={(e) =>
+                  setAddForm((f) => ({
+                    ...f,
+                    length:
+                      e.target.value === ""
+                        ? undefined
+                        : Math.max(1, parseInt(e.target.value) || 1),
+                  }))
+                }
+                style={{
+                  ...inp(),
+                  width: 80,
+                  marginRight: 8,
+                }}
+                title="Number of consecutive base pairs to create"
+              />
               <button
                 onClick={addBasePair}
                 style={{
@@ -1901,7 +1952,8 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   addForm.rnaMoleculeName0 === undefined ||
                   addForm.rnaMoleculeName1 === undefined ||
                   addForm.formattedNucleotideIndex0 == null ||
-                  addForm.formattedNucleotideIndex1 == null
+                  addForm.formattedNucleotideIndex1 == null ||
+                  (addForm.length ?? 1) < 1
                 }
               >
                 Add
@@ -1911,13 +1963,27 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           <button
             onClick={() => {
               if (!showAdd) {
+                // Set default values with first available molecule names
+                const defaultComplexIndex = rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined;
+                let defaultMoleculeName0: string | undefined = undefined;
+                let defaultMoleculeName1: string | undefined = undefined;
+                
+                if (defaultComplexIndex !== undefined) {
+                  const moleculeNames = Object.keys(rnaComplexProps[defaultComplexIndex].rnaMoleculeProps);
+                  if (moleculeNames.length > 0) {
+                    defaultMoleculeName0 = moleculeNames[0];
+                    defaultMoleculeName1 = moleculeNames[0];
+                  }
+                }
+                
                 setAddForm({
-                  rnaComplexIndex : undefined,
-                  rnaMoleculeName0 : undefined,
-                  rnaMoleculeName1 : undefined,
-                  formattedNucleotideIndex0 : undefined,
-                  formattedNucleotideIndex1 : undefined,
-                  typeBase : "auto"
+                  rnaComplexIndex: defaultComplexIndex,
+                  rnaMoleculeName0: defaultMoleculeName0,
+                  rnaMoleculeName1: defaultMoleculeName1,
+                  formattedNucleotideIndex0: undefined,
+                  formattedNucleotideIndex1: undefined,
+                  length: 1,
+                  typeBase: "auto"
                 });
               }
               setShowAdd(!showAdd);
