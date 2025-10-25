@@ -139,7 +139,8 @@ export namespace LabelLine {
               `nucleotide: ${idx}\n` +
               `symbol:     ${symbol}\n` +
               `molecule:   ${rnaMoleculeName}\n` +
-              `complex:    ${rnaComplexName}`
+              `complex:    ${rnaComplexName}\n` +
+              `tip:        Ctrl+click to delete`
             );
           }}
           onMouseLeave = {function() {
@@ -167,7 +168,8 @@ export namespace LabelLine {
             `nucleotide: ${idx}\n` +
             `symbol:     ${symbol}\n` +
             `molecule:   ${rnaMoleculeName}\n` +
-            `complex:    ${rnaComplexName}`
+            `complex:    ${rnaComplexName}\n` +
+            `tip:        Ctrl+click to delete`
           );
         }}
         onMouseLeave = {function() {
