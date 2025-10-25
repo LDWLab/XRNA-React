@@ -64,6 +64,7 @@ import { BasePairsEditor } from "./components/app_specific/editors/BasePairsEdit
 import { Collapsible } from "./components/generic/Collapsible";
 import { SAMPLE_XRNA_FILE } from "./utils/sampleXrnaFile";
 import { fileExtensionDescriptions } from "./io/FileExtension";
+import { calculateBasePairDistances } from "./utils/BasePairDistanceCalculator";
 import loadingGif from "./images/loading.svg";
 import {
   SVG_PROPERTY_XRNA_COMPLEX_DOCUMENT_NAME,
@@ -1878,6 +1879,17 @@ export namespace App {
             setUndoStack([]);
             setRedoStack([]);
             setBasePairKeysToEdit({});
+            
+            // Calculate and update base pair distance settings
+            const calculatedDistances = calculateBasePairDistances(parsedInput.rnaComplexProps);
+            setSettingsRecord(prevSettings => ({
+              ...prevSettings,
+              [Setting.CANONICAL_BASE_PAIR_DISTANCE]: calculatedDistances.canonicalDistance,
+              [Setting.WOBBLE_BASE_PAIR_DISTANCE]: calculatedDistances.wobbleDistance,
+              [Setting.MISMATCH_BASE_PAIR_DISTANCE]: calculatedDistances.mismatchDistance,
+              [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]: calculatedDistances.contiguousDistance
+            }));
+            
             setRnaComplexProps(parsedInput.rnaComplexProps);
             if (Object.keys(parsedInput.rnaComplexProps).length > 0) {
               let numSeconds = 2;
