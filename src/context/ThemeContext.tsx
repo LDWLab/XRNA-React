@@ -110,6 +110,7 @@ export interface Theme {
   shadows: ThemeShadows;
   buttonSizes: ThemeButtonSizes;
   transitions: { default: string; fast: string; slow: string; };
+  colorPalleteCircleFills: [string, string, string];
 }
 
 /* ===========================================
@@ -197,6 +198,7 @@ const lightTheme: Theme = {
   transitions: {
     default: 'all 0.18s ease-out', fast: 'all 0.12s ease-out', slow: 'all 0.28s ease-out',
   },
+  colorPalleteCircleFills: ["#E8C26A", "#A9E890", "#E890C0"]
 };
 
 /* ===========================================
@@ -269,6 +271,7 @@ const darkTheme: Theme = {
   },
   buttonSizes: lightTheme.buttonSizes,
   transitions: lightTheme.transitions,
+  colorPalleteCircleFills: ["#4E7DA6", "#7A9E3E", "#C84E4E"]
 };
 
 /* -------------------------------------------
