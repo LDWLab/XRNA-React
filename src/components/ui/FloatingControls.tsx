@@ -724,7 +724,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
                   fontWeight: "500",
                 }}
               >
-                Display Mode
+                Layout modes
               </h4>
               <div
                 style={{

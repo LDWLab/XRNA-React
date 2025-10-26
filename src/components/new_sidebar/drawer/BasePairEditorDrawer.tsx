@@ -57,7 +57,7 @@ export const BasePairEditorDrawer: React.FC<BasePairEditorDrawerProps> = ({
             color: theme.colors.text,
           }}
         >
-          {formatMode ? 'Format Mode - ' : ''}Base-Pair Editor
+          {formatMode ? 'Base-Pair Editor' : ''} Select Representation: 
         </span>
         <button
           onClick={onClose}

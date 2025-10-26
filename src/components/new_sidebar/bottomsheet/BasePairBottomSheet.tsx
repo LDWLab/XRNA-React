@@ -15,7 +15,10 @@ import {
   DuplicateBasePairKeysHandler,
 } from "../../app_specific/RnaComplex";
 import { Context } from "../../../context/Context";
+import { Setting } from "../../../ui/Setting";
+import { Vector2D, add, subtract, scaleUp, normalize, magnitude } from "../../../data_structures/Vector2D";
 import { Pencil, Check, Trash2, X, Download, Upload } from "lucide-react";
+import { repositionNucleotidesForBasePairs } from "../../../utils/BasePairRepositioner";
 
 export type FullKeysRecord = Record<
   RnaComplexKey,
@@ -164,6 +167,30 @@ function IconButton(props: {
 
 const MemoizedIconButton = React.memo(IconButton);
 
+function getBasePairTypeFromNucleotides(symbol0: string, symbol1: string): _BasePair.Type {
+  // Import the getBasePairType function logic
+  // This is a simplified version - in a real implementation, you'd want to use the actual function
+  const normalizedSymbol0 = symbol0.toUpperCase();
+  const normalizedSymbol1 = symbol1.toUpperCase();
+  
+  // Watson-Crick base pairs
+  if ((normalizedSymbol0 === 'A' && normalizedSymbol1 === 'U') || 
+      (normalizedSymbol0 === 'U' && normalizedSymbol1 === 'A') ||
+      (normalizedSymbol0 === 'G' && normalizedSymbol1 === 'C') || 
+      (normalizedSymbol0 === 'C' && normalizedSymbol1 === 'G')) {
+    return _BasePair.Type.CANONICAL;
+  }
+  
+  // Wobble base pairs (G-U)
+  if ((normalizedSymbol0 === 'G' && normalizedSymbol1 === 'U') || 
+      (normalizedSymbol0 === 'U' && normalizedSymbol1 === 'G')) {
+    return _BasePair.Type.WOBBLE;
+  }
+  
+  // Everything else is a mismatch
+  return _BasePair.Type.MISMATCH;
+}
+
 export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   open,
   onClose,
@@ -181,6 +208,9 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const startHRef = useRef<number>(360);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAdd, setShowAdd] = useState<boolean>(false);
+  const [repositionWithCalculatedDistances, setRepositionWithCalculatedDistances] = useState<boolean>(false);
+  const repositionWithCalculatedDistancesReference = useRef(repositionWithCalculatedDistances);
+  repositionWithCalculatedDistancesReference.current = repositionWithCalculatedDistances;
   const [rnaComplexesAreASingleton, setRnaComplexesAreASingleton] = useState<boolean>(true);
   const [rnaMoleculesAreASingleton, setRnaMoleculesAreASingleton] = useState<boolean>(true);
   type AddForm = {
@@ -189,14 +219,32 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     formattedNucleotideIndex0?: number;
     rnaMoleculeName1?: string;
     formattedNucleotideIndex1?: number;
+    length?: number;
     typeBase: TypeBase;
     orientation?: Orientation;
     edgeA?: Edge;
     edgeB?: Edge;
   };
-  const [addForm, setAddForm] = useState<AddForm>({ 
-    typeBase: "auto",
-    rnaComplexIndex : rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined
+  const [addForm, setAddForm] = useState<AddForm>(() => {
+    const defaultComplexIndex = rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined;
+    let defaultMoleculeName0: string | undefined = undefined;
+    let defaultMoleculeName1: string | undefined = undefined;
+    
+    if (defaultComplexIndex !== undefined && rnaComplexProps[defaultComplexIndex]) {
+      const moleculeNames = Object.keys(rnaComplexProps[defaultComplexIndex].rnaMoleculeProps);
+      if (moleculeNames.length > 0) {
+        defaultMoleculeName0 = moleculeNames[0];
+        defaultMoleculeName1 = moleculeNames[0];
+      }
+    }
+    
+    return {
+      typeBase: "auto",
+      rnaComplexIndex: defaultComplexIndex,
+      rnaMoleculeName0: defaultMoleculeName0,
+      rnaMoleculeName1: defaultMoleculeName1,
+      length: 1
+    };
   });
   const [editRowKey, setEditRowKey] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
@@ -218,6 +266,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
 
   const setBasePairKeysToEdit = useContext(Context.BasePair.SetKeysToEdit);
   const pushToUndoStack = useContext(Context.App.PushToUndoStack);
+  const settingsRecord = useContext(Context.App.Settings);
 
   useEffect(
     () => {
@@ -843,6 +892,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const addBasePair = useCallback(
     () => {
       const rnaComplexProps = rnaComplexPropsReference.current;
+      // const repositionWithCalculatedDistances = repositionWithCalculatedDistancesReference.current;
       const form = addForm;
       if (form.rnaComplexIndex == null) return;
       const complex = rnaComplexProps[form.rnaComplexIndex];
@@ -861,6 +911,8 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       const idx1 = form.formattedNucleotideIndex1 - mp1.firstNucleotideIndex;
       if (!(idx0 in mp0.nucleotideProps) || !(idx1 in mp1.nucleotideProps))
         return;
+      
+      const length = form.length ?? 1;
       const newType =
         form.typeBase === "custom"
           ? assembleDirectedType(form.orientation, form.edgeA, form.edgeB)
@@ -871,22 +923,53 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           : form.typeBase === "mismatch"
           ? _BasePair.Type.MISMATCH
           : undefined;
+      
       pushToUndoStack();
-      insertBasePair(
-        complex,
-        mol0,
-        idx0,
-        mol1,
-        idx1,
-        DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
-        { basePairType: newType }
-      );
-      const [keys0, keys1] = [
-        { rnaMoleculeName: mol0, nucleotideIndex: idx0 },
-        { rnaMoleculeName: mol1, nucleotideIndex: idx1 },
-      ].sort(compareBasePairKeys);
+      
+      // If reposition is enabled, reposition nucleotides before adding base pairs
+      if (repositionWithCalculatedDistances) {
+        repositionNucleotidesForBasePairs(
+          complex,
+          mol0,
+          mol1,
+          idx0,
+          idx1,
+          length,
+          newType,
+          settingsRecord
+        );
+      }
+      
+      // Create multiple base pairs based on length
+      const addedPairs: Array<{ keys0: any; keys1: any }> = [];
+      for (let i = 0; i < length; i++) {
+        const currentIdx0 = idx0 + i;
+        const currentIdx1 = idx1 - i;
+        
+        // Check if both indices exist in their respective molecules
+        if (!(currentIdx0 in mp0.nucleotideProps) || !(currentIdx1 in mp1.nucleotideProps)) {
+          break; // Stop if we've reached the end of either molecule
+        }
+        
+        insertBasePair(
+          complex,
+          mol0,
+          currentIdx0,
+          mol1,
+          currentIdx1,
+          DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
+          { basePairType: newType }
+        );
+        
+        const [keys0, keys1] = [
+          { rnaMoleculeName: mol0, nucleotideIndex: currentIdx0 },
+          { rnaMoleculeName: mol1, nucleotideIndex: currentIdx1 },
+        ].sort(compareBasePairKeys);
+        addedPairs.push({ keys0, keys1 });
+      }
+      
       setBasePairKeysToEdit({
-        [form.rnaComplexIndex]: { add: [{ keys0, keys1 }], delete: [] },
+        [form.rnaComplexIndex]: { add: addedPairs, delete: [] },
       });
       setShowAdd(false);
       setAddForm({ typeBase: "auto" });
@@ -900,7 +983,6 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
 
   const beginEdit = useCallback(
     (row: Row) => {
-      const rnaComplexProps = rnaComplexPropsReference.current;
       setEditRowKey(
         `${row.rnaComplexIndex}:${row.rnaMoleculeName0}:${row.nucleotideIndex0}:${row.rnaMoleculeName1}:${row.nucleotideIndex1}`
       );
@@ -1255,7 +1337,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               letterSpacing: 0.3,
             }}
           >
-            {formatMode ? "Format Mode - Base-Pair Editor" : "Base-Pair Editor"}
+            {formatMode ? "Base-Pair Editor" : "Base-Pair Editor"} -- Select Representation:
           </span>
           <div
             style={{
@@ -1409,10 +1491,13 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   const newAddForm : Partial<AddForm> = {
                     rnaComplexIndex
                   };
-                  if (rnaMoleculesAreASingleton) {
-                    const rnaMoleculeName = Object.keys(rnaComplexProps[rnaComplexIndex].rnaMoleculeProps)[0];
-                    newAddForm.rnaMoleculeName0 = rnaMoleculeName;
-                    newAddForm.rnaMoleculeName1 = rnaMoleculeName;
+                  // Always set the first available molecule names as defaults
+                  if (rnaComplexIndex !== undefined) {
+                    const moleculeNames = Object.keys(rnaComplexProps[rnaComplexIndex].rnaMoleculeProps);
+                    if (moleculeNames.length > 0) {
+                      newAddForm.rnaMoleculeName0 = moleculeNames[0];
+                      newAddForm.rnaMoleculeName1 = moleculeNames[0];
+                    }
                   }
                   setAddForm((f) => ({
                     ...f,
@@ -1704,6 +1789,58 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                 <option value={"hoogsteen"}>hoogsteen</option>
                 <option value={"sugar_edge"}>sugar_edge</option>
               </select>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                placeholder="Length"
+                value={addForm.length ?? ""}
+                onChange={(e) =>
+                  setAddForm((f) => ({
+                    ...f,
+                    length:
+                      e.target.value === ""
+                        ? undefined
+                        : Math.max(1, parseInt(e.target.value) || 1),
+                  }))
+                }
+                style={{
+                  ...inp(),
+                  width: 80,
+                  marginRight: 8,
+                }}
+                title="Number of consecutive base pairs to create"
+              />
+              
+              {/* Reposition checkbox */}
+              <label style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                marginRight: '8px',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                backgroundColor: repositionWithCalculatedDistances ? theme.colors.primary + '20' : 'transparent',
+                border: repositionWithCalculatedDistances ? `1px solid ${theme.colors.primary}` : '1px solid transparent',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={repositionWithCalculatedDistances}
+                  onChange={(e) => setRepositionWithCalculatedDistances(e.target.checked)}
+                  style={{ margin: 0, transform: 'scale(0.9)' }}
+                />
+                <span style={{ 
+                  fontSize: '11px',
+                  fontWeight: repositionWithCalculatedDistances ? '600' : '400',
+                  color: repositionWithCalculatedDistances ? theme.colors.primary : theme.colors.text,
+                  whiteSpace: 'nowrap'
+                }}>
+                  Reposition
+                </span>
+              </label>
+              
               <button
                 onClick={addBasePair}
                 style={{
@@ -1720,7 +1857,8 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   addForm.rnaMoleculeName0 === undefined ||
                   addForm.rnaMoleculeName1 === undefined ||
                   addForm.formattedNucleotideIndex0 == null ||
-                  addForm.formattedNucleotideIndex1 == null
+                  addForm.formattedNucleotideIndex1 == null ||
+                  (addForm.length ?? 1) < 1
                 }
               >
                 Add
@@ -1730,13 +1868,27 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           <button
             onClick={() => {
               if (!showAdd) {
+                // Set default values with first available molecule names
+                const defaultComplexIndex = rnaComplexesAreASingleton ? Number.parseInt(Object.keys(rnaComplexProps)[0]) : undefined;
+                let defaultMoleculeName0: string | undefined = undefined;
+                let defaultMoleculeName1: string | undefined = undefined;
+                
+                if (defaultComplexIndex !== undefined) {
+                  const moleculeNames = Object.keys(rnaComplexProps[defaultComplexIndex].rnaMoleculeProps);
+                  if (moleculeNames.length > 0) {
+                    defaultMoleculeName0 = moleculeNames[0];
+                    defaultMoleculeName1 = moleculeNames[0];
+                  }
+                }
+                
                 setAddForm({
-                  rnaComplexIndex : undefined,
-                  rnaMoleculeName0 : undefined,
-                  rnaMoleculeName1 : undefined,
-                  formattedNucleotideIndex0 : undefined,
-                  formattedNucleotideIndex1 : undefined,
-                  typeBase : "auto"
+                  rnaComplexIndex: defaultComplexIndex,
+                  rnaMoleculeName0: defaultMoleculeName0,
+                  rnaMoleculeName1: defaultMoleculeName1,
+                  formattedNucleotideIndex0: undefined,
+                  formattedNucleotideIndex1: undefined,
+                  length: 1,
+                  typeBase: "auto"
                 });
               }
               setShowAdd(!showAdd);
@@ -1761,9 +1913,9 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
             <tr>
               {!rnaComplexesAreASingleton && <th style={thStyle(120)}>Complex</th>}
               {!rnaMoleculesAreASingleton && <th style={thStyle(80)}>Mol#1</th>}
-              <th style={thStyle(80)}>Nuc#1</th>
+              <th style={thStyle(80)}>Nt (index) a</th>
               {!rnaMoleculesAreASingleton && <th style={thStyle(80)}>Mol#2</th>}
-              <th style={thStyle(80)}>Nuc#2</th>
+              <th style={thStyle(80)}>Nt (index) b</th>
               {viewMode === "Grouped" && <th style={thStyle(60)}>Length</th>}
               <th style={thStyle(120)}>Type</th>
               <th style={thStyle(100)}>Orientation</th>
@@ -2061,7 +2213,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         <option value={"canonical"}>canonical</option>
                         <option value={"wobble"}>wobble</option>
                         <option value={"mismatch"}>mismatch</option>
-                        <option value={"custom"}>custom</option>
+                        <option value={"custom"}>LW Schema</option>
                       </select>
                     ) : (
                       <span style={{ fontSize: 12, color: theme.colors.text }}>
