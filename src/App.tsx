@@ -688,16 +688,29 @@ export namespace App {
       const np = mol.nucleotideProps[nucleotideIndex];
       const r = Math.max(basePairRadius * 1.5, DEFAULT_STROKE_WIDTH * 6);
       return (
-        <circle
-          cx={np.x}
-          cy={np.y}
-          r={r}
-          fill="none"
-          stroke="#f2c94c"
-          strokeWidth={DEFAULT_STROKE_WIDTH * 2}
-          opacity={0.9}
-          pointerEvents="none"
-        />
+        <g>
+          {/* Outer glow effect */}
+          <circle
+            cx={np.x}
+            cy={np.y}
+            r={r + 1}
+            fill="rgba(99, 102, 241, 0.12)"
+            stroke="rgba(99, 102, 241, 0.25)"
+            strokeWidth={1}
+            pointerEvents="none"
+          />
+          {/* Main highlight circle */}
+          <circle
+            cx={np.x}
+            cy={np.y}
+            r={r}
+            fill="rgba(99, 102, 241, 0.15)"
+            stroke="none"
+            strokeWidth={0}
+            opacity={0.8}
+            pointerEvents="none"
+          />
+        </g>
       );
     }, [pendingPairNucleotide, basePairRadius]);
     const labelOnMouseDownRightClickHelper = useMemo(function () {
