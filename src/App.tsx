@@ -2738,14 +2738,8 @@ export namespace App {
       function (clickedOnCoordinates: Vector2D) {
         const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
         const viewportScale = viewportScaleReference.current as number;
-        const transformTranslate0 = transformTranslate0Reference.current as {
-          asVector: Vector2D;
-          asString: string;
-        };
-        const transformTranslate1 = transformTranslate1Reference.current as {
-          asVector: Vector2D;
-          asString: string;
-        };
+        const transformTranslate0 = transformTranslate0Reference.current!;
+        const transformTranslate1 = transformTranslate1Reference.current!;
 
         let transformedCoordinates = structuredClone(clickedOnCoordinates);
         transformedCoordinates.x -= LEFT_PANEL_WIDTH;
