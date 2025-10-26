@@ -258,6 +258,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     edgeA?: Edge;
     edgeB?: Edge;
   }>({});
+  const [updateCalculatedRowsTrigger, setUpdateCalculatedRowsTrigger] = useState(false);
 
   const rnaComplexPropsReference = useRef<RnaComplexProps>(rnaComplexProps);
   rnaComplexPropsReference.current = rnaComplexProps;
@@ -456,7 +457,10 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
 
   const allRows = useMemo(
     computeRowsAll,
-    [rnaComplexProps]
+    [
+      rnaComplexProps,
+      updateCalculatedRowsTrigger
+    ]
   );
   const selectedRows = useMemo(
     () => computeRowsSelected(allRows),
@@ -2315,7 +2319,10 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                       >
                         <MemoizedIconButton
                           title="Save"
-                          onClick={() => saveEdit(r)}
+                          onClick={() => {
+                            saveEdit(r);
+                            setUpdateCalculatedRowsTrigger(prev => !prev);
+                          }}
                           kind="save"
                           theme={theme}
                         />
@@ -2342,7 +2349,10 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         />
                         <MemoizedIconButton
                           title="Delete"
-                          onClick={() => deleteRow(r)}
+                          onClick={() => {
+                            deleteRow(r);
+                            setUpdateCalculatedRowsTrigger(prev => !prev);
+                          }}
                           kind="delete"
                           theme={theme}
                         />
