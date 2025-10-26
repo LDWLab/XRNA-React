@@ -392,6 +392,8 @@ export namespace App {
       useState<string>("");
     const [dataLoadingFailedErrorMessage, setDataLoadingFailedErrorMessage] =
       useState<string>("");
+    const [dataLoadingFailedErrorDetails, setDataLoadingFailedErrorDetails] =
+      useState<string>("");
     const [interactionConstraintOptions, setInteractionConstraintOptions] =
       useState(InteractionConstraint.DEFAULT_OPTIONS);
     const [rightClickMenuOptionsMenu, setRightClickMenuOptionsMenu] = useState(
@@ -2098,8 +2100,18 @@ export namespace App {
             setSceneState(SceneState.DATA_LOADING_FAILED);
             if (typeof error === "string") {
               setDataLoadingFailedErrorMessage(error);
+              setDataLoadingFailedErrorDetails(error);
+            } else if (error && typeof (error as any).message === "string") {
+              setDataLoadingFailedErrorMessage((error as any).message);
+              setDataLoadingFailedErrorDetails(
+                (error as any).stack ?? String(error)
+              );
+            } else {
+              setDataLoadingFailedErrorMessage(
+                "Failed to load data. The file may be in an unsupported format or contain invalid data."
+              );
+              setDataLoadingFailedErrorDetails(String(error ?? ""));
             }
-            throw error;
           }
         };
       },
@@ -4701,6 +4713,53 @@ export namespace App {
               src={loadingGif}
               alt="Loading..."
             />
+          )}
+          {sceneState === SceneState.DATA_LOADING_FAILED && (
+            <div
+              style={{
+                position: "absolute",
+                top: (parentDivResizeDetector.height ?? 0) * 0.5 - 60,
+                left: (parentDivResizeDetector.width ?? 0) * 0.5 - 240,
+                width: 480,
+                maxWidth: "90%",
+                padding: "12px 16px",
+                borderRadius: 8,
+                border: "1px solid #cc0000",
+                background: "#fff5f5",
+                color: "#7a1212",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+                zIndex: 2000,
+                textAlign: "center",
+                fontSize: 13,
+                lineHeight: 1.4,
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Failed to open file</div>
+              <div>{dataLoadingFailedErrorMessage || "Unsupported file format or invalid file contents."}</div>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  onClick={() => {
+                    const details = dataLoadingFailedErrorDetails?.trim();
+                    const text = details || "No additional error details available.";
+                    navigator.clipboard.writeText(text).catch(() => {
+                      /* no-op */
+                    });
+                  }}
+                  style={{
+                    marginTop: 6,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    borderRadius: 6,
+                    border: "1px solid #b02a2a",
+                    background: "#ffe3e3",
+                    color: "#7a1212",
+                    cursor: "pointer",
+                  }}
+                >
+                  Copy error details
+                </button>
+              </div>
+            </div>
           )}
           <div
             style={{
