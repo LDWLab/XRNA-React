@@ -18,6 +18,7 @@ import { Context } from "../../../context/Context";
 import { Setting } from "../../../ui/Setting";
 import { Vector2D, add, subtract, scaleUp, normalize, magnitude } from "../../../data_structures/Vector2D";
 import { Pencil, Check, Trash2, X, Download, Upload } from "lucide-react";
+import { repositionNucleotidesForBasePairs } from "../../../utils/BasePairRepositioner";
 
 export type FullKeysRecord = Record<
   RnaComplexKey,
@@ -1119,14 +1120,15 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     
     // If reposition is enabled, reposition nucleotides before adding base pairs
     if (repositionWithCalculatedDistances) {
-      repositionNucleotides(
+      repositionNucleotidesForBasePairs(
         complex,
         mol0,
         mol1,
         idx0,
         idx1,
         length,
-        newType
+        newType,
+        settingsRecord
       );
     }
     

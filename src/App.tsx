@@ -79,6 +79,7 @@ import { areEqual, BLACK } from "./data_structures/Color";
 import { RnaMolecule } from "./components/app_specific/RnaMolecule";
 import { LabelEditMenu } from "./components/app_specific/menus/edit_menus/LabelEditMenu";
 import BasePair from "./components/app_specific/BasePair";
+import { repositionNucleotidesForBasePairs } from "./utils/BasePairRepositioner";
 import {
   multiplyAffineMatrices,
   parseAffineMatrix,
@@ -1132,6 +1133,42 @@ export namespace App {
             return;
           }
           pushToUndoStack();
+          if (e.shiftKey) {
+            try {
+              const indicesOfFrozen = indicesOfFrozenNucleotidesReference.current!;
+              const rnaComplexIndex = fullKeys.rnaComplexIndex;
+              const rnaMoleculeName0 = pending.rnaMoleculeName;
+              const rnaMoleculeName1 = fullKeys.rnaMoleculeName;
+              const nucleotideIndex0 = pending.nucleotideIndex;
+              const nucleotideIndex1 = fullKeys.nucleotideIndex;
+              const complex = singularRnaComplexProps;
+              const mol0 = complex.rnaMoleculeProps[rnaMoleculeName0];
+              const mol1 = complex.rnaMoleculeProps[rnaMoleculeName1];
+              if (mol0 && mol1) {
+                const frozen0 = (indicesOfFrozen[rnaComplexIndex]?.[rnaMoleculeName0]?.has(nucleotideIndex0)) ?? false;
+                const frozen1 = (indicesOfFrozen[rnaComplexIndex]?.[rnaMoleculeName1]?.has(nucleotideIndex1)) ?? false;
+                if (!frozen0 && !frozen1) {
+                  const settingsRecord = settingsRecordReference.current!;
+                  repositionNucleotidesForBasePairs(
+                    complex,
+                    rnaMoleculeName0,
+                    rnaMoleculeName1,
+                    nucleotideIndex0,
+                    nucleotideIndex1,
+                    1,
+                    undefined,
+                    settingsRecord
+                  );
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex]: {
+                      [rnaMoleculeName0]: [nucleotideIndex0],
+                      [rnaMoleculeName1]: [nucleotideIndex1],
+                    },
+                  });
+                }
+              }
+            } catch {}
+          }
           insertBasePair(
             singularRnaComplexProps,
             pending.rnaMoleculeName,
