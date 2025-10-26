@@ -288,7 +288,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
       return () => {
-        // window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
       };
     },
