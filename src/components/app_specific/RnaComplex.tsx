@@ -29,6 +29,33 @@ export function insertBasePair(
   optionalBasePairParameters : Pick<RnaComplex.MappedBasePair, "basePairType" | "color" | "strokeWidth" | "points"> = {}
 ) {
   const { basePairs } = singularRnaComplexProps;
+  if (
+    rnaMoleculeName0 in basePairs &&
+    nucleotideIndex0 in basePairs[rnaMoleculeName0]
+  ) {
+    let foundBasePair = basePairs[rnaMoleculeName0][nucleotideIndex0].find(basePair => (
+      basePair.rnaMoleculeName === rnaMoleculeName1 &&
+      basePair.nucleotideIndex === nucleotideIndex1
+    ));
+    if (foundBasePair !== undefined) {
+      foundBasePair.basePairType = optionalBasePairParameters.basePairType;
+      // basePairs is a symmetric data structure. Therefore, definitivity of foundBasePair implies success of the following statement.
+      basePairs[rnaMoleculeName1][nucleotideIndex1].find(basePair => (
+        basePair.rnaMoleculeName === rnaMoleculeName0 &&
+        basePair.nucleotideIndex === nucleotideIndex0
+      ))!.basePairType = optionalBasePairParameters.basePairType;
+    }
+    return [{
+      keys0 : {
+        rnaMoleculeName : rnaMoleculeName0,
+        nucleotideIndex : nucleotideIndex0
+      },
+      keys1 : {
+        rnaMoleculeName : rnaMoleculeName1,
+        nucleotideIndex : nucleotideIndex1
+      }
+    }];
+  }
   const duplicateBasePairKeys = new Array<RnaComplex.FullBasePairKeys>();
   const basePairsToCreate = [];
   const basePairInfo0 = {
