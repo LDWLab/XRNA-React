@@ -6,19 +6,22 @@ import {
   NucleotideKey,
   RnaComplexKey,
 } from "../../../App";
-import { BasePair as _BasePair } from "../../app_specific/BasePair";
+import BasePair, { BasePair as _BasePair, getBasePairType } from "../../app_specific/BasePair";
 import { RnaMolecule } from "../../app_specific/RnaMolecule";
 import {
   RnaComplex,
   compareBasePairKeys,
   insertBasePair,
   DuplicateBasePairKeysHandler,
+  selectRelevantBasePairKeys,
+  compareFullBasePairKeys,
 } from "../../app_specific/RnaComplex";
 import { Context } from "../../../context/Context";
 import { Setting } from "../../../ui/Setting";
-import { Vector2D, add, subtract, scaleUp, normalize, magnitude } from "../../../data_structures/Vector2D";
+import { Vector2D, add, subtract, scaleUp, normalize, magnitude, orthogonalize, dotProduct, negate } from "../../../data_structures/Vector2D";
 import { Pencil, Check, Trash2, X, Download, Upload } from "lucide-react";
 import { repositionNucleotidesForBasePairs } from "../../../utils/BasePairRepositioner";
+import { iterateOverFreeNucleotidesAndHelicesPerScene } from "../../../ui/InteractionConstraint/InteractionConstraints";
 
 export type FullKeysRecord = Record<
   RnaComplexKey,
@@ -266,8 +269,16 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   isResizingReference.current = isResizing;
 
   const setBasePairKeysToEdit = useContext(Context.BasePair.SetKeysToEdit);
+  const setBasePairKeysToEditReference = useRef(setBasePairKeysToEdit);
   const pushToUndoStack = useContext(Context.App.PushToUndoStack);
+  const pushToUndoStackReference = useRef(pushToUndoStack);
+  pushToUndoStackReference.current = pushToUndoStack;
   const settingsRecord = useContext(Context.App.Settings);
+  const averageDistances = useContext(Context.BasePair.AverageDistances);
+  const averageDistancesReference = useRef(averageDistances);
+  averageDistancesReference.current = averageDistances;
+  const settingsRecordReference = useRef(settingsRecord);
+  settingsRecordReference.current = settingsRecord;
 
   useEffect(
     () => {
@@ -896,7 +907,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const addBasePair = useCallback(
     () => {
       const rnaComplexProps = rnaComplexPropsReference.current;
-      // const repositionWithCalculatedDistances = repositionWithCalculatedDistancesReference.current;
+      const repositionWithCalculatedDistances = repositionWithCalculatedDistancesReference.current;
       const form = addForm;
       if (form.rnaComplexIndex == null) return;
       const complex = rnaComplexProps[form.rnaComplexIndex];
@@ -1265,6 +1276,149 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     [theme]
   );
 
+  const treatNoncanonicalBasePairsAsUnpairedFlag = useMemo(
+    () => settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED],
+    [settingsRecord]
+  );
+
+  const treatNoncanonicalBasePairsAsUnpairedFlagReference = useRef(treatNoncanonicalBasePairsAsUnpairedFlag);
+  treatNoncanonicalBasePairsAsUnpairedFlagReference.current = treatNoncanonicalBasePairsAsUnpairedFlag;
+
+  const reformatAll = useCallback(
+    () => {
+      const pushToUndoStack = pushToUndoStackReference.current;
+      pushToUndoStack();
+      const settingsRecord = settingsRecordReference.current;
+      const treatNoncanonicalBasePairsAsUnpairedFlag = treatNoncanonicalBasePairsAsUnpairedFlagReference.current;
+      const rnaComplexProps = rnaComplexPropsReference.current;
+      const setBasePairKeysToEdit = setBasePairKeysToEditReference.current;
+      const allHelices = iterateOverFreeNucleotidesAndHelicesPerScene(
+        rnaComplexProps,
+        treatNoncanonicalBasePairsAsUnpairedFlag as boolean
+      );
+      const averageDistances = averageDistancesReference.current;
+      const basePairKeysToEdit : Context.BasePair.KeysToEdit = {};
+      for (const { rnaComplexIndex, helixDataPerRnaMolecules } of allHelices) {
+        const averageDistancesPerRnaComplex = averageDistances[rnaComplexIndex];
+        const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+        const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+        if (!(rnaComplexIndex in basePairKeysToEdit)) {
+          basePairKeysToEdit[rnaComplexIndex] = {
+            add : [],
+            delete : []
+          };
+        }
+        const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[rnaComplexIndex];
+        for (const { rnaMoleculeName0, helixData} of helixDataPerRnaMolecules) {
+          const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+          const basePairsPerRnaMolecule0 = basePairsPerRnaComplex[rnaMoleculeName0];
+          for (const { rnaMoleculeName1, start, stop } of helixData) {
+            const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+            const rangeIndexToSingularRnaMoleculeProps = {
+              0 : singularRnaMoleculeProps0,
+              1 : singularRnaMoleculeProps1
+            };
+            const helixStart0 = singularRnaMoleculeProps0.nucleotideProps[start[0]];
+            const helixStart1 = singularRnaMoleculeProps1.nucleotideProps[start[1]];
+            let center = scaleUp(add(helixStart0, helixStart1), 0.5);
+            const dv = subtract(helixStart0, helixStart1);
+            const normalizedDv = normalize(dv);
+            let normalOrthogonal = orthogonalize(normalizedDv);
+            
+            const rangeIndexToMinMax : Record<number, {min : number, max : number}> = {};
+            let orientationVote = 0;
+            for (const rangeIndex of [0, 1] as Array<0 | 1>) {
+              const min = Math.min(start[rangeIndex], stop[rangeIndex]);
+              const max = Math.max(start[rangeIndex], stop[rangeIndex]);
+              rangeIndexToMinMax[rangeIndex] = { min, max };
+              for (let nucleotideIndex = min; nucleotideIndex <= max; nucleotideIndex++) {
+                const singularNucleotideProps = rangeIndexToSingularRnaMoleculeProps[rangeIndex].nucleotideProps[nucleotideIndex];
+                orientationVote += Math.sign(dotProduct(subtract(singularNucleotideProps, center), normalOrthogonal));
+              }
+            }
+            if (orientationVote < 0) {
+              normalOrthogonal = negate(normalOrthogonal);
+            }
+            const helixDistanceFromSettings = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
+            const helixDistance = Number.isNaN(helixDistanceFromSettings) ? averageDistancesPerRnaComplex.helixDistance : helixDistanceFromSettings;
+            const helixCenterIncrement = scaleUp(normalOrthogonal, helixDistance);
+            let nucleotideIndex0 = start[0];
+            let nucleotideIndex1 = start[1];
+            const nucleotideIndexIncrement0 = Math.sign(stop[0] - start[0]);
+            const nucleotideIndexIncrement1 = Math.sign(stop[1] - start[1]);
+            const length = rangeIndexToMinMax[0].max - rangeIndexToMinMax[0].min + 1;
+            for (let i = 0; i < length; i++) {
+              const singularNucleotideProps0 = rangeIndexToSingularRnaMoleculeProps[0].nucleotideProps[nucleotideIndex0];
+              const singularNucleotideProps1 = rangeIndexToSingularRnaMoleculeProps[1].nucleotideProps[nucleotideIndex1];
+              const basePairsPerNucleotide0 = basePairsPerRnaMolecule0[nucleotideIndex0];
+              const relevantBasePair = basePairsPerNucleotide0.find(basePair => (
+                basePair.rnaMoleculeName === rnaMoleculeName1 &&
+                basePair.nucleotideIndex === nucleotideIndex1
+              ))!;
+              let basePairType = relevantBasePair.basePairType;
+              if (basePairType === undefined) {
+                try {
+                  basePairType = getBasePairType(singularNucleotideProps0.symbol, singularNucleotideProps1.symbol);
+                } catch (e) {
+                  basePairType = undefined;
+                }
+              }
+              let basePairDistance : number;
+              switch (basePairType) {
+                case BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK :
+                case BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK :
+                case BasePair.Type.CANONICAL : {
+                  const basePairDistanceFromSettings = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
+                  basePairDistance = Number.isNaN(basePairDistanceFromSettings) ? averageDistancesPerRnaComplex.distances[basePairType] : basePairDistanceFromSettings;
+                  break;
+                }
+                case BasePair.Type.WOBBLE : {
+                  const basePairDistanceFromSettings = settingsRecord[Setting.WOBBLE_BASE_PAIR_DISTANCE] as number;
+                  basePairDistance = Number.isNaN(basePairDistanceFromSettings) ? averageDistancesPerRnaComplex.distances[basePairType] : basePairDistanceFromSettings;
+                  break;
+                }
+                default : {
+                  const basePairDistanceFromSettings = settingsRecord[Setting.MISMATCH_BASE_PAIR_DISTANCE] as number;
+                  basePairDistance = Number.isNaN(basePairDistanceFromSettings) ? averageDistancesPerRnaComplex.distances[BasePair.Type.MISMATCH] : basePairDistanceFromSettings;
+                  break;
+                } 
+              }
+              const basePairFullKeys = {
+                keys0 : {
+                  rnaMoleculeName : rnaMoleculeName0,
+                  nucleotideIndex : nucleotideIndex0
+                },
+                keys1 : {
+                  rnaMoleculeName : rnaMoleculeName1,
+                  nucleotideIndex : nucleotideIndex1
+                }
+              };
+              basePairKeysToEditPerRnaComplex.add.push(basePairFullKeys);
+              basePairKeysToEditPerRnaComplex.delete.push(basePairFullKeys);
+              const scaledUpDv = scaleUp(normalizedDv, basePairDistance * 0.5);
+              const newPosition0 = add(center, scaledUpDv);
+              const newPosition1 = subtract(center, scaledUpDv);
+              singularNucleotideProps0.x = newPosition0.x;
+              singularNucleotideProps0.y = newPosition0.y;
+              singularNucleotideProps1.x = newPosition1.x;
+              singularNucleotideProps1.y = newPosition1.y;
+
+              center = add(center, helixCenterIncrement);
+              nucleotideIndex0 += nucleotideIndexIncrement0;
+              nucleotideIndex1 += nucleotideIndexIncrement1;
+            }
+          }
+        }
+      }
+      for (const basePairKeysToEditPerRnaComplex of Object.values(basePairKeysToEdit)) {
+        basePairKeysToEditPerRnaComplex.add.sort(compareFullBasePairKeys);
+        basePairKeysToEditPerRnaComplex.delete.sort(compareFullBasePairKeys);
+      }
+      setBasePairKeysToEdit(basePairKeysToEdit);
+    },
+    []
+  );
+
   useEffect(
     () => {
       const newRnaComplexesAreASingleton = Object.keys(rnaComplexProps).length === 1;
@@ -1427,9 +1581,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           </button>
           {/* Stylized Reformat button (note: behavior delegated to existing editor elsewhere) */}
           <button
-            onClick={() =>
-              window.dispatchEvent(new CustomEvent("triggerReformatAll"))
-            }
+            onClick={reformatAll}
             title="Re-format all base pairs"
             style={{
               padding: "8px 12px",

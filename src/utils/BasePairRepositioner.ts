@@ -1,9 +1,10 @@
 import { add, subtract, normalize, scaleUp, magnitude } from "../data_structures/Vector2D";
 import { Setting, SettingsRecord } from "../ui/Setting";
 import { BasePair, getBasePairType } from "../components/app_specific/BasePair";
+import { RnaComplex } from "../components/app_specific/RnaComplex";
 
 export function repositionNucleotidesForBasePairs(
-  complex: any,
+  complex: RnaComplex.ExternalProps,
   mol0: string,
   mol1: string,
   startIdx0: number,
