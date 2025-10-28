@@ -11,6 +11,8 @@ export interface ToolsPanelProps {
   onModeChange?: (tab: Tab) => void;
   onUndo?: () => void;
   onRedo?: () => void;
+  canUndo : boolean;
+  canRedo : boolean;
   onResetViewport?: () => void;
   undoStack?: Array<{ data: any; dataType: string }>;
   redoStack?: Array<{ data: any; dataType: string }>;
@@ -119,6 +121,8 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
   onModeChange,
   onUndo,
   onRedo,
+  canUndo,
+  canRedo,
   onResetViewport,
   undoStack,
   redoStack,
@@ -178,6 +182,8 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({
         <ActionsPanel
           onUndo={onUndo}
           onRedo={onRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
           onResetViewport={onResetViewport}
           undoStack={undoStack}
           redoStack={redoStack}

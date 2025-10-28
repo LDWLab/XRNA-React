@@ -31,6 +31,8 @@ export interface ActionsPanelProps {
   onUnfreezeAll?: () => void;
   hasFrozenNucleotides?: boolean;
   hasSelectedNucleotides?: boolean;
+  canUndo : boolean;
+  canRedo : boolean;
 }
 
 const HistoryViewer: React.FC<{
@@ -337,6 +339,8 @@ const HistoryViewer: React.FC<{
 export const ActionsPanel: React.FC<ActionsPanelProps> = ({
   onUndo,
   onRedo,
+  canUndo,
+  canRedo,
   onResetViewport,
   undoStack = [],
   redoStack = [],
@@ -357,7 +361,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
       <div style={{ display: "flex", gap: "6px" }}>
         <Button
           onClick={onUndo}
-          disabled={!onUndo}
+          disabled={!canUndo}
           icon={<Undo2 size={14} />}
           label="Undo"
           hint="Undo last action"
@@ -365,7 +369,7 @@ export const ActionsPanel: React.FC<ActionsPanelProps> = ({
         />
         <Button
           onClick={onRedo}
-          disabled={!onRedo}
+          disabled={!canRedo}
           icon={<Redo2 size={14} />}
           label="Redo"
           hint="Redo last action"

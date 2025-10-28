@@ -13,6 +13,8 @@ export interface SidebarProps {
   onModeChange?: (mode: Tab) => void;
   onUndo?: () => void;
   onRedo?: () => void;
+  canUndo : boolean;
+  canRedo : boolean;
   onResetViewport?: () => void;
   onToggleBasePairEditor?: () => void;
   onTogglePropertiesDrawer?: () => void;
@@ -35,7 +37,7 @@ export interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = (props) => {
   const {
     constraint, onConstraintChange, mode, onModeChange,
-    onUndo, onRedo, onResetViewport,
+    onUndo, onRedo, canUndo, canRedo, onResetViewport,
     onToggleBasePairEditor, onTogglePropertiesDrawer,
     onToggleSettingsDrawer, onToggleAboutDrawer,
     onOpenDocs,
@@ -49,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     <SidebarLayout>
       <SelectionPanel constraint={constraint} onConstraintChange={onConstraintChange} />
       <ToolsPanel mode={mode || Tab.EDIT} 
-        onModeChange={onModeChange} onUndo={onUndo} onRedo={onRedo} onResetViewport={onResetViewport} undoStack={undoStack}
+        onModeChange={onModeChange} onUndo={onUndo} onRedo={onRedo} canUndo = {canUndo} canRedo = {canRedo} onResetViewport={onResetViewport} undoStack={undoStack}
         redoStack={redoStack}
         onJumpToHistory={onJumpToHistory}
         onResetToLastCheckpoint={onResetToLastCheckpoint}

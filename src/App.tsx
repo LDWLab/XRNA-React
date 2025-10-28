@@ -2223,6 +2223,14 @@ export namespace App {
         );
       };
     }, []);
+    const canUndoFlag = useMemo(
+      () => undoStackReference.current!.length > 0,
+      [undoStackReference.current]
+    );
+    const canRedoFlag = useMemo(
+      () => redoStackReference.current!.length > 0,
+      [redoStackReference.current]
+    );
     const onMouseMove = useMemo(function () {
       return function (e: React.MouseEvent<SVGSVGElement, MouseEvent>) {
         // Track UI-space mouse position relative to the SVG for tooltip placement
@@ -3755,6 +3763,8 @@ export namespace App {
             <Sidebar
               onUndo={undo}
               onRedo={redo}
+              canUndo={canUndoFlag}
+              canRedo={canRedoFlag}
               onResetViewport={resetViewport}
               mode={tab}
               onModeChange={setTab}
