@@ -62,7 +62,6 @@ import {
   getInteractionConstraintAndFullKeys,
   InteractionConstraint,
 } from "./ui/InteractionConstraint/InteractionConstraints";
-import { BasePairsEditor } from "./components/app_specific/editors/BasePairsEditor";
 import { Collapsible } from "./components/generic/Collapsible";
 import { SAMPLE_XRNA_FILE } from "./utils/sampleXrnaFile";
 import { fileExtensionDescriptions } from "./io/FileExtension";
@@ -2856,22 +2855,6 @@ export namespace App {
             </div>;
             break;
           }
-          case DrawerKind.BASEPAIR : {
-            children = <div
-              style={{
-                height: "100%",
-                overflow: "auto",
-              }}
-            >
-              <BasePairsEditor.Component
-                rnaComplexProps={
-                  rnaComplexProps
-                }
-                approveBasePairs={function () {}}
-              />
-            </div>;
-            break;
-          }
           case DrawerKind.SETTINGS : {
             children = <SettingsDrawer
               open={true}
@@ -4376,16 +4359,6 @@ export namespace App {
           />
           {/* Unified Right Drawer */}
           {renderedRightDrawer}
-
-          {/* Hidden Base-Pairs Editor host (for global reformat trigger) */}
-          <div style={{ display: "none" }}>
-            <BasePairsEditor.Component
-              rnaComplexProps={
-                rnaComplexProps
-              }
-              approveBasePairs={function () {}}
-            />
-          </div>
 
           {/* Bottom Sheet: Base-Pair Editor */}
           {renderedBasePairBottomSheet}

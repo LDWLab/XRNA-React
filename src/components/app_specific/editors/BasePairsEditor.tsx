@@ -847,10 +847,10 @@ export namespace BasePairsEditor {
     const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
     const pushToUndoStack = useContext(Context.App.PushToUndoStack);
     // Begin state data.
-    const [
-      editorType,
-      setEditorType
-    ] = useState<EditorType>(settingsRecord[Setting.BASE_PAIRS_EDITOR_TYPE] as EditorType);
+    // const [
+    //   editorType,
+    //   setEditorType
+    // ] = useState<EditorType>(settingsRecord[Setting.BASE_PAIRS_EDITOR_TYPE] as EditorType);
     const [
       overrideConflictingBasePairsFlag,
       setOverrideConflictingBasePairsFlag
@@ -1555,14 +1555,14 @@ export namespace BasePairsEditor {
         }
         const averageOfAverageHelixDistance = helixDistanceSum / helixDistanceCount;
 
-        const initialEditorType = settingsRecord[Setting.BASE_PAIRS_EDITOR_TYPE] as EditorType;
+        // const initialEditorType = settingsRecord[Setting.BASE_PAIRS_EDITOR_TYPE] as EditorType;
         const initialRepositionNucleotidesFlag = settingsRecord[Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] as boolean;
         const initialCanonicalBasePairDistance = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
         const initialMismatchBasePairDistance = settingsRecord[Setting.MISMATCH_BASE_PAIR_DISTANCE] as number;
         const initialWobbleBasePairDistance = settingsRecord[Setting.WOBBLE_BASE_PAIR_DISTANCE] as number;
         const initialDistanceBetweenContiguousBasePairs = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
 
-        setEditorType(initialEditorType);
+        // setEditorType(initialEditorType);
         setRepositionNucleotidesAlongBasePairAxisFlag(initialRepositionNucleotidesFlag);
         setRepositionNucleotidesAlongHelixAxisFlag(initialRepositionNucleotidesFlag);
         setCanonicalBasePairDistance(Number.isNaN(initialCanonicalBasePairDistance) ? Number.isNaN(averageOfAverageCanonicalDistances) ? 1 : averageOfAverageCanonicalDistances : initialCanonicalBasePairDistance);
@@ -1571,12 +1571,6 @@ export namespace BasePairsEditor {
         setDistanceBetweenContiguousBasePairs(Number.isNaN(initialDistanceBetweenContiguousBasePairs) ? Number.isNaN(averageOfAverageHelixDistance) ? 1 : averageOfAverageHelixDistance : initialDistanceBetweenContiguousBasePairs);
       },
       [averageDistances]
-    );
-    useEffect(
-      function() {
-        setInitialBasePairs(structuredClone(basePairs));
-      },
-      [editorType]
     );
     useEffect(
       function() {
@@ -1601,14 +1595,6 @@ export namespace BasePairsEditor {
         title = "Base-pairs editor"
         initialCollapsedFlag = {false}
       >
-        <label>
-          Editor type:&nbsp;
-          <EditorTypeSelector.Component
-            editorType = {editorType}
-            onChange = {setEditorType}
-          />
-        </label>
-        <br/>
         <label style={{ 
           display: 'flex', 
           alignItems: 'center', 
@@ -1645,22 +1631,6 @@ export namespace BasePairsEditor {
           )}
         </label>
         <br/>
-        {createElement(
-          editorTypeToEditorMap[editorType],
-          {
-            rnaComplexProps,
-            setBasePairs,
-            defaultRnaComplexIndex,
-            defaultRnaMoleculeName0,
-            defaultRnaMoleculeName1,
-            approveBasePairs,
-            initialBasePairs,
-            setBasePairKeysToEdit,
-            populateBasePairKeysToEdit,
-            repositionWithCalculatedDistances,
-            setRepositionWithCalculatedDistances
-          }
-        )}
       </Collapsible.Component>
       {/* Re-format button placed at the top bar of the bottom sheet; also keep a hidden hook for programmatic trigger */}
       <div style={{ display: 'none' }}>
