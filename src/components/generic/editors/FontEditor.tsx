@@ -8,6 +8,65 @@ export namespace FontEditor {
     setFont : (newFont : Font) => void
   };
 
+  export const commonFamilies = [
+    {
+      value : "serif",
+      label : "Serif"
+    },
+    {
+      value : "sans-serif",
+      label : "Sans-serif"
+    },
+    {
+      value : "monospace",
+      label : "Monospace"
+    },
+    {
+      value : "cursive",
+      label : "Cursive"
+    },
+    {
+      value : "fantasy",
+      label : "Fantasy"
+    },
+    {
+      value : "system-ui",
+      label : "System"
+    },
+    {
+      value : "Arial, sans-serif",
+      label : "Arial"
+    },
+    {
+      value : "Helvetica, Arial, sans-serif",
+      label : "Helvetica"
+    },
+    {
+      value : '"Times New Roman", Times, serif',
+      label : "Times New Roman"
+    },
+    {
+      value : "Georgia, serif",
+      label : "Georgia"
+    },
+    {
+      value : "Verdana, Geneva, sans-serif",
+      label : "Verdana"
+    },
+    {
+      value : "Tahoma, Geneva, sans-serif",
+      label : "Tahoma"
+    },
+    {
+      value : '"Courier New", Courier, monospace',
+      label : "Courier New"
+    },
+    {
+      value : 'Consolas, "Courier New", monospace',
+      label : "Consolas"
+    }
+  ];
+
   export function Component(props : Props) {
     const {
       family,
@@ -33,10 +92,11 @@ export namespace FontEditor {
     >
       <label>
         Family:&nbsp;
-        <input
-          type = "text"
-          value = {family}
-          onChange = {function(e) {
+        <br/>
+        &nbsp;&nbsp;Common Families:&nbsp;
+        <select
+          value = {commonFamilies.some(commonFamily => commonFamily.value === family) ? family : ""}
+          onChange = {e => {
             const newFamily = e.target.value;
             setFont({
               family : newFamily,
@@ -45,8 +105,37 @@ export namespace FontEditor {
               size
             });
           }}
-        />
+        >
+          <option
+            value = ""
+            disabled = {true}
+            hidden = {false}
+          >
+            Pick One
+          </option>
+          {commonFamilies.map(({ value, label }) => <option
+            key = {value}
+            value = {value}
+          >
+            {label}
+          </option>)}
+        </select>
+        <br/>
       </label>
+      &nbsp;&nbsp;Custom:&nbsp;
+      <input
+        type = "text"
+        value = {family}
+        onChange = {function(e) {
+          const newFamily = e.target.value;
+          setFont({
+            family : newFamily,
+            style,
+            weight,
+            size
+          });
+        }}
+      />
       <br/>
       <label>
         Style:&nbsp;

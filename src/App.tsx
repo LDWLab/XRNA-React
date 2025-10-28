@@ -2099,8 +2099,8 @@ export namespace App {
                 const averageBoundingRectHeight =
                   numberOfBoundingRects == 0
                     ? 1
-                    : (boundingRectHeightsSum / numberOfBoundingRects) * 0.25;
-                setBasePairRadius(averageBoundingRectHeight);
+                    : (boundingRectHeightsSum / numberOfBoundingRects);
+                setBasePairRadius(averageBoundingRectHeight * 0.33);
                 setSceneState(SceneState.DATA_IS_LOADED);
               }, numSeconds * 1000);
             } else {
