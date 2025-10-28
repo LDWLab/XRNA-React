@@ -1541,9 +1541,11 @@ export namespace BasePair {
     const defaultStrokeWidth = useContext(Context.BasePair.AverageStrokeWidth);
     const setMouseOverText = useContext(Context.App.SetMouseOverText);
     const className = useContext(Context.BasePair.ClassName);
-    const rnaComplexProps = useContext(Context.App.RnaComplexProps);
+    const rnaComplexProps = useContext(Context.App.RnaComplexProps)!;
     const basePairOnMouseDownHelper = useContext(Context.BasePair.OnMouseDownHelper);
-    const singularRnaComplexProps = (rnaComplexProps as RnaComplexProps)[rnaComplexIndex];
+    const singularRnaComplexFlag = useContext(Context.App.SingularRnaComplexFlag);
+    const singularRnaMoleculeFlag = useContext(Context.RnaComplex.SingularRnaMoleculeFlag);
+    const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
     const nucleotideIndex0 = formattedNucleotideIndex0 - singularRnaMoleculeProps0.firstNucleotideIndex;
@@ -1575,11 +1577,33 @@ export namespace BasePair {
       [SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_1] : formattedNucleotideIndex1,
       [SVG_PROPERTY_XRNA_BASE_PAIR_TYPE] : basePairType
     };
-    const mouseOverText = [
-      `base pair:`,
-      `  nts:  ${formattedNucleotideIndex0}${singularNucleotideProps0.symbol} - ${formattedNucleotideIndex1}${singularNucleotideProps1.symbol}`,
-      `  type: ${fullTypeNameMap[basePairType]}`
-    ].join("\n");
+    let rnaMoleculeName0ForMouseover = rnaMoleculeName0;
+    let rnaMoleculeName1ForMouseover = rnaMoleculeName1;
+    let nucleotideIndex0ForMouseover = nucleotideIndex0;
+    let nucleotideIndex1ForMouseover = nucleotideIndex1;
+    let basePairTypeForMouseover = basePairType;
+    if (BasePair.isRedundantLeontisWesthofType(basePairTypeForMouseover)) {
+      basePairTypeForMouseover = BasePair.reverseDirectedTypeMap[basePairTypeForMouseover];
+      const tempRnaMoleculeName = rnaMoleculeName0ForMouseover;
+      rnaMoleculeName0ForMouseover = rnaMoleculeName1ForMouseover;
+      rnaMoleculeName1ForMouseover = tempRnaMoleculeName;
+      const tempNucleotideIndexForMouseover = nucleotideIndex0ForMouseover;
+      nucleotideIndex0ForMouseover = nucleotideIndex1ForMouseover;
+      nucleotideIndex1ForMouseover = tempNucleotideIndexForMouseover;
+    }
+    const singularRnaMoleculeProps0ForMouseover = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0ForMouseover];
+    const singularRnaMoleculeProps1ForMouseover = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1ForMouseover];
+    const mouseOverTextLines = [`Base Pair:`];
+    if (!singularRnaComplexFlag) {
+      mouseOverTextLines.push(`  Complex: ${singularRnaComplexProps.name}`);
+    }
+    if (!singularRnaMoleculeFlag) {
+      mouseOverTextLines.push(`  Mol(s): ${Array.from(new Set([rnaMoleculeName0ForMouseover, rnaMoleculeName1ForMouseover])).join(" - ")}`);
+    }
+    mouseOverTextLines.push(
+      `  Nucs:  ${singularRnaMoleculeProps0ForMouseover.firstNucleotideIndex + nucleotideIndex0ForMouseover}${singularRnaMoleculeProps0ForMouseover.nucleotideProps[nucleotideIndex0ForMouseover].symbol} - ${singularRnaMoleculeProps1ForMouseover.firstNucleotideIndex + nucleotideIndex1ForMouseover}${singularRnaMoleculeProps1ForMouseover.nucleotideProps[nucleotideIndex1ForMouseover].symbol}`,
+      `  Type: ${fullTypeNameMap[basePairTypeForMouseover]}`
+    );
     return createElement(
       basePairRenderMap[basePairType],
       {
@@ -1589,7 +1613,7 @@ export namespace BasePair {
         strokeWidth,
         svgPropertiesForXrna,
         onMouseOver : () => {
-          setMouseOverText(mouseOverText);
+          setMouseOverText(mouseOverTextLines.join("\n"));
         },
         onMouseLeave : () => {
           setMouseOverText("");

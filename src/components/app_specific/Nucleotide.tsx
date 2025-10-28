@@ -95,6 +95,8 @@ export namespace Nucleotide {
     const settingsRecord = useContext(Context.App.Settings);
     const pathModeFlag = settingsRecord[Setting.PATH_MODE] as boolean;
     const indicesOfFrozenNucleotides = useContext(Context.App.IndicesOfFrozenNucleotides);
+    const singularRnaComplexFlag = useContext(Context.App.SingularRnaComplexFlag);
+    const singularRnaMoleculeFlag = useContext(Context.RnaComplex.SingularRnaMoleculeFlag);
     let frozenFlag = false;
     if (rnaComplexIndex in indicesOfFrozenNucleotides) {
       const indicesOfFrozenNucleotidesPerRnaComplex = indicesOfFrozenNucleotides[rnaComplexIndex];
@@ -182,13 +184,19 @@ export namespace Nucleotide {
         }}
         onMouseOver = {function(e : React.MouseEvent<Nucleotide.SvgRepresentation>) {
           const idx = firstNucleotideIndexInRnaMolecule + nucleotideIndex;
-          setMouseOverText(
-            `nucleotide: ${idx}\n` +
-            `symbol:     ${symbol}\n` +
-            `molecule:   ${rnaMoleculeName}\n` +
-            `complex:    ${rnaComplexName}\n` +
+          const mouseOverTextLines = [];
+          if (!singularRnaComplexFlag) {
+            mouseOverTextLines.push(`Complex:    ${rnaComplexName}`);
+          }
+          if (!singularRnaMoleculeFlag) {
+            mouseOverTextLines.push(`Molecule:   ${rnaMoleculeName}`);
+          }
+          mouseOverTextLines.push(
+            `Nucleotide: ${idx}`,
+            `Symbol:     ${symbol}`,
             `status:     ${frozenFlag ? 'LOCKED (cannot move)' : 'unlocked (can move)'}`
           );
+          setMouseOverText(mouseOverTextLines.join("\n"));
         }}
         onMouseLeave = {function() {
           setMouseOverText("");

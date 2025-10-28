@@ -3332,6 +3332,10 @@ export namespace App {
         outputFileExtension
       ]
     );
+    const singularRnaComplexFlag = useMemo(
+      () => flattenedRnaComplexProps.length === 1,
+      [flattenedRnaComplexProps]
+    );
     // Global event hooks for bottom-sheet UX
     useEffect(() => {
       function onOpenSheet() {
@@ -3606,6 +3610,7 @@ export namespace App {
         setBasePairKeysToRerender = {setBasePairKeysToRerender}
         updateRnaMoleculeNameHelper = {updateRnaMoleculeNameHelper}
         setBasePairKeysToEdit = {setBasePairKeysToEdit}
+        singularRnaComplexFlag = {singularRnaComplexFlag}
       >
         <div
           id={PARENT_DIV_HTML_ID}

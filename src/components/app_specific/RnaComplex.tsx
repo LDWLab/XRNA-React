@@ -512,6 +512,10 @@ export namespace RnaComplex {
         basePairKeysToRerenderPerRnaComplex
       ]
     );
+    const singularRnaMoleculeFlag = useMemo(
+      () => flattenedRnaMoleculeProps.length === 1,
+      [flattenedRnaMoleculeProps]
+    );
     // Begin effects.
     useEffect(
       function() {
@@ -658,40 +662,44 @@ export namespace RnaComplex {
       <Context.RnaComplex.Name.Provider
         value = {name}
       >
-        <>
-          <g>
-            <Context.BasePair.AverageStrokeWidth.Provider
-              value = {averageBasePairStrokeWidth}
-            >
-              {editedFlattenedBasePairProps.map(function(props : SingularFlattenedBasePairProps) {
-                return <BasePair.MemoizedComponent
-                  {...props}
-                />;
-                // return createElement(
-                //   BasePair.MemoizedComponent,
-                //   props
-                // );
-              })}
-            </Context.BasePair.AverageStrokeWidth.Provider>
-          </g>
-          {flattenedRnaMoleculeProps.map(function(
-            [
-              rnaMoleculeName,
-              singularRnaMoleculeProps
-            ]
-          ) {
-            return <Context.RnaMolecule.Name.Provider
-              key = {rnaMoleculeName}
-              value = {rnaMoleculeName}
-            >
-              <RnaMolecule.Component
+        <Context.RnaComplex.SingularRnaMoleculeFlag.Provider
+          value = {singularRnaMoleculeFlag}
+        >
+          <>
+            <g>
+              <Context.BasePair.AverageStrokeWidth.Provider
+                value = {averageBasePairStrokeWidth}
+              >
+                {editedFlattenedBasePairProps.map(function(props : SingularFlattenedBasePairProps) {
+                  return <BasePair.MemoizedComponent
+                    {...props}
+                  />;
+                  // return createElement(
+                  //   BasePair.MemoizedComponent,
+                  //   props
+                  // );
+                })}
+              </Context.BasePair.AverageStrokeWidth.Provider>
+            </g>
+            {flattenedRnaMoleculeProps.map(function(
+              [
+                rnaMoleculeName,
+                singularRnaMoleculeProps
+              ]
+            ) {
+              return <Context.RnaMolecule.Name.Provider
                 key = {rnaMoleculeName}
-                {...singularRnaMoleculeProps}
-                nucleotideKeysToRerender = {nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] ?? []}
-              />
-            </Context.RnaMolecule.Name.Provider>
-          })}
-        </>
+                value = {rnaMoleculeName}
+              >
+                <RnaMolecule.Component
+                  key = {rnaMoleculeName}
+                  {...singularRnaMoleculeProps}
+                  nucleotideKeysToRerender = {nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] ?? []}
+                />
+              </Context.RnaMolecule.Name.Provider>
+            })}
+          </>
+        </Context.RnaComplex.SingularRnaMoleculeFlag.Provider>
       </Context.RnaComplex.Name.Provider>
     </g>;
   }

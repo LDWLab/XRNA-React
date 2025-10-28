@@ -45,12 +45,14 @@ export namespace Context {
     export const IndicesOfFrozenNucleotides = createContext<Record<RnaComplexKey, Record<RnaMoleculeKey, Set<NucleotideKey>>>>({});
     export const PushToUndoStack = createContext<() => void>(function() { /* Do nothing. */});
     export const RnaComplexProps = createContext<_RnaComplexProps | undefined>(undefined);
+    export const SingularRnaComplexFlag = createContext<boolean | undefined>(undefined);
   }
 
   export namespace RnaComplex {
     export const Name = createContext("");
     export const Index = createContext(NaN);
     export const BasePairs = createContext<_RnaComplex.BasePairs>({});
+    export const SingularRnaMoleculeFlag = createContext<boolean | undefined>(undefined);
   };
 
   export namespace RnaMolecule {
@@ -206,7 +208,8 @@ export namespace Context {
     setNucleotideKeysToRerender : Nucleotide.SetKeysToRerender,
     setBasePairKeysToRerender : BasePair.SetKeysToRerender,
     updateRnaMoleculeNameHelper : App.UpdateRnaMoleculeNameHelper,
-    setBasePairKeysToEdit : BasePair.SetKeysToEdit
+    setBasePairKeysToEdit : BasePair.SetKeysToEdit,
+    singularRnaComplexFlag : boolean
   };
 
   export function Component(props : Props) {
@@ -229,7 +232,8 @@ export namespace Context {
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender,
       updateRnaMoleculeNameHelper,
-      setBasePairKeysToEdit
+      setBasePairKeysToEdit,
+      singularRnaComplexFlag
     } = props;
     return <ThemeProvider
       settingsRecord={settingsRecord}
@@ -255,7 +259,9 @@ export namespace Context {
                                   <App.Settings.Provider value={settingsRecord}>
                                     <App.UpdateRnaMoleculeNameHelper.Provider value={updateRnaMoleculeNameHelper}>
                                       <BasePair.SetKeysToEdit.Provider value={setBasePairKeysToEdit}>
-                                        {children}
+                                        <App.SingularRnaComplexFlag.Provider value = {singularRnaComplexFlag}>
+                                          {children}
+                                        </App.SingularRnaComplexFlag.Provider>
                                       </BasePair.SetKeysToEdit.Provider>
                                     </App.UpdateRnaMoleculeNameHelper.Provider>
                                   </App.Settings.Provider>
