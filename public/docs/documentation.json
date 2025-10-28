@@ -1,0 +1,353 @@
+{
+  "title": "Xornata User Guide",
+  "version": "1.0.0",
+  "lastUpdated": "2025-10-26",
+  "intro": "This guide summarizes the Xornata workflow described in the project paper. Each section maps to a practical task: explore the workspace, use constraint-driven editing, format and annotate structures, and deliver consistent outputs.",
+  "sections": [
+    {
+      "id": "quick-start",
+      "title": "Quick Start Workflow",
+      "summary": "Load a structure, orient yourself, and try the first edits in under five minutes.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Use this checklist to move from an empty canvas to your first edits without getting overwhelmed."
+        },
+        {
+          "type": "list",
+          "style": "ordered",
+          "items": [
+            "Launch the web app in a modern Chromium or Firefox browser. The workspace opens in **Edit** mode with an empty canvas.",
+            "Choose **Open → Select File** to import `.json`, `.xrna`, or `.csv` base-pair listings. The active complex appears in the left navigation drawer.",
+            "Pan with **Space + drag** and zoom with **Ctrl/Cmd + Scroll** until the region of interest fills the viewport.",
+            "Drag to marquee-select nucleotides, then review the right drawer for constraint options, frozen state, and base-pair info."
+          ]
+        },
+        {
+          "type": "note",
+          "variant": "tip",
+          "text": "Need a sandbox? Load the bundled demo via **Menu → Load Sample**. It mirrors the example layouts referenced throughout the paper."
+        }
+      ]
+    },
+    {
+      "id": "workspace",
+      "title": "Workspace Overview",
+      "summary": "Understand how the navigation panel, canvas, and drawers cooperate during editing.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "The workspace is split into focus areas so you always know where to look for the next action."
+        },
+        {
+          "type": "table",
+          "headers": ["Region", "Purpose", "Key actions"],
+          "rows": [
+            ["Top Bar", "Session-level commands", "Undo/redo, toggle theme, download/export, open settings."],
+            ["Navigation Panel", "Mode-specific controls", "Switch tabs (Edit / Format / Annotate), open constraint pickers, launch Base Pair Editor."],
+            ["SVG Canvas", "Primary editing surface", "Drag nucleotides, rotate fragments, preview annotations with live transforms."],
+            ["Floating Controls", "View management", "Zoom in/out, reset viewport, toggle grid families."],
+            ["Properties Drawer", "Context inspector", "Tweak styling, annotations, or metadata for the current selection."]
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "id": "workspace-constraints",
+          "title": "Constraint Philosophy",
+          "summary": "Hierarchy-aware constraints keep structural edits predictable.",
+          "content": [
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "Constraints span three tiers: **Primitives** (nucleotide, base pair), **Fragments** (strand, helix, stacked helix, cycle), and **Units** (domain, molecule, complex).",
+                "The active constraint determines which nucleotides follow when you drag, rotate, or align elements.",
+                "Switch constraints from the navigation panel or via the right drawer's quick selector."
+              ]
+            },
+            {
+              "type": "note",
+              "variant": "info",
+              "text": "Cycle constraints automatically align junction nucleotides around a circle, honoring anchor selections as described in the paper's \"Editing mode\" section."
+            }
+          ]
+        },
+        {
+          "id": "workspace-drawers",
+          "title": "Navigation Panel Breakdown",
+          "summary": "Map the panel sections to the modules described in the manuscript.",
+          "content": [
+            {
+              "type": "table",
+              "headers": ["Panel section", "Matches paper section", "Highlights"],
+              "rows": [
+                ["Input / Output", "Supported file formats", "Import or export JSON, XRna legacy files, BPSeq lists, Traveler-compatible JSON."],
+                ["Constraints", "Constraints", "Activate the hierarchy level you want to manipulate (single nucleotide → complex)."],
+                ["Editing Tools", "Editing mode", "Translate, rotate, normalize, and freeze subsets with instant visual feedback."],
+                ["Formatting", "Formatting mode", "Apply typography presets, recolor fragments, adjust stroke widths."],
+                ["Annotate", "Labeling, coloring", "Increment residue labels, adjust leader lines, assign palettes."],
+                ["Utilities", "Utility box", "Access grid toggles, autosave reminders, and legacy compatibility flags."]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "editing-mode",
+      "title": "Editing Mode",
+      "summary": "Manipulate topology while respecting RNA hierarchy.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Editing mode is where you reshape structures. Begin with a quick read of the tips below, then try them on a small selection."
+        },
+        {
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Click-drag to reposition nucleotides or constrained subsets. Anchor points ensure arcs and cycles retain spacing.",
+            "Rotate base-paired fragments or entire domains when the constraint tier is set to Helix, Stacked Helix, or Domain.",
+            "Freeze pivotal nucleotides with **F** so downstream drags leave them untouched.",
+            "Normalize selected cycles to enforce even angular spacing and radiating helices."
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "id": "editing-anchors",
+          "title": "Anchor Management",
+          "summary": "Control which nucleotides define strand arcs.",
+          "content": [
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "Middle-click (or Alt+Click) to redefine single-strand anchors before running equal spacing operations.",
+                "Anchor metadata persists with the selection so subsequent drags reuse the same pivot points."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "format-mode",
+      "title": "Formatting Mode",
+      "summary": "Configure base pairs, typography, and color with publication-ready output in mind.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Move into formatting mode once positions feel stable. Use the tools below to polish labels, colors, and base-pair presentation."
+        },
+        {
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Add or remove base pairs using the inline controls or the Base Pair Editor panel.",
+            "Adjust nucleotide symbols (letters vs digits), label offsets, and stroke weight scaling globally or per selection.",
+            "Toggle legend-ready contour overlays to show a coarse-grained backbone, matching the \"Line representation\" figure in the paper."
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "id": "format-mode-basepair-editor",
+          "title": "Base Pair Editor",
+          "summary": "Text-driven topology adjustments with CSV import/export.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Open the editor from **Format → Base Pair Editor**. It lists nucleotide pairs, detects canonical vs wobble types, and lets you assign Leontis–Westhof classes. Use the toolbar to apply edits to the canvas or download the pair list as CSV."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "annotate-mode",
+      "title": "Annotate Mode",
+      "summary": "Label residues and tailor leader lines for presentations.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "When you are ready to communicate findings, switch to annotate mode and refine the storytelling pieces first."
+        },
+        {
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Increment labels across a range, shift numbering to match reference genomes, or hide indices for presentation versions.",
+            "Adjust label line curvature, stroke, and anchor positions to mirror the examples in the manuscript.",
+            "Duplicate labels with **Alt+Drag** to reuse styling when marking similar motifs."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "file-formats",
+      "title": "Supported File Formats",
+      "summary": "Interoperate with legacy XRNA, R2DT, Traveler, and partner pipelines.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Different teams rely on different file exchanges. Reference this table before sending layouts to collaborators."
+        },
+        {
+          "type": "table",
+          "headers": ["Format", "Direction", "Notes"],
+          "rows": [
+            ["JSON (Xornata schema)", "Import & Export", "Preferred format. Captures styling, constraints, and metadata referenced in the paper."],
+            ["XRna legacy", "Import & Export", "Maintains compatibility with the original desktop XRNA layouts."],
+            ["Traveler JSON", "Export", "Generates canonical base-pair representations for Traveler visualization."],
+            ["BPSeq", "Export", "Lists canonical base pairs for downstream analysis."],
+            ["SVG", "Export", "Vector artwork with layered grouping suitable for Illustrator or Inkscape."]
+          ]
+        },
+        {
+          "type": "note",
+          "variant": "tip",
+          "text": "Switch the **Invert Y-axis** flag to align with external pipelines that flip the origin (R2DT, Traveler)."
+        }
+      ]
+    },
+    {
+      "id": "json-schema",
+      "title": "JSON Schema Essentials",
+      "summary": "Encode complexes, molecules, nucleotides, labels, and base pairs for reproducible layouts.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Xornata uses the lab’s RNA 2D JSON specification. At the top level the file lists `classes` for reusable styling, then `rnaComplexes`, each containing `rnaMolecules`, sequences, and optional base-pair lists."
+        },
+        {
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Nucleotides record `residueIndex`, `residueName`, `x`, `y`, plus optional `classes` for styling.",
+            "Labels split into `labelContent` (text + coordinates) and `labelLine` (polyline). Coordinates are absolute to simplify manual adjustments.",
+            "Base pairs stored at the molecule or complex level accept canonical, wobble, mismatch, or explicit Leontis–Westhof identifiers (e.g., `trans_watson_crick_hoogsteen`)."
+          ]
+        },
+        {
+          "type": "note",
+          "variant": "info",
+          "text": "The minimal JSON example from the paper is included in `public/docs/examples/minimal.json` for quick reference."
+        }
+      ]
+    },
+    {
+      "id": "advanced-tools",
+      "title": "Advanced Tools",
+      "summary": "Extend beyond core editing for large or specialized complexes.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Leverage these power-user features when the default workflows are not enough—especially on large complexes or automation-heavy projects."
+        },
+        {
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Enable **Command Terminal** (beta) to run scripted transforms on the current selection.",
+            "Use the Base Pair Editor’s CSV bridge to exchange topology with spreadsheets or automated pipelines.",
+            "Monitor the status bar for warnings about duplicate keys, missing labels, or parse errors before exporting."
+          ]
+        },
+        {
+          "type": "note",
+          "variant": "warning",
+          "text": "Do not refresh the page while a browser file dialog is open—browsers may discard in-memory layouts."
+        }
+      ],
+      "subsections": [
+        {
+          "id": "advanced-noncanonical",
+          "title": "Non-Canonical Base Pairs",
+          "summary": "Visualize Leontis–Westhof interactions discussed in the paper.",
+          "content": [
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "Non-canonical pairs default to auto-detected classes (canonical, wobble, mismatch).",
+                "Override detection by setting the desired Leontis–Westhof code in the Base Pair Editor.",
+                "Exported JSON normalizes pair order according to the standard 12-class representation."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "keybindings",
+      "title": "Keybindings",
+      "summary": "Actions you can reach without leaving the keyboard.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Keyboard shortcuts speed up routine tasks. Skim the table once, then revisit as you take on more advanced edits."
+        },
+        {
+          "type": "table",
+          "headers": ["Shortcut", "Scope", "Behavior"],
+          "rows": [
+            ["Space + Drag", "Any", "Pan the canvas while preserving selection."],
+            ["Ctrl/Cmd + Scroll", "Any", "Zoom in/out around the cursor location."],
+            ["Ctrl/Cmd + 0", "Global", "Reset the viewport transform."],
+            ["Ctrl/Cmd + O", "Global", "Open the file picker (browser prompt)."],
+            ["Ctrl/Cmd + S", "Global", "Trigger the save/export dialog."],
+            ["Ctrl/Cmd + Z", "Global", "Undo last operation."],
+            ["Ctrl/Cmd + Shift + Z" , "Global", "Redo last undone operation."],
+            ["Ctrl/Cmd + Y", "Global", "Redo (alternate access)."],
+            ["F", "Edit", "Toggle freeze state of the current selection."],
+            ["Shift + Drag", "Edit", "Constrain movement to one axis based on initial drag angle."],
+            ["Alt + Drag", "Annotate", "Duplicate a label while repositioning it."],
+            ["Escape", "Any", "Clear the active selection and close contextual drawers where applicable."],
+            ["Ctrl + Click (on label)", "Annotate", "Delete the targeted annotation."]
+          ]
+        },
+        {
+          "type": "note",
+          "variant": "info",
+          "text": "Keyboard shortcuts are ignored while focus is inside editable text fields, consistent with the app’s accessibility policy."
+        }
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "title": "Troubleshooting",
+      "summary": "Resolve common issues encountered during long editing sessions.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "If something feels off, match your symptom with the guidance below before altering the file in another tool."
+        },
+        {
+          "type": "table",
+          "headers": ["Symptom", "Likely cause", "Suggested fix"],
+          "rows": [
+            ["Blank canvas after load", "Unsupported format or parse error", "Check browser console logs; validate against the JSON schema."],
+            ["Slow drags on large complexes", "Too many elements re-rendering", "Freeze distant nucleotides; isolate constraints to smaller fragments."],
+            ["Inverted SVG exports", "Y-axis mismatch", "Toggle **Invert Y-axis** before exporting to match downstream expectations."],
+            ["Theme does not persist", "Local storage blocked", "Reapply theme each session or configure browser storage permissions."],
+            ["No properties in right drawer", "No active selection", "Click a nucleotide or press Escape to reset selection state."],
+            ["Missing annotations in exports", "Labels hidden or deleted via Ctrl+Click", "Check annotate mode toggles; restore from undo if necessary."]
+          ]
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "label": "Open issues",
+      "url": "https://github.com/LDWLab/XRNA-React/issues",
+      "description": "Report bugs or request features."
+    },
+    {
+      "label": "RNA 2D JSON Schema",
+      "url": "https://github.com/LDWLab/RNA2D-data-schema",
+      "description": "Browse the source schema referenced by the guide."
+    }
+  ]
+}
