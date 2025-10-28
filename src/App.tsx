@@ -119,71 +119,62 @@ const FLOATING_CONTROLS_POSITION = { top: 80, right: 17 };
 
 type AboutShortcut = {
   shortcut: string;
-  scope: string;
-  behavior: string;
+  action: string;
 };
 
 const ABOUT_SHORTCUTS: AboutShortcut[] = [
   {
     shortcut: "Ctrl/cmd + O",
-    scope: "Global",
-    behavior: "Open the file picker (browser prompt).",
+    action: "Open file picker",
   },
   {
     shortcut: "Ctrl/cmd + S",
-    scope: "Global",
-    behavior: "Trigger the save/export dialog.",
+    action: "Save",
+  },
+  {
+    shortcut: "Ctrl/cmd + Shift + S",
+    action: "Export as",
   },
   {
     shortcut: "Ctrl/cmd + 0",
-    scope: "Global",
-    behavior: "Reset the viewport transform.",
+    action: "Reset viewport",
   },
   {
-    shortcut: "Leftclick",
-    scope: "Global",
-    behavior: "Select constraint group.",
+    shortcut: "Left click",
+    action: "Select constraint",
   },
   {
-    shortcut: "Rightclick",
-    scope: "Global",
-    behavior: "Open properties for selected constraint group.",
+    shortcut: "Right click",
+    action: "Open constraint menu",
   },
   {
     shortcut: "Ctrl/cmd + Z",
-    scope: "Global",
-    behavior: "Undo last operation.",
+    action: "Undo change",
   },
   {
     shortcut: "Ctrl/cmd + Y",
-    scope: "Global",
-    behavior: "Redo last undone operation.",
+    action: "Redo change",
   },
   {
-    shortcut: "Middle Click",
-    scope: "Global",
-    behavior: "Freezes nucleotides in the current selection.",
+    shortcut: "Middle click",
+    action: "Freeze selection",
   },
   {
-    shortcut: "Ctrl/cmd + leftclick",
-    scope: "Global",
-    behavior:
-      "When clicked on a basepair breaks that basepair and when clicked on two nucleotides creates a basepair.",
+    shortcut: "Ctrl/cmd + click",
+    action: "Break or create pair",
   },
   {
-    shortcut: "Ctrl/cmd + shift + leftclick",
-    scope: "Global",
-    behavior: "Creates a new basepair between two nucleotides with repositioning.",
+    shortcut: "Ctrl/cmd + Shift + click",
+    action: "Create & reposition pair",
   },
   {
     shortcut: "Shift + R",
-    scope: "Global",
-    behavior: "Repositions the selected constraint group.",
+    action: "Recenter constraint",
   },
 ];
 
 const ABOUT_SHORTCUTS_NOTE =
-  "Keyboard shortcuts are ignored while focus is inside editable text fields, consistent with the app's accessibility policy.";
+  "";
 
 export const LEFT_PANEL_WIDTH = 420;
 
@@ -3173,49 +3164,51 @@ export namespace App {
                     );
                   case Tab.ABOUT:
                     return (
-                      <div className="about-panel">
-                        <section className="about-section">
-                          <p className="about-paragraph">
-                            Exornata is an interactive web app for editing, formatting, and annotating 2D RNA diagrams.
-                          </p>
-                          <h4 className="about-section__title">Getting started</h4>
-                          <ol className="about-ordered-list">
-                            <li>Load the 5S rRNA example from the Input/Output tab to explore a real structure.</li>
-                            <li>Pan or zoom the canvas to orient the complex, then narrow the active constraint if you need a smaller focus.</li>
-                            <li>Switch between Edit, Format, and Annotate modes as you tweak nucleotides, base pairs, and labels.</li>
-                            <li>Export your changes (JSON, XRna, SVG, etc.) and re-import later to pick up where you left off.</li>
-                          </ol>
-                        </section>
-
-                        <section className="about-section">
-                          <div className="about-section__header">
-                            <h4 className="about-section__title">Key shortcuts</h4>
-                            <span className="about-section__subtitle">Keep your hands on the keyboard while you iterate.</span>
+                      <div className="quickstart-panel">
+                        <section className="quickstart-section">
+                          <div className="quickstart-section__header">
+                            <h4 className="quickstart-section__title">Key shortcuts</h4>
+                            <span className="quickstart-section__subtitle">Stay on the keyboard for faster edits.</span>
                           </div>
-                          <div className="about-shortcut-grid">
+                          <div className="quickstart-shortcut-grid">
                             {ABOUT_SHORTCUTS.map((entry) => (
-                              <article className="about-shortcut-card" key={entry.shortcut}>
-                                <div className="about-shortcut-hotkey">{entry.shortcut}</div>
-                                <span className="about-shortcut-scope">{entry.scope}</span>
-                                <p className="about-shortcut-behavior">{entry.behavior}</p>
+                              <article className="quickstart-shortcut-card" key={entry.shortcut}>
+                                <div className="quickstart-shortcut-hotkey">{entry.shortcut}</div>
+                                <p className="quickstart-shortcut-behavior">{entry.action}</p>
                               </article>
                             ))}
                           </div>
-                          <p className="about-shortcut-note">{ABOUT_SHORTCUTS_NOTE}</p>
+                          {ABOUT_SHORTCUTS_NOTE ? (
+                            <p className="quickstart-shortcut-note">{ABOUT_SHORTCUTS_NOTE}</p>
+                          ) : null}
                         </section>
 
-                        <section className="about-section">
-                          <h4 className="about-section__title">Contact us</h4>
-                          <p className="about-paragraph">
-                            <a
-                              className="about-link"
+                        <section className="quickstart-section">
+                          <p className="quickstart-paragraph">
+                            Exornata is an interactive web app for editing, formatting, and annotating 2D RNA diagrams.
+                          </p>
+                          <h4 className="quickstart-section__title">Quickstart checklist</h4>
+                          <ol className="quickstart-ordered-list">
+                            <li>Start in Edit mode on the blank canvas that opens by default.</li>
+                            <li>Use <em>Load example</em> to pull in the 5S rRNA reference structure.</li>
+                            <li>Review the Units/Complex constraint and tighten it if you only need a subset.</li>
+                            <li>Drag, pan, or zoom to orient the structure before detailed edits.</li>
+                            <li>Jump to Format mode to refine base pairs and structural geometry.</li>
+                            <li>Switch into Annotate mode to apply labels or callouts.</li>
+                            <li>Export your edits as JSON, XRna, SVG, or other supported formats.</li>
+                            <li>Re-import the exported file later to resume exactly where you stopped.</li>
+                          </ol>
+                        </section>
+
+                        <section className="quickstart-section">
+                          <a
+                              className="quickstart-link"
                               href="https://github.com/LDWLab/XRNA-React/issues"
                               target="_blank"
                               rel="noopener noreferrer"
                             >
-                              Report a bug
-                            </a>
-                          </p>
+                          <h4 className="quickstart-section__title">Something went wrong?</h4>
+                          </a>
                         </section>
                       </div>
                     );
