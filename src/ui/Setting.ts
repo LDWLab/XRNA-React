@@ -8,7 +8,6 @@ export enum Setting {
   USE_DEGREES = "use_degrees",
   REPOSITION_NUCLEOTIDES_WHEN_FORMATTING = "reposition_nucleotides_when_formatting",
   AUTOMATICALLY_REPOSITION_ANNOTATIONS = "automatically_reposition_annotations",
-  BASE_PAIRS_EDITOR_TYPE = "base_pairs_editor_type",
   CANONICAL_BASE_PAIR_DISTANCE = "canonical_base_pair_distance",
   WOBBLE_BASE_PAIR_DISTANCE = "wobble_base_pair_distance",
   MISMATCH_BASE_PAIR_DISTANCE = "mismatch_base_pair_distance",
@@ -20,6 +19,7 @@ export enum Setting {
   DARK_MODE = "dark_mode",
   DISABLE_NAVIGATE_AWAY_PROMPT = "disable_navigate_away_prompt",
   TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED = "treat_non_canonical_base_pairs_as_unpaired",
+  
   // Grid settings
   GRID_ENABLED = "grid_enabled",
   GRID_HORIZONTAL_LINES = "grid_horizontal_lines",
@@ -41,7 +41,6 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "Reset viewport after file upload",
   [Setting.USE_DEGREES] : "Use degrees",
   [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "Reposition annotations when editing",
-  [Setting.BASE_PAIRS_EDITOR_TYPE] : "Format-tab base-pairs editor type",
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : "Reposition nucleotides when formatting",
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "Canonical base-pair distance",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "Wobble base-pair distance",
@@ -73,7 +72,6 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "Reset the viewport translation and scale after parsing an input file",
   [Setting.USE_DEGREES] : "Use degrees (instead of radians) when editing angles",
   [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "Reposition annotations when their parent nucleotides are repositioned",
-  [Setting.BASE_PAIRS_EDITOR_TYPE] : "Type of the base-pairs editor within the format menu",
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : "Reposition nucleotides when formatting",
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "The default distance between base pairs which are \"canonical.\" (i.e. Watson-Crick). Applied when formatting base pairs",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "The default distance between base pairs which are \"wobble.\" Applied when formatting base pairs",
@@ -99,13 +97,12 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.CANVAS_COLOR] : "Customize the canvas background color. Leave empty to use automatic theme-based colors."
 };
 
-export const settingsTypeMap : Record<Setting, "boolean" | "number" | "string" | "BasePairsEditorType"> = {
+export const settingsTypeMap : Record<Setting, "boolean" | "number" | "string"> = {
   [Setting.COPY_FILE_NAME] : "boolean",
   [Setting.COPY_FILE_EXTENSION] : "boolean",
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "boolean",
   [Setting.USE_DEGREES] : "boolean",
   [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "boolean",
-  [Setting.BASE_PAIRS_EDITOR_TYPE] : "BasePairsEditorType",
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : "boolean",
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "number",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "number",
@@ -135,7 +132,7 @@ export function isSetting(candidateSetting : string) : candidateSetting is Setti
   return (settings as Array<string>).includes(candidateSetting);
 }
 
-export type SettingValue = boolean | number | string | BasePairsEditor.EditorType;
+export type SettingValue = boolean | number | string;
 
 export type SettingsRecord = Record<Setting, SettingValue>;
 
@@ -145,7 +142,6 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : true,
   [Setting.USE_DEGREES] : true,
   [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : true,
-  [Setting.BASE_PAIRS_EDITOR_TYPE] : BasePairsEditor.EditorType.TABLE_BASED,
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : true,
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : NaN,
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : NaN,

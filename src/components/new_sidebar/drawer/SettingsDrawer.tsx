@@ -195,7 +195,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
                     const keys = Object.keys(json);
                     for (const key of keys) {
                       const value = json[key];
-                      if (!isSetting(key) || (typeof value !== settingsTypeMap[key] && !(settingsTypeMap[key] === 'BasePairsEditorType'))) {
+                      if (!isSetting(key) || (typeof value !== settingsTypeMap[key])) {
                         throw new Error('Unrecognized settings schema');
                       }
                     }
@@ -251,19 +251,6 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
                       <InputWithValidator.Number
                         value={settings[setting] as number}
                         setValue={(v: number) => setSettings({ ...settings, [setting]: v })}
-                      />
-                    </div>
-                  );
-                  break;
-                }
-                case 'BasePairsEditorType': {
-                  // lazy import to avoid circular
-                  const { BasePairsEditor } = require('../../app_specific/editors/BasePairsEditor');
-                  input = (
-                    <div style={{ minWidth: '160px' }}>
-                      <BasePairsEditor.EditorTypeSelector.Component
-                        editorType={settings[setting]}
-                        onChange={(t: any) => setSettings({ ...settings, [setting]: t })}
                       />
                     </div>
                   );
