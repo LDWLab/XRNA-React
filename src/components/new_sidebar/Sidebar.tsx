@@ -18,6 +18,8 @@ export interface SidebarProps {
   onTogglePropertiesDrawer?: () => void;
   onToggleSettingsDrawer?: () => void;
   onToggleAboutDrawer?: () => void;
+  onOpenDocs?: () => void;
+  onLoadExample?: () => void;
   undoStack?: Array<{ data: any; dataType: string }>;
   redoStack?: Array<{ data: any; dataType: string }>;
   onJumpToHistory?: (index: number) => void;
@@ -36,6 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     onUndo, onRedo, onResetViewport,
     onToggleBasePairEditor, onTogglePropertiesDrawer,
     onToggleSettingsDrawer, onToggleAboutDrawer,
+    onOpenDocs,
+    onLoadExample,
     undoStack, redoStack, onJumpToHistory, onResetToLastCheckpoint, onFormatModeClick,
     onFreezeSelected, onUnfreezeSelected, onUnfreezeAll,
     hasFrozenNucleotides, hasSelectedNucleotides,
@@ -63,6 +67,8 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
         onTogglePropertiesDrawer={onTogglePropertiesDrawer}
         onToggleSettingsDrawer={onToggleSettingsDrawer}
         onToggleAboutDrawer={onToggleAboutDrawer}
+        onOpenDocs={onOpenDocs}
+        onLoadExample={onLoadExample}
       />
     </SidebarLayout>
   );

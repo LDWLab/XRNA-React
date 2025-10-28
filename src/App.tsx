@@ -3759,43 +3759,25 @@ export namespace App {
               mode={tab}
               onModeChange={setTab}
               constraint={interactionConstraint}
-              onConstraintChange={
-                setInteractionConstraint
-              }
+              onConstraintChange={setInteractionConstraint}
               onToggleBasePairEditor={() => {
-                setRightClickMenuContent(
-                  <></>,
-                  {}
-                );
-                setBasepairSheetOpen(
-                  (prev) => !prev
-                );
+                setRightClickMenuContent(<></>, {});
+                setBasepairSheetOpen((prev) => !prev);
               }}
               onTogglePropertiesDrawer={() => {
-                if (
-                  drawerKind === "properties"
-                ) {
+                if (drawerKind === "properties") {
                   setDrawerKind(DrawerKind.NONE);
                 } else {
-                  setRightDrawerTitle(
-                    "Properties"
-                  );
+                  setRightDrawerTitle("Properties");
                   setDrawerKind(DrawerKind.PROPERTIES);
                 }
               }}
               onToggleSettingsDrawer={() => {
-                if (
-                  drawerKind === "settings"
-                ) {
+                if (drawerKind === "settings") {
                   setDrawerKind(DrawerKind.NONE);
                 } else {
-                  setRightClickMenuContent(
-                    <></>,
-                    {}
-                  );
-                  setRightDrawerTitle(
-                    "Settings"
-                  );
+                  setRightClickMenuContent(<></>, {});
+                  setRightDrawerTitle("Settings");
                   setDrawerKind(DrawerKind.SETTINGS);
                 }
               }}
@@ -3803,105 +3785,98 @@ export namespace App {
                 if (drawerKind === "about") {
                   setDrawerKind(DrawerKind.NONE);
                 } else {
-                  setRightClickMenuContent(
-                    <></>,
-                    {}
-                  );
-                  setRightDrawerTitle(
-                    "About XRNA"
-                  );
+                  setRightClickMenuContent(<></>, {});
+                  setRightDrawerTitle("About XRNA");
                   setDrawerKind(DrawerKind.ABOUT);
+                }
+              }}
+              onOpenDocs={() => {
+                window.location.hash = "#/docs";
+              }}
+              onLoadExample={async () => {
+                try {
+                  setSceneState(SceneState.DATA_IS_LOADING);
+                  const response = await fetch(`${process.env.PUBLIC_URL ?? ""}/7k00_23_b.json`);
+                  if (!response.ok) {
+                    throw new Error(`Failed to load example (status ${response.status})`);
+                  }
+                  const exampleText = await response.text();
+                  parseInputFileContent(exampleText, InputFileExtension.json);
+                  const exampleName = "7k00_23_b";
+                  const exampleFileName = `${exampleName}.json`;
+                  setInputFileNameAndExtension(exampleFileName);
+                  inputFileNameAndExtensionReference.current = exampleFileName;
+                  if (settingsRecord[Setting.COPY_FILE_NAME]) {
+                    setOutputFileName(exampleName);
+                    outputFileNameReference.current = exampleName;
+                  }
+                  if (settingsRecord[Setting.COPY_FILE_EXTENSION]) {
+                    setOutputFileExtension("json" as OutputFileExtension);
+                    outputFileExtensionReference.current = "json" as OutputFileExtension;
+                  }
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : String(error);
+                  setSceneState(SceneState.DATA_LOADING_FAILED);
+                  setDataLoadingFailedErrorMessage(message);
+                  setDataLoadingFailedErrorDetails(message);
                 }
               }}
               undoStack={undoStack}
               redoStack={redoStack}
               onJumpToHistory={(index) => {
-                const currentUndoStack =
-                  undoStackReference.current!;
-                const currentRedoStack =
-                  redoStackReference.current!;
+                const currentUndoStack = undoStackReference.current!;
+                const currentRedoStack = redoStackReference.current!;
 
                 if (
                   index < 0 ||
                   index >
-                    currentUndoStack.length +
-                      currentRedoStack.length
+                    currentUndoStack.length + currentRedoStack.length
                 ) {
                   return;
                 }
 
-                if (
-                  index ===
-                  currentUndoStack.length
-                ) {
+                if (index === currentUndoStack.length) {
                   return;
                 }
 
-                if (
-                  index <
-                  currentUndoStack.length
-                ) {
-                  const targetState =
-                    currentUndoStack[index];
+                if (index < currentUndoStack.length) {
+                  const targetState = currentUndoStack[index];
                   if (targetState) {
-                    switch (
-                      targetState.dataType
-                    ) {
+                    switch (targetState.dataType) {
                       case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
                         setIndicesOfFrozenNucleotides(
                           targetState.data as FullKeysRecord
                         );
                         break;
                       case UndoRedoStacksDataTypes.RnaComplexProps:
-                        setBasePairKeysToEdit(
-                          {}
-                        );
+                        setBasePairKeysToEdit({});
                         setRnaComplexProps(
                           targetState.data as RnaComplexProps
                         );
                         break;
                     }
 
-                    const newUndoStack =
-                      currentUndoStack.slice(
-                        0,
-                        index + 1
-                      );
+                    const newUndoStack = currentUndoStack.slice(0, index + 1);
                     const newRedoStack = [
                       ...currentRedoStack,
-                      ...currentUndoStack
-                        .slice(index + 1)
-                        .reverse(),
+                      ...currentUndoStack.slice(index + 1).reverse(),
                     ];
 
-                    setUndoStack(
-                      newUndoStack
-                    );
-                    setRedoStack(
-                      newRedoStack
-                    );
+                    setUndoStack(newUndoStack);
+                    setRedoStack(newRedoStack);
                   }
                 } else {
-                  const redoIndex =
-                    index -
-                    currentUndoStack.length;
-                  const targetState =
-                    currentRedoStack[
-                      redoIndex
-                    ];
+                  const redoIndex = index - currentUndoStack.length;
+                  const targetState = currentRedoStack[redoIndex];
                   if (targetState) {
-                    switch (
-                      targetState.dataType
-                    ) {
+                    switch (targetState.dataType) {
                       case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
                         setIndicesOfFrozenNucleotides(
                           targetState.data as FullKeysRecord
                         );
                         break;
                       case UndoRedoStacksDataTypes.RnaComplexProps:
-                        setBasePairKeysToEdit(
-                          {}
-                        );
+                        setBasePairKeysToEdit({});
                         setRnaComplexProps(
                           targetState.data as RnaComplexProps
                         );
@@ -3910,47 +3885,29 @@ export namespace App {
 
                     const newUndoStack = [
                       ...currentUndoStack,
-                      ...currentRedoStack.slice(
-                        0,
-                        redoIndex + 1
-                      ),
+                      ...currentRedoStack.slice(0, redoIndex + 1),
                     ];
-                    const newRedoStack =
-                      currentRedoStack.slice(
-                        redoIndex + 1
-                      );
+                    const newRedoStack = currentRedoStack.slice(redoIndex + 1);
 
-                    setUndoStack(
-                      newUndoStack
-                    );
-                    setRedoStack(
-                      newRedoStack
-                    );
+                    setUndoStack(newUndoStack);
+                    setRedoStack(newRedoStack);
                   }
                 }
               }}
               onResetToLastCheckpoint={() => {
-                const currentUndoStack =
-                  undoStackReference.current!;
+                const currentUndoStack = undoStackReference.current!;
 
-                if (
-                  currentUndoStack.length > 0
-                ) {
-                  const initialState =
-                    currentUndoStack[0];
+                if (currentUndoStack.length > 0) {
+                  const initialState = currentUndoStack[0];
                   if (initialState) {
-                    switch (
-                      initialState.dataType
-                    ) {
+                    switch (initialState.dataType) {
                       case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
                         setIndicesOfFrozenNucleotides(
                           initialState.data as FullKeysRecord
                         );
                         break;
                       case UndoRedoStacksDataTypes.RnaComplexProps:
-                        setBasePairKeysToEdit(
-                          {}
-                        );
+                        setBasePairKeysToEdit({});
                         setRnaComplexProps(
                           initialState.data as RnaComplexProps
                         );
@@ -3959,26 +3916,17 @@ export namespace App {
 
                     const newRedoStack = [
                       ...redoStackReference.current!,
-                      ...currentUndoStack
-                        .slice(1)
-                        .reverse(),
+                      ...currentUndoStack.slice(1).reverse(),
                     ];
 
-                    setUndoStack([
-                      initialState,
-                    ]);
-                    setRedoStack(
-                      newRedoStack
-                    );
+                    setUndoStack([initialState]);
+                    setRedoStack(newRedoStack);
                   }
                 }
               }}
               onFormatModeClick={() => {
-                setRightClickMenuContent(
-                  <></>,
-                  {}
-                );
-                
+                setRightClickMenuContent(<></>, {});
+
                 // Toggle basepair editor: close if open, open if closed
                 if (basepairSheetOpen) {
                   setBasepairSheetOpen(false);
@@ -3995,8 +3943,7 @@ export namespace App {
                   );
 
                   // Create selection based on current constraint
-                  let constraintSelection: FullKeysRecord =
-                    {};
+                  let constraintSelection: FullKeysRecord = {};
 
                   if (
                     interactionConstraint &&
