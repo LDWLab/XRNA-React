@@ -2,6 +2,7 @@ import React from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { PanelContainer } from '../layout/PanelContainer';
 import { Tab, tabs } from '../../../app_data/Tab';
+import './AboutDrawer.css';
 
 export interface AboutDrawerProps {
   open: boolean;

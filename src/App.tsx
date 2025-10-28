@@ -117,6 +117,74 @@ for (
 
 const FLOATING_CONTROLS_POSITION = { top: 80, right: 17 };
 
+type AboutShortcut = {
+  shortcut: string;
+  scope: string;
+  behavior: string;
+};
+
+const ABOUT_SHORTCUTS: AboutShortcut[] = [
+  {
+    shortcut: "Ctrl/cmd + O",
+    scope: "Global",
+    behavior: "Open the file picker (browser prompt).",
+  },
+  {
+    shortcut: "Ctrl/cmd + S",
+    scope: "Global",
+    behavior: "Trigger the save/export dialog.",
+  },
+  {
+    shortcut: "Ctrl/cmd + 0",
+    scope: "Global",
+    behavior: "Reset the viewport transform.",
+  },
+  {
+    shortcut: "Leftclick",
+    scope: "Global",
+    behavior: "Select constraint group.",
+  },
+  {
+    shortcut: "Rightclick",
+    scope: "Global",
+    behavior: "Open properties for selected constraint group.",
+  },
+  {
+    shortcut: "Ctrl/cmd + Z",
+    scope: "Global",
+    behavior: "Undo last operation.",
+  },
+  {
+    shortcut: "Ctrl/cmd + Y",
+    scope: "Global",
+    behavior: "Redo last undone operation.",
+  },
+  {
+    shortcut: "Middle Click",
+    scope: "Global",
+    behavior: "Freezes nucleotides in the current selection.",
+  },
+  {
+    shortcut: "Ctrl/cmd + leftclick",
+    scope: "Global",
+    behavior:
+      "When clicked on a basepair breaks that basepair and when clicked on two nucleotides creates a basepair.",
+  },
+  {
+    shortcut: "Ctrl/cmd + shift + leftclick",
+    scope: "Global",
+    behavior: "Creates a new basepair between two nucleotides with repositioning.",
+  },
+  {
+    shortcut: "Shift + R",
+    scope: "Global",
+    behavior: "Repositions the selected constraint group.",
+  },
+];
+
+const ABOUT_SHORTCUTS_NOTE =
+  "Keyboard shortcuts are ignored while focus is inside editable text fields, consistent with the app's accessibility policy.";
+
 export const LEFT_PANEL_WIDTH = 420;
 
 export const PARENT_DIV_HTML_ID = "parent_div";
@@ -3105,75 +3173,50 @@ export namespace App {
                     );
                   case Tab.ABOUT:
                     return (
-                      <div>
-                        <p>
-                          XRNA.js is an
-                          interactive web
-                          app for editing,
-                          formatting, and
-                          annotating 2D RNA
-                          diagrams with
-                          precision.
-                        </p>
-                        <h4>
-                          Getting Started:
-                        </h4>
-                        <ol>
-                          <li>
-                            Download a
-                            sample input
-                            file from the
-                            Input/Output
-                            area
-                          </li>
-                          <li>
-                            Upload it via
-                            the File panel
-                            in the left
-                            sidebar
-                          </li>
-                          <li>
-                            Use
-                            Edit/Format/Annotate
-                            tools for
-                            operations on
-                            nucleotides and
-                            base pairs
-                          </li>
-                        </ol>
-                        <h4>Shortcuts:</h4>
-                        <ul>
-                          <li>
-                            Ctrl + O — Open
-                            file
-                          </li>
-                          <li>
-                            Ctrl + S — Save
-                            file
-                          </li>
-                          <li>
-                            Ctrl + 0 — Reset
-                            viewport
-                          </li>
-                          <li>
-                            Ctrl + Z — Undo
-                          </li>
-                          <li>
-                            Ctrl + Shift + Z
-                            / Ctrl + Y —
-                            Redo
-                          </li>
-                        </ul>
-                        <h4>Contact Us:</h4>
-                        <p>
-                          <a
-                            href="https://github.com/LDWLab/XRNA-React/issues"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Report a bug
-                          </a>
-                        </p>
+                      <div className="about-panel">
+                        <section className="about-section">
+                          <p className="about-paragraph">
+                            Exornata is an interactive web app for editing, formatting, and annotating 2D RNA diagrams.
+                          </p>
+                          <h4 className="about-section__title">Getting started</h4>
+                          <ol className="about-ordered-list">
+                            <li>Load the 5S rRNA example from the Input/Output tab to explore a real structure.</li>
+                            <li>Pan or zoom the canvas to orient the complex, then narrow the active constraint if you need a smaller focus.</li>
+                            <li>Switch between Edit, Format, and Annotate modes as you tweak nucleotides, base pairs, and labels.</li>
+                            <li>Export your changes (JSON, XRna, SVG, etc.) and re-import later to pick up where you left off.</li>
+                          </ol>
+                        </section>
+
+                        <section className="about-section">
+                          <div className="about-section__header">
+                            <h4 className="about-section__title">Key shortcuts</h4>
+                            <span className="about-section__subtitle">Keep your hands on the keyboard while you iterate.</span>
+                          </div>
+                          <div className="about-shortcut-grid">
+                            {ABOUT_SHORTCUTS.map((entry) => (
+                              <article className="about-shortcut-card" key={entry.shortcut}>
+                                <div className="about-shortcut-hotkey">{entry.shortcut}</div>
+                                <span className="about-shortcut-scope">{entry.scope}</span>
+                                <p className="about-shortcut-behavior">{entry.behavior}</p>
+                              </article>
+                            ))}
+                          </div>
+                          <p className="about-shortcut-note">{ABOUT_SHORTCUTS_NOTE}</p>
+                        </section>
+
+                        <section className="about-section">
+                          <h4 className="about-section__title">Contact us</h4>
+                          <p className="about-paragraph">
+                            <a
+                              className="about-link"
+                              href="https://github.com/LDWLab/XRNA-React/issues"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Report a bug
+                            </a>
+                          </p>
+                        </section>
                       </div>
                     );
                   default:

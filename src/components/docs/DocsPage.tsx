@@ -30,11 +30,22 @@ type DocTableBlock = {
   rows: string[][];
 };
 
+type DocImageWidth = "sm" | "md" | "lg" | "full";
+
+type DocImageBlock = {
+  type: "image";
+  src: string;
+  alt: string;
+  caption?: string;
+  width?: DocImageWidth;
+};
+
 type DocContentBlock =
   | DocParagraphBlock
   | DocListBlock
   | DocNoteBlock
-  | DocTableBlock;
+  | DocTableBlock
+  | DocImageBlock;
 
 type DocSection = {
   id: string;
@@ -138,6 +149,34 @@ function renderRichText(text: string) {
   });
 }
 
+function resolveAssetUrl(src: string): string {
+  if (/^(?:[a-z]+:)?\/\//i.test(src) || src.startsWith("data:")) {
+    return src;
+  }
+  const publicUrl = process.env.PUBLIC_URL ?? "";
+  const normalizedSrc = src.startsWith("/") ? src : `/${src}`;
+  if (!publicUrl) {
+    return normalizedSrc;
+  }
+  const separator = publicUrl.endsWith("/") ? "" : "/";
+  return `${publicUrl}${separator}${normalizedSrc.replace(/^\/+/, "")}`;
+}
+
+function getImageWidthClass(width?: DocImageWidth): string {
+  switch (width) {
+    case "sm":
+      return " docs-image--sm";
+    case "md":
+      return " docs-image--md";
+    case "lg":
+      return " docs-image--lg";
+    case "full":
+      return " docs-image--full";
+    default:
+      return "";
+  }
+}
+
 function renderContentBlock(block: DocContentBlock, key: string | number) {
   switch (block.type) {
     case "paragraph":
@@ -188,6 +227,17 @@ function renderContentBlock(block: DocContentBlock, key: string | number) {
             </tbody>
           </table>
         </div>
+      );
+    case "image":
+      return (
+        <figure key={key} className={`docs-image${getImageWidthClass(block.width)}`}>
+          <img src={resolveAssetUrl(block.src)} alt={block.alt} loading="lazy" />
+          {block.caption ? (
+            <figcaption className="docs-image__caption">
+              {renderRichText(block.caption)}
+            </figcaption>
+          ) : null}
+        </figure>
       );
     default:
       return null;

@@ -1,0 +1,105 @@
+.about-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl, 1.5rem);
+  color: var(--color-text, #111827);
+  font-size: var(--font-size-md, 1rem);
+  line-height: var(--line-height-relaxed, 1.6);
+}
+
+.about-section {
+  display: grid;
+  gap: var(--spacing-lg, 1rem);
+}
+
+.about-section__header {
+  display: grid;
+  gap: var(--spacing-xs, 0.25rem);
+}
+
+.about-section__title {
+  margin: 0;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text, #1f2937);
+}
+
+.about-section__subtitle {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-textMuted, #6b7280);
+}
+
+.about-paragraph {
+  margin: 0;
+  color: var(--color-textSecondary, #374151);
+}
+
+.about-ordered-list {
+  margin: 0;
+  padding-inline-start: var(--spacing-xl, 1.5rem);
+  display: grid;
+  gap: var(--spacing-sm, 0.5rem);
+}
+
+.about-shortcut-grid {
+  display: grid;
+  gap: var(--spacing-md, 0.75rem);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.about-shortcut-card {
+  display: grid;
+  gap: var(--spacing-xs, 0.25rem);
+  padding: var(--spacing-md, 0.75rem) var(--spacing-lg, 1rem);
+  border-radius: var(--border-radius-md, 8px);
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, rgba(148, 163, 184, 0.4));
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.08));
+  transition: box-shadow var(--transition-default, 0.2s ease),
+    transform var(--transition-default, 0.2s ease);
+}
+
+.about-shortcut-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 6px 20px rgba(15, 23, 42, 0.12));
+}
+
+.about-shortcut-hotkey {
+  font-family: "Source Code Pro", "Fira Code", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-textStrong, #111827);
+}
+
+.about-shortcut-scope {
+  font-size: var(--font-size-xs, 0.8125rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-textMuted, #6b7280);
+}
+
+.about-shortcut-behavior {
+  margin: 0;
+  color: var(--color-textSecondary, #374151);
+  line-height: var(--line-height-normal, 1.45);
+}
+
+.about-shortcut-note {
+  margin: 0;
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
+  border-radius: var(--border-radius-md, 8px);
+  background: var(--color-infoLight, rgba(59, 130, 246, 0.12));
+  color: var(--color-info, #2563eb);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.about-link {
+  color: var(--color-primary, #2563eb);
+  font-weight: var(--font-weight-semibold, 600);
+  text-decoration: none;
+}
+
+.about-link:hover,
+.about-link:focus-visible {
+  text-decoration: underline;
+}
