@@ -850,7 +850,7 @@ export namespace BasePairsEditor {
     const [
       editorType,
       setEditorType
-    ] = useState<EditorType>(settingsRecord[Setting.BASE_PAIRS_EDITOR_TYPE] as EditorType);
+    ] = useState<EditorType>(EditorType.TABLE_BASED);
     const [
       overrideConflictingBasePairsFlag,
       setOverrideConflictingBasePairsFlag
@@ -1555,7 +1555,7 @@ export namespace BasePairsEditor {
         }
         const averageOfAverageHelixDistance = helixDistanceSum / helixDistanceCount;
 
-        const initialEditorType = settingsRecord[Setting.BASE_PAIRS_EDITOR_TYPE] as EditorType;
+        const initialEditorType = EditorType.TABLE_BASED;
         const initialRepositionNucleotidesFlag = settingsRecord[Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] as boolean;
         const initialCanonicalBasePairDistance = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
         const initialMismatchBasePairDistance = settingsRecord[Setting.MISMATCH_BASE_PAIR_DISTANCE] as number;

@@ -19,7 +19,7 @@ export enum Setting {
   DARK_MODE = "dark_mode",
   DISABLE_NAVIGATE_AWAY_PROMPT = "disable_navigate_away_prompt",
   TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED = "treat_non_canonical_base_pairs_as_unpaired",
-  
+  BASE_PAIR_RADIUS = "base_pair_radius",
   // Grid settings
   GRID_ENABLED = "grid_enabled",
   GRID_HORIZONTAL_LINES = "grid_horizontal_lines",
@@ -53,6 +53,7 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.DARK_MODE] : "Dark mode",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the navigate-away prompt",
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Treat non-canonical base pairs as unpaired (when editing and formatting)",
+  [Setting.BASE_PAIR_RADIUS] : "Radius of base-pair circles",
   // Grid settings
   [Setting.GRID_ENABLED] : "Enable canvas grid",
   [Setting.GRID_HORIZONTAL_LINES] : "Show horizontal grid lines",
@@ -84,6 +85,7 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.DARK_MODE] : "Change background colors and scene colors to darken the scene",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the prompt asking you to save your work, when you navigate away from this page",
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Disable editing and formatting of non-canonical base pairs.",
+  [Setting.BASE_PAIR_RADIUS] : "Radius of base-pair circles (also affects dimensions of non-canonical base pairs)",
   // Grid settings
   [Setting.GRID_ENABLED] : "Enable or disable the canvas grid system. When enabled, you can choose which grid types to display.",
   [Setting.GRID_HORIZONTAL_LINES] : "Display horizontal parallel lines across the canvas. These lines move with the viewport pan but maintain their spacing.",
@@ -115,6 +117,7 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "string"> 
   [Setting.DARK_MODE] : "boolean",
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "boolean",
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "boolean",
+  [Setting.BASE_PAIR_RADIUS] : "number",
   // Grid settings
   [Setting.GRID_ENABLED] : "boolean",
   [Setting.GRID_HORIZONTAL_LINES] : "boolean",
@@ -154,6 +157,7 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.DARK_MODE] : false,
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : false,
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : true,
+  [Setting.BASE_PAIR_RADIUS] : Number.NaN,
   // Grid settings
   [Setting.GRID_ENABLED] : false,
   [Setting.GRID_HORIZONTAL_LINES] : true,

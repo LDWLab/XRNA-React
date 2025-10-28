@@ -74,6 +74,7 @@ export namespace Context {
     export const SetKeysToRerender = createContext<SetKeysToRerender>(function(nucleotideKeysToRerender : NucleotideKeysToRerender) { /* Do nothing. */ });
     export const LabelsOnlyFlag = createContext(false);
     export const Symbol = createContext<string>("");
+    export const AverageBoundingRectHeight = createContext<number>(0);
   }
 
   export namespace BasePair {
@@ -209,7 +210,8 @@ export namespace Context {
     setBasePairKeysToRerender : BasePair.SetKeysToRerender,
     updateRnaMoleculeNameHelper : App.UpdateRnaMoleculeNameHelper,
     setBasePairKeysToEdit : BasePair.SetKeysToEdit,
-    singularRnaComplexFlag : boolean
+    singularRnaComplexFlag : boolean,
+    averageNucleotideBoundingRectHeight : number
   };
 
   export function Component(props : Props) {
@@ -233,7 +235,8 @@ export namespace Context {
       setBasePairKeysToRerender,
       updateRnaMoleculeNameHelper,
       setBasePairKeysToEdit,
-      singularRnaComplexFlag
+      singularRnaComplexFlag,
+      averageNucleotideBoundingRectHeight
     } = props;
     return <ThemeProvider
       settingsRecord={settingsRecord}
@@ -260,7 +263,9 @@ export namespace Context {
                                     <App.UpdateRnaMoleculeNameHelper.Provider value={updateRnaMoleculeNameHelper}>
                                       <BasePair.SetKeysToEdit.Provider value={setBasePairKeysToEdit}>
                                         <App.SingularRnaComplexFlag.Provider value = {singularRnaComplexFlag}>
-                                          {children}
+                                          <Nucleotide.AverageBoundingRectHeight.Provider value = {averageNucleotideBoundingRectHeight}>
+                                            {children}
+                                          </Nucleotide.AverageBoundingRectHeight.Provider>
                                         </App.SingularRnaComplexFlag.Provider>
                                       </BasePair.SetKeysToEdit.Provider>
                                     </App.UpdateRnaMoleculeNameHelper.Provider>

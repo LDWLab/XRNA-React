@@ -280,9 +280,6 @@ export namespace BasePair {
     fill? : string
   };
 
-  const interpolationFactor0 = 0.25;
-  const interpolationFactor1 = 1 - interpolationFactor0;
-
   const sugarEdgeSugarEdgeScalar = Math.sqrt(3) * 0.5;
   const nonSugarEdgeSugarEdgeScalar = (3 + Math.sqrt(3)) * 0.5;
 
@@ -300,17 +297,18 @@ export namespace BasePair {
     }
   }
 
+  const AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR = 0.5;
+
   function interpolatedPositions(
     position0 : Vector2D,
     position1 : Vector2D,
-    basePairRadius : number
+    bufferRadius : number
   ) {
     const maximumDistance = distance(
       position0,
       position1
     );
-    const arbitraryScalarForGraphics = 2;
-    const interpolationFactor0 = basePairRadius * arbitraryScalarForGraphics / maximumDistance;
+    const interpolationFactor0 = bufferRadius / maximumDistance;
     const interpolationFactor1 = 1 - interpolationFactor0;
     return {
       interpolatedPosition0 : interpolate(
@@ -339,13 +337,14 @@ export namespace BasePair {
       className
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
+    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      basePairRadius
+      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -445,15 +444,14 @@ export namespace BasePair {
       className
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
-    const interpolatedPosition0 = interpolate(
+    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
+    const {
+      interpolatedPosition0,
+      interpolatedPosition1
+    } = interpolatedPositions(
       position0,
       position1,
-      interpolationFactor0
-    );
-    const interpolatedPosition1 = interpolate(
-      position0,
-      position1,
-      interpolationFactor1
+      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     const strokeForLines = ["none", undefined].includes(stroke) ? fill : stroke;
     const center = scaleUp(
@@ -567,13 +565,14 @@ export namespace BasePair {
       className
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
+    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      basePairRadius
+      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -775,13 +774,14 @@ export namespace BasePair {
       onMouseDown
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
+    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      basePairRadius
+      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -968,13 +968,14 @@ export namespace BasePair {
       onMouseDown
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
+    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      basePairRadius
+      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -1122,13 +1123,14 @@ export namespace BasePair {
       onMouseDown
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
+    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      basePairRadius
+      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -1331,13 +1333,14 @@ export namespace BasePair {
       onMouseDown
     } = props;
     const basePairRadius = useContext(Context.BasePair.Radius);
+    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      basePairRadius
+      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,

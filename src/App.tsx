@@ -17,6 +17,8 @@ import {
   RnaComplex,
   insertBasePair,
   DuplicateBasePairKeysHandler,
+  isRelevantBasePairKeySetInPair,
+  compareFullBasePairKeys,
 } from "./components/app_specific/RnaComplex";
 import {
   OutputFileExtension,
@@ -435,6 +437,7 @@ export namespace App {
       Array<JSX.Element>
     >([]);
     const [outputFileHandle, setOutputFileHandle] = useState<any>(undefined);
+    const [averageNucleotideBoundingRectHeight, setAverageNucleotideBoundingRectHeight] = useState<number>(0);
     const [basePairRadius, setBasePairRadius] = useState<number>(0);
     enum DrawerKind {
       NONE = "none",
@@ -2079,7 +2082,6 @@ export namespace App {
             
             setRnaComplexProps(parsedInput.rnaComplexProps);
             if (Object.keys(parsedInput.rnaComplexProps).length > 0) {
-              let numSeconds = 2;
               setTimeout(function () {
                 if (settingsRecord[Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD]) {
                   resetViewport();
@@ -2100,9 +2102,21 @@ export namespace App {
                   numberOfBoundingRects == 0
                     ? 1
                     : (boundingRectHeightsSum / numberOfBoundingRects);
-                setBasePairRadius(averageBoundingRectHeight * 0.33);
-                setSceneState(SceneState.DATA_IS_LOADED);
-              }, numSeconds * 1000);
+                const newBasePairRadius = averageBoundingRectHeight * 0.33;
+                setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
+                setBasePairRadius(newBasePairRadius);
+                setSettingsRecord({
+                  ...settingsRecord,
+                  [Setting.BASE_PAIR_RADIUS] : newBasePairRadius
+                });
+                setTimeout(
+                  () => {
+                    resetViewport();
+                    setSceneState(SceneState.DATA_IS_LOADED);
+                  },
+                  0
+                );
+              }, 0);
             } else {
               setSceneState(SceneState.NO_DATA);
             }
@@ -3598,6 +3612,50 @@ export namespace App {
       },
       [settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED]]
     );
+    useEffect(
+      () => {
+        setBasePairRadius(settingsRecord[Setting.BASE_PAIR_RADIUS] as number);
+        const basePairKeysToEdit : Context.BasePair.KeysToEdit = {};
+        for (const [rnaComplexIndexAsString, { basePairs : basePairsPerRnaComplex }] of Object.entries(rnaComplexProps)) {
+          const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+          basePairKeysToEdit[rnaComplexIndex] = {
+            add : [],
+            delete : []
+          };
+          const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[rnaComplexIndex];
+          for (const [rnaMoleculeName, basePairsPerRnaMolecule] of Object.entries(basePairsPerRnaComplex)) {
+            for (const [nucleotideIndexAsString, basePairsPerNucleotide] of Object.entries(basePairsPerRnaMolecule)) {
+              const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
+              const keys0 = {
+                rnaMoleculeName,
+                nucleotideIndex
+              };
+              for (const basePair of basePairsPerNucleotide) {
+                if (!isRelevantBasePairKeySetInPair(
+                  keys0,
+                  basePair
+                )) {
+                  basePairKeysToEditPerRnaComplex.delete.push({
+                    keys0,
+                    keys1 : basePair
+                  });
+                  basePairKeysToEditPerRnaComplex.add.push({
+                    keys0,
+                    keys1 : basePair
+                  });
+                }
+              }
+            }
+          }
+        }
+        for (const basePairKeysToEditPerRnaComplex of Object.values(basePairKeysToEdit)) {
+          basePairKeysToEditPerRnaComplex.add.sort(compareFullBasePairKeys);
+          basePairKeysToEditPerRnaComplex.delete.sort(compareFullBasePairKeys);
+        }
+        setBasePairKeysToEdit(basePairKeysToEdit);
+      },
+      [settingsRecord[Setting.BASE_PAIR_RADIUS]]
+    );
     return (
       <Context.MemoizedComponent
         settingsRecord = {settingsRecord}
@@ -3619,6 +3677,7 @@ export namespace App {
         updateRnaMoleculeNameHelper = {updateRnaMoleculeNameHelper}
         setBasePairKeysToEdit = {setBasePairKeysToEdit}
         singularRnaComplexFlag = {singularRnaComplexFlag}
+        averageNucleotideBoundingRectHeight = {averageNucleotideBoundingRectHeight}
       >
         <div
           id={PARENT_DIV_HTML_ID}
