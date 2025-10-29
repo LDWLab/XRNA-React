@@ -24,6 +24,14 @@ import { BasePairsEditor } from "../../components/app_specific/editors/BasePairs
 import BasePair, { getBasePairType } from "../../components/app_specific/BasePair";
 import { DEFAULT_SETTINGS, Setting } from "../Setting";
 
+export type Helix = {
+  rnaComplexIndex : number,
+  rnaMoleculeName0 : string,
+  rnaMoleculeName1 : string,
+  start : Extrema,
+  stop : Extrema
+};
+
 export type Extrema = {
   0 : number,
   1 : number
@@ -115,8 +123,8 @@ export function iterateOverFreeNucleotidesAndHelicesPerScene(
   treatNoncanonicalBasePairsAsUnpairedFlag : boolean
 ) : Array<HelixDataPerRnaComplex> {
   const helixDataPerScene : Array<HelixDataPerRnaComplex> = [];
-  for (const rnaComplexIndexAsString in rnaComplexProps) {
-    const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
+  // Enforce sorted order.
+  for (const rnaComplexIndex of Object.keys(rnaComplexProps).map(rnaComplexIndexAsString => Number.parseInt(rnaComplexIndexAsString)).sort(subtractNumbers)) {
     const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
     const sortedBasePairs : SortedBasePairKeys = getSortedBasePairs(
       singularRnaComplexProps,
@@ -142,7 +150,8 @@ export function iterateOverFreeNucleotidesAndHelicesPerRnaComplex(
   )
 ) : HelixDataPerRnaComplex {
   const helixDataPerRnaMolecules : Array<HelixDataPerRnaMolecule> = [];
-  for (let rnaMoleculeName in singularRnaComplexProps.rnaMoleculeProps) {
+  // Enforce sorted order.
+  for (const rnaMoleculeName of Object.keys(singularRnaComplexProps.rnaMoleculeProps).sort()) {
     const helixDatumPerRnaMolecule = iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
       singularRnaComplexProps,
       rnaMoleculeName,

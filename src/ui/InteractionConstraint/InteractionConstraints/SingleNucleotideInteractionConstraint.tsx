@@ -4,7 +4,7 @@ import { Vector2D } from "../../../data_structures/Vector2D";
 import { AbstractInteractionConstraint, InteractionConstraintError, basePairedNucleotideError } from "../AbstractInteractionConstraint";
 import { SingleNucleotideInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/SingleNucleotideInteractionConstraintEditMenu";
 import { Nucleotide } from "../../../components/app_specific/Nucleotide";
-import { InteractionConstraint } from "../InteractionConstraints";
+import { Helix, InteractionConstraint } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
@@ -223,5 +223,9 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
       {header}
       {menu}
     </>;
+  }
+
+  public override getHelices() {
+    return [];
   }
 };

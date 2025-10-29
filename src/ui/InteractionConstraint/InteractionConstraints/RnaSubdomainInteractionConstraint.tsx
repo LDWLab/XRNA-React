@@ -11,7 +11,7 @@ import { scaleUp, add, orthogonalizeLeft, subtract, asAngle } from "../../../dat
 import { range, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError, multipleBasePairsNucleotideError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { InteractionConstraint, HelixData, populateToBeDraggedWithHelix, iterateOverFreeNucleotidesAndHelicesPerNucleotideRange } from "../InteractionConstraints";
+import { InteractionConstraint, HelixData, populateToBeDraggedWithHelix, iterateOverFreeNucleotidesAndHelicesPerNucleotideRange, Helix } from "../InteractionConstraints";
 import { AllInOneEditor } from "./AllInOneEditor";
 
 const complexSeriesOfBasePairsError = {
@@ -25,6 +25,7 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
   private readonly minimumNucleotideIndex : number;
   private readonly maximumNucleotideIndex : number;
+  private readonly helices : Array<Helix>;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -262,6 +263,15 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       this.maximumNucleotideIndex,
       treatNoncanonicalBasePairsAsUnpairedFlag
     );
+    this.helices = helixData.helixData.map(function({ start, stop }) {
+      return {
+        rnaComplexIndex,
+        rnaMoleculeName0 : rnaMoleculeName,
+        rnaMoleculeName1 : rnaMoleculeName,
+        start,
+        stop
+      };
+    });
     const initialBasePairs : Array<BasePairsEditor.BasePair> = helixData.helixData.map(function(helixDatum) {
       return {
         rnaComplexIndex,
@@ -370,5 +380,9 @@ export class RnaSubdomainInteractionConstraint extends AbstractInteractionConstr
       {this.partialMenuHeader}
       {menu}
     </>;
+  }
+
+  public override getHelices() {
+    return this.helices;
   }
 }

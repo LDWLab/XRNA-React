@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useTheme } from "../../../context/ThemeContext";
 import { ThemeToggle } from "../../ui/ThemeToggle";
 import { Button } from "./Button";
-import { FileDown, FolderOpen, Save, ChevronDown } from "lucide-react";
+import { FileDown, FolderOpen, Save, ChevronDown, Download } from "lucide-react";
 import { OutputFileExtension } from "../../../io/OutputUI";
 import { LEFT_PANEL_WIDTH } from '../../../App';
 import { outputFileExtensions } from "../../../io/OutputUI";
@@ -222,6 +222,8 @@ export type TopbarProps = {
   onExportFormatChange?: (format: OutputFileExtension) => void;
   downloadButtonReference: React.MutableRefObject<HTMLButtonElement | null>;
   fileNameInputReference: React.MutableRefObject<HTMLInputElement | null>;
+  saveButtonsDisabledFlag : boolean;
+  onDownload : () => void;
 };
 
 export const TOPBAR_HEIGHT = 56;
@@ -236,7 +238,9 @@ export const Topbar: React.FC<TopbarProps> = ({
   exportFormats = EXPORT_FORMATS,
   onExportFormatChange,
   downloadButtonReference,
-  fileNameInputReference
+  fileNameInputReference,
+  saveButtonsDisabledFlag,
+  onDownload
 }) => {
   const { theme } = useTheme();
   
@@ -326,25 +330,36 @@ export const Topbar: React.FC<TopbarProps> = ({
           onChange={(value) => onExportFormatChange?.(value as OutputFileExtension)}
           theme={theme}
         />
-        <Button
-          label="Save"
-          onClick={onSave}
+        {onSave && <>
+          <Button
+            label="Save"
+            onClick={onSave}
+            disabled={saveButtonsDisabledFlag || !fileName || !exportFormat}
+            variant="secondary"
+            icon={<Save size={12} />}
+            ref = {downloadButtonReference}
+          />
+          <Button
+            label="Export"
+            variant="primary"
+            icon={<FileDown size={12} />}
+            disabled={saveButtonsDisabledFlag || !fileName || !exportFormat}
+            onClick={() => {
+              if (!exportFormat) {
+                return;
+              }
+              onExportWithFormat?.(fileName, exportFormat)
+            }}
+          />
+        </>}
+        {!onSave && <Button
+          label="Download"
+          onClick={onDownload}
+          disabled={saveButtonsDisabledFlag || !fileName || !exportFormat}
           variant="secondary"
-          icon={<Save size={12} />}
+          icon={<Download size={12} />}
           ref = {downloadButtonReference}
-        />
-        <Button
-          label="Export"
-          variant="primary"
-          icon={<FileDown size={12} />}
-          disabled={!fileName || !exportFormat}
-          onClick={() => {
-            if (!exportFormat) {
-              return;
-            }
-            onExportWithFormat?.(fileName, exportFormat)
-          }}
-        />
+        />}
       </div>
       <ThemeToggle />
     </div>

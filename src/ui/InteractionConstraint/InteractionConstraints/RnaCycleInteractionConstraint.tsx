@@ -2,7 +2,7 @@ import { ReactNode, useMemo } from "react";
 import { RnaComplexProps, FullKeys, DragListener, NucleotideKey, RnaMoleculeKey, FullKeysRecord } from "../../../App";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../../context/Context";
 import { AbstractInteractionConstraint, basePairedNucleotideError, InteractionConstraintError } from "../AbstractInteractionConstraint";
-import { InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerRnaComplex } from "../InteractionConstraints";
+import { Helix, InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerRnaComplex } from "../InteractionConstraints";
 import { RnaCycleInteractionConstraintEditMenu } from "./RnaCycleInteractionConstraintEditMenu";
 import { PolarVector2D, Vector2D, add, angleBetween, asAngle, crossProduct, distance, dotProduct, magnitude, negate, normalize, orthogonalizeLeft, scaleUp, subtract, toCartesian, toNormalCartesian, toPolar } from "../../../data_structures/Vector2D";
 import { getBoundingCircle } from "../../../data_structures/Geometry";
@@ -38,6 +38,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
   ) => void;
   private readonly minimumRadius : number;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
+  private readonly helices : Array<Helix>;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -872,6 +873,7 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
     );
     const indicesOfAffectedNucleotidesPerRnaComplex = this.indicesOfAffectedNucleotides[fullKeys0.rnaComplexIndex];
     const initialBasePairs = [];
+    this.helices = [];
     for (const { rnaMoleculeName0, helixData } of helixDataPerRnaComplex.helixDataPerRnaMolecules) {
       for (const {
         rnaMoleculeName1,
@@ -912,6 +914,13 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
           continue;
         }
         initialBasePairs.push(initialBasePairDatum);
+        this.helices.push({
+          rnaComplexIndex : fullKeys0.rnaComplexIndex,
+          rnaMoleculeName0,
+          rnaMoleculeName1,
+          start,
+          stop
+        });
       }
     }
     this.initialBasePairs = initialBasePairs;
@@ -1029,5 +1038,9 @@ export class RnaCycleInteractionConstraint extends AbstractInteractionConstraint
       <br/>
       {menu}
     </>;
+  }
+
+  public override getHelices() {
+    return this.helices;
   }
 }

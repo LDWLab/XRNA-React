@@ -2,7 +2,7 @@ import { RnaComplex, compareBasePairKeys, selectRelevantBasePairKeys } from "../
 import { NucleotideKeysToRerender, BasePairKeysToRerender, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
 import { linearDrag } from "../CommonDragListeners";
 import { AbstractInteractionConstraint, InteractionConstraintError, multipleBasePairsNucleotideError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
-import { InteractionConstraint } from "../InteractionConstraints";
+import { Helix, InteractionConstraint } from "../InteractionConstraints";
 import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../../App";
 import { SingleBasePairInteractionConstraintEditMenu } from "../../../components/app_specific/menus/edit_menus/SingleBasePairinteractionConstraintEditMenu";
 import BasePair, { getBasePairType } from "../../../components/app_specific/BasePair";
@@ -33,6 +33,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
   private readonly frozenFlag1 : boolean = false;
   private readonly hairpinLoopFlag : boolean = false;
   private readonly indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule0 : Set<number>;
+  private readonly helices : Array<Helix>;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -342,6 +343,19 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
         ...basePairPerNucleotide
       }
     );
+    this.helices = [{
+      rnaComplexIndex,
+      rnaMoleculeName0,
+      rnaMoleculeName1,
+      start : {
+        0 : nucleotideIndex0,
+        1 : nucleotideIndex1
+      },
+      stop : {
+        0 : nucleotideIndex0,
+        1 : nucleotideIndex1
+      }
+    }];
   }
 
   public override drag() {
@@ -463,5 +477,9 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       {this.partialHeader}
       {menu}
     </>;
+  }
+
+  public override getHelices() {
+    return this.helices;
   }
 }

@@ -9,7 +9,7 @@ import { Vector2D, add } from "../../../data_structures/Vector2D";
 import { parseInteger } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerScene } from "../InteractionConstraints";
+import { Helix, InteractionConstraint, iterateOverFreeNucleotidesAndHelicesPerScene } from "../InteractionConstraints";
 import { AllInOneEditor } from "./AllInOneEditor";
 
 export class SingleColorInteractionConstraint extends AbstractInteractionConstraint {
@@ -19,6 +19,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
   private readonly approveBasePair : (basePair : BasePairsEditor.BasePair) => boolean;
   private readonly fullKeysOfNucleotidesWithColor : Array<FullKeys>;
+  private readonly helices : Array<Helix>;
 
   public constructor(
     rnaComplexProps : RnaComplexProps,
@@ -137,10 +138,29 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
       onUpdatePositions : rerender
     };
     const unfilteredInitialBasePairs : Array<BasePairsEditor.BasePair> = [];
-    iterateOverFreeNucleotidesAndHelicesPerScene(
+    const helicesPerScene = iterateOverFreeNucleotidesAndHelicesPerScene(
       rnaComplexProps,
       treatNoncanonicalBasePairsAsUnpairedFlag
-    ).forEach(function(helixDataPerRnaComplex) {
+    );
+    const unfilteredHelices = new Array<Helix>();
+    helicesPerScene.forEach(function(helixDataPerRnaComplex) {
+      const rnaComplexIndex = helixDataPerRnaComplex.rnaComplexIndex;
+      const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+      helixDataPerRnaComplex.helixDataPerRnaMolecules.forEach(function(helixDataPerRnaMolecule) {
+        const rnaMoleculeName0 = helixDataPerRnaMolecule.rnaMoleculeName0;
+        const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+        unfilteredHelices.push(...helixDataPerRnaMolecule.helixData.map(function({ rnaMoleculeName1, start, stop }) {
+          return {
+            rnaComplexIndex,
+            rnaMoleculeName0,
+            rnaMoleculeName1,
+            start,
+            stop
+          };
+        }));
+      });
+    });
+    helicesPerScene.forEach(function(helixDataPerRnaComplex) {
       const rnaComplexIndex = helixDataPerRnaComplex.rnaComplexIndex;
       const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
       helixDataPerRnaComplex.helixDataPerRnaMolecules.forEach(function(helixDataPerRnaMolecule) {
@@ -186,8 +206,30 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
       return true;
     }
     this.approveBasePair = approveBasePair;
-    this.initialBasePairs = unfilteredInitialBasePairs.filter(approveBasePair);
+    const filteredInitialBasePairs = unfilteredInitialBasePairs.filter(approveBasePair);
+    this.initialBasePairs = filteredInitialBasePairs;
     this.addFullIndicesPerNucleotideKeysToRerender(nucleotideKeysToRerender);
+    this.helices = unfilteredHelices.filter(({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop }) => {
+      const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+      const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+      const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+      const length = Math.abs(stop[0] - start[0]) + 1
+      for (let i = 0; i < length; i++) {
+        const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[start[0] + i];
+        const singularNucleotideProps1 = singularRnaMoleculeProps1.nucleotideProps[start[1] + i];
+        return (
+          areEqual(
+            color,
+            singularNucleotideProps0.color ?? BLACK
+          ) &&
+          areEqual(
+            color,
+            singularNucleotideProps1.color ?? BLACK
+          )
+        );
+      }
+      return false;
+    });
   }
 
   public override drag() {
@@ -269,5 +311,40 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
       <br/>
       {menu}
     </>;
+  }
+
+  public override getHelices() {
+    return this.helices;
+  }
+
+  public override filterRelevantHelices(helices : Array<Helix>) {
+    return helices.filter(({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop }) => {
+      const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
+      const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+      const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+      const length = Math.abs(stop[0] - start[0]) + 1;
+      const increment0 = Math.sign(stop[0] - start[0]);
+      const increment1 = Math.sign(stop[1] - start[1]);
+      let nucleotideIndex0 = start[0];
+      let nucleotideIndex1 = start[1];
+      for (let i = 0; i < length; i++) {
+        const singularNucleotideProps0 = singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex0];
+        const singularNucleotideProps1 = singularRnaMoleculeProps1.nucleotideProps[nucleotideIndex1];
+        const color0 = singularNucleotideProps0.color ?? BLACK;
+        const color1 = singularNucleotideProps1.color ?? BLACK;
+
+        if ((
+          // If ANY nucleotide in the helix matches the expected color, approve the helix.
+          areEqual(this.color, color0) ||
+          areEqual(this.color, color1)
+        )) {
+          return true;
+        }
+
+        nucleotideIndex0 += increment0;
+        nucleotideIndex1 += increment1;
+      }
+      return false;
+    });
   }
 }

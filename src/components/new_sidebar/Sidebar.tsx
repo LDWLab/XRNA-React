@@ -26,7 +26,6 @@ export interface SidebarProps {
   redoStack?: Array<{ data: any; dataType: string }>;
   onJumpToHistory?: (index: number) => void;
   onResetToLastCheckpoint?: () => void;
-  onFormatModeClick?: () => void;
   onFreezeSelected?: () => void;
   onUnfreezeSelected?: () => void;
   onUnfreezeAll?: () => void;
@@ -42,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     onToggleSettingsDrawer, onToggleAboutDrawer,
     onOpenDocs,
     onLoadExample,
-    undoStack, redoStack, onJumpToHistory, onResetToLastCheckpoint, onFormatModeClick,
+    undoStack, redoStack, onJumpToHistory, onResetToLastCheckpoint,
     onFreezeSelected, onUnfreezeSelected, onUnfreezeAll,
     hasFrozenNucleotides, hasSelectedNucleotides,
   } = props;
@@ -56,7 +55,6 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
         onJumpToHistory={onJumpToHistory}
         onResetToLastCheckpoint={onResetToLastCheckpoint}
         constraint={constraint}
-        onFormatModeClick={onFormatModeClick}
         onFreezeSelected={onFreezeSelected}
         onUnfreezeSelected={onUnfreezeSelected}
         onUnfreezeAll={onUnfreezeAll}

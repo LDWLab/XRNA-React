@@ -686,4 +686,8 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       }
     }
   }
+
+  public override getHelices() {
+    return [];
+  }
 }

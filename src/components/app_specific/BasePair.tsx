@@ -8,8 +8,11 @@ import { SVG_PROPERTY_XRNA_BASE_PAIR_FORMATTED_NUCLEOTIDE_INDEX_0, SVG_PROPERTY_
 import { getLineBoundingPath } from "../../utils/Utils";
 import { NucleotideKey, RnaComplexProps, RnaMoleculeKey } from "../../App";
 import { RnaComplex } from "./RnaComplex";
+import Font from "../../data_structures/Font";
 
 export function getBasePairType(symbol0 : Nucleotide.Symbol, symbol1 : Nucleotide.Symbol) : BasePair.CanonicalType {
+  symbol0 = symbol0.toUpperCase() as Nucleotide.Symbol;
+  symbol1 = symbol1.toUpperCase() as Nucleotide.Symbol;
   if (symbol0 > symbol1) {
     // Ensure symbol0 <= symbol1.
     let temp = symbol0;
@@ -275,6 +278,8 @@ export namespace BasePair {
     onMouseOver : () => void,
     onMouseLeave : () => void,
     onMouseDown : (e : React.MouseEvent<SVGElement>) => void,
+    basePairRadius : number,
+    averageNucleotideBoundingRectHeight : number,
     className? : string,
     stroke? : string,
     fill? : string
@@ -334,17 +339,17 @@ export namespace BasePair {
       onMouseOver,
       onMouseLeave,
       onMouseDown,
-      className
+      className,
+      basePairRadius,
+      averageNucleotideBoundingRectHeight
     } = props;
-    const basePairRadius = useContext(Context.BasePair.Radius);
-    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
+      averageNucleotideBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -396,13 +401,13 @@ export namespace BasePair {
       onMouseOver,
       onMouseLeave,
       onMouseDown,
-      className
+      className,
+      basePairRadius
     } = props;
     const center = {
       x : (position0.x + position1.x) * 0.5,
       y : (position0.y + position1.y) * 0.5
     }
-    const basePairRadius = useContext(Context.BasePair.Radius);
     return <g>
       <circle
         {...svgPropertiesForXrna}
@@ -441,17 +446,17 @@ export namespace BasePair {
       onMouseOver,
       onMouseDown,
       onMouseLeave,
-      className
+      className,
+      basePairRadius,
+      averageNucleotideBoundingRectHeight
     } = props;
-    const basePairRadius = useContext(Context.BasePair.Radius);
-    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
+      averageNucleotideBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     const strokeForLines = ["none", undefined].includes(stroke) ? fill : stroke;
     const center = scaleUp(
@@ -562,17 +567,17 @@ export namespace BasePair {
       onMouseOver,
       onMouseLeave,
       onMouseDown,
-      className
+      className,
+      basePairRadius,
+      averageNucleotideBoundingRectHeight
     } = props;
-    const basePairRadius = useContext(Context.BasePair.Radius);
-    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
+      averageNucleotideBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -771,17 +776,17 @@ export namespace BasePair {
       className,
       onMouseOver,
       onMouseLeave,
-      onMouseDown
+      onMouseDown,
+      basePairRadius,
+      averageNucleotideBoundingRectHeight
     } = props;
-    const basePairRadius = useContext(Context.BasePair.Radius);
-    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
+      averageNucleotideBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -965,17 +970,17 @@ export namespace BasePair {
       className,
       onMouseOver,
       onMouseLeave,
-      onMouseDown
+      onMouseDown,
+      basePairRadius,
+      averageNucleotideBoundingRectHeight
     } = props;
-    const basePairRadius = useContext(Context.BasePair.Radius);
-    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
+      averageNucleotideBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -1120,17 +1125,17 @@ export namespace BasePair {
       className,
       onMouseOver,
       onMouseLeave,
-      onMouseDown
+      onMouseDown,
+      basePairRadius,
+      averageNucleotideBoundingRectHeight
     } = props;
-    const basePairRadius = useContext(Context.BasePair.Radius);
-    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
+      averageNucleotideBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -1330,17 +1335,17 @@ export namespace BasePair {
       className,
       onMouseOver,
       onMouseLeave,
-      onMouseDown
+      onMouseDown,
+      basePairRadius,
+      averageNucleotideBoundingRectHeight
     } = props;
-    const basePairRadius = useContext(Context.BasePair.Radius);
-    const averageBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
     const {
       interpolatedPosition0,
       interpolatedPosition1
     } = interpolatedPositions(
       position0,
       position1,
-      averageBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
+      averageNucleotideBoundingRectHeight * AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR
     );
     // const interpolatedPosition0 = interpolate(
     //   position0,
@@ -1538,7 +1543,7 @@ export namespace BasePair {
       rnaMoleculeName0,
       formattedNucleotideIndex0,
       rnaMoleculeName1,
-      formattedNucleotideIndex1
+      formattedNucleotideIndex1,
     } = props;
     const basePairType = mappedBasePair.basePairType;
     const defaultStrokeWidth = useContext(Context.BasePair.AverageStrokeWidth);
@@ -1548,6 +1553,15 @@ export namespace BasePair {
     const basePairOnMouseDownHelper = useContext(Context.BasePair.OnMouseDownHelper);
     const singularRnaComplexFlag = useContext(Context.App.SingularRnaComplexFlag);
     const singularRnaMoleculeFlag = useContext(Context.RnaComplex.SingularRnaMoleculeFlag);
+    let basePairRadius = useContext(Context.BasePair.Radius);
+    if (Number.isNaN(basePairRadius)) {
+      basePairRadius = 1;
+    }
+    let averageNucleotideBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
+    if (Number.isNaN(averageNucleotideBoundingRectHeight)) {
+      averageNucleotideBoundingRectHeight = 0.1;
+      // averageNucleotideBoundingRectHeight = Font.DEFAULT_SIZE;
+    }
     const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
@@ -1637,6 +1651,8 @@ export namespace BasePair {
           );
         },
         className,
+        basePairRadius,
+        averageNucleotideBoundingRectHeight,
         ...componentStrokeAndFillRecord[basePairType](colorAsString)
       }
     );

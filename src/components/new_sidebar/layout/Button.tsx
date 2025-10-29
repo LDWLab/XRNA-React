@@ -9,7 +9,7 @@ export interface ButtonProps {
   description?: string;
   hint?: string;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary' | 'accent' | 'danger';
+  variant?: 'primary' | 'secondary' | 'accent' | 'danger' | "simpleHighlight";
 }
 
 const Tooltip = ({ hint, position, theme }: { hint: string, position: { left: number, top: number }, theme: Theme }) => {
@@ -77,6 +77,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ onClic
           background: disabled ? theme.colors.surfaceHover : (isPressed ? theme.colors.error : (isHovered ? theme.colors.error + '20' : 'transparent')),
           color: disabled ? theme.colors.textMuted : (isHovered ? theme.colors.error : theme.colors.text),
           border: `1px solid ${isHovered ? theme.colors.error : theme.colors.border}`,
+        };
+      case 'simpleHighlight' : 
+        return {
+          background: "transparent",
+          color: disabled ? theme.colors.textMuted : theme.colors.text,
+          border: `2px solid ${theme.colors.primary}`,
         };
       default:
         return {

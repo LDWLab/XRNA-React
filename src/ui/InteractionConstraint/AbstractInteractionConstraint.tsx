@@ -1,7 +1,7 @@
 import { RnaComplexProps, FullKeys, DragListener, FullKeysRecord } from "../../App";
 import { BasePairsEditor } from "../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideKeysToRerender, BasePairKeysToRerender } from "../../context/Context";
-import { InteractionConstraint } from "./InteractionConstraints";
+import { Helix, InteractionConstraint } from "./InteractionConstraints";
 
 export const basePairedNucleotideError : InteractionConstraintError = {
   errorMessage : "Cannot interact with a base-paired nucleotide using this constraint."
@@ -44,6 +44,36 @@ export abstract class AbstractInteractionConstraint {
   abstract drag() : DragListener | undefined;
 
   abstract createRightClickMenu(tab : InteractionConstraint.SupportedTab) : JSX.Element;
+
+  abstract getHelices() : Array<Helix>;
+
+  filterRelevantHelices(helices : Array<Helix>) : Array<Helix> {
+    return helices.filter(({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop }) => {
+      const length = Math.abs(stop[0] - start[0]) + 1;
+      const increment0 = Math.sign(stop[0] - start[0]);
+      const increment1 = Math.sign(stop[1] - start[1]);
+      let nucleotideIndex0 = start[0];
+      let nucleotideIndex1 = start[1];
+      for (let i = 0; i < length; i++) {
+        if (rnaComplexIndex in this.indicesOfAffectedNucleotides) {
+          const indicesOfAffectedNucleotidesPerRnaComplex = this.indicesOfAffectedNucleotides[rnaComplexIndex];
+          if (rnaMoleculeName0 in indicesOfAffectedNucleotidesPerRnaComplex) {
+            if (indicesOfAffectedNucleotidesPerRnaComplex[rnaMoleculeName0].has(nucleotideIndex0)) {
+              return true;
+            }
+          }
+          if (rnaMoleculeName1 in indicesOfAffectedNucleotidesPerRnaComplex) {
+            if (indicesOfAffectedNucleotidesPerRnaComplex[rnaMoleculeName1].has(nucleotideIndex1)) {
+              return true;
+            }
+          }
+        }
+        nucleotideIndex0 += increment0;
+        nucleotideIndex1 += increment1;
+      }
+      return false;
+    });
+  }
 
   addFullIndices(...fullKeysSets : Array<FullKeys>) {
     for (const fullKeys0 of fullKeysSets) {

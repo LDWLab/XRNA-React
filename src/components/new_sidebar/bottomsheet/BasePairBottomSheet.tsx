@@ -5,8 +5,9 @@ import {
   RnaMoleculeKey,
   NucleotideKey,
   RnaComplexKey,
+  FullKeys,
 } from "../../../App";
-import BasePair, { BasePair as _BasePair, getBasePairType } from "../../app_specific/BasePair";
+import BasePair, { getBasePairType } from "../../app_specific/BasePair";
 import { RnaMolecule } from "../../app_specific/RnaMolecule";
 import {
   RnaComplex,
@@ -21,7 +22,7 @@ import { Setting } from "../../../ui/Setting";
 import { Vector2D, add, subtract, scaleUp, normalize, magnitude, orthogonalize, dotProduct, negate } from "../../../data_structures/Vector2D";
 import { Pencil, Check, Trash2, X, Download, Upload } from "lucide-react";
 import { repositionNucleotidesForBasePairs } from "../../../utils/BasePairRepositioner";
-import { iterateOverFreeNucleotidesAndHelicesPerScene } from "../../../ui/InteractionConstraint/InteractionConstraints";
+import { Helix, iterateOverFreeNucleotidesAndHelicesPerScene } from "../../../ui/InteractionConstraint/InteractionConstraints";
 
 export type FullKeysRecord = Record<
   RnaComplexKey,
@@ -32,8 +33,12 @@ export interface BasePairBottomSheetProps {
   open: boolean;
   onClose: () => void;
   rnaComplexProps: RnaComplexProps;
-  selected?: FullKeysRecord; // left-click selection (optional)
-  formatMode?: boolean; // indicates if we're in Format mode
+  globalHelices : Array<Helix>;
+  errorMessage? : string;
+  filterRelevantHelices : (helices : Array<Helix>) => Array<Helix>;
+  handleNewBasePair : (fullKeys0 : FullKeys, fullKeys1 : FullKeys) => void;
+  removeBasePair : (rnaComplexIndex : RnaComplexKey, rnaMoleculeName0 : RnaMoleculeKey, rnaMoleculeName1 : RnaMoleculeKey, nucleotideIndex0 : NucleotideKey, nucleotideIndex1 : NucleotideKey) => void;
+  reformatSelectedHelices : (selectedHelices : Array<Helix>) => void;
 }
 
 type Orientation = "cis" | "trans";
@@ -49,7 +54,7 @@ type Row = {
   rnaMoleculeName1: string;
   nucleotideIndex1: number;
   formattedNucleotideIndex1: number;
-  type?: _BasePair.Type;
+  type?: BasePair.Type;
 };
 
 type GroupedRow = {
@@ -65,21 +70,21 @@ type GroupedRow = {
   nucleotideIndex1End: number;
   formattedNucleotideIndex1Start: number;
   formattedNucleotideIndex1End: number;
-  type?: _BasePair.Type;
+  type?: BasePair.Type;
   length: number;
   isGrouped: true;
 };
 
-function parseDirectedType(t?: _BasePair.Type): {
+function parseDirectedType(t?: BasePair.Type): {
   orientation?: Orientation;
   edgeA?: Edge;
   edgeB?: Edge;
 } {
   if (!t) return {};
   if (
-    t === _BasePair.Type.CANONICAL ||
-    t === _BasePair.Type.WOBBLE ||
-    t === _BasePair.Type.MISMATCH
+    t === BasePair.Type.CANONICAL ||
+    t === BasePair.Type.WOBBLE ||
+    t === BasePair.Type.MISMATCH
   )
     return {};
   const tokens = String(t).split("_");
@@ -115,20 +120,20 @@ function assembleDirectedType(
   orientation?: Orientation,
   edgeA?: Edge,
   edgeB?: Edge
-): _BasePair.Type | undefined {
+): BasePair.Type | undefined {
   if (!orientation || !edgeA || !edgeB) return undefined;
-  const value = `${orientation}_${edgeA}_${edgeB}` as _BasePair.Type;
+  const value = `${orientation}_${edgeA}_${edgeB}` as BasePair.Type;
   return value;
 }
 
-function decomposeTypeBase(t?: _BasePair.Type): TypeBase {
+function decomposeTypeBase(t?: BasePair.Type): TypeBase {
   if (!t) return "auto";
   switch (t) {
-    case _BasePair.Type.CANONICAL:
+    case BasePair.Type.CANONICAL:
       return "canonical";
-    case _BasePair.Type.WOBBLE:
+    case BasePair.Type.WOBBLE:
       return "wobble";
-    case _BasePair.Type.MISMATCH:
+    case BasePair.Type.MISMATCH:
       return "mismatch";
     default:
       return "custom";
@@ -148,6 +153,7 @@ function IconButton(props: {
     borderRadius: 6,
     border: `1px solid ${theme.colors.border}`,
     background: theme.colors.background,
+    color: theme.colors.text,
     cursor: "pointer",
     display: "inline-flex",
     alignItems: "center",
@@ -170,7 +176,7 @@ function IconButton(props: {
 
 const MemoizedIconButton = React.memo(IconButton);
 
-function getBasePairTypeFromNucleotides(symbol0: string, symbol1: string): _BasePair.Type {
+function getBasePairTypeFromNucleotides(symbol0: string, symbol1: string): BasePair.Type {
   // Import the getBasePairType function logic
   // This is a simplified version - in a real implementation, you'd want to use the actual function
   const normalizedSymbol0 = symbol0.toUpperCase();
@@ -181,34 +187,42 @@ function getBasePairTypeFromNucleotides(symbol0: string, symbol1: string): _Base
       (normalizedSymbol0 === 'U' && normalizedSymbol1 === 'A') ||
       (normalizedSymbol0 === 'G' && normalizedSymbol1 === 'C') || 
       (normalizedSymbol0 === 'C' && normalizedSymbol1 === 'G')) {
-    return _BasePair.Type.CANONICAL;
+    return BasePair.Type.CANONICAL;
   }
   
   // Wobble base pairs (G-U)
   if ((normalizedSymbol0 === 'G' && normalizedSymbol1 === 'U') || 
       (normalizedSymbol0 === 'U' && normalizedSymbol1 === 'G')) {
-    return _BasePair.Type.WOBBLE;
+    return BasePair.Type.WOBBLE;
   }
   
   // Everything else is a mismatch
-  return _BasePair.Type.MISMATCH;
+  return BasePair.Type.MISMATCH;
 }
 
 export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   open,
   onClose,
   rnaComplexProps,
-  selected,
-  formatMode = false,
+  globalHelices,
+  errorMessage,
+  filterRelevantHelices,
+  handleNewBasePair,
+  removeBasePair,
+  reformatSelectedHelices
 }) => {
   const { theme } = useTheme();
   const [height, setHeight] = useState<number>(360);
   const [isResizing, setIsResizing] = useState(false);
-  const [activeTab, setActiveTab] = useState<"Global" | "Selected">("Global");
-  const [viewMode, setViewMode] = useState<"Individual" | "Grouped">("Individual");
+  type ViewMode = "Base Pairs" | "Helices";
+  const [viewMode, setViewMode] = useState<ViewMode>("Base Pairs");
+  type SelectionMode = "Filtered" | "Global"
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>("Filtered");
   const sheetRef = useRef<HTMLDivElement>(null);
   const startYRef = useRef<number>(0);
   const startHRef = useRef<number>(360);
+  const globalHelicesRef = useRef(globalHelices);
+  globalHelicesRef.current = globalHelices;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAdd, setShowAdd] = useState<boolean>(false);
   const [repositionWithCalculatedDistances, setRepositionWithCalculatedDistances] = useState<boolean>(false);
@@ -306,184 +320,105 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     []
   );
 
-  const computeRowsAll = useCallback(
-    () => {
-      const rnaComplexProps = rnaComplexPropsReference.current;
-      const result: Row[] = [];
-      for (const [rcIndexStr, complex] of Object.entries(rnaComplexProps)) {
-        const rnaComplexIndex = parseInt(rcIndexStr);
-        const rnaComplexName = complex.name;
-        for (const [molName, basePairsPerMol] of Object.entries(
-          complex.basePairs
-        )) {
-          const molProps0 = complex.rnaMoleculeProps[molName];
-          for (const [nucIndexStr, basePairsPerNuc] of Object.entries(
-            basePairsPerMol
-          )) {
-            const nucleotideIndex0 = parseInt(nucIndexStr);
-            for (const mapped of basePairsPerNuc) {
-              const keys0 = {
-                rnaMoleculeName: molName,
-                nucleotideIndex: nucleotideIndex0,
-              };
-              const keys1 = {
-                rnaMoleculeName: mapped.rnaMoleculeName,
-                nucleotideIndex: mapped.nucleotideIndex,
-              };
-              const [a] = [keys0, keys1].sort(compareBasePairKeys);
-              if (
-                a.rnaMoleculeName !== keys0.rnaMoleculeName ||
-                a.nucleotideIndex !== keys0.nucleotideIndex
-              ) {
-                continue; // only include one direction
-              }
-              const molProps1 = complex.rnaMoleculeProps[mapped.rnaMoleculeName];
-              result.push({
-                rnaComplexIndex,
-                rnaComplexName,
-                rnaMoleculeName0: molName,
-                nucleotideIndex0,
-                formattedNucleotideIndex0:
-                  nucleotideIndex0 + molProps0.firstNucleotideIndex,
-                rnaMoleculeName1: mapped.rnaMoleculeName,
-                nucleotideIndex1: mapped.nucleotideIndex,
-                formattedNucleotideIndex1:
-                  mapped.nucleotideIndex + molProps1.firstNucleotideIndex,
-                type: mapped.basePairType,
-              });
-            }
-          }
-        }
-      }
-      result.sort(
-        (r0, r1) =>
-          r0.rnaComplexIndex - r1.rnaComplexIndex ||
-          r0.rnaMoleculeName0.localeCompare(r1.rnaMoleculeName0) ||
-          r0.nucleotideIndex0 - r1.nucleotideIndex0 ||
-          r0.rnaMoleculeName1.localeCompare(r1.rnaMoleculeName1) ||
-          r0.nucleotideIndex1 - r1.nucleotideIndex1
-      );
-      return result;
-    },
-    []
-  );
-
-  const computeRowsSelected = useCallback(
-    (rowsAll: Row[]) : Row[] => {
-      if (!selected || Object.keys(selected).length === 0) return [];
-      const setHas = (rc: number, mol: string, idx: number) =>
-        !!selected[rc]?.[mol]?.has(idx);
-      return rowsAll.filter(
-        (r) =>
-          setHas(r.rnaComplexIndex, r.rnaMoleculeName0, r.nucleotideIndex0) ||
-          setHas(r.rnaComplexIndex, r.rnaMoleculeName1, r.nucleotideIndex1)
-      );
-    },
-    []
-  );
-
-  const computeGroupedRows = useCallback(
-    (individualRows: Row[]): (Row | GroupedRow)[] => {
-      if (individualRows.length === 0) return [];
-      
-      const grouped: (Row | GroupedRow)[] = [];
-      let i = 0;
-      
-      while (i < individualRows.length) {
-        const current = individualRows[i];
-        let j = i + 1;
-        
-        // Determine the direction of the second strand (parallel or antiparallel)
-        let direction1: number | null = null;
-        if (i + 1 < individualRows.length) {
-          const next = individualRows[i + 1];
-          if (
-            next.rnaComplexIndex === current.rnaComplexIndex &&
-            next.rnaMoleculeName0 === current.rnaMoleculeName0 &&
-            next.rnaMoleculeName1 === current.rnaMoleculeName1 &&
-            next.type === current.type &&
-            next.nucleotideIndex0 === current.nucleotideIndex0 + 1
-          ) {
-            // Determine if strand 1 is going up (+1) or down (-1)
-            direction1 = next.nucleotideIndex1 - current.nucleotideIndex1;
-          }
-        }
-        
-        // Try to find consecutive rows with same properties
-        while (j < individualRows.length) {
-          const next = individualRows[j];
-          const prev = individualRows[j - 1];
-          
-          // Check if next row can be grouped with previous
-          // Strand 0 must increment by 1, strand 1 can increment or decrement by 1
-          const canGroup = (
-            next.rnaComplexIndex === prev.rnaComplexIndex &&
-            next.rnaMoleculeName0 === prev.rnaMoleculeName0 &&
-            next.rnaMoleculeName1 === prev.rnaMoleculeName1 &&
-            next.type === prev.type &&
-            next.nucleotideIndex0 === prev.nucleotideIndex0 + 1 &&
-            (
-              (direction1 === null && (next.nucleotideIndex1 === prev.nucleotideIndex1 + 1 || next.nucleotideIndex1 === prev.nucleotideIndex1 - 1)) ||
-              (direction1 !== null && next.nucleotideIndex1 === prev.nucleotideIndex1 + direction1)
-            )
-          );
-          
-          if (!canGroup) break;
-          j++;
-        }
-        
-        // If we found a group (more than one consecutive row)
-        if (j - i > 1) {
-          const first = individualRows[i];
-          const last = individualRows[j - 1];
-          grouped.push({
-            rnaComplexIndex: first.rnaComplexIndex,
-            rnaComplexName: first.rnaComplexName,
-            rnaMoleculeName0: first.rnaMoleculeName0,
-            nucleotideIndex0Start: first.nucleotideIndex0,
-            nucleotideIndex0End: last.nucleotideIndex0,
-            formattedNucleotideIndex0Start: first.formattedNucleotideIndex0,
-            formattedNucleotideIndex0End: last.formattedNucleotideIndex0,
-            rnaMoleculeName1: first.rnaMoleculeName1,
-            nucleotideIndex1Start: first.nucleotideIndex1,
-            nucleotideIndex1End: last.nucleotideIndex1,
-            formattedNucleotideIndex1Start: first.formattedNucleotideIndex1,
-            formattedNucleotideIndex1End: last.formattedNucleotideIndex1,
-            type: first.type,
-            length: j - i,
-            isGrouped: true,
-          });
-        } else {
-          // Single row, keep as is
-          grouped.push(current);
-        }
-        
-        i = j;
-      }
-      
-      return grouped;
-    },
-    []
-  );
-
-  const allRows = useMemo(
-    computeRowsAll,
+  const filteredHelices = useMemo(
+    () => selectionMode === "Filtered" ? filterRelevantHelices(globalHelices) : globalHelices,
     [
-      rnaComplexProps,
-      updateCalculatedRowsTrigger
+      selectionMode,
+      filterRelevantHelices,
+      globalHelices
     ]
   );
-  const selectedRows = useMemo(
-    () => computeRowsSelected(allRows),
-    [allRows]
-  );
-  const baseRows = useMemo(
-    () => (activeTab === "Global" ? allRows : selectedRows),
-    [activeTab, allRows, selectedRows]
+  const filteredHelicesRef = useRef(filteredHelices);
+  filteredHelicesRef.current = filteredHelices;
+
+  const { selectedBasePairs, selectedHelices } = useMemo(
+    () => {
+      const selectedBasePairs : Array<Row> = [];
+      const selectedHelices : Array<GroupedRow> = [];
+      for (const helix of filteredHelices) {
+        const {
+          rnaComplexIndex,
+          rnaMoleculeName0,
+          rnaMoleculeName1,
+          start,
+          stop
+        } = helix;
+        const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+        const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+        const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+        const length = Math.abs(start[0] - stop[0]) + 1;
+        const increment0 = Math.sign(stop[0] - start[0]);
+        const increment1 = Math.sign(stop[1] - start[1]);
+        let nucleotideIndex0 = start[0];
+        let nucleotideIndex1 = start[1];
+        let helixBasePairType : undefined | null | BasePair.Type = undefined;
+        for (let i = 0; i < length; i++) {
+          const basePairsPerRnaMolecule0 = singularRnaComplexProps.basePairs[rnaMoleculeName0];
+          const basePairsPerNucleotide0 = basePairsPerRnaMolecule0[nucleotideIndex0];
+          const relevantBasePair = basePairsPerNucleotide0.find(
+            basePair => (
+              basePair.rnaMoleculeName === rnaMoleculeName1 &&
+              basePair.nucleotideIndex === nucleotideIndex1
+            )
+          )!;
+
+          const basePairType = relevantBasePair.basePairType;
+
+          if (helixBasePairType === undefined) {
+            helixBasePairType = basePairType;
+          } else if (helixBasePairType !== basePairType) {
+            helixBasePairType = null;
+          }
+
+          selectedBasePairs.push({
+            rnaComplexIndex,
+            rnaComplexName : singularRnaComplexProps.name,
+            rnaMoleculeName0,
+            nucleotideIndex0,
+            formattedNucleotideIndex0 : singularRnaMoleculeProps0.firstNucleotideIndex + nucleotideIndex0,
+            rnaMoleculeName1,
+            nucleotideIndex1,
+            formattedNucleotideIndex1 : singularRnaMoleculeProps1.firstNucleotideIndex + nucleotideIndex1,
+            type : relevantBasePair.basePairType
+          });
+          selectedHelices.push();
+          nucleotideIndex0 += increment0;
+          nucleotideIndex1 += increment1;
+        }
+        selectedHelices.push({
+          rnaComplexIndex,
+          rnaComplexName : singularRnaComplexProps.name,
+          rnaMoleculeName0,
+          nucleotideIndex0Start : start[0],
+          nucleotideIndex0End : stop[0],
+          formattedNucleotideIndex0Start : start[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
+          formattedNucleotideIndex0End : stop[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
+          rnaMoleculeName1,
+          nucleotideIndex1Start : start[1],
+          nucleotideIndex1End : stop[1],
+          formattedNucleotideIndex1Start : start[1] + singularRnaMoleculeProps1.firstNucleotideIndex,
+          formattedNucleotideIndex1End : stop[1] + singularRnaMoleculeProps1.firstNucleotideIndex,
+          type : helixBasePairType === null ? undefined : helixBasePairType,
+          length,
+          isGrouped : true
+        });
+      }
+      return {
+        selectedBasePairs,
+        selectedHelices
+      };
+    },
+    [
+      rnaComplexProps,
+      filteredHelices
+    ]
   );
   const rows = useMemo(
-    () => viewMode === "Grouped" ? computeGroupedRows(baseRows) : baseRows,
-    [viewMode, baseRows]
+    () => viewMode === "Base Pairs" ? selectedBasePairs : selectedHelices,
+    [
+      viewMode,
+      selectedHelices
+    ]
   );
 
   const csvEscape = useCallback(
@@ -638,7 +573,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         idx0: number;
         mol1: string;
         idx1: number;
-        type?: _BasePair.Type;
+        type?: BasePair.Type;
       };
 
       const ops: Op[] = [];
@@ -715,11 +650,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         if (!allowedTypeBases.has(tb as any)) {
           throw `Line #${i + 1}: Invalid typeBase '${typeBaseStr}'.`;
         }
-        let newType: _BasePair.Type | undefined;
+        let newType: BasePair.Type | undefined;
         if (tb === "auto") newType = undefined;
-        else if (tb === "canonical") newType = _BasePair.Type.CANONICAL;
-        else if (tb === "wobble") newType = _BasePair.Type.WOBBLE;
-        else if (tb === "mismatch") newType = _BasePair.Type.MISMATCH;
+        else if (tb === "canonical") newType = BasePair.Type.CANONICAL;
+        else if (tb === "wobble") newType = BasePair.Type.WOBBLE;
+        else if (tb === "mismatch") newType = BasePair.Type.MISMATCH;
         else if (tb === "custom") {
           const o = orientationStr as Orientation;
           const eA = edgeAStr as Edge;
@@ -851,6 +786,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const deleteRow = useCallback(
     (row: Row) => {
       const rnaComplexProps = rnaComplexPropsReference.current;
+      const helices = globalHelicesRef.current;
       const complex = rnaComplexProps[row.rnaComplexIndex];
       if (!complex) return;
       pushToUndoStack();
@@ -897,10 +833,18 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           delete: [{ keys0, keys1 }],
         },
       });
+      removeBasePair(
+        row.rnaComplexIndex,
+        row.rnaMoleculeName0,
+        row.rnaMoleculeName1,
+        row.nucleotideIndex0,
+        row.nucleotideIndex1
+      );
     },
     [
       pushToUndoStack,
-      setBasePairKeysToEdit
+      setBasePairKeysToEdit,
+      removeBasePair
     ]
   );
 
@@ -932,11 +876,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         form.typeBase === "custom"
           ? assembleDirectedType(form.orientation, form.edgeA, form.edgeB)
           : form.typeBase === "canonical"
-          ? _BasePair.Type.CANONICAL
+          ? BasePair.Type.CANONICAL
           : form.typeBase === "wobble"
-          ? _BasePair.Type.WOBBLE
+          ? BasePair.Type.WOBBLE
           : form.typeBase === "mismatch"
-          ? _BasePair.Type.MISMATCH
+          ? BasePair.Type.MISMATCH
           : undefined;
       
       pushToUndoStack();
@@ -988,16 +932,30 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       });
       setShowAdd(false);
       setAddForm({ typeBase: "auto" });
+      handleNewBasePair(
+        {
+          rnaComplexIndex : form.rnaComplexIndex!,
+          rnaMoleculeName : form.rnaMoleculeName0!,
+          nucleotideIndex : idx0
+        },
+        {
+          rnaComplexIndex : form.rnaComplexIndex!,
+          rnaMoleculeName : form.rnaMoleculeName1!,
+          nucleotideIndex : idx1
+        }
+      );
     },
     [
       addForm,
       setBasePairKeysToEdit,
-      pushToUndoStack
+      pushToUndoStack,
+      handleNewBasePair
     ]
   );
 
   const beginEdit = useCallback(
     (row: Row) => {
+      const rnaComplexProps = rnaComplexPropsReference.current!;
       setEditRowKey(
         `${row.rnaComplexIndex}:${row.rnaMoleculeName0}:${row.nucleotideIndex0}:${row.rnaMoleculeName1}:${row.nucleotideIndex1}`
       );
@@ -1081,12 +1039,12 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         }
       }
       // add new with possibly updated type
-      let newType: _BasePair.Type | undefined = undefined;
+      let newType: BasePair.Type | undefined = undefined;
       if (form.typeBase === "custom")
         newType = assembleDirectedType(form.orientation, form.edgeA, form.edgeB);
-      else if (form.typeBase === "canonical") newType = _BasePair.Type.CANONICAL;
-      else if (form.typeBase === "wobble") newType = _BasePair.Type.WOBBLE;
-      else if (form.typeBase === "mismatch") newType = _BasePair.Type.MISMATCH;
+      else if (form.typeBase === "canonical") newType = BasePair.Type.CANONICAL;
+      else if (form.typeBase === "wobble") newType = BasePair.Type.WOBBLE;
+      else if (form.typeBase === "mismatch") newType = BasePair.Type.MISMATCH;
       insertBasePair(
         oldC,
         resolvedMol0,
@@ -1285,137 +1243,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   treatNoncanonicalBasePairsAsUnpairedFlagReference.current = treatNoncanonicalBasePairsAsUnpairedFlag;
 
   const reformatAll = useCallback(
-    () => {
-      const pushToUndoStack = pushToUndoStackReference.current;
-      pushToUndoStack();
-      const settingsRecord = settingsRecordReference.current;
-      const treatNoncanonicalBasePairsAsUnpairedFlag = treatNoncanonicalBasePairsAsUnpairedFlagReference.current;
-      const rnaComplexProps = rnaComplexPropsReference.current;
-      const setBasePairKeysToEdit = setBasePairKeysToEditReference.current;
-      const allHelices = iterateOverFreeNucleotidesAndHelicesPerScene(
-        rnaComplexProps,
-        treatNoncanonicalBasePairsAsUnpairedFlag as boolean
-      );
-      const averageDistances = averageDistancesReference.current;
-      const basePairKeysToEdit : Context.BasePair.KeysToEdit = {};
-      for (const { rnaComplexIndex, helixDataPerRnaMolecules } of allHelices) {
-        const averageDistancesPerRnaComplex = averageDistances[rnaComplexIndex];
-        const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-        const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
-        if (!(rnaComplexIndex in basePairKeysToEdit)) {
-          basePairKeysToEdit[rnaComplexIndex] = {
-            add : [],
-            delete : []
-          };
-        }
-        const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[rnaComplexIndex];
-        for (const { rnaMoleculeName0, helixData} of helixDataPerRnaMolecules) {
-          const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
-          const basePairsPerRnaMolecule0 = basePairsPerRnaComplex[rnaMoleculeName0];
-          for (const { rnaMoleculeName1, start, stop } of helixData) {
-            const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
-            const rangeIndexToSingularRnaMoleculeProps = {
-              0 : singularRnaMoleculeProps0,
-              1 : singularRnaMoleculeProps1
-            };
-            const helixStart0 = singularRnaMoleculeProps0.nucleotideProps[start[0]];
-            const helixStart1 = singularRnaMoleculeProps1.nucleotideProps[start[1]];
-            let center = scaleUp(add(helixStart0, helixStart1), 0.5);
-            const dv = subtract(helixStart0, helixStart1);
-            const normalizedDv = normalize(dv);
-            let normalOrthogonal = orthogonalize(normalizedDv);
-            
-            const rangeIndexToMinMax : Record<number, {min : number, max : number}> = {};
-            let orientationVote = 0;
-            for (const rangeIndex of [0, 1] as Array<0 | 1>) {
-              const min = Math.min(start[rangeIndex], stop[rangeIndex]);
-              const max = Math.max(start[rangeIndex], stop[rangeIndex]);
-              rangeIndexToMinMax[rangeIndex] = { min, max };
-              for (let nucleotideIndex = min; nucleotideIndex <= max; nucleotideIndex++) {
-                const singularNucleotideProps = rangeIndexToSingularRnaMoleculeProps[rangeIndex].nucleotideProps[nucleotideIndex];
-                orientationVote += Math.sign(dotProduct(subtract(singularNucleotideProps, center), normalOrthogonal));
-              }
-            }
-            if (orientationVote < 0) {
-              normalOrthogonal = negate(normalOrthogonal);
-            }
-            const helixDistanceFromSettings = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
-            const helixDistance = Number.isNaN(helixDistanceFromSettings) ? averageDistancesPerRnaComplex.helixDistance : helixDistanceFromSettings;
-            const helixCenterIncrement = scaleUp(normalOrthogonal, helixDistance);
-            let nucleotideIndex0 = start[0];
-            let nucleotideIndex1 = start[1];
-            const nucleotideIndexIncrement0 = Math.sign(stop[0] - start[0]);
-            const nucleotideIndexIncrement1 = Math.sign(stop[1] - start[1]);
-            const length = rangeIndexToMinMax[0].max - rangeIndexToMinMax[0].min + 1;
-            for (let i = 0; i < length; i++) {
-              const singularNucleotideProps0 = rangeIndexToSingularRnaMoleculeProps[0].nucleotideProps[nucleotideIndex0];
-              const singularNucleotideProps1 = rangeIndexToSingularRnaMoleculeProps[1].nucleotideProps[nucleotideIndex1];
-              const basePairsPerNucleotide0 = basePairsPerRnaMolecule0[nucleotideIndex0];
-              const relevantBasePair = basePairsPerNucleotide0.find(basePair => (
-                basePair.rnaMoleculeName === rnaMoleculeName1 &&
-                basePair.nucleotideIndex === nucleotideIndex1
-              ))!;
-              let basePairType = relevantBasePair.basePairType;
-              if (basePairType === undefined) {
-                try {
-                  basePairType = getBasePairType(singularNucleotideProps0.symbol, singularNucleotideProps1.symbol);
-                } catch (e) {
-                  basePairType = undefined;
-                }
-              }
-              let basePairDistance : number;
-              switch (basePairType) {
-                case BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK :
-                case BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK :
-                case BasePair.Type.CANONICAL : {
-                  const basePairDistanceFromSettings = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
-                  basePairDistance = Number.isNaN(basePairDistanceFromSettings) ? averageDistancesPerRnaComplex.distances[basePairType] : basePairDistanceFromSettings;
-                  break;
-                }
-                case BasePair.Type.WOBBLE : {
-                  const basePairDistanceFromSettings = settingsRecord[Setting.WOBBLE_BASE_PAIR_DISTANCE] as number;
-                  basePairDistance = Number.isNaN(basePairDistanceFromSettings) ? averageDistancesPerRnaComplex.distances[basePairType] : basePairDistanceFromSettings;
-                  break;
-                }
-                default : {
-                  const basePairDistanceFromSettings = settingsRecord[Setting.MISMATCH_BASE_PAIR_DISTANCE] as number;
-                  basePairDistance = Number.isNaN(basePairDistanceFromSettings) ? averageDistancesPerRnaComplex.distances[BasePair.Type.MISMATCH] : basePairDistanceFromSettings;
-                  break;
-                } 
-              }
-              const basePairFullKeys = {
-                keys0 : {
-                  rnaMoleculeName : rnaMoleculeName0,
-                  nucleotideIndex : nucleotideIndex0
-                },
-                keys1 : {
-                  rnaMoleculeName : rnaMoleculeName1,
-                  nucleotideIndex : nucleotideIndex1
-                }
-              };
-              basePairKeysToEditPerRnaComplex.add.push(basePairFullKeys);
-              basePairKeysToEditPerRnaComplex.delete.push(basePairFullKeys);
-              const scaledUpDv = scaleUp(normalizedDv, basePairDistance * 0.5);
-              const newPosition0 = add(center, scaledUpDv);
-              const newPosition1 = subtract(center, scaledUpDv);
-              singularNucleotideProps0.x = newPosition0.x;
-              singularNucleotideProps0.y = newPosition0.y;
-              singularNucleotideProps1.x = newPosition1.x;
-              singularNucleotideProps1.y = newPosition1.y;
-
-              center = add(center, helixCenterIncrement);
-              nucleotideIndex0 += nucleotideIndexIncrement0;
-              nucleotideIndex1 += nucleotideIndexIncrement1;
-            }
-          }
-        }
-      }
-      for (const basePairKeysToEditPerRnaComplex of Object.values(basePairKeysToEdit)) {
-        basePairKeysToEditPerRnaComplex.add.sort(compareFullBasePairKeys);
-        basePairKeysToEditPerRnaComplex.delete.sort(compareFullBasePairKeys);
-      }
-      setBasePairKeysToEdit(basePairKeysToEdit);
-    },
+    () => reformatSelectedHelices(filteredHelicesRef.current),
     []
   );
 
@@ -1487,16 +1315,6 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span
-            style={{
-              fontWeight: 700,
-              fontSize: 13,
-              color: theme.colors.text,
-              letterSpacing: 0.3,
-            }}
-          >
-            {formatMode ? "Base-Pair Editor" : "Base-Pair Editor"} -- Select Representation:
-          </span>
           <div
             style={{
               display: "flex",
@@ -1506,7 +1324,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               borderRadius: 8,
             }}
           >
-            {(["Individual", "Grouped"] as const).map((t) => (
+            {(["Base Pairs", "Helices"] as Array<ViewMode>).map((t) => (
               <button
                 key={t}
                 onClick={() => setViewMode(t)}
@@ -1526,6 +1344,29 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                 }}
               >
                 {t}
+              </button>
+            ))}
+            &nbsp;|&nbsp;
+            {(["Filtered", "Global"] as Array<SelectionMode>).map((selectionModeI) => (
+              <button
+                key={selectionModeI}
+                onClick={() => setSelectionMode(selectionModeI)}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  border: "none",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background:
+                    selectionMode === selectionModeI
+                      ? theme.colors.background
+                      : "transparent",
+                  color: theme.colors.text,
+                  boxShadow: selectionMode === selectionModeI ? theme.shadows.sm : "none",
+                  cursor: "pointer",
+                }}
+              >
+                {selectionModeI}
               </button>
             ))}
           </div>
@@ -2072,7 +1913,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               <th style={thStyle(80)}>Nt (index) a</th>
               {!rnaMoleculesAreASingleton && <th style={thStyle(80)}>Mol#2</th>}
               <th style={thStyle(80)}>Nt (index) b</th>
-              {viewMode === "Grouped" && <th style={thStyle(60)}>Length</th>}
+              {viewMode === "Helices" && <th style={thStyle(60)}>Length</th>}
               <th style={thStyle(120)}>Type</th>
               <th style={thStyle(100)}>Orientation</th>
               <th style={thStyle(130)}>Edge A</th>
@@ -2323,7 +2164,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                     </div>
                   </td>
                   {/* Length (only in grouped mode) */}
-                  {viewMode === "Grouped" && (
+                  {viewMode === "Helices" && (
                     <td style={tdStyle(60)}>
                       <span style={{ fontSize: 12, color: theme.colors.text }}>
                         {isGrouped ? r.length : 1}
@@ -2514,7 +2355,21 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                 </tr>
               );
             })}
-            {rows.length === 0 && (
+            {errorMessage && (
+              <tr>
+                <td
+                  colSpan={10}
+                  style={{
+                    padding: 16,
+                    textAlign: "center",
+                    color: theme.colors.error
+                  }}
+                >
+                  {errorMessage}
+                </td>
+              </tr>
+            )}
+            {!errorMessage && rows.length === 0 && (
               <tr>
                 <td
                   colSpan={10}

@@ -10,7 +10,7 @@ import React, {
   useCallback
 } from "react";
 import { DEFAULT_TAB, Tab, tabs } from "./app_data/Tab";
-import { add, scaleDown, subtract, Vector2D } from "./data_structures/Vector2D";
+import { add, dotProduct, negate, normalize, orthogonalize, scaleDown, scaleUp, subtract, Vector2D } from "./data_structures/Vector2D";
 import { useResizeDetector } from "react-resize-detector";
 import {
   compareBasePairKeys,
@@ -56,13 +56,15 @@ import {
   NucleotideKeysToRerender,
   NucleotideKeysToRerenderPerRnaComplex,
 } from "./context/Context";
-import { isEmpty, sign, subtractNumbers } from "./utils/Utils";
+import { HandleQueryNotFound, isEmpty, sign, sortedArraySplice, subtractNumbers } from "./utils/Utils";
 import { Nucleotide } from "./components/app_specific/Nucleotide";
 import { LabelContent } from "./components/app_specific/LabelContent";
 import { LabelLine } from "./components/app_specific/LabelLine";
 import {
   getInteractionConstraintAndFullKeys,
+  Helix,
   InteractionConstraint,
+  iterateOverFreeNucleotidesAndHelicesPerScene,
 } from "./ui/InteractionConstraint/InteractionConstraints";
 import { Collapsible } from "./components/generic/Collapsible";
 import { SAMPLE_XRNA_FILE } from "./utils/sampleXrnaFile";
@@ -79,7 +81,7 @@ import {
 import { areEqual, BLACK } from "./data_structures/Color";
 import { RnaMolecule } from "./components/app_specific/RnaMolecule";
 import { LabelEditMenu } from "./components/app_specific/menus/edit_menus/LabelEditMenu";
-import BasePair from "./components/app_specific/BasePair";
+import BasePair, { getBasePairType } from "./components/app_specific/BasePair";
 import { repositionNucleotidesForBasePairs } from "./utils/BasePairRepositioner";
 import {
   multiplyAffineMatrices,
@@ -455,6 +457,20 @@ export namespace App {
     const [basePairUpdateTriggers, setBasePairUpdateTriggers] = useState<
       Record<number, number>
     >({});
+    const [globalHelicesForFormatMenu, setGlobalHelicesForFormatMenu] = useState<Array<Helix>>([]);
+    const globalHelicesForFormatMenuReference = useRef(globalHelicesForFormatMenu);
+    globalHelicesForFormatMenuReference.current = globalHelicesForFormatMenu;
+    const [formatMenuErrorMessage, setFormatMenuErrorMessage] = useState<string | undefined>(undefined);
+    // Initialize with identity function that returns all helices unchanged
+    const [filterRelevantHelices, setFilterRelevantHelices] = useState<(helices: Array<Helix>) => Array<Helix>>(() => (helices: Array<Helix>) => helices);
+    const filterRelevantHelicesReference = useRef<(helices: Array<Helix>) => Array<Helix>>(filterRelevantHelices);
+    filterRelevantHelicesReference.current = filterRelevantHelices;
+    const [unsavedWorkFlag, setUnsavedWorkFlag] = useState(false);
+    const unsavedWorkFlagReference = useRef(unsavedWorkFlag);
+    unsavedWorkFlagReference.current = unsavedWorkFlag;
+    const [xKeyPressedFlag, setXKeyPressedFlag] = useState(false);
+    const xKeyPressedFlagReference = useRef(xKeyPressedFlag);
+    xKeyPressedFlagReference.current = xKeyPressedFlag;
     // Begin state-relevant helper functions.
     function setDragListener(
       dragListener: DragListener | null,
@@ -1089,6 +1105,14 @@ export namespace App {
             interactionConstraintOptions,
             fullKeys
           );
+          if (tab === Tab.FORMAT) {
+            setBasepairSheetOpen(true);
+            setFormatMenuErrorMessage(undefined);
+            resetGlobalHelicesForFormatMenu();
+            // Bind the helper method via arrow function to preserve this context
+            setFilterRelevantHelices(() => (helices: Array<Helix>) => helper.filterRelevantHelices(helices));
+            return;
+          }
           const rightClickMenu = helper.createRightClickMenu(tab);
           setResetOrientationDataTrigger(!resetOrientationDataTrigger);
           setRightClickMenuContent(
@@ -1097,22 +1121,254 @@ export namespace App {
           );
         } catch (error: any) {
           if (typeof error === "object" && "errorMessage" in error) {
-            setDrawerKind(DrawerKind.PROPERTIES);
-            setRightClickMenuContent(
-              <b
-                style={{
-                  color: "red",
-                }}
-              >
-                {error.errorMessage}
-              </b>,
-              {}
-            );
+            if (tab === Tab.FORMAT) {
+              setBasepairSheetOpen(true);
+              setGlobalHelicesForFormatMenu([]);
+              setFormatMenuErrorMessage(error.errorMessage);
+            } else {
+              setDrawerKind(DrawerKind.PROPERTIES);
+              setRightClickMenuContent(
+                <b
+                  style={{
+                    color: "red",
+                  }}
+                >
+                  {error.errorMessage}
+                </b>,
+                {}
+              );
+            }
           } else {
             throw error;
           }
           return;
         }
+      };
+    }, []);
+    const insertBasePairIntoGlobalHelices = useCallback(
+      function(
+        newKeys0 : FullKeys,
+        newKeys1 : FullKeys
+      ) {
+        const globalHelicesForFormatMenu = globalHelicesForFormatMenuReference.current!;
+        [ newKeys0, newKeys1 ] = [ newKeys0, newKeys1 ].sort(compareBasePairKeys);
+
+        // NOTE: newKeys and helices are BOTH listed in sorted order. This simplifies implementation details.
+        let indexOfLesserContiguousHelix = -1;
+        let indexOfGreaterContiguousHelix = -1;
+        // let lookingForLesserHelix = true;
+        const helixIndexToDirectionalityIndicators : Array<1 | -1> = [];
+        for (let helixIndex = 0; helixIndex < globalHelicesForFormatMenu.length; helixIndex++) {
+          const { rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop } = globalHelicesForFormatMenu[helixIndex];
+          if (rnaComplexIndex !== newKeys0.rnaComplexIndex) {
+            continue;
+          }
+          if ((
+            rnaMoleculeName0 !== newKeys0.rnaMoleculeName ||
+            rnaMoleculeName1 !== newKeys1.rnaMoleculeName
+          )) {
+            continue;
+          }
+          const length = Math.abs(stop[0] - start[0]) + 1;
+          let increment0 : 1 | -1;
+          let increment1 : 1 | -1;
+          if (length === 1) {
+            increment0 = 1;
+            const difference = newKeys1.nucleotideIndex - stop[1];
+            if (Math.abs(difference) !== 1) {
+              continue;
+            }
+            increment1 = difference as 1 | -1;
+          } else {
+            increment0 = Math.sign(stop[0] - start[0]) as 1 | -1;
+            increment1 = Math.sign(stop[1] - start[1]) as 1 | -1;
+          }
+          let targets = {
+            lesser : [
+              stop[0] + increment0,
+              stop[1] + increment1
+            ],
+            greater : [
+              start[0] - increment0,
+              start[1] - increment1
+            ]
+          };
+          if ((
+            newKeys0.nucleotideIndex === targets.lesser[0] &&
+            newKeys1.nucleotideIndex === targets.lesser[1] &&
+            (
+              length !== -1 ||
+              indexOfLesserContiguousHelix === -1
+            )
+          )) {
+            indexOfLesserContiguousHelix = helixIndex;
+          } else if ((
+            newKeys0.nucleotideIndex === targets.greater[0] &&
+            newKeys1.nucleotideIndex === targets.greater[1] &&
+            (
+              length !== -1 ||
+              indexOfGreaterContiguousHelix === -1  
+            )
+          )) {
+            indexOfGreaterContiguousHelix = helixIndex;
+          }
+          helixIndexToDirectionalityIndicators[helixIndex] = (increment0 * increment1) as 1 | -1;
+        }
+        if (
+          indexOfLesserContiguousHelix !== -1 &&
+          indexOfGreaterContiguousHelix !== -1 &&
+          helixIndexToDirectionalityIndicators[indexOfLesserContiguousHelix] * helixIndexToDirectionalityIndicators[indexOfGreaterContiguousHelix] < 0
+        ) {
+          // Incompatible helices.
+          // Preferrentially retain the helix with the expected directionality indicator.
+          if (helixIndexToDirectionalityIndicators[indexOfLesserContiguousHelix] < 0) {
+            indexOfGreaterContiguousHelix = -1;
+          } else {
+            indexOfLesserContiguousHelix = -1;
+          }
+        }
+        if (
+          indexOfLesserContiguousHelix === -1 &&
+          indexOfGreaterContiguousHelix === -1
+        ) {
+          const newHelix : Helix = {
+            rnaComplexIndex : newKeys0.rnaComplexIndex,
+            rnaMoleculeName0 : newKeys0.rnaMoleculeName,
+            rnaMoleculeName1 : newKeys1.rnaMoleculeName,
+            start : { 0 : newKeys0.nucleotideIndex, 1 : newKeys1.nucleotideIndex },
+            stop : { 0 : newKeys0.nucleotideIndex, 1 : newKeys1.nucleotideIndex }
+          };
+          // This base pair should not be already present in the globalHelices array. 
+          // It would be if the basepair (with identical keys) already existed.
+          sortedArraySplice(
+            globalHelicesForFormatMenu,
+            ({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop } : Helix) => (
+              (rnaComplexIndex - newHelix.rnaComplexIndex) ||
+              rnaMoleculeName0.localeCompare(newHelix.rnaMoleculeName0) ||
+              rnaMoleculeName1.localeCompare(newHelix.rnaMoleculeName1) ||
+              (start[0] - newHelix.start[0]) ||
+              (start[1] - newHelix.start[1])
+              // Ignore stop; it is irrelevant.
+            ),
+            0,
+            [newHelix],
+            HandleQueryNotFound.ADD
+          );
+        } else if (
+          indexOfLesserContiguousHelix !== -1 &&
+          indexOfGreaterContiguousHelix !== -1
+        ) {
+          // Merge the 2 helices and new base pair into 1 helix.
+          const lesserHelix = globalHelicesForFormatMenu[indexOfLesserContiguousHelix];
+          const greaterHelix = globalHelicesForFormatMenu[indexOfGreaterContiguousHelix];
+          lesserHelix.stop = structuredClone(greaterHelix.stop);
+          globalHelicesForFormatMenu.splice(
+            indexOfGreaterContiguousHelix,
+            1
+          );
+        } else if (
+          indexOfLesserContiguousHelix !== -1
+        ) {
+          const lesserHelix = globalHelicesForFormatMenu[indexOfLesserContiguousHelix];
+          const { start, stop } = lesserHelix;
+          const length = Math.abs(stop[0] - start[0]) + 1;
+          if (length === 1) {
+            const [ min0, max0 ] = [start[0], newKeys0.nucleotideIndex].sort(subtractNumbers);
+            const [ min1, max1 ] = [start[1], newKeys1.nucleotideIndex].sort(subtractNumbers);
+            lesserHelix.start = [min0, max1];
+            lesserHelix.stop = [max0, min1];
+          } else {
+            lesserHelix.stop = [newKeys0.nucleotideIndex, newKeys1.nucleotideIndex];
+          }
+        } else {
+          const greaterHelix = globalHelicesForFormatMenu[indexOfGreaterContiguousHelix];
+          const { start, stop } = greaterHelix;
+          const length = Math.abs(stop[0] - start[0]) + 1;
+          if (length === 1) {
+            const [ min0, max0 ] = [start[0], newKeys0.nucleotideIndex].sort(subtractNumbers);
+            const [ min1, max1 ] = [start[1], newKeys1.nucleotideIndex].sort(subtractNumbers);
+            greaterHelix.start = [min0, max1];
+            greaterHelix.stop = [max0, min1];
+          } else {
+            greaterHelix.start = [newKeys0.nucleotideIndex, newKeys1.nucleotideIndex];
+          }
+        }
+        // Force an update of the format menu.
+        const newGlobalHelicesForFormatMenu = structuredClone(globalHelicesForFormatMenu);
+        setGlobalHelicesForFormatMenu(newGlobalHelicesForFormatMenu);
+      },
+      []
+    );
+    const removeBasePairFromGlobalHelices = useCallback(
+      (
+        rnaComplexIndex : RnaComplexKey,
+        rnaMoleculeName0 : RnaMoleculeKey,
+        rnaMoleculeName1 : RnaMoleculeKey,
+        nucleotideIndex0 : NucleotideKey,
+        nucleotideIndex1 : NucleotideKey
+      ) => {
+        const globalHelicesForFormatMenu = globalHelicesForFormatMenuReference.current;
+        if (globalHelicesForFormatMenu.length === 0) {
+          // No point in deleting base pairs from the data structure if the menu isn't open.
+          return;
+        }
+        const newHelices = structuredClone(globalHelicesForFormatMenu);
+        const indexOfAffectedHelix = newHelices.findIndex((helix : Helix) => (
+          helix.rnaComplexIndex === rnaComplexIndex &&
+          helix.rnaMoleculeName0 === rnaMoleculeName0 &&
+          helix.rnaMoleculeName1 === rnaMoleculeName1 &&
+          (nucleotideIndex0 - helix.start[0]) * (nucleotideIndex0 - helix.stop[0]) <= 0 &&
+          (nucleotideIndex1 - helix.start[1]) * (nucleotideIndex1 - helix.stop[1]) <= 0
+        ));
+        const affectedHelix = newHelices[indexOfAffectedHelix];
+        const affectedHelixLength = Math.abs(affectedHelix.stop[0] - affectedHelix.start[0]) + 1;
+        if (affectedHelixLength === 1) {
+          newHelices.splice(indexOfAffectedHelix, 1);
+        } else {
+          const affectedHelixIncrement0 = Math.sign(affectedHelix.stop[0] - affectedHelix.start[0]);
+          const affectedHelixIncrement1 = Math.sign(affectedHelix.stop[1] - affectedHelix.start[1]);
+          if (nucleotideIndex0 === affectedHelix.start[0]) {
+            affectedHelix.start[0] += affectedHelixIncrement0;
+            affectedHelix.start[1] += affectedHelixIncrement1;
+          } else if (nucleotideIndex0 === affectedHelix.stop[0]) {
+            affectedHelix.stop[0] -= affectedHelixIncrement0;
+            affectedHelix.stop[1] -= affectedHelixIncrement1;
+          } else {
+            const newHelix0 = structuredClone(affectedHelix);
+            const newHelix1 = structuredClone(affectedHelix);
+            newHelix0.stop = {
+              0 : nucleotideIndex0 - affectedHelixIncrement0,
+              1 : nucleotideIndex1 - affectedHelixIncrement1
+            };
+            newHelix1.start = {
+              0 : nucleotideIndex0 + affectedHelixIncrement0,
+              1 : nucleotideIndex1 + affectedHelixIncrement1
+            };
+            newHelices.splice(
+              indexOfAffectedHelix,
+              1,
+              newHelix0,
+              newHelix1
+            );
+          }
+        }
+        setGlobalHelicesForFormatMenu(newHelices);
+      },
+      []
+    );
+    const pushToUndoStack = useMemo(function () {
+      return function () {
+        const rnaComplexProps = rnaComplexPropsReference.current!;
+        const undoStack = undoStackReference.current!;
+        setUndoStack([
+          ...undoStack,
+          {
+            data: structuredClone(rnaComplexProps),
+            dataType: UndoRedoStacksDataTypes.RnaComplexProps,
+          },
+        ]);
+        setRedoStack([]);
+        setUnsavedWorkFlag(true);
       };
     }, []);
     const nucleotideOnMouseDownHelper = useMemo(function () {
@@ -1194,6 +1450,7 @@ export namespace App {
             DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
             {}
           );
+          insertBasePairIntoGlobalHelices(pending, fullKeys);
           const [keys0, keys1] = [
             {
               rnaMoleculeName: pending.rnaMoleculeName,
@@ -1454,7 +1711,10 @@ export namespace App {
           }
         }
       };
-    }, []);
+    }, [
+      insertBasePairIntoGlobalHelices,
+      pushToUndoStack
+    ]);
     const basePairOnMouseDownHelper = useMemo(function () {
       return function (
         e: React.MouseEvent,
@@ -1532,60 +1792,90 @@ export namespace App {
             break;
           }
           case MouseButtonIndices.Middle: {
-            // Delete base pair on middle-click
-            const { rnaComplexIndex, rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 } = fullKeys0;
-            const { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 } = fullKeys1;
-            
-            // Push to undo stack before making changes
-            pushToUndoStack();
-            
-            // Get the RNA complex
-            const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-            if (!singularRnaComplexProps) break;
-            
-            // Delete base pair from both directions
-            const basePairs0 = singularRnaComplexProps.basePairs[rnaMoleculeName0];
-            if (basePairs0 && nucleotideIndex0 in basePairs0) {
-              const arr0 = basePairs0[nucleotideIndex0];
-              const idx0 = arr0.findIndex(
-                (m) => m.rnaMoleculeName === rnaMoleculeName1 && m.nucleotideIndex === nucleotideIndex1
-              );
-              if (idx0 !== -1) {
-                if (arr0.length === 1) {
-                  delete basePairs0[nucleotideIndex0];
-                } else {
-                  arr0.splice(idx0, 1);
+            if (
+              e.ctrlKey &&
+              xKeyPressedFlagReference.current
+            ) {
+              // Perform the helix-reformatting shortcut.
+              const helices = new InteractionConstraint.record[
+                InteractionConstraint.Enum.RNA_HELIX
+              ](
+                rnaComplexProps,
+                setNucleotideKeysToRerender,
+                setBasePairKeysToRerender,
+                setDebugVisualElements,
+                tab,
+                indicesOfFrozenNucleotides,
+                interactionConstraintOptions,
+                fullKeys0,
+                fullKeys1
+              ).getHelices();
+              reformatSelectedHelices(helices);
+            } else {
+              // Delete base pair on middle-click
+              const { rnaComplexIndex, rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 } = fullKeys0;
+              const { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 } = fullKeys1;
+              
+              // Push to undo stack before making changes
+              pushToUndoStack();
+              
+              // Get the RNA complex
+              const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+              if (!singularRnaComplexProps) {
+                break;
+              }
+              
+              // Delete base pair from both directions
+              const basePairs0 = singularRnaComplexProps.basePairs[rnaMoleculeName0];
+              if (basePairs0 && nucleotideIndex0 in basePairs0) {
+                const arr0 = basePairs0[nucleotideIndex0];
+                const idx0 = arr0.findIndex(
+                  (m) => m.rnaMoleculeName === rnaMoleculeName1 && m.nucleotideIndex === nucleotideIndex1
+                );
+                if (idx0 !== -1) {
+                  if (arr0.length === 1) {
+                    delete basePairs0[nucleotideIndex0];
+                  } else {
+                    arr0.splice(idx0, 1);
+                  }
                 }
               }
-            }
-            
-            const basePairs1 = singularRnaComplexProps.basePairs[rnaMoleculeName1];
-            if (basePairs1 && nucleotideIndex1 in basePairs1) {
-              const arr1 = basePairs1[nucleotideIndex1];
-              const idx1 = arr1.findIndex(
-                (m) => m.rnaMoleculeName === rnaMoleculeName0 && m.nucleotideIndex === nucleotideIndex0
-              );
-              if (idx1 !== -1) {
-                if (arr1.length === 1) {
-                  delete basePairs1[nucleotideIndex1];
-                } else {
-                  arr1.splice(idx1, 1);
+              
+              const basePairs1 = singularRnaComplexProps.basePairs[rnaMoleculeName1];
+              if (basePairs1 && nucleotideIndex1 in basePairs1) {
+                const arr1 = basePairs1[nucleotideIndex1];
+                const idx1 = arr1.findIndex(
+                  (m) => m.rnaMoleculeName === rnaMoleculeName0 && m.nucleotideIndex === nucleotideIndex0
+                );
+                if (idx1 !== -1) {
+                  if (arr1.length === 1) {
+                    delete basePairs1[nucleotideIndex1];
+                  } else {
+                    arr1.splice(idx1, 1);
+                  }
                 }
               }
+              
+              // Update base pair keys to rerender
+              const [keys0, keys1] = [
+                { rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 },
+                { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 }
+              ].sort(compareBasePairKeys);
+              
+              setBasePairKeysToEdit({
+                [rnaComplexIndex]: {
+                  add: [],
+                  delete: [{ keys0, keys1 }]
+                }
+              });
+              removeBasePairFromGlobalHelices(
+                rnaComplexIndex,
+                rnaMoleculeName0,
+                rnaMoleculeName1,
+                nucleotideIndex0,
+                nucleotideIndex1
+              );
             }
-            
-            // Update base pair keys to rerender
-            const [keys0, keys1] = [
-              { rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 },
-              { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 }
-            ].sort(compareBasePairKeys);
-            
-            setBasePairKeysToEdit({
-              [rnaComplexIndex]: {
-                add: [],
-                delete: [{ keys0, keys1 }]
-              }
-            });
             break;
           }
           case MouseButtonIndices.Right: {
@@ -2079,43 +2369,49 @@ export namespace App {
               [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]: calculatedDistances.contiguousDistance
             }));
             
+            setDrawerKind(DrawerKind.NONE);
+            setBasepairSheetOpen(false);
+            setGlobalHelicesForFormatMenu([]);
             setRnaComplexProps(parsedInput.rnaComplexProps);
             if (Object.keys(parsedInput.rnaComplexProps).length > 0) {
-              setTimeout(function () {
-                if (settingsRecord[Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD]) {
-                  resetViewport();
-                }
-                let boundingRectHeightsSum = 0;
-                let numberOfBoundingRects = 0;
-                const nucleotideElements = Array.from(
-                  document.querySelectorAll(
-                    `.${NUCLEOTIDE_CLASS_NAME}`
-                  ) as NodeListOf<SVGGraphicsElement>
-                );
-                for (const nucleotideElement of nucleotideElements) {
-                  const boundingClientRect = nucleotideElement.getBBox();
-                  boundingRectHeightsSum += boundingClientRect.height;
-                  numberOfBoundingRects++;
-                }
-                const averageBoundingRectHeight =
-                  numberOfBoundingRects == 0
-                    ? 1
-                    : (boundingRectHeightsSum / numberOfBoundingRects);
-                const newBasePairRadius = averageBoundingRectHeight * 0.33;
-                setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
-                setBasePairRadius(newBasePairRadius);
-                setSettingsRecord({
-                  ...settingsRecord,
-                  [Setting.BASE_PAIR_RADIUS] : newBasePairRadius
-                });
-                setTimeout(
-                  () => {
+              setTimeout(
+                function () {
+                  if (settingsRecord[Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD]) {
                     resetViewport();
-                    setSceneState(SceneState.DATA_IS_LOADED);
-                  },
-                  0
-                );
-              }, 0);
+                  }
+                  let boundingRectHeightsSum = 0;
+                  let numberOfBoundingRects = 0;
+                  const nucleotideElements = Array.from(
+                    document.querySelectorAll(
+                      `.${NUCLEOTIDE_CLASS_NAME}`
+                    ) as NodeListOf<SVGGraphicsElement>
+                  );
+                  for (const nucleotideElement of nucleotideElements) {
+                    const boundingClientRect = nucleotideElement.getBBox();
+                    boundingRectHeightsSum += boundingClientRect.height;
+                    numberOfBoundingRects++;
+                  }
+                  const averageBoundingRectHeight =
+                    numberOfBoundingRects == 0
+                      ? 1
+                      : (boundingRectHeightsSum / numberOfBoundingRects);
+                  const newBasePairRadius = averageBoundingRectHeight * 0.33;
+                  setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
+                  setBasePairRadius(newBasePairRadius);
+                  setSettingsRecord({
+                    ...settingsRecord,
+                    [Setting.BASE_PAIR_RADIUS] : newBasePairRadius
+                  });
+                  setTimeout(
+                    () => {
+                      resetViewport();
+                      setSceneState(SceneState.DATA_IS_LOADED);
+                    },
+                    0
+                  );
+                },
+                2000
+              );
             } else {
               setSceneState(SceneState.NO_DATA);
             }
@@ -2621,20 +2917,6 @@ export namespace App {
       };
     }, []);
 
-    const pushToUndoStack = useMemo(function () {
-      return function () {
-        const rnaComplexProps = rnaComplexPropsReference.current!;
-        const undoStack = undoStackReference.current!;
-        setUndoStack([
-          ...undoStack,
-          {
-            data: structuredClone(rnaComplexProps),
-            dataType: UndoRedoStacksDataTypes.RnaComplexProps,
-          },
-        ]);
-        setRedoStack([]);
-      };
-    }, []);
     const onKeyDown = useMemo(
       function () {
         return function (event: React.KeyboardEvent<Element>) {
@@ -2676,6 +2958,15 @@ export namespace App {
               }
               break;
             }
+            case "escape" : {
+              setBasepairSheetOpen(false);
+              setDrawerKind(DrawerKind.NONE);
+              break;
+            }
+            case "x" : {
+              setXKeyPressedFlag(true);
+              break;
+            }
           }
         };
       },
@@ -2684,6 +2975,17 @@ export namespace App {
         downloadOutputFileHtmlButtonReference.current,
         downloadButtonErrorMessage,
       ]
+    );
+    const onKeyUp = useCallback(
+      (event : React.KeyboardEvent<Element>) => {
+        switch (event.key.toLowerCase()) {
+          case "x" : {
+            setXKeyPressedFlag(false);
+            break;
+          }
+        }
+      },
+      []
     );
     const labelClassName = useMemo(
       function () {
@@ -2782,45 +3084,80 @@ export namespace App {
       const darkModeFlag = settingsRecord[Setting.DARK_MODE];
       return darkModeFlag ? "#514646" : "#F0F0F0";
     }, [settingsRecord]);
-    const getOutputFileHandle = useMemo(function () {
-      return async function () {
-        const outputFileName = outputFileNameReference.current!;
-        const outputFileExtension = outputFileExtensionReference.current!;
+    const saveFile = useMemo(
+      () => {
         if (
           !("showSaveFilePicker" in window) ||
           typeof window.showSaveFilePicker !== "function"
         ) {
-          return null;
+          return undefined;
         }
-        return await window.showSaveFilePicker({
-          suggestedName: `${outputFileName}.${outputFileExtension}`,
-          types: [
-            {
-              description: "",
-              accept: {
-                "text/plain": [`.${outputFileExtension}`],
+        const windowShowSaveFilePicker = window.showSaveFilePicker;
+        async function getOutputFileHandle() {
+          const outputFileName = outputFileNameReference.current!;
+          const outputFileExtension = outputFileExtensionReference.current!;
+          return await windowShowSaveFilePicker({
+            suggestedName: `${outputFileName}.${outputFileExtension}`,
+            types: [
+              {
+                description: "",
+                accept: {
+                  "text/plain": [`.${outputFileExtension}`],
+                },
               },
-            },
-          ],
-        });
-      };
-    }, []);
-    const saveFile = useMemo(function () {
-      return async function (handle: any) {
+            ],
+          });
+        }
+        return async function () {
+          const outputFileHandle = outputFileHandleReference.current!;
+          let localOutputFileHandle = outputFileHandle;
+          if (outputFileHandle === undefined) {
+            localOutputFileHandle = await getOutputFileHandle();
+            setOutputFileHandle(localOutputFileHandle);
+          }
+          const outputFileExtension = outputFileExtensionReference.current!;
+          const rnaComplexProps = rnaComplexPropsReference.current!;
+          const complexDocumentName = complexDocumentNameReference.current!;
+
+          const writable = await localOutputFileHandle.createWritable();
+          await writable.write(
+            outputFileWritersMap[outputFileExtension](
+              rnaComplexProps,
+              complexDocumentName
+            )
+          );
+          await writable.close();
+          setUnsavedWorkFlag(false);
+        }
+      },
+      []
+    );
+    const downloadFile = useCallback(
+      () => {
+        const outputFileName = outputFileNameReference.current;
         const outputFileExtension = outputFileExtensionReference.current!;
         const rnaComplexProps = rnaComplexPropsReference.current!;
         const complexDocumentName = complexDocumentNameReference.current!;
-
-        const writable = await handle.createWritable();
-        await writable.write(
-          outputFileWritersMap[outputFileExtension as OutputFileExtension](
+        const blob = new Blob([
+          outputFileWritersMap[outputFileExtension](
             rnaComplexProps,
             complexDocumentName
           )
-        );
-        await writable.close();
-      };
-    }, []);
+        ], {
+          type : "text/plain"
+        });
+        const url = URL.createObjectURL(blob);
+        const downloadAnchor = document.createElement("a");
+        downloadAnchor.href = url;
+        downloadAnchor.download = `${outputFileName}.${outputFileExtension}`;
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        document.body.removeChild(downloadAnchor);
+        URL.revokeObjectURL(url);
+        setUnsavedWorkFlag(false);
+      },
+      []
+    );
     const renderedRightDrawer = useMemo(
       function () {
         const settingsRecord = settingsRecordReference.current!;
@@ -3218,26 +3555,154 @@ export namespace App {
         rightClickMenuContent
       ]
     );
+    const reformatSelectedHelices = useCallback(
+      (selectedHelices : Array<Helix>) => {
+        pushToUndoStack();
+        const settingsRecord = settingsRecordReference.current!;
+        const rnaComplexProps = rnaComplexPropsReference.current!;
+        // const setBasePairKeysToEdit = setBasePairKeysToEditReference.current;
+        const basePairAverageDistances = basePairAverageDistancesReference.current!;
+        const basePairKeysToEdit : Context.BasePair.KeysToEdit = {};
+        for (const { rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop } of selectedHelices) {
+          const averageDistancesPerRnaComplex = basePairAverageDistances[rnaComplexIndex];
+          const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+          const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+          if (!(rnaComplexIndex in basePairKeysToEdit)) {
+            basePairKeysToEdit[rnaComplexIndex] = {
+              add : [],
+              delete : []
+            };
+          }
+          const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[rnaComplexIndex];
+          const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+          const basePairsPerRnaMolecule0 = basePairsPerRnaComplex[rnaMoleculeName0];
+          const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+          const rangeIndexToSingularRnaMoleculeProps = {
+            0 : singularRnaMoleculeProps0,
+            1 : singularRnaMoleculeProps1
+          };
+          const helixStart0 = singularRnaMoleculeProps0.nucleotideProps[start[0]];
+          const helixStart1 = singularRnaMoleculeProps1.nucleotideProps[start[1]];
+          let center = scaleUp(add(helixStart0, helixStart1), 0.5);
+          const dv = subtract(helixStart0, helixStart1);
+          const normalizedDv = normalize(dv);
+          let normalOrthogonal = orthogonalize(normalizedDv);
+          
+          const rangeIndexToMinMax : Record<number, {min : number, max : number}> = {};
+          let orientationVote = 0;
+          for (const rangeIndex of [0, 1] as Array<0 | 1>) {
+            const min = Math.min(start[rangeIndex], stop[rangeIndex]);
+            const max = Math.max(start[rangeIndex], stop[rangeIndex]);
+            rangeIndexToMinMax[rangeIndex] = { min, max };
+            for (let nucleotideIndex = min; nucleotideIndex <= max; nucleotideIndex++) {
+              const singularNucleotideProps = rangeIndexToSingularRnaMoleculeProps[rangeIndex].nucleotideProps[nucleotideIndex];
+              orientationVote += Math.sign(dotProduct(subtract(singularNucleotideProps, center), normalOrthogonal));
+            }
+          }
+          if (orientationVote < 0) {
+            normalOrthogonal = negate(normalOrthogonal);
+          }
+          const helixDistanceFromSettings = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
+          const helixDistance = Number.isNaN(helixDistanceFromSettings) ? averageDistancesPerRnaComplex.helixDistance : helixDistanceFromSettings;
+          const helixCenterIncrement = scaleUp(normalOrthogonal, helixDistance);
+          let nucleotideIndex0 = start[0];
+          let nucleotideIndex1 = start[1];
+          const nucleotideIndexIncrement0 = Math.sign(stop[0] - start[0]);
+          const nucleotideIndexIncrement1 = Math.sign(stop[1] - start[1]);
+          const length = rangeIndexToMinMax[0].max - rangeIndexToMinMax[0].min + 1;
+          for (let i = 0; i < length; i++) {
+            const singularNucleotideProps0 = rangeIndexToSingularRnaMoleculeProps[0].nucleotideProps[nucleotideIndex0];
+            const singularNucleotideProps1 = rangeIndexToSingularRnaMoleculeProps[1].nucleotideProps[nucleotideIndex1];
+            const basePairsPerNucleotide0 = basePairsPerRnaMolecule0[nucleotideIndex0];
+            const relevantBasePair = basePairsPerNucleotide0.find(basePair => (
+              basePair.rnaMoleculeName === rnaMoleculeName1 &&
+              basePair.nucleotideIndex === nucleotideIndex1
+            ))!;
+            let basePairType = relevantBasePair.basePairType;
+            if (basePairType === undefined) {
+              try {
+                basePairType = getBasePairType(singularNucleotideProps0.symbol, singularNucleotideProps1.symbol);
+              } catch (e) {
+                basePairType = undefined;
+              }
+            }
+            let basePairDistance : number;
+            switch (basePairType) {
+              case BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK :
+              case BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK :
+              case BasePair.Type.CANONICAL : {
+                const basePairDistanceFromSettings = settingsRecord[Setting.CANONICAL_BASE_PAIR_DISTANCE] as number;
+                basePairDistance = Number.isNaN(basePairDistanceFromSettings) ? averageDistancesPerRnaComplex.distances[basePairType] : basePairDistanceFromSettings;
+                break;
+              }
+              case BasePair.Type.WOBBLE : {
+                const basePairDistanceFromSettings = settingsRecord[Setting.WOBBLE_BASE_PAIR_DISTANCE] as number;
+                basePairDistance = Number.isNaN(basePairDistanceFromSettings) ? averageDistancesPerRnaComplex.distances[basePairType] : basePairDistanceFromSettings;
+                break;
+              }
+              default : {
+                const basePairDistanceFromSettings = settingsRecord[Setting.MISMATCH_BASE_PAIR_DISTANCE] as number;
+                basePairDistance = Number.isNaN(basePairDistanceFromSettings) ? averageDistancesPerRnaComplex.distances[BasePair.Type.MISMATCH] : basePairDistanceFromSettings;
+                break;
+              } 
+            }
+            const basePairFullKeys = {
+              keys0 : {
+                rnaMoleculeName : rnaMoleculeName0,
+                nucleotideIndex : nucleotideIndex0
+              },
+              keys1 : {
+                rnaMoleculeName : rnaMoleculeName1,
+                nucleotideIndex : nucleotideIndex1
+              }
+            };
+            basePairKeysToEditPerRnaComplex.add.push(basePairFullKeys);
+            basePairKeysToEditPerRnaComplex.delete.push(basePairFullKeys);
+            const scaledUpDv = scaleUp(normalizedDv, basePairDistance * 0.5);
+            const newPosition0 = add(center, scaledUpDv);
+            const newPosition1 = subtract(center, scaledUpDv);
+            singularNucleotideProps0.x = newPosition0.x;
+            singularNucleotideProps0.y = newPosition0.y;
+            singularNucleotideProps1.x = newPosition1.x;
+            singularNucleotideProps1.y = newPosition1.y;
+  
+            center = add(center, helixCenterIncrement);
+            nucleotideIndex0 += nucleotideIndexIncrement0;
+            nucleotideIndex1 += nucleotideIndexIncrement1;
+          }
+        }
+        for (const basePairKeysToEditPerRnaComplex of Object.values(basePairKeysToEdit)) {
+          basePairKeysToEditPerRnaComplex.add.sort(compareFullBasePairKeys);
+          basePairKeysToEditPerRnaComplex.delete.sort(compareFullBasePairKeys);
+        }
+        setBasePairKeysToEdit(basePairKeysToEdit);
+      },
+      []
+    );
     const renderedBasePairBottomSheet = useMemo(
       function () {
+        const filterRelevantHelices = filterRelevantHelicesReference.current;
         return (<MemoizedBasePairBottomSheet
           open={basepairSheetOpen}
           onClose={() => {
             setBasepairSheetOpen(false);
-            setTab(Tab.EDIT);
+            // setTab(Tab.EDIT);
           }}
           rnaComplexProps={rnaComplexProps}
-          selected={
-            rightClickMenuAffectedNucleotideIndices
-          }
-          formatMode={tab === Tab.FORMAT}
+          globalHelices = {globalHelicesForFormatMenu}
+          errorMessage = {formatMenuErrorMessage}
+          filterRelevantHelices = {filterRelevantHelices}
+          handleNewBasePair = {insertBasePairIntoGlobalHelices}
+          removeBasePair = {removeBasePairFromGlobalHelices}
+          reformatSelectedHelices = {reformatSelectedHelices}
         />);
       },
       [
         basepairSheetOpen,
         rnaComplexProps,
-        rightClickMenuAffectedNucleotideIndices,
-        tab
+        globalHelicesForFormatMenu,
+        formatMenuErrorMessage,
+        filterRelevantHelices
       ]
     );
     const renderedGrid = useMemo(
@@ -3295,15 +3760,7 @@ export namespace App {
             });
             reader.readAsText(files[0] as File);
           }}
-          onSave={async function () {
-            const outputFileHandle = outputFileHandleReference.current!;
-            let localOutputFileHandle = outputFileHandle;
-            if (outputFileHandle === undefined) {
-              localOutputFileHandle = await getOutputFileHandle();
-              setOutputFileHandle(localOutputFileHandle);
-            }
-            saveFile(localOutputFileHandle);
-          }}
+          onSave={saveFile}
           onExportWithFormat={function (
             filename,
             format
@@ -3324,22 +3781,49 @@ export namespace App {
               )?.click();
             }, 0);
           }}
+          onDownload={downloadFile}
           fileName={outputFileName}
           onFileNameChange={setOutputFileName}
           exportFormat={outputFileExtension}
           onExportFormatChange={setOutputFileExtension}
           downloadButtonReference={downloadOutputFileHtmlButtonReference}
           fileNameInputReference={uploadInputFileHtmlInputReference}
+          saveButtonsDisabledFlag = {Object.keys(rnaComplexProps).length === 0}
         />;
       },
       [
         outputFileName,
-        outputFileExtension
+        outputFileExtension,
+        rnaComplexProps
       ]
     );
     const singularRnaComplexFlag = useMemo(
       () => flattenedRnaComplexProps.length === 1,
       [flattenedRnaComplexProps]
+    );
+    const resetGlobalHelicesForFormatMenu = useCallback(
+      () => {
+        const helicesPerScene : Array<Helix> = [];
+        const helicesPerSceneIterationData = iterateOverFreeNucleotidesAndHelicesPerScene(
+          rnaComplexPropsReference.current!,
+          settingsRecordReference.current![Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean
+        );
+        for (const { rnaComplexIndex, helixDataPerRnaMolecules } of helicesPerSceneIterationData) {
+          for (const { rnaMoleculeName0, helixData } of helixDataPerRnaMolecules) {
+            for (const { rnaMoleculeName1, start, stop } of helixData) {
+              helicesPerScene.push({
+                rnaComplexIndex,
+                rnaMoleculeName0,
+                rnaMoleculeName1,
+                start,
+                stop
+              });
+            }
+          }
+        }
+        setGlobalHelicesForFormatMenu(helicesPerScene);
+      },
+      []
     );
     // Global event hooks for bottom-sheet UX
     useEffect(() => {
@@ -3404,14 +3888,27 @@ export namespace App {
     // Begin effects.
     useEffect(
       function () {
-        window.onbeforeunload = function (e) {
-          if (!settingsRecord[Setting.DISABLE_NAVIGATE_AWAY_PROMPT]) {
+        const handleBeforeUnload = (e : BeforeUnloadEvent) => {
+          const settingsRecord = settingsRecordReference.current!;
+          const unsavedWorkFlag = unsavedWorkFlagReference.current;
+          if (
+            unsavedWorkFlag &&
+            !settingsRecord[Setting.DISABLE_NAVIGATE_AWAY_PROMPT]
+          ) {
             // Custom messages aren't allowed anymore.
-            return "";
+            const returnValue = "";
+            e.preventDefault();
+            e.returnValue = returnValue;
+            return returnValue;
           }
-        };
+        }
+        window.addEventListener(
+          "beforeunload",
+          handleBeforeUnload
+        );
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
       },
-      [settingsRecord]
+      []
     );
     useEffect(function () {
       let documentUrl = document.URL;
@@ -3639,6 +4136,21 @@ export namespace App {
       },
       [settingsRecord[Setting.BASE_PAIR_RADIUS]]
     );
+    useEffect(
+      () => {
+        setDrawerKind(DrawerKind.NONE);
+        setBasepairSheetOpen(false);
+      },
+      [tabReference.current]
+    );
+    useEffect(
+      () => setBasepairSheetOpen(false),
+      [interactionConstraint]
+    );
+    useEffect(
+      resetGlobalHelicesForFormatMenu,
+      [settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED]]
+    );
     return (
       <Context.MemoizedComponent
         settingsRecord = {settingsRecord}
@@ -3665,6 +4177,7 @@ export namespace App {
         <div
           id={PARENT_DIV_HTML_ID}
           onKeyDown={onKeyDown}
+          onKeyUp={onKeyUp}
           ref={parentDivResizeDetector.ref}
           style={{
             position: "absolute",
@@ -3976,92 +4489,6 @@ export namespace App {
                   }
                 }
               }}
-              onFormatModeClick={() => {
-                setRightClickMenuContent(<></>, {});
-
-                // Toggle basepair editor: close if open, open if closed
-                if (basepairSheetOpen) {
-                  setBasepairSheetOpen(false);
-                  setTab(Tab.EDIT); // Reset to EDIT mode when closing
-                } else {
-                  setBasepairSheetOpen(true);
-                  setDrawerKind(DrawerKind.NONE);
-                  setTab(Tab.FORMAT);
-
-                  // Get constraint-based selection instead of empty drag selection
-                  console.log(
-                    "Format mode clicked, current constraint:",
-                    interactionConstraint
-                  );
-
-                  // Create selection based on current constraint
-                  let constraintSelection: FullKeysRecord = {};
-
-                  if (
-                    interactionConstraint &&
-                    rnaComplexProps
-                  ) {
-                    // Get all elements that match the current constraint
-                    Object.entries(
-                      rnaComplexProps
-                    ).forEach(
-                      ([rcKey, rcProps]) => {
-                        const rcKeyNum =
-                          parseInt(rcKey, 10);
-                        constraintSelection[
-                          rcKeyNum
-                        ] = {};
-                        Object.entries(
-                          rcProps.rnaMoleculeProps
-                        ).forEach(
-                          ([
-                            molKey,
-                            molProps,
-                          ]) => {
-                            // For now, select all nucleotides in the molecule
-                            // This can be refined based on specific constraint types
-                            const nucleotideSet =
-                              new Set<number>();
-                            Object.keys(
-                              molProps.nucleotideProps
-                            ).forEach(
-                              (nucKey) => {
-                                const nucIndex =
-                                  parseInt(
-                                    nucKey,
-                                    10
-                                  );
-                                nucleotideSet.add(
-                                  nucIndex
-                                );
-                              }
-                            );
-                            if (
-                              nucleotideSet.size >
-                              0
-                            ) {
-                              constraintSelection[
-                                rcKeyNum
-                              ][molKey] =
-                                nucleotideSet;
-                            }
-                          }
-                        );
-                      }
-                    );
-                  }
-
-                  console.log(
-                    "Format mode clicked, constraint-based selection:",
-                    constraintSelection
-                  );
-
-                  // Set the constraint-based selection
-                  setRightClickMenuAffectedNucleotideIndices(
-                    constraintSelection
-                  );
-                }
-              }}
               onFreezeSelected={(() => {
                 const hasSelectedNucleotides = Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0;
                 if (!hasSelectedNucleotides) return undefined;
@@ -4208,6 +4635,7 @@ export namespace App {
                 : "none"
             }
             filter="none"
+            overflow="hidden"
           >
             {/* Having this here, rather than in an external App.css file, allows these to be directly exported to .SVG files. */}
             <style>{`

@@ -6,7 +6,7 @@ import { Vector2D } from "../../../data_structures/Vector2D";
 import { parseInteger, range, subtractNumbers } from "../../../utils/Utils";
 import { AbstractInteractionConstraint, InteractionConstraintError } from "../AbstractInteractionConstraint";
 import { linearDrag } from "../CommonDragListeners";
-import { InteractionConstraint, iterateOverFreeNucleotidesandHelicesPerRnaMolecule } from "../InteractionConstraints";
+import { Helix, InteractionConstraint, iterateOverFreeNucleotidesandHelicesPerRnaMolecule } from "../InteractionConstraints";
 import { Tab } from "../../../app_data/Tab";
 import { BasePairsEditor } from "../../../components/app_specific/editors/BasePairsEditor";
 import { NucleotideRegionsAnnotateMenu } from "../../../components/app_specific/menus/annotate_menus/NucleotideRegionsAnnotateMenu";
@@ -17,6 +17,7 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
   private readonly dragError? : InteractionConstraintError;
   private readonly editMenuProps : RnaMoleculeInteractionConstraintEditMenu.Props;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
+  private readonly helices : Array<Helix>
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -113,11 +114,21 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
       setNucleotideKeysToRerender,
       setBasePairKeysToRerender
     };
-    this.initialBasePairs = iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
+    const helicesPerRnaMolecule = iterateOverFreeNucleotidesandHelicesPerRnaMolecule(
       singularRnaComplexProps,
       rnaMoleculeName,
       treatNoncanonicalBasePairsAsUnpairedFlag
-    ).helixData.map(function(helixDatum) {
+    );
+    this.helices = helicesPerRnaMolecule.helixData.map(function({ rnaMoleculeName1, start, stop }) {
+      return {
+        rnaComplexIndex,
+        rnaMoleculeName0 : rnaMoleculeName,
+        rnaMoleculeName1,
+        start,
+        stop
+      };
+    });
+    this.initialBasePairs = helicesPerRnaMolecule.helixData.map(function(helixDatum) {
       return {
         rnaComplexIndex,
         rnaMoleculeName0 : rnaMoleculeName,
@@ -212,5 +223,16 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
       {header}
       {menu}
     </>;
+  }
+
+  public override getHelices() {
+    return this.helices;
+  }
+
+  public override filterRelevantHelices(helices: Array<Helix>): Array<Helix> {
+    return helices.filter(({rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1}) => (
+      rnaComplexIndex === this.fullKeys0.rnaComplexIndex &&
+      [rnaMoleculeName0, rnaMoleculeName1].includes(this.fullKeys0.rnaMoleculeName)
+    ));
   }
 }

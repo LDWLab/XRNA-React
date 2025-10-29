@@ -328,7 +328,7 @@ const ConstraintChip: React.FC<{
   };
 
   const getShortName = (constraint: InteractionConstraint.Enum) => {
-    const nameMap: Record<string, string> = {
+    const nameMap: Record<InteractionConstraint.Enum, string> = {
       [InteractionConstraint.Enum.SINGLE_NUCLEOTIDE]: 'Nucleotide',
       [InteractionConstraint.Enum.SINGLE_BASE_PAIR]: 'Base Pair',
       [InteractionConstraint.Enum.RNA_SINGLE_STRAND]: 'Strand',
@@ -345,7 +345,7 @@ const ConstraintChip: React.FC<{
   };
 
   return (
-    <Button label={getShortName(constraint)} onClick={onClick} disabled={disabled} variant={isActive ? 'primary' : 'secondary'} icon={getConstraintIcon(constraint)}/>
+    <Button label={getShortName(constraint)} onClick={onClick} disabled={disabled} variant={isActive ? 'simpleHighlight' : 'secondary'} icon={getConstraintIcon(constraint)}/>
   );
 };
 
@@ -354,7 +354,7 @@ export const SelectionPanel: React.FC<SelectionPanelProps> = ({
   onConstraintChange,
 }) => {
   const { theme } = useTheme();
-  const [activeGroup, setActiveGroup] = React.useState<string>('Units');
+  const [activeGroup, setActiveGroup] = React.useState<string>('Primitives');
 
   return (
     <PanelContainer title="Constraints modes" borderRadius={8}>

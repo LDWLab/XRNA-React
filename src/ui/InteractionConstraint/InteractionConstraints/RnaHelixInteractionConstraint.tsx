@@ -4,7 +4,7 @@ import { compareBasePairKeys, RnaComplex, selectRelevantBasePairKeys } from "../
 import { BasePairKeysToRerender, BasePairKeysToRerenderPerRnaComplex, NucleotideKeysToRerender, NucleotideKeysToRerenderPerRnaComplex, NucleotideKeysToRerenderPerRnaMolecule } from "../../../context/Context";
 import { linearDrag } from "../CommonDragListeners";
 import { AbstractInteractionConstraint, multipleBasePairsNucleotideError, nonBasePairedNucleotideError } from "../AbstractInteractionConstraint";
-import { Extrema, InteractionConstraint, calculateExtremaMagnitudeDifference, checkExtremaForSingleStrand, populateToBeDraggedWithHelix } from "../InteractionConstraints";
+import { Extrema, Helix, InteractionConstraint, calculateExtremaMagnitudeDifference, checkExtremaForSingleStrand, populateToBeDraggedWithHelix } from "../InteractionConstraints";
 import { parseInteger, range, subtractNumbers } from "../../../utils/Utils";
 import { scaleUp, add, orthogonalizeLeft, subtract, asAngle, Vector2D } from "../../../data_structures/Vector2D";
 import { AppSpecificOrientationEditor } from "../../../components/app_specific/editors/AppSpecificOrientationEditor";
@@ -20,6 +20,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
   private readonly partialHeader : JSX.Element;
   private readonly editMenuProps : AllInOneEditor.SimplifiedProps;
   private readonly initialBasePairs : BasePairsEditor.InitialBasePairs;
+  private readonly helix : Helix;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -358,6 +359,13 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     };
     this.initialBasePairs = [initialBasePair];
     this.addFullIndicesPerNucleotideKeysToRerender(nucleotideKeysToRerender);
+    this.helix = {
+      rnaComplexIndex,
+      rnaMoleculeName0,
+      rnaMoleculeName1,
+      start : extrema0,
+      stop : extrema1
+    };
   }
 
   public override drag() {
@@ -471,5 +479,9 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       {header}
       {menu}
     </>
+  }
+
+  public override getHelices() {
+    return [this.helix];
   }
 }
