@@ -5,7 +5,7 @@ export enum Tab {
   FORMAT = "Format",
   ANNOTATE = "Annotate",
   SETTINGS = "Settings",
-  ABOUT = "About"
+  ABOUT = "Quickstart"
 }
 
 export const tabs = Object.values(Tab);

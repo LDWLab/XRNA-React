@@ -140,6 +140,10 @@ function decomposeTypeBase(t?: BasePair.Type): TypeBase {
   }
 }
 
+function formatTypeBaseLabel(typeBase: TypeBase): string {
+  return typeBase === "custom" ? "LW schema" : typeBase;
+}
+
 function IconButton(props: {
   title?: string;
   onClick?: () => void;
@@ -1728,7 +1732,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                 <option value={"canonical"}>canonical</option>
                 <option value={"wobble"}>wobble</option>
                 <option value={"mismatch"}>mismatch</option>
-                <option value={"custom"}>custom</option>
+                <option value={"custom"}>{formatTypeBaseLabel("custom")}</option>
               </select>
               <select
                 value={addForm.orientation ?? ""}
@@ -2210,11 +2214,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         <option value={"canonical"}>canonical</option>
                         <option value={"wobble"}>wobble</option>
                         <option value={"mismatch"}>mismatch</option>
-                        <option value={"custom"}>LW Schema</option>
+                        <option value={"custom"}>{formatTypeBaseLabel("custom")}</option>
                       </select>
                     ) : (
                       <span style={{ fontSize: 12, color: theme.colors.text }}>
-                        {decomposeTypeBase(r.type)}
+                        {formatTypeBaseLabel(decomposeTypeBase(r.type))}
                       </span>
                     )}
                   </td>

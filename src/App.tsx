@@ -119,6 +119,65 @@ for (
 
 const FLOATING_CONTROLS_POSITION = { top: 80, right: 17 };
 
+type AboutShortcut = {
+  shortcut: string;
+  action: string;
+};
+
+const ABOUT_SHORTCUTS: AboutShortcut[] = [
+  {
+    shortcut: "Ctrl/cmd + O",
+    action: "Open file picker",
+  },
+  {
+    shortcut: "Ctrl/cmd + S",
+    action: "Save",
+  },
+  {
+    shortcut: "Ctrl/cmd + Shift + S",
+    action: "Export as",
+  },
+  {
+    shortcut: "Ctrl/cmd + 0",
+    action: "Reset viewport",
+  },
+  {
+    shortcut: "Left click",
+    action: "Select constraint",
+  },
+  {
+    shortcut: "Right click",
+    action: "Open constraint menu",
+  },
+  {
+    shortcut: "Ctrl/cmd + Z",
+    action: "Undo change",
+  },
+  {
+    shortcut: "Ctrl/cmd + Y",
+    action: "Redo change",
+  },
+  {
+    shortcut: "Middle click",
+    action: "Freeze selection",
+  },
+  {
+    shortcut: "Ctrl/cmd + click",
+    action: "Break or create pair",
+  },
+  {
+    shortcut: "Ctrl/cmd + Shift + click",
+    action: "Create & reposition pair",
+  },
+  {
+    shortcut: "Shift + R",
+    action: "Recenter constraint",
+  },
+];
+
+const ABOUT_SHORTCUTS_NOTE =
+  "";
+
 export const LEFT_PANEL_WIDTH = 420;
 
 export const PARENT_DIV_HTML_ID = "parent_div";
@@ -3442,75 +3501,52 @@ export namespace App {
                     );
                   case Tab.ABOUT:
                     return (
-                      <div>
-                        <p>
-                          XRNA.js is an
-                          interactive web
-                          app for editing,
-                          formatting, and
-                          annotating 2D RNA
-                          diagrams with
-                          precision.
-                        </p>
-                        <h4>
-                          Getting Started:
-                        </h4>
-                        <ol>
-                          <li>
-                            Download a
-                            sample input
-                            file from the
-                            Input/Output
-                            area
-                          </li>
-                          <li>
-                            Upload it via
-                            the File panel
-                            in the left
-                            sidebar
-                          </li>
-                          <li>
-                            Use
-                            Edit/Format/Annotate
-                            tools for
-                            operations on
-                            nucleotides and
-                            base pairs
-                          </li>
-                        </ol>
-                        <h4>Shortcuts:</h4>
-                        <ul>
-                          <li>
-                            Ctrl + O — Open
-                            file
-                          </li>
-                          <li>
-                            Ctrl + S — Save
-                            file
-                          </li>
-                          <li>
-                            Ctrl + 0 — Reset
-                            viewport
-                          </li>
-                          <li>
-                            Ctrl + Z — Undo
-                          </li>
-                          <li>
-                            Ctrl + Shift + Z
-                            / Ctrl + Y —
-                            Redo
-                          </li>
-                        </ul>
-                        <h4>Contact Us:</h4>
-                        <p>
+                      <div className="quickstart-panel">
+                        <section className="quickstart-section">
+                          <div className="quickstart-section__header">
+                            <h4 className="quickstart-section__title">Key shortcuts</h4>
+                            <span className="quickstart-section__subtitle">Stay on the keyboard for faster edits.</span>
+                          </div>
+                          <div className="quickstart-shortcut-grid">
+                            {ABOUT_SHORTCUTS.map((entry) => (
+                              <article className="quickstart-shortcut-card" key={entry.shortcut}>
+                                <div className="quickstart-shortcut-hotkey">{entry.shortcut}</div>
+                                <p className="quickstart-shortcut-behavior">{entry.action}</p>
+                              </article>
+                            ))}
+                          </div>
+                          {ABOUT_SHORTCUTS_NOTE ? (
+                            <p className="quickstart-shortcut-note">{ABOUT_SHORTCUTS_NOTE}</p>
+                          ) : null}
+                        </section>
+
+                        <section className="quickstart-section">
+                          <p className="quickstart-paragraph">
+                            Exornata is an interactive web app for editing, formatting, and annotating 2D RNA diagrams.
+                          </p>
+                          <h4 className="quickstart-section__title">Quickstart checklist</h4>
+                          <ol className="quickstart-ordered-list">
+                            <li>Start in Edit mode on the blank canvas that opens by default.</li>
+                            <li>Use <em>Load example</em> to pull in the 5S rRNA reference structure.</li>
+                            <li>Review the Units/Complex constraint and tighten it if you only need a subset.</li>
+                            <li>Drag, pan, or zoom to orient the structure before detailed edits.</li>
+                            <li>Jump to Format mode to refine base pairs and structural geometry.</li>
+                            <li>Switch into Annotate mode to apply labels or callouts.</li>
+                            <li>Export your edits as JSON, XRna, SVG, or other supported formats.</li>
+                            <li>Re-import the exported file later to resume exactly where you stopped.</li>
+                          </ol>
+                        </section>
+
+                        <section className="quickstart-section">
                           <a
-                            href="https://github.com/LDWLab/XRNA-React/issues"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Report a bug
+                              className="quickstart-link"
+                              href="https://github.com/LDWLab/XRNA-React/issues"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                          <h4 className="quickstart-section__title">Something went wrong?</h4>
                           </a>
-                        </p>
+                        </section>
                       </div>
                     );
                   default:

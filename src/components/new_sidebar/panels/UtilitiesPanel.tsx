@@ -41,8 +41,8 @@ export const UtilitiesPanel: React.FC<UtilitiesPanelProps> = ({
               <Button
                 onClick={onToggleAboutDrawer}
                 icon={<Info size={12} />}
-                label="About"
-                hint="About the app"
+                label="Quickstart"
+                hint="Quickstart guide"
                 variant="secondary"
               />
             )}

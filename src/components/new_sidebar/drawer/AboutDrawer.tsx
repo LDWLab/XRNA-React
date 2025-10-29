@@ -1,7 +1,8 @@
 import React from 'react';
 import { useTheme } from '../../../context/ThemeContext';
 import { PanelContainer } from '../layout/PanelContainer';
-import { Tab, tabs } from '../../../app_data/Tab';
+import { Tab } from '../../../app_data/Tab';
+import './AboutDrawer.css';
 
 export interface AboutDrawerProps {
   open: boolean;
@@ -43,7 +44,7 @@ export const AboutDrawer: React.FC<AboutDrawerProps> = ({ open, onClose, renderT
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontSize: theme.typography.fontSize.sm, fontWeight: 700, letterSpacing: '0.5px', textTransform: 'uppercase', color: theme.colors.text }}>
-            About XRNA
+            Quickstart
           </span>
         </div>
         <button
@@ -67,7 +68,7 @@ export const AboutDrawer: React.FC<AboutDrawerProps> = ({ open, onClose, renderT
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
-        <PanelContainer title="Getting Started" borderRadius={8}>
+        <PanelContainer title="Quickstart" borderRadius={8}>
           <div style={{ fontSize: theme.typography.fontSize.md, color: theme.colors.text }}>
             {renderTabInstructions(Tab.ABOUT)}
           </div>
@@ -75,18 +76,6 @@ export const AboutDrawer: React.FC<AboutDrawerProps> = ({ open, onClose, renderT
 
         <div style={{ height: 12 }} />
 
-        <PanelContainer title="Tabs" borderRadius={8}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {tabs.map((t) => (
-              t !== Tab.ABOUT ? (
-                <div key={t}>
-                  <div style={{ fontWeight: 700, fontSize: theme.typography.fontSize.md, color: theme.colors.text, marginBottom: 6 }}>{t}</div>
-                  <div style={{ fontSize: theme.typography.fontSize.md, color: theme.colors.text }}>{renderTabInstructions(t)}</div>
-                </div>
-              ) : null
-            ))}
-          </div>
-        </PanelContainer>
       </div>
     </div>
   );

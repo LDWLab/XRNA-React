@@ -8,7 +8,7 @@ export function svgFileWriter(
 ) {
   const sceneBounds = (document.querySelector(`#${SVG_SCENE_GROUP_HTML_ID}`) as SVGGElement).getBBox();
   let svgHtmlElement = document.getElementById(SVG_ELEMENT_HTML_ID)!;
-  // Clone the svg HTML element to avoid changing XRNA.js
+  // Clone the svg HTML element to avoid changing Exornata
   const svgHtmlElementClone = svgHtmlElement.cloneNode(true) as SVGSVGElement;
   // Remove unnecessary elements.
   const svgBackground = svgHtmlElementClone.querySelector(`#${SVG_BACKGROUND_HTML_ID}`);
