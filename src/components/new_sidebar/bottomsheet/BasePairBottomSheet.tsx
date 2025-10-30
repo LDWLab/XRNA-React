@@ -365,14 +365,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               basePair.rnaMoleculeName === rnaMoleculeName1 &&
               basePair.nucleotideIndex === nucleotideIndex1
             )
-          );
-
-          if (relevantBasePair === undefined) {
-            helixBasePairType = null;
-            nucleotideIndex0 += increment0;
-            nucleotideIndex1 += increment1;
-            continue;
-          }
+          )!;
 
           const basePairType = relevantBasePair.basePairType;
 
@@ -393,7 +386,6 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
             formattedNucleotideIndex1 : singularRnaMoleculeProps1.firstNucleotideIndex + nucleotideIndex1,
             type : relevantBasePair.basePairType
           });
-          selectedHelices.push();
           
           nucleotideIndex0 += increment0;
           nucleotideIndex1 += increment1;
