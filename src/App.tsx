@@ -241,14 +241,6 @@ enum SceneState {
 // Begin app-specific constants.
 const DIV_BUFFER_DIMENSION = 2;
 const MOUSE_OVER_TEXT_FONT_SIZE = 20;
-const OPEN_BUTTON_TEXT = "Open";
-const SAVE_ROW_TEXT = "Save File";
-const SAVE_BUTTON_TEXT = "Save";
-const TRANSLATION_TEXT = "Translation";
-const SCALE_TEXT = "Scale";
-const RESET_TEXT = "Reset";
-const INTERACTION_CONSTRAINT_TEXT = "Constraint";
-const XRNA_SETTINGS_FILE_NAME = "xrna_settings";
 const strokesPerTab: Record<InteractionConstraint.SupportedTab, string> = {
   [Tab.EDIT]: "red",
   [Tab.FORMAT]: "blue",
@@ -1167,7 +1159,7 @@ export namespace App {
           if (tab === Tab.FORMAT) {
             setBasepairSheetOpen(true);
             setFormatMenuErrorMessage(undefined);
-            resetGlobalHelicesForFormatMenu();
+            // resetGlobalHelicesForFormatMenu();
             // Bind the helper method via arrow function to preserve this context
             setFilterRelevantHelices(() => (helices: Array<Helix>) => helper.filterRelevantHelices(helices));
             return;
@@ -1182,7 +1174,7 @@ export namespace App {
           if (typeof error === "object" && "errorMessage" in error) {
             if (tab === Tab.FORMAT) {
               setBasepairSheetOpen(true);
-              setGlobalHelicesForFormatMenu([]);
+              // setGlobalHelicesForFormatMenu([]);
               setFormatMenuErrorMessage(error.errorMessage);
             } else {
               setDrawerKind(DrawerKind.PROPERTIES);
@@ -1435,6 +1427,7 @@ export namespace App {
         e: React.MouseEvent<Nucleotide.SvgRepresentation>,
         fullKeys: FullKeys
       ) {
+        const settingsRecord = settingsRecordReference.current!;
         if (e.button === MouseButtonIndices.Left && e.ctrlKey) {
           e.preventDefault();
           e.stopPropagation();
@@ -1509,7 +1502,17 @@ export namespace App {
             DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
             {}
           );
-          insertBasePairIntoGlobalHelices(pending, fullKeys);
+          const basePairType = singularRnaComplexProps.basePairs[pending.rnaMoleculeName][pending.nucleotideIndex].find(basePair => (
+            basePair.rnaMoleculeName === fullKeys.rnaMoleculeName &&
+            basePair.nucleotideIndex === fullKeys.nucleotideIndex
+          ))!.basePairType;
+          if (
+            basePairType === undefined ||
+            BasePair.isCanonicalType(basePairType) ||
+            !settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED]
+          ) {
+            insertBasePairIntoGlobalHelices(pending, fullKeys);
+          }
           const [keys0, keys1] = [
             {
               rnaMoleculeName: pending.rnaMoleculeName,
@@ -1839,6 +1842,7 @@ export namespace App {
         const interactionConstraintOptions =
           interactionConstraintOptionsReference.current!;
         const tab = tabReference.current!;
+        const settingsRecord = settingsRecordReference.current!;
         switch (e.button) {
           case MouseButtonIndices.Left: {
             let newDragListener: DragListener = viewportDragListener;
@@ -1885,6 +1889,7 @@ export namespace App {
               }
               
               // Delete base pair from both directions
+              let basePairType : BasePair.Type | undefined;
               const basePairs0 = singularRnaComplexProps.basePairs[rnaMoleculeName0];
               if (basePairs0 && nucleotideIndex0 in basePairs0) {
                 const arr0 = basePairs0[nucleotideIndex0];
@@ -1892,6 +1897,7 @@ export namespace App {
                   (m) => m.rnaMoleculeName === rnaMoleculeName1 && m.nucleotideIndex === nucleotideIndex1
                 );
                 if (idx0 !== -1) {
+                  basePairType = arr0[idx0].basePairType;
                   if (arr0.length === 1) {
                     delete basePairs0[nucleotideIndex0];
                   } else {
@@ -1927,13 +1933,19 @@ export namespace App {
                   delete: [{ keys0, keys1 }]
                 }
               });
-              removeBasePairFromGlobalHelices(
-                rnaComplexIndex,
-                rnaMoleculeName0,
-                rnaMoleculeName1,
-                nucleotideIndex0,
-                nucleotideIndex1
-              );
+              if (
+                basePairType === undefined ||
+                BasePair.isCanonicalType(basePairType) ||
+                !(settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean)
+              ) {
+                removeBasePairFromGlobalHelices(
+                  rnaComplexIndex,
+                  rnaMoleculeName0,
+                  rnaMoleculeName1,
+                  nucleotideIndex0,
+                  nucleotideIndex1
+                );
+              }
             }
             break;
           }
@@ -1955,25 +1967,39 @@ export namespace App {
                   fullKeys0,
                   fullKeys1
                 );
-                const rightClickMenu = helper.createRightClickMenu(tab);
+                if (tab === Tab.FORMAT) {
+                  setBasepairSheetOpen(true);
+                  setFormatMenuErrorMessage(undefined);
+                  // resetGlobalHelicesForFormatMenu();
+                  // Bind the helper method via arrow function to preserve this context
+                  setFilterRelevantHelices(() => (helices: Array<Helix>) => helper.filterRelevantHelices(helices));
+                  return;
+                }
                 setResetOrientationDataTrigger(!resetOrientationDataTrigger);
+                const rightClickMenu = helper.createRightClickMenu(tab);
                 setRightClickMenuContent(
                   rightClickMenu,
                   helper.indicesOfAffectedNucleotides
                 );
               } catch (error: any) {
                 if (typeof error === "object" && "errorMessage" in error) {
-                  setDrawerKind(DrawerKind.PROPERTIES);
-                  setRightClickMenuContent(
-                    <b
-                      style={{
-                        color: "red",
-                      }}
-                    >
-                      {error.errorMessage}
-                    </b>,
-                    {}
-                  );
+                  if (tab === Tab.FORMAT) {
+                    setBasepairSheetOpen(true);
+                    // setGlobalHelicesForFormatMenu([]);
+                    setFormatMenuErrorMessage(error.errorMessage);
+                  } else {
+                    setDrawerKind(DrawerKind.PROPERTIES);
+                    setRightClickMenuContent(
+                      <b
+                        style={{
+                          color: "red",
+                        }}
+                      >
+                        {error.errorMessage}
+                      </b>,
+                      {}
+                    );
+                  }
                 } else {
                   throw error;
                 }
@@ -2430,7 +2456,7 @@ export namespace App {
             
             setDrawerKind(DrawerKind.NONE);
             setBasepairSheetOpen(false);
-            setGlobalHelicesForFormatMenu([]);
+            // setGlobalHelicesForFormatMenu([]);
             setRnaComplexProps(parsedInput.rnaComplexProps);
             if (Object.keys(parsedInput.rnaComplexProps).length > 0) {
               setTimeout(
@@ -3839,10 +3865,12 @@ export namespace App {
     );
     const resetGlobalHelicesForFormatMenu = useCallback(
       () => {
+        const rnaComplexProps = rnaComplexPropsReference.current!;
+        const settingsRecord = settingsRecordReference.current!;
         const helicesPerScene : Array<Helix> = [];
         const helicesPerSceneIterationData = iterateOverFreeNucleotidesAndHelicesPerScene(
-          rnaComplexPropsReference.current!,
-          settingsRecordReference.current![Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean
+          rnaComplexProps,
+          settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean
         );
         for (const { rnaComplexIndex, helixDataPerRnaMolecules } of helicesPerSceneIterationData) {
           for (const { rnaMoleculeName0, helixData } of helixDataPerRnaMolecules) {
@@ -4185,7 +4213,10 @@ export namespace App {
     );
     useEffect(
       resetGlobalHelicesForFormatMenu,
-      [settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED]]
+      [
+        rnaComplexProps,
+        settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED],
+      ]
     );
     return (
       <Context.MemoizedComponent
