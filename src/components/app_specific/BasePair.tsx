@@ -1545,7 +1545,6 @@ export namespace BasePair {
       rnaMoleculeName1,
       formattedNucleotideIndex1,
     } = props;
-    const basePairType = mappedBasePair.basePairType;
     const defaultStrokeWidth = useContext(Context.BasePair.AverageStrokeWidth);
     const setMouseOverText = useContext(Context.App.SetMouseOverText);
     const className = useContext(Context.BasePair.ClassName);
@@ -1562,6 +1561,10 @@ export namespace BasePair {
       averageNucleotideBoundingRectHeight = 0.1;
       // averageNucleotideBoundingRectHeight = Font.DEFAULT_SIZE;
     }
+    if (mappedBasePair === undefined) {
+      return null;
+    }
+    const basePairType = mappedBasePair.basePairType;
     const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
