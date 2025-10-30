@@ -236,7 +236,7 @@ export class RnaComplexInteractionConstraint extends AbstractInteractionConstrai
     return this.helices;
   }
 
-  public override filterRelevantHelices(helices: Array<Helix>) : Array<Helix> {
+  public override constrainRelevantHelices(helices: Array<Helix>) : Array<Helix> {
     return helices.filter(({ rnaComplexIndex }) => rnaComplexIndex === this.fullKeys0.rnaComplexIndex);
   }
 }

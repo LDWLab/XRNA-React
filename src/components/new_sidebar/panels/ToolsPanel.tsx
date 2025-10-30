@@ -5,6 +5,7 @@ import { useTheme } from "../../../context/ThemeContext";
 import { ActionsPanel } from "./ActionsPanel";
 import { InteractionConstraint } from "../../../ui/InteractionConstraint/InteractionConstraints";
 import { Circle, Move, Pencil, Cable } from "lucide-react";
+import { UndoRedoStack } from "../../../App";
 
 export interface ToolsPanelProps {
   mode: Tab;
@@ -14,8 +15,8 @@ export interface ToolsPanelProps {
   canUndo : boolean;
   canRedo : boolean;
   onResetViewport?: () => void;
-  undoStack?: Array<{ data: any; dataType: string }>;
-  redoStack?: Array<{ data: any; dataType: string }>;
+  undoStack?: UndoRedoStack;
+  redoStack?: UndoRedoStack;
   onJumpToHistory?: (index: number) => void;
   onResetToLastCheckpoint?: () => void;
   constraint?: InteractionConstraint.Enum;

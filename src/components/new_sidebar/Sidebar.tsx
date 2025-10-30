@@ -5,6 +5,7 @@ import { ToolsPanel } from './panels/ToolsPanel';
 import { UtilitiesPanel } from './panels/UtilitiesPanel';
 import { InteractionConstraint } from '../../ui/InteractionConstraint/InteractionConstraints';
 import { Tab } from '../../app_data/Tab';
+import { UndoRedoStack } from '../../App';
 
 export interface SidebarProps {
   constraint?: InteractionConstraint.Enum;
@@ -22,8 +23,8 @@ export interface SidebarProps {
   onToggleAboutDrawer?: () => void;
   onOpenDocs?: () => void;
   onLoadExample?: () => void;
-  undoStack?: Array<{ data: any; dataType: string }>;
-  redoStack?: Array<{ data: any; dataType: string }>;
+  undoStack?: UndoRedoStack;
+  redoStack?: UndoRedoStack;
   onJumpToHistory?: (index: number) => void;
   onResetToLastCheckpoint?: () => void;
   onFreezeSelected?: () => void;

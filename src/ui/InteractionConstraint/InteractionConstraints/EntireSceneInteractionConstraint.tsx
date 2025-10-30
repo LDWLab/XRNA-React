@@ -249,7 +249,7 @@ export class EntireSceneInteractionConstraint extends AbstractInteractionConstra
     return this.helices;
   }
 
-  public override filterRelevantHelices(helices: Array<Helix>) : Array<Helix> {
+  public override constrainRelevantHelices(helices: Array<Helix>) : Array<Helix> {
     return helices;
   }
 }

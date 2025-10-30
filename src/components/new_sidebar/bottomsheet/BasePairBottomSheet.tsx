@@ -35,7 +35,7 @@ export interface BasePairBottomSheetProps {
   rnaComplexProps: RnaComplexProps;
   globalHelices : Array<Helix>;
   errorMessage? : string;
-  filterRelevantHelices : (helices : Array<Helix>) => Array<Helix>;
+  constrainRelevantHelices : (helices : Array<Helix>) => Array<Helix>;
   handleNewBasePair : (fullKeys0 : FullKeys, fullKeys1 : FullKeys) => void;
   removeBasePair : (rnaComplexIndex : RnaComplexKey, rnaMoleculeName0 : RnaMoleculeKey, rnaMoleculeName1 : RnaMoleculeKey, nucleotideIndex0 : NucleotideKey, nucleotideIndex1 : NucleotideKey) => void;
   reformatSelectedHelices : (selectedHelices : Array<Helix>) => void;
@@ -210,7 +210,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   rnaComplexProps,
   globalHelices,
   errorMessage,
-  filterRelevantHelices,
+  constrainRelevantHelices: constrainRelevantHelices,
   handleNewBasePair,
   removeBasePair,
   reformatSelectedHelices
@@ -220,8 +220,8 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   const [isResizing, setIsResizing] = useState(false);
   type ViewMode = "Base Pairs" | "Helices";
   const [viewMode, setViewMode] = useState<ViewMode>("Base Pairs");
-  type SelectionMode = "Filtered" | "Global"
-  const [selectionMode, setSelectionMode] = useState<SelectionMode>("Filtered");
+  type SelectionMode = "Constrained" | "Global"
+  const [selectionMode, setSelectionMode] = useState<SelectionMode>("Constrained");
   const sheetRef = useRef<HTMLDivElement>(null);
   const startYRef = useRef<number>(0);
   const startHRef = useRef<number>(360);
@@ -325,10 +325,10 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   );
 
   const filteredHelices = useMemo(
-    () => selectionMode === "Filtered" ? filterRelevantHelices(globalHelices) : globalHelices,
+    () => selectionMode === "Constrained" ? constrainRelevantHelices(globalHelices) : globalHelices,
     [
       selectionMode,
-      filterRelevantHelices,
+      constrainRelevantHelices,
       globalHelices
     ]
   );
@@ -1351,7 +1351,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               </button>
             ))}
             &nbsp;|&nbsp;
-            {(["Filtered", "Global"] as Array<SelectionMode>).map((selectionModeI) => (
+            {(["Constrained", "Global"] as Array<SelectionMode>).map((selectionModeI) => (
               <button
                 key={selectionModeI}
                 onClick={() => setSelectionMode(selectionModeI)}

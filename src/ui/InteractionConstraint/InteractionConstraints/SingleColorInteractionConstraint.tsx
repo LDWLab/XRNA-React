@@ -317,7 +317,7 @@ export class SingleColorInteractionConstraint extends AbstractInteractionConstra
     return this.helices;
   }
 
-  public override filterRelevantHelices(helices : Array<Helix>) {
+  public override constrainRelevantHelices(helices : Array<Helix>) {
     return helices.filter(({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop }) => {
       const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
       const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];

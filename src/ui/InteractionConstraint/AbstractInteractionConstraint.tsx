@@ -47,7 +47,7 @@ export abstract class AbstractInteractionConstraint {
 
   abstract getHelices() : Array<Helix>;
 
-  filterRelevantHelices(helices : Array<Helix>) : Array<Helix> {
+  constrainRelevantHelices(helices : Array<Helix>) : Array<Helix> {
     return helices.filter(({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop }) => {
       const length = Math.abs(stop[0] - start[0]) + 1;
       const increment0 = Math.sign(stop[0] - start[0]);

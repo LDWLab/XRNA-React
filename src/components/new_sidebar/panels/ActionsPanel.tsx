@@ -15,13 +15,14 @@ import {
 import { Tab } from "../../../app_data/Tab";
 import { InteractionConstraint } from "../../../ui/InteractionConstraint/InteractionConstraints";
 import { Button } from "../layout/Button";
+import { UndoRedoStack } from "../../../App";
 
 export interface ActionsPanelProps {
   onUndo?: () => void;
   onRedo?: () => void;
   onResetViewport?: () => void;
-  undoStack?: Array<{ data: any; dataType: string }>;
-  redoStack?: Array<{ data: any; dataType: string }>;
+  undoStack?: UndoRedoStack;
+  redoStack?: UndoRedoStack;
   onJumpToHistory?: (index: number) => void;
   onResetToLastCheckpoint?: () => void;
   mode?: Tab;

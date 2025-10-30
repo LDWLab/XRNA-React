@@ -226,10 +226,7 @@ enum UndoRedoStacksDataTypes {
   IndicesOfFrozenNucleotides = "IndicesOfFrozenNucleotides",
   RnaComplexProps = "RnaComplexProps",
 }
-export type UndoRedoStack = Array<{
-  data: FullKeysRecord | RnaComplexProps;
-  dataType: UndoRedoStacksDataTypes;
-}>;
+export type UndoRedoStack = Array<FullKeysRecord | { rnaComplexProps : RnaComplexProps, globalHelicesForFormatMenu : Array<Helix> }>;
 
 enum SceneState {
   URL_PARSING_ERROR = "URL parsing error",
@@ -389,10 +386,7 @@ export namespace App {
           const undoStack = undoStackReference.current!;
           setUndoStack([
             ...undoStack,
-            {
-              data: structuredClone(indicesOfFrozenNucleotides),
-              dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-            },
+            structuredClone(indicesOfFrozenNucleotides)
           ]);
           setRedoStack([]);
         }
@@ -513,9 +507,9 @@ export namespace App {
     globalHelicesForFormatMenuReference.current = globalHelicesForFormatMenu;
     const [formatMenuErrorMessage, setFormatMenuErrorMessage] = useState<string | undefined>(undefined);
     // Initialize with identity function that returns all helices unchanged
-    const [filterRelevantHelices, setFilterRelevantHelices] = useState<(helices: Array<Helix>) => Array<Helix>>(() => (helices: Array<Helix>) => helices);
-    const filterRelevantHelicesReference = useRef<(helices: Array<Helix>) => Array<Helix>>(filterRelevantHelices);
-    filterRelevantHelicesReference.current = filterRelevantHelices;
+    const [constrainRelevantHelices, setConstrainRelevantHelices] = useState<(helices: Array<Helix>) => Array<Helix>>(() => (helices: Array<Helix>) => helices);
+    const constrainRelevantHelicesReference = useRef<(helices: Array<Helix>) => Array<Helix>>(constrainRelevantHelices);
+    constrainRelevantHelicesReference.current = constrainRelevantHelices;
     const [unsavedWorkFlag, setUnsavedWorkFlag] = useState(false);
     const unsavedWorkFlagReference = useRef(unsavedWorkFlag);
     unsavedWorkFlagReference.current = unsavedWorkFlag;
@@ -1159,9 +1153,8 @@ export namespace App {
           if (tab === Tab.FORMAT) {
             setBasepairSheetOpen(true);
             setFormatMenuErrorMessage(undefined);
-            // resetGlobalHelicesForFormatMenu();
             // Bind the helper method via arrow function to preserve this context
-            setFilterRelevantHelices(() => (helices: Array<Helix>) => helper.filterRelevantHelices(helices));
+            setConstrainRelevantHelices(() => (helices: Array<Helix>) => helper.constrainRelevantHelices(helices));
             return;
           }
           const rightClickMenu = helper.createRightClickMenu(tab);
@@ -1410,12 +1403,13 @@ export namespace App {
     const pushToUndoStack = useMemo(function () {
       return function () {
         const rnaComplexProps = rnaComplexPropsReference.current!;
+        const globalHelicesForFormatMenu = globalHelicesForFormatMenuReference.current;
         const undoStack = undoStackReference.current!;
         setUndoStack([
           ...undoStack,
-          {
-            data: structuredClone(rnaComplexProps),
-            dataType: UndoRedoStacksDataTypes.RnaComplexProps,
+          { 
+            rnaComplexProps : structuredClone(rnaComplexProps),
+            globalHelicesForFormatMenu : structuredClone(globalHelicesForFormatMenu)
           },
         ]);
         setRedoStack([]);
@@ -1723,10 +1717,7 @@ export namespace App {
               const undoStack = undoStackReference.current!;
               setUndoStack([
                 ...undoStack,
-                {
-                  data: indicesOfFrozenNucleotides,
-                  dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                },
+                structuredClone(indicesOfFrozenNucleotides)
               ]);
               setRedoStack([]);
               if (clearRightClickMenuFlag) {
@@ -1970,9 +1961,8 @@ export namespace App {
                 if (tab === Tab.FORMAT) {
                   setBasepairSheetOpen(true);
                   setFormatMenuErrorMessage(undefined);
-                  // resetGlobalHelicesForFormatMenu();
                   // Bind the helper method via arrow function to preserve this context
-                  setFilterRelevantHelices(() => (helices: Array<Helix>) => helper.filterRelevantHelices(helices));
+                  setConstrainRelevantHelices(() => (helices: Array<Helix>) => helper.constrainRelevantHelices(helices));
                   return;
                 }
                 setResetOrientationDataTrigger(!resetOrientationDataTrigger);
@@ -2456,8 +2446,9 @@ export namespace App {
             
             setDrawerKind(DrawerKind.NONE);
             setBasepairSheetOpen(false);
-            // setGlobalHelicesForFormatMenu([]);
+            setBasePairKeysToEdit({});
             setRnaComplexProps(parsedInput.rnaComplexProps);
+            resetGlobalHelicesForFormatMenu(parsedInput.rnaComplexProps);
             if (Object.keys(parsedInput.rnaComplexProps).length > 0) {
               setTimeout(
                 function () {
@@ -2547,6 +2538,7 @@ export namespace App {
         const rnaComplexProps = rnaComplexPropsReference.current!;
         const rightClickMenuAffectedNucleotideIndices =
           rightClickMenuAffectedNucleotideIndicesReference.current!;
+        const globalHelicesForFormatMenu = globalHelicesForFormatMenuReference.current;
 
         if (Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0) {
           alert(
@@ -2555,44 +2547,29 @@ export namespace App {
         } else if (fromStack.length > 0) {
           const newFromStack = [...fromStack];
           const copiedState = newFromStack.pop()!;
-          const { data, dataType } = copiedState;
           setFromStack(newFromStack);
-          switch (dataType) {
-            case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides: {
-              setToStack([
-                ...toStack,
-                {
-                  data: indicesOfFrozenNucleotides,
-                  dataType,
-                },
-              ]);
-              break;
-            }
-            case UndoRedoStacksDataTypes.RnaComplexProps: {
-              setToStack([
-                ...toStack,
-                {
-                  data: rnaComplexProps,
-                  dataType,
-                },
-              ]);
-              break;
-            }
+          if ("rnaComplexProps" in copiedState) {
+            setToStack([
+              ...toStack,
+              { 
+                rnaComplexProps : structuredClone(rnaComplexProps),
+                globalHelicesForFormatMenu : structuredClone(globalHelicesForFormatMenu)
+              }
+            ]);
+          } else {
+            setToStack([
+              ...toStack,
+              structuredClone(indicesOfFrozenNucleotides)
+            ]);
           }
 
-          switch (dataType) {
-            case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides: {
-              setIndicesOfFrozenNucleotides(data as FullKeysRecord);
-              break;
-            }
-            case UndoRedoStacksDataTypes.RnaComplexProps: {
-              setBasePairKeysToEdit({});
-              setRnaComplexProps(data as RnaComplexProps);
-              break;
-            }
-            default: {
-              throw "Unhandled switch case";
-            }
+          if ("rnaComplexProps" in copiedState) {
+            const { rnaComplexProps, globalHelicesForFormatMenu } = copiedState;
+            setBasePairKeysToEdit({});
+            setRnaComplexProps(rnaComplexProps);
+            setGlobalHelicesForFormatMenu(globalHelicesForFormatMenu);
+          } else {
+            setIndicesOfFrozenNucleotides(copiedState);
           }
         }
       };
@@ -3743,7 +3720,7 @@ export namespace App {
     );
     const renderedBasePairBottomSheet = useMemo(
       function () {
-        const filterRelevantHelices = filterRelevantHelicesReference.current;
+        const constrainRelevantHelices = constrainRelevantHelicesReference.current;
         return (<MemoizedBasePairBottomSheet
           open={basepairSheetOpen}
           onClose={() => {
@@ -3753,7 +3730,7 @@ export namespace App {
           rnaComplexProps={rnaComplexProps}
           globalHelices = {globalHelicesForFormatMenu}
           errorMessage = {formatMenuErrorMessage}
-          filterRelevantHelices = {filterRelevantHelices}
+          constrainRelevantHelices = {constrainRelevantHelices}
           handleNewBasePair = {insertBasePairIntoGlobalHelices}
           removeBasePair = {removeBasePairFromGlobalHelices}
           reformatSelectedHelices = {reformatSelectedHelices}
@@ -3764,7 +3741,7 @@ export namespace App {
         rnaComplexProps,
         globalHelicesForFormatMenu,
         formatMenuErrorMessage,
-        filterRelevantHelices
+        constrainRelevantHelices
       ]
     );
     const renderedGrid = useMemo(
@@ -3864,8 +3841,7 @@ export namespace App {
       [flattenedRnaComplexProps]
     );
     const resetGlobalHelicesForFormatMenu = useCallback(
-      () => {
-        const rnaComplexProps = rnaComplexPropsReference.current!;
+      (rnaComplexProps : RnaComplexProps) => {
         const settingsRecord = settingsRecordReference.current!;
         const helicesPerScene : Array<Helix> = [];
         const helicesPerSceneIterationData = iterateOverFreeNucleotidesAndHelicesPerScene(
@@ -4211,13 +4187,6 @@ export namespace App {
       () => setBasepairSheetOpen(false),
       [interactionConstraint]
     );
-    useEffect(
-      resetGlobalHelicesForFormatMenu,
-      [
-        rnaComplexProps,
-        settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED],
-      ]
-    );
     return (
       <Context.MemoizedComponent
         settingsRecord = {settingsRecord}
@@ -4308,10 +4277,7 @@ export namespace App {
                 const undoStack = undoStackReference.current!;
                 setUndoStack([
                   ...undoStack,
-                  {
-                    data: structuredClone(indicesOfFrozenNucleotides),
-                    dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                  },
+                  structuredClone(indicesOfFrozenNucleotides)
                 ]);
                 setRedoStack([]);
               };
@@ -4351,10 +4317,7 @@ export namespace App {
                 const undoStack = undoStackReference.current!;
                 setUndoStack([
                   ...undoStack,
-                  {
-                    data: structuredClone(indicesOfFrozenNucleotides),
-                    dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                  },
+                  structuredClone(indicesOfFrozenNucleotides)
                 ]);
                 setRedoStack([]);
               };
@@ -4368,10 +4331,7 @@ export namespace App {
                   const undoStack = undoStackReference.current!;
                   setUndoStack([
                     ...undoStack,
-                    {
-                      data: structuredClone(indicesOfFrozenNucleotides),
-                      dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                    },
+                    structuredClone(indicesOfFrozenNucleotides)
                   ]);
                   setRedoStack([]);
                   
@@ -4474,18 +4434,13 @@ export namespace App {
                 if (index < currentUndoStack.length) {
                   const targetState = currentUndoStack[index];
                   if (targetState) {
-                    switch (targetState.dataType) {
-                      case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
-                        setIndicesOfFrozenNucleotides(
-                          targetState.data as FullKeysRecord
-                        );
-                        break;
-                      case UndoRedoStacksDataTypes.RnaComplexProps:
-                        setBasePairKeysToEdit({});
-                        setRnaComplexProps(
-                          targetState.data as RnaComplexProps
-                        );
-                        break;
+                    if ("rnaComplexProps" in targetState) {
+                      const { rnaComplexProps, globalHelicesForFormatMenu } = targetState;
+                      setBasePairKeysToEdit({});
+                      setRnaComplexProps(rnaComplexProps);
+                      setGlobalHelicesForFormatMenu(globalHelicesForFormatMenu);
+                    } else {
+                      setIndicesOfFrozenNucleotides(targetState);
                     }
 
                     const newUndoStack = currentUndoStack.slice(0, index + 1);
@@ -4501,18 +4456,13 @@ export namespace App {
                   const redoIndex = index - currentUndoStack.length;
                   const targetState = currentRedoStack[redoIndex];
                   if (targetState) {
-                    switch (targetState.dataType) {
-                      case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
-                        setIndicesOfFrozenNucleotides(
-                          targetState.data as FullKeysRecord
-                        );
-                        break;
-                      case UndoRedoStacksDataTypes.RnaComplexProps:
-                        setBasePairKeysToEdit({});
-                        setRnaComplexProps(
-                          targetState.data as RnaComplexProps
-                        );
-                        break;
+                    if ("rnaComplexProps" in targetState) {
+                      const { rnaComplexProps, globalHelicesForFormatMenu } = targetState;
+                      setBasePairKeysToEdit({});
+                      setRnaComplexProps(rnaComplexProps);
+                      setGlobalHelicesForFormatMenu(globalHelicesForFormatMenu);
+                    } else {
+                      setIndicesOfFrozenNucleotides(targetState);
                     }
 
                     const newUndoStack = [
@@ -4532,18 +4482,13 @@ export namespace App {
                 if (currentUndoStack.length > 0) {
                   const initialState = currentUndoStack[0];
                   if (initialState) {
-                    switch (initialState.dataType) {
-                      case UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides:
-                        setIndicesOfFrozenNucleotides(
-                          initialState.data as FullKeysRecord
-                        );
-                        break;
-                      case UndoRedoStacksDataTypes.RnaComplexProps:
-                        setBasePairKeysToEdit({});
-                        setRnaComplexProps(
-                          initialState.data as RnaComplexProps
-                        );
-                        break;
+                    if ("rnaComplexProps" in initialState) {
+                      const { rnaComplexProps, globalHelicesForFormatMenu } = initialState;
+                      setBasePairKeysToEdit({});
+                      setRnaComplexProps(rnaComplexProps);
+                      setGlobalHelicesForFormatMenu(globalHelicesForFormatMenu);
+                    } else {
+                      setIndicesOfFrozenNucleotides(initialState);
                     }
 
                     const newRedoStack = [
@@ -4586,10 +4531,7 @@ export namespace App {
                   const undoStack = undoStackReference.current!;
                   setUndoStack([
                     ...undoStack,
-                    {
-                      data: structuredClone(indicesOfFrozenNucleotides),
-                      dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                    },
+                    structuredClone(indicesOfFrozenNucleotides),
                   ]);
                   setRedoStack([]);
                 };
@@ -4630,10 +4572,7 @@ export namespace App {
                   const undoStack = undoStackReference.current!;
                   setUndoStack([
                     ...undoStack,
-                    {
-                      data: structuredClone(indicesOfFrozenNucleotides),
-                      dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                    },
+                    structuredClone(indicesOfFrozenNucleotides)
                   ]);
                   setRedoStack([]);
                 };
@@ -4648,10 +4587,7 @@ export namespace App {
                     const undoStack = undoStackReference.current!;
                     setUndoStack([
                       ...undoStack,
-                      {
-                        data: structuredClone(indicesOfFrozenNucleotides),
-                        dataType: UndoRedoStacksDataTypes.IndicesOfFrozenNucleotides,
-                      },
+                      structuredClone(indicesOfFrozenNucleotides)
                     ]);
                     setRedoStack([]);
                     
