@@ -2483,10 +2483,10 @@ export namespace App {
                   const newBasePairRadius = averageBoundingRectHeight * 0.33;
                   setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
                   setBasePairRadius(newBasePairRadius);
-                  setSettingsRecord({
-                    ...settingsRecord,
+                  setSettingsRecord(prevSettings => ({
+                    ...prevSettings,
                     [Setting.BASE_PAIR_RADIUS] : newBasePairRadius
-                  });
+                  }));
                   setTimeout(
                     () => {
                       resetViewport();
