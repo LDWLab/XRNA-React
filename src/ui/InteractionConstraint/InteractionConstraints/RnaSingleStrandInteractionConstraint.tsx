@@ -236,7 +236,22 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       }
       const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[decremented];
       if (
-        decremented in basePairsPerRnaMolecule ||
+        (
+          decremented in basePairsPerRnaMolecule &&
+          (
+            basePairsPerRnaMolecule[decremented].some((basePair) => {
+              const { rnaMoleculeName, nucleotideIndex } = basePair;
+              const basePairType = basePair.basePairType ?? getBasePairType(
+                singularRnaMoleculeProps.nucleotideProps[decremented].symbol,
+                singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].symbol
+              );
+              return BasePair.isEnabledBasePair(
+                basePairType,
+                treatNoncanonicalBasePairsAsUnpairedFlag
+              );
+            })!
+          )
+        ) ||
         (
           truncateRnaSingleStrandFlag &&
           (
@@ -276,7 +291,20 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       }
       const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[incremented];
       if (
-        incremented in basePairsPerRnaMolecule || 
+        (
+          incremented in basePairsPerRnaMolecule &&
+          basePairsPerRnaMolecule[incremented].some((basePair) => {
+            const { rnaMoleculeName, nucleotideIndex } = basePair;
+            const basePairType = basePair.basePairType ?? getBasePairType(
+              singularRnaMoleculeProps.nucleotideProps[incremented].symbol,
+              singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex].symbol
+            );
+            return BasePair.isEnabledBasePair(
+              basePairType,
+              treatNoncanonicalBasePairsAsUnpairedFlag
+            );
+          })!
+        ) || 
         (
           truncateRnaSingleStrandFlag &&
           (

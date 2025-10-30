@@ -2344,6 +2344,7 @@ export namespace App {
           inputFileExtension: InputFileExtension,
           invertYAxisFlag?: boolean
         ) {
+          const settingsRecord = settingsRecordReference.current!;
           try {
             const parsedInput = (
               r2dtLegacyVersionFlag
@@ -2540,11 +2541,7 @@ export namespace App {
           rightClickMenuAffectedNucleotideIndicesReference.current!;
         const globalHelicesForFormatMenu = globalHelicesForFormatMenuReference.current;
 
-        if (Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0) {
-          alert(
-            "Cannot use undo/redo while a right-click menu is open. Close the menu first to use undo/redo."
-          );
-        } else if (fromStack.length > 0) {
+        if (fromStack.length > 0) {
           const newFromStack = [...fromStack];
           const copiedState = newFromStack.pop()!;
           setFromStack(newFromStack);
@@ -4186,6 +4183,12 @@ export namespace App {
     useEffect(
       () => setBasepairSheetOpen(false),
       [interactionConstraint]
+    );
+    useEffect(
+      () => resetGlobalHelicesForFormatMenu(rnaComplexPropsReference.current!),
+      [
+        settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED]
+      ]
     );
     return (
       <Context.MemoizedComponent
