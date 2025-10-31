@@ -120,12 +120,17 @@ for (
 const FLOATING_CONTROLS_POSITION = { top: 80, right: 17 };
 
 const createDefaultExportFileName = () => {
-  const isoStamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .replace("Z", "");
-  return `exo_${isoStamp}`;
+  const now = new Date();
+  const pad = (value: number) => value.toString().padStart(2, "0");
+  const compactStamp = [
+    now.getFullYear().toString().slice(-2),
+    pad(now.getMonth() + 1),
+    pad(now.getDate()),
+    "_",
+    pad(now.getHours()),
+    pad(now.getMinutes())
+  ].join("");
+  return `exo_${compactStamp}`;
 };
 
 const getDefaultExportFileName = () => createDefaultExportFileName();
@@ -599,6 +604,7 @@ export namespace App {
       OutputFileExtension | undefined
     >();
     outputFileExtensionReference.current = outputFileExtension;
+    const defaultExportFileNameRef = useRef<string | null>(null);
     const downloadButtonErrorMessageReference = useRef<string>();
     downloadButtonErrorMessageReference.current = downloadButtonErrorMessage;
     const uploadInputFileHtmlInputReference = useRef<HTMLInputElement>(null);
@@ -639,10 +645,24 @@ export namespace App {
     pendingPairNucleotideReference.current = pendingPairNucleotide;
 
     useEffect(() => {
-      if (!isEmpty(rnaComplexProps) && outputFileName === "") {
-        const defaultName = getDefaultExportFileName();
-        setOutputFileName(defaultName);
-        outputFileNameReference.current = defaultName;
+      if (isEmpty(rnaComplexProps)) {
+        defaultExportFileNameRef.current = null;
+        if (outputFileName !== "") {
+          setOutputFileName("");
+          outputFileNameReference.current = "";
+        }
+        return;
+      }
+
+      if (outputFileName === "") {
+        if (!defaultExportFileNameRef.current) {
+          defaultExportFileNameRef.current = getDefaultExportFileName();
+        }
+        const defaultName = defaultExportFileNameRef.current;
+        if (defaultName !== null) {
+          setOutputFileName(defaultName);
+          outputFileNameReference.current = defaultName;
+        }
       }
     }, [rnaComplexProps, outputFileName]);
 
@@ -3129,7 +3149,7 @@ export namespace App {
             }
           }
         } else {
-          const promptStart = "Right-click on a nucleotide to begin ";
+          const promptStart = "Right-click on a constraint to begin ";
           switch (tab) {
             case Tab.EDIT: {
               rightClickPrompt = promptStart + "editing.";
@@ -3779,7 +3799,9 @@ export namespace App {
       ]
     );
     const hasStructureLoaded = !isEmpty(rnaComplexProps);
-    const resolvedFileName = outputFileName || getDefaultExportFileName();
+    const topbarFileName = outputFileName === ""
+      ? defaultExportFileNameRef.current ?? ""
+      : outputFileName;
 
     const renderedTopBar = useMemo(
       () => {
@@ -3841,7 +3863,7 @@ export namespace App {
             }, 0);
           }}
           onDownload={downloadFile}
-          fileName={resolvedFileName}
+          fileName={topbarFileName}
           onFileNameChange={setOutputFileName}
           exportFormat={outputFileExtension}
           onExportFormatChange={setOutputFileExtension}
@@ -3851,7 +3873,7 @@ export namespace App {
         />;
       },
       [
-        resolvedFileName,
+        topbarFileName,
         outputFileExtension,
         hasStructureLoaded,
         rnaComplexProps
