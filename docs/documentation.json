@@ -1,8 +1,8 @@
 {
-  "title": "Xornata User Guide",
+  "title": "Exornata User Guide",
   "version": "1.0.0",
   "lastUpdated": "2025-10-28",
-  "intro": "This guide summarizes the Xornata workflow described in the project paper. Each section maps to a practical task: explore the workspace, use constraint-driven editing, format and annotate structures, and deliver consistent outputs.",
+  "intro": "This guide summarizes the Exornata workflow described in the project paper. Each section maps to a practical task: explore the workspace, use constraint-driven editing, format and annotate structures, and deliver consistent outputs.",
   "sections": [
     {
       "id": "quick-start",
@@ -295,7 +295,7 @@
           ],
           "rows": [
             [
-              "JSON (Xornata schema)",
+              "JSON (Exornata schema)",
               "Import & Export",
               "Preferred format. Captures styling, constraints, and metadata referenced in the paper."
             ],
@@ -340,7 +340,7 @@
       "content": [
         {
           "type": "paragraph",
-          "text": "Xornata uses the lab’s RNA 2D JSON specification. At the top level the file lists `classes` for reusable styling, then `rnaComplexes`, each containing `rnaMolecules`, sequences, and optional base-pair lists."
+          "text": "Exornata uses the lab’s RNA 2D JSON specification. At the top level the file lists `classes` for reusable styling, then `rnaComplexes`, each containing `rnaMolecules`, sequences, and optional base-pair lists."
         },
         {
           "type": "list",
