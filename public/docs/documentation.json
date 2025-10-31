@@ -288,7 +288,7 @@
               "items": [
                 "Lock Constraints (Middle-click): Prevents constraints from any kind of modifications such as movement, rotation, etc.",
                 "Prime (ctrl + click): Priming two nucleotides to create a base pair between them while honoring the existing constraints. While priming on base pairs breaks that base pair. Holding the shift button while priming will create a wobble base pair while priming forces repositioning of the nucleotides to create a base pair.",
-                "Reformat (shift + R): Reformat the selected constraint by repositioning them based on the bonds lengths mentioned in the settings."
+                "Reformat (shift + Click): Reformat the selected constraint by repositioning them based on the bonds lengths mentioned in the settings."
               ]
             }
           ]
@@ -507,7 +507,7 @@
               "Creates a new basepair between two nucleotides with repositioning."
             ],
             [
-              "Shift + R",
+              "Shift + Click",
               "Global",
               "Repositions the selected constraint group."
             ]
