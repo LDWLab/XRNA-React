@@ -371,9 +371,29 @@ const DocsContent: React.FC = () => {
 
   const renderSection = useCallback(
     (section: DocSection, level = 2): JSX.Element => {
-      const isOpen = openSections.has(section.id);
       const headingLevel = Math.min(level, 6);
       const HeadingTag = `h${headingLevel}` as keyof JSX.IntrinsicElements;
+
+      if (level > 2) {
+        return (
+          <article key={section.id} id={section.id} className="docs-subsection">
+            <HeadingTag className="docs-subsection__heading">{section.title}</HeadingTag>
+            {section.summary ? (
+              <p className="docs-subsection__summary">{renderRichText(section.summary)}</p>
+            ) : null}
+            {section.content?.map((block, index) =>
+              renderContentBlock(block, `${section.id}-block-${index}`)
+            )}
+            {section.subsections?.length
+              ? section.subsections.map((subsection) =>
+                  renderSection(subsection, level + 1)
+                )
+              : null}
+          </article>
+        );
+      }
+
+      const isOpen = openSections.has(section.id);
       const contentId = `${section.id}-content`;
 
       return (
@@ -405,13 +425,11 @@ const DocsContent: React.FC = () => {
             {section.content?.map((block, index) =>
               renderContentBlock(block, `${section.id}-block-${index}`)
             )}
-            {section.subsections?.length ? (
-              <div className="docs-section__subsections">
-                {section.subsections.map((subsection) =>
+            {section.subsections?.length
+              ? section.subsections.map((subsection) =>
                   renderSection(subsection, level + 1)
-                )}
-              </div>
-            ) : null}
+                )
+              : null}
           </div>
         </section>
       );

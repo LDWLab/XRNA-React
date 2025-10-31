@@ -305,6 +305,24 @@
   line-height: var(--docs-line-height-base);
 }
 
+.docs-subsection {
+  margin: var(--spacing-xl, 1.5rem) 0;
+}
+
+.docs-subsection__heading {
+  margin: 0 0 var(--spacing-md, 0.75rem);
+  font-size: var(--docs-font-size-lg);
+  line-height: var(--docs-line-height-tight);
+  font-weight: 600;
+}
+
+.docs-subsection__summary {
+  margin: 0 0 var(--spacing-md, 0.75rem);
+  color: var(--color-textSecondary, #475569);
+  font-size: var(--docs-font-size-base);
+  line-height: var(--docs-line-height-normal);
+}
+
 .docs-note {
   display: grid;
   grid-template-columns: auto 1fr;
