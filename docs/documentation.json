@@ -182,46 +182,73 @@
           "content": [
             {
               "type": "paragraph",
-              "text": "**Cycle Constraint**"
+              "text": "The **Constraint Modes** in Exornata follow the same structural hierarchy used in XRNA. They describe the biological and graphical level of the RNA structure that will move or reshape together during editing. Each constraint corresponds to a recognized structural unit in RNA secondary structure representation."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Primitives**"
+            },
+            {
+              "type": "paragraph",
+              "text": "*Includes: Nucleotide, Base Pair*"
             },
             {
               "type": "list",
               "style": "unordered",
               "items": [
-                "Evenly spaces nucleotides around a selected junction so that each branch leaves the cycle at a consistent angle, preserving the overall topology."
+                "**Nucleotide:** A nucleotide is a single RNA residue represented by one letter — 'A', 'U', 'G', 'C', or ambiguous symbols like 'R', 'Y', and 'N'. These are the default characters recognized by XRNA and Exornata. Each viewed nucleotide may have an associated nucleotide number (connected by a line or offset label). Moving a nucleotide in Exornata also translates its nucleotide number and label. Use this constraint to manipulate individual nucleotides when refining fine structural details.",
+                "**Base Pair:** A base pair refers to two nucleotides that are hydrogen-bonded together. The 5′ nucleotide in a pair is called the 5′ side; the 3′ nucleotide is the 3′ side. Base pairs can be of any type (Watson–Crick, GU wobble, or noncanonical)."
               ]
             },
             {
               "type": "paragraph",
-              "text": "**Helix Constraint**"
+              "text": "**Fragments**"
+            },
+            {
+              "type": "paragraph",
+              "text": "*Includes: Strand, Helix, Stacked, Cycle*"
             },
             {
               "type": "list",
               "style": "unordered",
               "items": [
-                "Maintains paired nucleotides at a fixed distance and orientation. Use this when you want to rotate or translate the full helix without breaking its base-pair geometry."
+                "**Strand:** A single strand is a contiguous set of nucleotides that contains no base pairs. These regions are bounded by two single-strand delineators the nucleotides that mark the 5′ and 3′ ends of the unpaired segment. Delineators can be assigned automatically (based on natural pairing) or manually during editing. Single strands typically represent loops, bulges, and connecting regions between helices. Moving a strand repositions that entire unpaired segment between delineators.",
+                "**Helix:** A helix refers to a contiguous set of base pairs. Even a single base pair can be considered a helix of length one. The start of a helix is defined by the base pair containing the most 5′ and most 3′ nucleotides; the end is the base pair on the opposite side of the stack. Helices may be drawn clockwise or counterclockwise, depending on representation. Moving a helix repositions the entire stack of base pairs as one rigid element.",
+                "**Stacked Helix:** A stacked helix is a run of helices, connected 5′→3′, that are separated only by small cycles (loops or bulges) having one entry and one exit helix. For example, in the E. coli 5S rRNA, helices 16, 18, 28, and 31 form a stacked helix. A stacked helix does not have to be visually aligned it is defined topologically by continuous connectivity. Moving a stacked helix shifts all helices in that connected series together.",
+                "**Cycle:** A cycle refers to any closed loop in the secondary structure graph a region enclosed by a continuous connection of helices and single-stranded segments. Cycles can represent hairpin loops, internal loops, or multi-helix junctions. For example, a simple hairpin loop helix forms a cycle where the closing base pair defines the 5′ and 3′ delineators of that loop. Editing a cycle moves the entire enclosed region (the loop and its connecting stems) as one topological unit. This makes it easy to reposition whole junctions or loops while maintaining overall structure integrity."
               ]
             },
             {
               "type": "paragraph",
-              "text": "**Stacked Helix Constraint**"
+              "text": "**Units**"
+            },
+            {
+              "type": "paragraph",
+              "text": "*Includes: Domain, Molecule, Complex*"
             },
             {
               "type": "list",
               "style": "unordered",
               "items": [
-                "Treats adjacent helices as a single rigid body. Apply it to keep coaxial stacks aligned while you reposition neighboring fragments."
+                "**Domain:** A domain includes a helix and all nucleotides extending in the 5′ direction back to the 3′ end of that same helix. In other words, it encompasses an entire local folding region of the RNA molecule. Moving a domain repositions that structured region and all its associated fragments as a cohesive block.",
+                "**Molecule:** Represents an entire RNA strand all residues, base pairs, and subdomains within one chain. Moving a molecule repositions that complete RNA without changing its internal geometry.",
+                "**Complex:** A set of multiple molecules that interact or are displayed together (for instance, rRNA with tRNA or mRNA). Editing at this level moves all molecules in the complex simultaneously."
               ]
             },
             {
               "type": "paragraph",
-              "text": "**Domain Constraint**"
+              "text": "**Scope**"
+            },
+            {
+              "type": "paragraph",
+              "text": "*Includes: Scene*"
             },
             {
               "type": "list",
               "style": "unordered",
               "items": [
-                "Locks the relative arrangement of all helices within a domain. Choose this level when refining large motifs but still want downstream cycles to stay intact."
+                "**Color:** This is used for selecting similar colored fragments present in a continous region.",
+                "**Scene:** The highest-level constraint. Moving the scene shifts everything currently visible in the workspace all molecules, annotations, and layout elements. This is typically used to reposition or center the full figure in the viewing window."
               ]
             }
           ]
