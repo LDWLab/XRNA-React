@@ -158,11 +158,11 @@ const ABOUT_SHORTCUTS: AboutShortcut[] = [
     action: "Reset viewport",
   },
   {
-    shortcut: "Left click",
+    shortcut: "Left Click",
     action: "Select constraint",
   },
   {
-    shortcut: "Right click",
+    shortcut: "Right Click",
     action: "Open constraint menu",
   },
   {
@@ -174,19 +174,19 @@ const ABOUT_SHORTCUTS: AboutShortcut[] = [
     action: "Redo change",
   },
   {
-    shortcut: "Middle click",
+    shortcut: "Middle Click",
     action: "Freeze selection",
   },
   {
-    shortcut: "Ctrl/cmd + click",
+    shortcut: "Ctrl/cmd + Click",
     action: "Break or create pair",
   },
   {
-    shortcut: "Ctrl/cmd + Shift + click",
+    shortcut: "Ctrl/cmd + Shift + Click",
     action: "Create & reposition pair",
   },
   {
-    shortcut: "Shift + R",
+    shortcut: "Shift + Click (on basepair)",
     action: "Recenter constraint",
   },
 ];
@@ -1885,21 +1885,8 @@ export namespace App {
         const settingsRecord = settingsRecordReference.current!;
         switch (e.button) {
           case MouseButtonIndices.Left: {
-            let newDragListener: DragListener = viewportDragListener;
-            let newDragListenerAffectedNucleotideIndices = {};
-            // As of now, dragging base pairs is not an option.
-            setDragListener(
-              newDragListener,
-              newDragListenerAffectedNucleotideIndices
-            );
-            break;
-          }
-          case MouseButtonIndices.Middle: {
-            if (
-              e.ctrlKey &&
-              xKeyPressedFlagReference.current
-            ) {
-              // Perform the helix-reformatting shortcut.
+            if (e.shiftKey) {
+              // Perform the helix-reformatting shortcut with Shift+Left Click.
               const helices = new InteractionConstraint.record[
                 InteractionConstraint.Enum.RNA_HELIX
               ](
@@ -1915,9 +1902,20 @@ export namespace App {
               ).getHelices();
               reformatSelectedHelices(helices);
             } else {
-              // Delete base pair on middle-click
-              const { rnaComplexIndex, rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 } = fullKeys0;
-              const { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 } = fullKeys1;
+              let newDragListener: DragListener = viewportDragListener;
+              let newDragListenerAffectedNucleotideIndices = {};
+              // As of now, dragging base pairs is not an option.
+              setDragListener(
+                newDragListener,
+                newDragListenerAffectedNucleotideIndices
+              );
+            }
+            break;
+          }
+          case MouseButtonIndices.Middle: {
+            // Delete base pair on middle-click
+            const { rnaComplexIndex, rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 } = fullKeys0;
+            const { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 } = fullKeys1;
               
               // Push to undo stack before making changes
               pushToUndoStack();
@@ -1986,7 +1984,6 @@ export namespace App {
                   nucleotideIndex1
                 );
               }
-            }
             break;
           }
           case MouseButtonIndices.Right: {
