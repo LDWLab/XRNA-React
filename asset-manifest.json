@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/XRNA-React/static/css/main.6960eec2.css",
-    "main.js": "/XRNA-React/static/js/main.2531a995.js",
+    "main.css": "/XRNA-React/static/css/main.b52447cc.css",
+    "main.js": "/XRNA-React/static/js/main.5b7e9612.js",
     "static/js/787.014ccd8a.chunk.js": "/XRNA-React/static/js/787.014ccd8a.chunk.js",
     "static/media/loading.svg": "/XRNA-React/static/media/loading.b29632a55bfb1d07d50fd6492383786b.svg",
     "index.html": "/XRNA-React/index.html",
-    "main.6960eec2.css.map": "/XRNA-React/static/css/main.6960eec2.css.map",
-    "main.2531a995.js.map": "/XRNA-React/static/js/main.2531a995.js.map",
+    "main.b52447cc.css.map": "/XRNA-React/static/css/main.b52447cc.css.map",
+    "main.5b7e9612.js.map": "/XRNA-React/static/js/main.5b7e9612.js.map",
     "787.014ccd8a.chunk.js.map": "/XRNA-React/static/js/787.014ccd8a.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.6960eec2.css",
-    "static/js/main.2531a995.js"
+    "static/css/main.b52447cc.css",
+    "static/js/main.5b7e9612.js"
   ]
 }
