@@ -97,13 +97,13 @@ const NOTE_VARIANT_CLASSNAMES: Record<DocNoteVariant, string> = {
 };
 
 type RichTextSegment = {
-  kind: "text" | "em" | "code";
+  kind: "text" | "em" | "strong" | "code";
   value: string;
 };
 
 function tokenizeRichText(text: string): RichTextSegment[] {
   const segments: RichTextSegment[] = [];
-  const pattern = /(`[^`]+`|\*[^*]+\*)/g;
+  const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text)) !== null) {
@@ -113,6 +113,8 @@ function tokenizeRichText(text: string): RichTextSegment[] {
     const token = match[0];
     if (token.startsWith("`")) {
       segments.push({ kind: "code", value: token.slice(1, -1) });
+    } else if (token.startsWith("**")) {
+      segments.push({ kind: "strong", value: token.slice(2, -2) });
     } else if (token.startsWith("*")) {
       segments.push({ kind: "em", value: token.slice(1, -1) });
     }
@@ -136,6 +138,12 @@ function renderRichText(text: string) {
           <code key={index} className="docs-inline-code">
             {segment.value}
           </code>
+        );
+      case "strong":
+        return (
+          <strong key={index} className="docs-strong">
+            {segment.value}
+          </strong>
         );
       case "em":
         return (
