@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/Exornata/static/css/main.643f19a3.css",
-    "main.js": "/Exornata/static/js/main.ca96cc0c.js",
-    "static/js/787.014ccd8a.chunk.js": "/Exornata/static/js/787.014ccd8a.chunk.js",
-    "static/media/loading.svg": "/Exornata/static/media/loading.b29632a55bfb1d07d50fd6492383786b.svg",
-    "index.html": "/Exornata/index.html",
-    "main.643f19a3.css.map": "/Exornata/static/css/main.643f19a3.css.map",
-    "main.ca96cc0c.js.map": "/Exornata/static/js/main.ca96cc0c.js.map",
-    "787.014ccd8a.chunk.js.map": "/Exornata/static/js/787.014ccd8a.chunk.js.map"
+    "main.css": "./static/css/main.643f19a3.css",
+    "main.js": "./static/js/main.a67353f1.js",
+    "static/js/787.014ccd8a.chunk.js": "./static/js/787.014ccd8a.chunk.js",
+    "static/media/loading.svg": "./static/media/loading.b29632a55bfb1d07d50fd6492383786b.svg",
+    "index.html": "./index.html",
+    "main.643f19a3.css.map": "./static/css/main.643f19a3.css.map",
+    "main.a67353f1.js.map": "./static/js/main.a67353f1.js.map",
+    "787.014ccd8a.chunk.js.map": "./static/js/787.014ccd8a.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.643f19a3.css",
-    "static/js/main.ca96cc0c.js"
+    "static/js/main.a67353f1.js"
   ]
 }
