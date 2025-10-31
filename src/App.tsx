@@ -119,6 +119,17 @@ for (
 
 const FLOATING_CONTROLS_POSITION = { top: 80, right: 17 };
 
+const createDefaultExportFileName = () => {
+  const isoStamp = new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace("T", "_")
+    .replace("Z", "");
+  return `exo_${isoStamp}`;
+};
+
+const getDefaultExportFileName = () => createDefaultExportFileName();
+
 type AboutShortcut = {
   shortcut: string;
   action: string;
@@ -261,7 +272,7 @@ export namespace App {
     const [outputFileName, setOutputFileName] = useState<string>("");
     const [outputFileExtension, setOutputFileExtension] = useState<
       OutputFileExtension | undefined
-    >(undefined);
+    >(OutputFileExtension.json);
     type SceneBounds = {
       x: number;
       y: number;
@@ -626,6 +637,21 @@ export namespace App {
     outputFileHandleReference.current = outputFileHandle;
     const pendingPairNucleotideReference = useRef<FullKeys | undefined>();
     pendingPairNucleotideReference.current = pendingPairNucleotide;
+
+    useEffect(() => {
+      if (!isEmpty(rnaComplexProps) && outputFileName === "") {
+        const defaultName = getDefaultExportFileName();
+        setOutputFileName(defaultName);
+        outputFileNameReference.current = defaultName;
+      }
+    }, [rnaComplexProps, outputFileName]);
+
+    useEffect(() => {
+      if (!isEmpty(rnaComplexProps) && outputFileExtension === undefined) {
+        setOutputFileExtension(OutputFileExtension.json);
+        outputFileExtensionReference.current = OutputFileExtension.json;
+      }
+    }, [rnaComplexProps, outputFileExtension]);
 
     const outputFileWritersMap = r2dtLegacyVersionFlag
       ? outputFileWritersMapAbsoluteJsonCoordinates
@@ -1425,6 +1451,8 @@ export namespace App {
         if (e.button === MouseButtonIndices.Left && e.ctrlKey) {
           e.preventDefault();
           e.stopPropagation();
+          
+          pushToUndoStack();
           const pending = pendingPairNucleotideReference.current;
           if (!pending) {
             setPendingPairNucleotide(fullKeys);
@@ -1435,13 +1463,6 @@ export namespace App {
             setPendingPairNucleotide(fullKeys);
             return;
           }
-          const same =
-            pending.rnaMoleculeName === fullKeys.rnaMoleculeName &&
-            pending.nucleotideIndex === fullKeys.nucleotideIndex;
-          if (same) {
-            setPendingPairNucleotide(undefined);
-            return;
-          }
           const rnaComplexProps =
             rnaComplexPropsReference.current as RnaComplexProps;
           const singularRnaComplexProps =
@@ -1450,7 +1471,6 @@ export namespace App {
             setPendingPairNucleotide(undefined);
             return;
           }
-          pushToUndoStack();
           if (e.shiftKey) {
             try {
               const indicesOfFrozen = indicesOfFrozenNucleotidesReference.current!;
@@ -3758,6 +3778,9 @@ export namespace App {
         viewportScale
       ]
     );
+    const hasStructureLoaded = !isEmpty(rnaComplexProps);
+    const resolvedFileName = outputFileName || getDefaultExportFileName();
+
     const renderedTopBar = useMemo(
       () => {
         return <Topbar
@@ -3818,18 +3841,19 @@ export namespace App {
             }, 0);
           }}
           onDownload={downloadFile}
-          fileName={outputFileName}
+          fileName={resolvedFileName}
           onFileNameChange={setOutputFileName}
           exportFormat={outputFileExtension}
           onExportFormatChange={setOutputFileExtension}
           downloadButtonReference={downloadOutputFileHtmlButtonReference}
           fileNameInputReference={uploadInputFileHtmlInputReference}
-          saveButtonsDisabledFlag = {Object.keys(rnaComplexProps).length === 0}
+          saveButtonsDisabledFlag = {!hasStructureLoaded}
         />;
       },
       [
-        outputFileName,
+        resolvedFileName,
         outputFileExtension,
+        hasStructureLoaded,
         rnaComplexProps
       ]
     );
@@ -4091,16 +4115,13 @@ export namespace App {
         let downloadButtonErrorMessage = "";
         if (isEmpty(rnaComplexProps)) {
           downloadButtonErrorMessage = "Import data to enable downloads.";
-        } else if (outputFileName === "") {
-          downloadButtonErrorMessage =
-            "Provide an output-file name to enable downloads.";
         } else if (outputFileExtension === undefined) {
           downloadButtonErrorMessage =
-            "Provide an output-file extension to enable downloads.";
+            "Select an export format to enable downloads.";
         }
         setDownloadButtonErrorMessage(downloadButtonErrorMessage);
       },
-      [rnaComplexProps, outputFileName, outputFileExtension]
+      [rnaComplexProps, outputFileExtension]
     );
     useEffect(
       function () {
