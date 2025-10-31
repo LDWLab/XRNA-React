@@ -173,6 +173,59 @@
           "variant": "info",
           "text": "Cycle constraints automatically align junction nucleotides around a circle, honoring anchor selections as described in the paper's \"Editing mode\" section."
         }
+      ],
+      "subsections": [
+        {
+          "id": "constraint-deepdive",
+          "title": "Understanding Constraint Modes",
+          "summary": "Explore the constraints in detail.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Cycle Constraint**"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "Evenly spaces nucleotides around a selected junction so that each branch leaves the cycle at a consistent angle, preserving the overall topology."
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "**Helix Constraint**"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "Maintains paired nucleotides at a fixed distance and orientation. Use this when you want to rotate or translate the full helix without breaking its base-pair geometry."
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "**Stacked Helix Constraint**"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "Treats adjacent helices as a single rigid body. Apply it to keep coaxial stacks aligned while you reposition neighboring fragments."
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "**Domain Constraint**"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "Locks the relative arrangement of all helices within a domain. Choose this level when refining large motifs but still want downstream cycles to stay intact."
+              ]
+            }
+          ]
+        }
       ]
     },
     {
