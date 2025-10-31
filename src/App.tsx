@@ -942,29 +942,31 @@ export namespace App {
                 rnaComplexPropsReference.current as RnaComplexProps
               )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName]
                 .nucleotideProps[nucleotideIndex];
-              const labelContentProps =
-                singularNucleotideProps.labelContentProps as LabelContent.ExternalProps;
-              newDragListener = {
-                initiateDrag() {
-                  return {
-                    x: labelContentProps.x,
-                    y: labelContentProps.y,
-                  };
-                },
-                continueDrag(totalDrag: Vector2D) {
-                  singularNucleotideProps.labelContentProps = {
-                    ...labelContentProps,
-                    ...totalDrag,
-                  };
-                  labelContentProps.x = totalDrag.x;
-                  labelContentProps.y = totalDrag.y;
-                  setNucleotideKeysToRerender({
-                    [rnaComplexIndex]: {
-                      [rnaMoleculeName]: [nucleotideIndex],
-                    },
-                  });
-                },
-              };
+              const labelContentProps = singularNucleotideProps.labelContentProps;
+              // Only set up drag listener if labelContentProps exists
+              if (labelContentProps !== undefined) {
+                newDragListener = {
+                  initiateDrag() {
+                    return {
+                      x: labelContentProps.x,
+                      y: labelContentProps.y,
+                    };
+                  },
+                  continueDrag(totalDrag: Vector2D) {
+                    singularNucleotideProps.labelContentProps = {
+                      ...labelContentProps,
+                      ...totalDrag,
+                    };
+                    labelContentProps.x = totalDrag.x;
+                    labelContentProps.y = totalDrag.y;
+                    setNucleotideKeysToRerender({
+                      [rnaComplexIndex]: {
+                        [rnaMoleculeName]: [nucleotideIndex],
+                      },
+                    });
+                  },
+                };
+              }
             }
             const setPerRnaMolecule = new Set<number>();
             setPerRnaMolecule.add(nucleotideIndex);
@@ -1028,8 +1030,11 @@ export namespace App {
         )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
           nucleotideIndex
         ];
-        const labelLineProps =
-          singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
+        const labelLineProps = singularNucleotideProps.labelLineProps;
+        // Only proceed if labelLineProps exists
+        if (labelLineProps === undefined) {
+          return;
+        }
         switch (e.button) {
           case MouseButtonIndices.Left: {
             let newDragListener = viewportDragListener;
@@ -1129,8 +1134,11 @@ export namespace App {
         )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
           nucleotideIndex
         ];
-        const labelLineProps =
-          singularNucleotideProps.labelLineProps as LabelLine.ExternalProps;
+        const labelLineProps = singularNucleotideProps.labelLineProps;
+        // Only proceed if labelLineProps exists
+        if (labelLineProps === undefined) {
+          return;
+        }
         switch (e.button) {
           case MouseButtonIndices.Left: {
             let newDragListener = viewportDragListener;
@@ -1536,10 +1544,11 @@ export namespace App {
             DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
             {}
           );
-          const basePairType = singularRnaComplexProps.basePairs[pending.rnaMoleculeName][pending.nucleotideIndex].find(basePair => (
+          const foundBasePair = singularRnaComplexProps.basePairs[pending.rnaMoleculeName]?.[pending.nucleotideIndex]?.find(basePair => (
             basePair.rnaMoleculeName === fullKeys.rnaMoleculeName &&
             basePair.nucleotideIndex === fullKeys.nucleotideIndex
-          ))!.basePairType;
+          ));
+          const basePairType = foundBasePair?.basePairType;
           if (
             basePairType === undefined ||
             BasePair.isCanonicalType(basePairType) ||
@@ -1927,7 +1936,7 @@ export namespace App {
                 const idx0 = arr0.findIndex(
                   (m) => m.rnaMoleculeName === rnaMoleculeName1 && m.nucleotideIndex === nucleotideIndex1
                 );
-                if (idx0 !== -1) {
+                if (idx0 !== -1 && arr0[idx0]) {
                   basePairType = arr0[idx0].basePairType;
                   if (arr0.length === 1) {
                     delete basePairs0[nucleotideIndex0];
@@ -3690,11 +3699,11 @@ export namespace App {
             const singularNucleotideProps0 = rangeIndexToSingularRnaMoleculeProps[0].nucleotideProps[nucleotideIndex0];
             const singularNucleotideProps1 = rangeIndexToSingularRnaMoleculeProps[1].nucleotideProps[nucleotideIndex1];
             const basePairsPerNucleotide0 = basePairsPerRnaMolecule0[nucleotideIndex0];
-            const relevantBasePair = basePairsPerNucleotide0.find(basePair => (
+            const relevantBasePair = basePairsPerNucleotide0?.find(basePair => (
               basePair.rnaMoleculeName === rnaMoleculeName1 &&
               basePair.nucleotideIndex === nucleotideIndex1
-            ))!;
-            let basePairType = relevantBasePair.basePairType;
+            ));
+            let basePairType = relevantBasePair?.basePairType;
             if (basePairType === undefined) {
               try {
                 basePairType = getBasePairType(singularNucleotideProps0.symbol, singularNucleotideProps1.symbol);

@@ -40,10 +40,14 @@ export function insertBasePair(
     if (foundBasePair !== undefined) {
       foundBasePair.basePairType = optionalBasePairParameters.basePairType;
       // basePairs is a symmetric data structure. Therefore, definitivity of foundBasePair implies success of the following statement.
-      basePairs[rnaMoleculeName1][nucleotideIndex1].find(basePair => (
+      // However, we add defensive checks to prevent crashes if data is corrupted.
+      const foundBasePairReverse = basePairs[rnaMoleculeName1]?.[nucleotideIndex1]?.find(basePair => (
         basePair.rnaMoleculeName === rnaMoleculeName0 &&
         basePair.nucleotideIndex === nucleotideIndex0
-      ))!.basePairType = optionalBasePairParameters.basePairType;
+      ));
+      if (foundBasePairReverse !== undefined) {
+        foundBasePairReverse.basePairType = optionalBasePairParameters.basePairType;
+      }
     }
     return [{
       keys0 : {
