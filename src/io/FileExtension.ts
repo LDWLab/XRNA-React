@@ -7,6 +7,7 @@ export enum FileExtension {
   TR = "tr",
   BPSEQ = "bpseq",
   STR = "str",
+  DOT_BRACKET = "dbn",
 }
 
 export const fileExtensionDescriptions : Record<FileExtension, string> = {
@@ -17,7 +18,8 @@ export const fileExtensionDescriptions : Record<FileExtension, string> = {
   [FileExtension.BPSEQ] : "a simplified, linear representation of the nucleotide sequence of the scene.",
   [FileExtension.TR] : "an XML-like format for R2DT. Contains nucleotides with 2D coordinates.",
   [FileExtension.SVG] : "an image-file format. Can be converted to other image-file formats (e.g. .jpg) using external tools",
-  [FileExtension.STR] : "an image-file format containing nucleotide sequences and base pairs"
+  [FileExtension.STR] : "an image-file format containing nucleotide sequences and base pairs",
+  [FileExtension.DOT_BRACKET] : "a dot-bracket notation file describing nucleotide sequence and secondary structure"
 };
 
 export const fileExtensions = Object.values(FileExtension);
