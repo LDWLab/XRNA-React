@@ -96,7 +96,7 @@
                 [
                   "Input / Output",
                   "Supported file formats",
-                  "Import or export JSON, XRna legacy files, BPSeq lists, Traveler-compatible JSON."
+                  "Import or export JSON, XRna legacy files, BPSeq lists, dot-bracket (.dbn) notation, Traveler-compatible JSON."
                 ],
                 [
                   "Constraints",
@@ -262,35 +262,29 @@
       "content": [
         {
           "type": "paragraph",
-          "text": "Editing mode is where you reshape structures. Begin with a quick read of the tips below, then try them on a small selection."
+          "text": "The **Edit** tab inside Drawing Tools reshapes the visual layout of the RNA secondary structure according to the active Constraint Mode."
+        },
+        {
+          "type": "paragraph",
+          "text": "Editing does not change base-pair connectivity or sequence data—it strictly adjusts geometry, spacing, and overall positioning so layouts read clearly."
+        },
+        {
+          "type": "paragraph",
+          "text": "Use this mode to refine helices, loops, and individual residues until the diagram communicates the structure with balanced spacing and symmetry."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Demonstrating Edit Functions**"
         },
         {
           "type": "list",
-          "style": "unordered",
+          "style": "ordered",
           "items": [
-            "Click-drag to reposition nucleotides or constrained subsets. Anchor points ensure arcs and cycles retain spacing.",
-            "Right click to open properties panel for selected constrain group.",
-            "Rotate base-paired fragments or entire domains when the constraint tier is set to Helix, Stacked Helix, or Domain.",
-            "Freeze pivotal nucleotides with *Middle mouse click* so downstream drags leave them untouched.",
-            "Normalize selected cycles to enforce even angular spacing and radiating helices."
-          ]
-        }
-      ],
-      "subsections": [
-        {
-          "id": "editing-anchors",
-          "title": "UI actions",
-          "summary": "Control the topology with UI actions.",
-          "content": [
-            {
-              "type": "list",
-              "style": "unordered",
-              "items": [
-                "Lock Constraints (Middle-click): Prevents constraints from any kind of modifications such as movement, rotation, etc.",
-                "Prime (ctrl + click): Priming two nucleotides to create a base pair between them while honoring the existing constraints. While priming on base pairs breaks that base pair. Holding the shift button while priming will create a wobble base pair while priming forces repositioning of the nucleotides to create a base pair.",
-                "Reformat (shift + Click): Reformat the selected constraint by repositioning them based on the bonds lengths mentioned in the settings."
-              ]
-            }
+            "**Move a single nucleotide:** Switch Constraint Mode to *Primitives → Nucleotide* and activate the Edit tab. Click and drag a nucleotide to reposition it, then use Undo or Restore (Drawing Tools) if you need to revert.",
+            "**Move a single strand:** Set Constraint Mode to *Fragments → Strand*. Drag any nucleotide inside the single-stranded region you want to reposition; only the residues between the strand's 5′ and 3′ delineators will move.",
+            "**Shape a strand with anchor points:** Temporarily switch back to *Primitives → Nucleotide* and middle-click two noncontiguous nucleotides in the strand to anchor them (each displays a red ring). Return to *Fragments → Strand*, then drag a nucleotide between the anchors to bend that portion while the anchored ends stay fixed.",
+            "**Move and rotate a helix:** Choose *Fragments → Helix*. Drag any nucleotide in the helix to translate the entire stack. For precise adjustments, right-click a nucleotide to open the Properties Panel, expand the Positions tab, tweak x/y to move, and adjust θ to rotate around the helix centroid.",
+            "**Reposition a cycle:** Set Constraint Mode to *Fragments → Cycle*. Select the closed loop you want to normalize—Exornata redistributes the connected helices and strands around the lowest-numbered anchor helix. Drag the cycle boundary after repositioning to widen or tighten the loop for the desired spacing."
           ]
         }
       ]
