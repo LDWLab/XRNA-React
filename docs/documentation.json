@@ -277,14 +277,182 @@
           "text": "**Demonstrating Edit Functions**"
         },
         {
-          "type": "list",
-          "style": "ordered",
-          "items": [
-            "**Move a single nucleotide:** Switch Constraint Mode to *Primitives → Nucleotide* and activate the Edit tab. Click and drag a nucleotide to reposition it, then use Undo or Restore (Drawing Tools) if you need to revert.",
-            "**Move a single strand:** Set Constraint Mode to *Fragments → Strand*. Drag any nucleotide inside the single-stranded region you want to reposition; only the residues between the strand's 5′ and 3′ delineators will move.",
-            "**Shape a strand with anchor points:** Temporarily switch back to *Primitives → Nucleotide* and middle-click two noncontiguous nucleotides in the strand to anchor them (each displays a red ring). Return to *Fragments → Strand*, then drag a nucleotide between the anchors to bend that portion while the anchored ends stay fixed.",
-            "**Move and rotate a helix:** Choose *Fragments → Helix*. Drag any nucleotide in the helix to translate the entire stack. For precise adjustments, right-click a nucleotide to open the Properties Panel, expand the Positions tab, tweak x/y to move, and adjust θ to rotate around the helix centroid.",
-            "**Reposition a cycle:** Set Constraint Mode to *Fragments → Cycle*. Select the closed loop you want to normalize—Exornata redistributes the connected helices and strands around the lowest-numbered anchor helix. Drag the cycle boundary after repositioning to widen or tighten the loop for the desired spacing."
+          "type": "image",
+          "src": "docs/images/nt_move.png",
+          "alt": "Dragging a single nucleotide in Edit mode",
+          "caption": "Move a single nucleotide",
+          "width": "en"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Move a single nucleotide:** Switch Constraint Mode to *Primitives → Nucleotide* and activate the Edit tab. Click and drag a nucleotide to reposition it, then use Undo or Restore (Drawing Tools) if you need to revert."
+        },
+        {
+          "type": "image",
+          "src": "docs/images/strand_move.png",
+          "alt": "Translating an entire strand segment",
+          "caption": "Move a single strand",
+          "width": "en"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Move a single strand:** Set Constraint Mode to *Fragments → Strand*. Drag any nucleotide inside the single-stranded region you want to reposition; only the residues between the strand's 5′ and 3′ delineators will move."
+        },
+        {
+          "type": "image",
+          "src": "docs/images/anchored_move.png",
+          "alt": "Anchoring two nucleotides before bending a strand",
+          "caption": "Shape a strand with anchor points",
+          "width": "en"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Shape a strand with anchor points:** Temporarily switch back to *Primitives → Nucleotide* and middle-click two noncontiguous nucleotides in the strand to anchor them (each displays a red ring). Return to *Fragments → Strand*, then drag a nucleotide between the anchors to bend that portion while the anchored ends stay fixed."
+        },
+        {
+          "type": "image",
+          "src": "docs/images/helix_move.png",
+          "alt": "Repositioning a cycle constraint",
+          "caption": "Move Helix",
+          "width": "en"
+        },
+        {
+          "type": "image",
+          "src": "docs/images/helix_advance.png",
+          "alt": "Rotating and translating a helix",
+          "caption": "Rotate a helix and Advance options",
+          "width": "en"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Move and rotate a helix:** Choose *Fragments → Helix*. Drag any nucleotide in the helix to translate the entire stack. For precise adjustments, right-click a nucleotide to open the Properties Panel, expand the Positions tab, tweak x/y to move, and adjust θ to rotate around the helix centroid."
+        },
+        {
+          "type": "paragraph",
+          "text": "**Reposition a cycle:** Set Constraint Mode to *Fragments → Cycle*. Select the closed loop you want to normalize—Exornata redistributes the connected helices and strands around the lowest-numbered anchor helix. Drag the cycle boundary after repositioning to widen or tighten the loop for the desired spacing."
+        }
+      ]
+    },
+    {
+      "id": "format-tool",
+      "title": "Format Tool",
+      "summary": "Change base-pairing relationships without leaving the Drawing Tools workflow.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "The Format tab under Drawing Tools in Exornata is used to modify the base-pairing relationships within an RNA molecule. Unlike the Edit mode, which only adjusts geometry and layout, the Format mode directly changes which nucleotides are paired — effectively altering the secondary structure. Use this mode when you need to add, delete, or redefine base pairs in your RNA model."
+        }
+      ],
+      "subsections": [
+        {
+          "id": "format-tool-interactive",
+          "title": "Interactive Mode: Add or Delete Base Pairs",
+          "summary": "Create, remove, or realign base pairs directly on the canvas.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Under any Constraint Mode or Drawing Tools, hold Ctrl and left-click on an unpaired nucleotide. A blue circle will appear around the selected nucleotide, indicating it is pair-ready."
+            },
+            {
+              "type": "paragraph",
+              "text": "To cancel pairing, simply left-click anywhere else or Ctrl + left-click the same nucleotide again to deselect it."
+            },
+            {
+              "type": "paragraph",
+              "text": "With one nucleotide marked as pair-ready (blue circle), hold Ctrl and left-click on another unpaired nucleotide. A base pair will be created between the two selected nucleotides."
+            },
+            {
+              "type": "paragraph",
+              "text": "A symbol will appear between them — for example, an open circle indicates a noncanonical pair (such as an A–C pairing)."
+            },
+            {
+              "type": "paragraph",
+              "text": "To delete a base pair, hold Ctrl and left-click on the pairing symbol located between the two paired nucleotides — for example, the open circle representing a noncanonical pair — to remove that base pair."
+            },
+            {
+              "type": "paragraph",
+              "text": "Adding a base pair using Ctrl + Left-click will only establish the base-pair relationship without changing the positions of the two selected nucleotides."
+            },
+            {
+              "type": "paragraph",
+              "text": "If you use Ctrl + Shift + Left-click on two unpaired nucleotides, this will both create the base pair and reposition the nucleotides so that the distance between them matches the default base-pair spacing, which depends on the pairing type:"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "Base-pair distance: standard for Watson–Crick and wobble pairs",
+                "Mismatch distance: 20% longer than the standard base-pair distance"
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "The interactive mode allows you to interactively add, delete, and realign base pairs or helices directly on the canvas."
+            },
+            {
+              "type": "note",
+              "variant": "info",
+              "text": "Noncanonical base pairs are treated as unpaired by default."
+            }
+          ]
+        },
+        {
+          "id": "format-tool-basepair-editor",
+          "title": "Create Base Pairs with the Base-Pair Editor",
+          "summary": "Specify nucleotide indices numerically to build or correct helices.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "The Base-Pair Editor provides a precise way to define or modify base-pairing relationships numerically rather than by direct clicking. Use this tool when you want to build or correct helices systematically, especially in large or complex RNAs."
+            },
+            {
+              "type": "paragraph",
+              "text": "Let’s start with adding a new base pair with the Base-Pair Editor. Click on the Format tab under Drawing Tools (you can do this under any Constraint Mode). Then, right-click on the nucleotide you want to pair — this will open the Base-Pair Editor window at the bottom of the screen."
+            },
+            {
+              "type": "paragraph",
+              "text": "Next, hover your cursor over the two nucleotides you wish to pair to view their nucleotide indices. In the Base-Pair Editor window, click Add Base Pair, then type the nucleotide numbers of the two bases you want to connect (for example, 12 for cytosine #12 and 109 for adenine #109). Click Add to create the base pair between the specified nucleotides."
+            },
+            {
+              "type": "paragraph",
+              "text": "The new pairing will immediately appear on the canvas and be listed in the Base-Pair Editor table below."
+            }
+          ]
+        },
+        {
+          "id": "format-tool-helix",
+          "title": "Create a Helix Using the Base-Pair Editor",
+          "summary": "Generate multi-pair helices without adding each pair manually.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Once you have created individual base pairs, you can extend them into a helix directly from the Base-Pair Editor. This is especially useful for rebuilding or correcting helical regions in large RNA structures."
+            },
+            {
+              "type": "paragraph",
+              "text": "In Format mode, you can quickly reconstruct an entire helix instead of adding base pairs one by one. Right-click on any nucleotide in an unpaired region where you want to build a helix. This opens the Base-Pair Editor window at the bottom of the screen."
+            },
+            {
+              "type": "paragraph",
+              "text": "In the Base-Pair Editor window, click on the Helices tab in the upper-left corner. This view lets you define a helix by specifying its starting and ending nucleotides and total length. Click Add Base Pair again to define a new helix."
+            },
+            {
+              "type": "paragraph",
+              "text": "In this example, we’ll reconstruct a 10-base-pair helix between nucleotide #1 and nucleotide #119. Enter:"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "NT (Index) A → 1 (lowest-numbered nucleotide in the helix)",
+                "NT (Index) B → 119 (highest-numbered nucleotide in the helix)",
+                "Length → 10 (number of base pairs)"
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "Click Add to generate the helix. The new helix will appear on the canvas, and its definition will be listed in the Helices table."
+            }
           ]
         }
       ]
