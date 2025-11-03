@@ -509,13 +509,6 @@
             "Adjust label line curvature, stroke, and anchor positions to mirror the examples in the manuscript.",
             "Utilize the properties menu to finetune the labes for custom labeleing or increments."
           ]
-        },
-        {
-          "type": "image",
-          "src": "docs/images/annotate-panel.png",
-          "alt": "Annotate mode panel with label settings",
-          "caption": "Annotate mode exposes label offsets, numbering presets, and leader line adjustments side by side.",
-          "width": "en"
         }
       ]
     },
