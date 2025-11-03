@@ -1418,6 +1418,10 @@ export namespace App {
           (nucleotideIndex0 - helix.start[0]) * (nucleotideIndex0 - helix.stop[0]) <= 0 &&
           (nucleotideIndex1 - helix.start[1]) * (nucleotideIndex1 - helix.stop[1]) <= 0
         ));
+        if (indexOfAffectedHelix === -1) {
+          // Base pair not found in global helices, nothing to remove
+          return;
+        }
         const affectedHelix = newHelices[indexOfAffectedHelix];
         const affectedHelixLength = Math.abs(affectedHelix.stop[0] - affectedHelix.start[0]) + 1;
         if (affectedHelixLength === 1) {
@@ -1535,13 +1539,105 @@ export namespace App {
               }
             } catch {}
           }
+          
+          // Delete all existing base pairs on both nucleotides before creating new one
+          const basePairsToDelete: Array<RnaComplex.FullBasePairKeys> = [];
+          
+          // Collect all base pairs from pending nucleotide
+          const basePairsPerRnaMolecule0 = singularRnaComplexProps.basePairs[pending.rnaMoleculeName];
+          if (basePairsPerRnaMolecule0) {
+            const basePairsPerNucleotide0 = basePairsPerRnaMolecule0[pending.nucleotideIndex];
+            if (basePairsPerNucleotide0) {
+              for (const basePair of basePairsPerNucleotide0) {
+                const [keys0, keys1] = [
+                  { rnaMoleculeName: pending.rnaMoleculeName, nucleotideIndex: pending.nucleotideIndex },
+                  { rnaMoleculeName: basePair.rnaMoleculeName, nucleotideIndex: basePair.nucleotideIndex }
+                ].sort(compareBasePairKeys);
+                basePairsToDelete.push({ keys0, keys1 });
+              }
+            }
+          }
+          
+          // Collect all base pairs from fullKeys nucleotide
+          const basePairsPerRnaMolecule1 = singularRnaComplexProps.basePairs[fullKeys.rnaMoleculeName];
+          if (basePairsPerRnaMolecule1) {
+            const basePairsPerNucleotide1 = basePairsPerRnaMolecule1[fullKeys.nucleotideIndex];
+            if (basePairsPerNucleotide1) {
+              for (const basePair of basePairsPerNucleotide1) {
+                const [keys0, keys1] = [
+                  { rnaMoleculeName: fullKeys.rnaMoleculeName, nucleotideIndex: fullKeys.nucleotideIndex },
+                  { rnaMoleculeName: basePair.rnaMoleculeName, nucleotideIndex: basePair.nucleotideIndex }
+                ].sort(compareBasePairKeys);
+                basePairsToDelete.push({ keys0, keys1 });
+              }
+            }
+          }
+          
+          // Deduplicate basePairsToDelete (in case A and B are already paired to each other)
+          const uniqueBasePairsToDelete: Array<RnaComplex.FullBasePairKeys> = [];
+          const seenPairs = new Set<string>();
+          for (const pair of basePairsToDelete) {
+            const pairKey = `${pair.keys0.rnaMoleculeName}:${pair.keys0.nucleotideIndex}-${pair.keys1.rnaMoleculeName}:${pair.keys1.nucleotideIndex}`;
+            if (!seenPairs.has(pairKey)) {
+              seenPairs.add(pairKey);
+              uniqueBasePairsToDelete.push(pair);
+            }
+          }
+          
+          // Delete all collected base pairs from BOTH sides of the symmetric structure
+          for (const { keys0, keys1 } of uniqueBasePairsToDelete) {
+            // Delete from keys0 side
+            const basePairsPerMol0 = singularRnaComplexProps.basePairs[keys0.rnaMoleculeName];
+            if (basePairsPerMol0 && basePairsPerMol0[keys0.nucleotideIndex]) {
+              const basePairsPerNuc0 = basePairsPerMol0[keys0.nucleotideIndex];
+              const indexToRemove0 = basePairsPerNuc0.findIndex(bp => 
+                bp.rnaMoleculeName === keys1.rnaMoleculeName && bp.nucleotideIndex === keys1.nucleotideIndex
+              );
+              if (indexToRemove0 !== -1) {
+                if (basePairsPerNuc0.length === 1) {
+                  delete basePairsPerMol0[keys0.nucleotideIndex];
+                } else {
+                  basePairsPerNuc0.splice(indexToRemove0, 1);
+                }
+              }
+            }
+            
+            // Delete from keys1 side
+            const basePairsPerMol1 = singularRnaComplexProps.basePairs[keys1.rnaMoleculeName];
+            if (basePairsPerMol1 && basePairsPerMol1[keys1.nucleotideIndex]) {
+              const basePairsPerNuc1 = basePairsPerMol1[keys1.nucleotideIndex];
+              const indexToRemove1 = basePairsPerNuc1.findIndex(bp => 
+                bp.rnaMoleculeName === keys0.rnaMoleculeName && bp.nucleotideIndex === keys0.nucleotideIndex
+              );
+              if (indexToRemove1 !== -1) {
+                if (basePairsPerNuc1.length === 1) {
+                  delete basePairsPerMol1[keys1.nucleotideIndex];
+                } else {
+                  basePairsPerNuc1.splice(indexToRemove1, 1);
+                }
+              }
+            }
+          }
+          
+          // Remove all deleted base pairs from global helices
+          for (const { keys0, keys1 } of uniqueBasePairsToDelete) {
+            removeBasePairFromGlobalHelices(
+              fullKeys.rnaComplexIndex,
+              keys0.rnaMoleculeName,
+              keys1.rnaMoleculeName,
+              keys0.nucleotideIndex,
+              keys1.nucleotideIndex
+            );
+          }
+          
+          // Now create the new base pair
           insertBasePair(
             singularRnaComplexProps,
             pending.rnaMoleculeName,
             pending.nucleotideIndex,
             fullKeys.rnaMoleculeName,
             fullKeys.nucleotideIndex,
-            DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
+            DuplicateBasePairKeysHandler.DO_NOTHING,
             {}
           );
           const foundBasePair = singularRnaComplexProps.basePairs[pending.rnaMoleculeName]?.[pending.nucleotideIndex]?.find(basePair => (
@@ -1567,8 +1663,25 @@ export namespace App {
             },
           ].sort(compareBasePairKeys);
           setBasePairKeysToEdit({
-            [fullKeys.rnaComplexIndex]: { add: [{ keys0, keys1 }], delete: [] },
+            [fullKeys.rnaComplexIndex]: { 
+              add: [{ keys0, keys1 }], 
+              delete: uniqueBasePairsToDelete 
+            },
           });
+          
+          // Trigger rerender for all affected base pair positions
+          const allAffectedKeys = [
+            { rnaMoleculeName: pending.rnaMoleculeName, nucleotideIndex: pending.nucleotideIndex },
+            { rnaMoleculeName: fullKeys.rnaMoleculeName, nucleotideIndex: fullKeys.nucleotideIndex }
+          ];
+          // Add all partner nucleotides from deleted pairs
+          for (const { keys0: k0, keys1: k1 } of uniqueBasePairsToDelete) {
+            allAffectedKeys.push(k0, k1);
+          }
+          setBasePairKeysToRerender({
+            [fullKeys.rnaComplexIndex]: allAffectedKeys
+          });
+          
           setPendingPairNucleotide(undefined);
           return;
         }
@@ -1823,6 +1936,25 @@ export namespace App {
         fullKeys0: FullKeys,
         fullKeys1: FullKeys
       ) {
+        // Check if base pair still exists in data structure (could have been deleted)
+        const currentRnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+        const currentSingularRnaComplexProps = currentRnaComplexProps[fullKeys0.rnaComplexIndex];
+        
+        if (!currentSingularRnaComplexProps) {
+          return;
+        }
+        const basePairs0 = currentSingularRnaComplexProps.basePairs[fullKeys0.rnaMoleculeName];
+        const basePairs1 = currentSingularRnaComplexProps.basePairs[fullKeys1.rnaMoleculeName];
+        const basePairExists = 
+          basePairs0?.[fullKeys0.nucleotideIndex]?.some(bp => 
+            bp.rnaMoleculeName === fullKeys1.rnaMoleculeName && bp.nucleotideIndex === fullKeys1.nucleotideIndex
+          ) ?? false;
+        
+        if (!basePairExists) {
+          // Base pair was deleted, ignore this click
+          return;
+        }
+        
         if (e.ctrlKey && e.button === MouseButtonIndices.Left) {
           const interactionConstraint = interactionConstraintReference.current!;
           const rnaComplexProps =
@@ -1887,20 +2019,25 @@ export namespace App {
           case MouseButtonIndices.Left: {
             if (e.shiftKey) {
               // Perform the helix-reformatting shortcut with Shift+Left Click.
-              const helices = new InteractionConstraint.record[
-                InteractionConstraint.Enum.RNA_HELIX
-              ](
-                rnaComplexProps,
-                setNucleotideKeysToRerender,
-                setBasePairKeysToRerender,
-                setDebugVisualElements,
-                tab,
-                indicesOfFrozenNucleotides,
-                interactionConstraintOptions,
-                fullKeys0,
-                fullKeys1
-              ).getHelices();
-              reformatSelectedHelices(helices);
+              try {
+                const helices = new InteractionConstraint.record[
+                  InteractionConstraint.Enum.RNA_HELIX
+                ](
+                  rnaComplexProps,
+                  setNucleotideKeysToRerender,
+                  setBasePairKeysToRerender,
+                  setDebugVisualElements,
+                  tab,
+                  indicesOfFrozenNucleotides,
+                  interactionConstraintOptions,
+                  fullKeys0,
+                  fullKeys1
+                ).getHelices();
+                reformatSelectedHelices(helices);
+              } catch (error: any) {
+                // Helix constraint doesn't support this base pair (e.g., non-canonical pairs)
+                console.warn('Cannot create helix constraint for this base pair:', error?.errorMessage || error);
+              }
             } else {
               let newDragListener: DragListener = viewportDragListener;
               let newDragListenerAffectedNucleotideIndices = {};

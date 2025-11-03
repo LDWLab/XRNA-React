@@ -1110,11 +1110,11 @@ export namespace BasePairsEditor {
               const nucleotideIndex0 = newBasePair.nucleotideIndex0! - singularRnaMoleculeProps0.firstNucleotideIndex + i;
               const nucleotideIndex1 = newBasePair.nucleotideIndex1! - singularRnaMoleculeProps1.firstNucleotideIndex - i;
               const basePairsPerNucleotide0 = basePairsPerRnaMolecule0[nucleotideIndex0];
-              const relevantBasePair = basePairsPerNucleotide0.find(({ rnaMoleculeName, nucleotideIndex }) => (
+              const relevantBasePair = basePairsPerNucleotide0?.find(({ rnaMoleculeName, nucleotideIndex }) => (
                 rnaMoleculeName === newBasePair.rnaMoleculeName1 &&
                 nucleotideIndex === nucleotideIndex1
-              ))!;
-              newBasePair.types.push(relevantBasePair.basePairType ?? getBasePairType(
+              ));
+              newBasePair.types.push(relevantBasePair?.basePairType ?? getBasePairType(
                 singularRnaMoleculeProps0.nucleotideProps[nucleotideIndex0].symbol,
                 singularRnaMoleculeProps1.nucleotideProps[nucleotideIndex1].symbol
               ));
