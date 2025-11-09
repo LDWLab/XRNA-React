@@ -2,7 +2,7 @@ import React, { Fragment, useCallback, useEffect, useMemo, useState } from "reac
 import { ThemeProvider } from "../../context/ThemeContext";
 import ThemeToggle from "../ui/ThemeToggle";
 import { Button } from "../new_sidebar/layout/Button";
-import { X } from "lucide-react";
+import { X, Minus, Plus, Type } from "lucide-react";
 import "./DocsPage.css";
 
 type DocNoteVariant = "tip" | "info" | "warning";
@@ -267,6 +267,7 @@ const DocsContent: React.FC = () => {
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const [openTocSections, setOpenTocSections] = useState<Set<string>>(new Set());
+  const [fontScale, setFontScale] = useState<number>(1.2);
   const [expandedImage, setExpandedImage] = useState<{ 
     src: string; 
     alt: string; 
@@ -607,13 +608,17 @@ const DocsContent: React.FC = () => {
         <div 
           className="docs-image-modal" 
           onClick={closeExpandedImage}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Expanded image view"
         >
           <button 
             className="docs-image-modal__close"
             onClick={closeExpandedImage}
-            aria-label="Close image"
+            aria-label="Close expanded image (Press Escape)"
+            title="Close (Esc)"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
           <div 
             className="docs-image-modal__content"
@@ -647,22 +652,50 @@ const DocsContent: React.FC = () => {
           </div>
         </div>
       )}
-      <main className="docs-page">
-      <aside className="docs-page__toc" aria-label="Table of contents">
-        <div className="docs-page__toc-header">
-          <div className="docs-page__toc-title-row">
-            <h1>{docs.title}</h1>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-  <Button
-    label=""
-    variant="secondary"
-    icon={<X size={12} />}
-    hint="Close docs"
-    onClick={() => { window.location.hash = "#/"; }}
-  />
-  <ThemeToggle className="docs-theme-toggle" />
-</div>
+      <div className="docs-container" style={{ '--docs-scale': fontScale } as React.CSSProperties}>
+        <header className="docs-header">
+          <div className="docs-header__content">
+            <h1 className="docs-header__title">{docs.title}</h1>
+            <div className="docs-header__controls">
+              <div className="docs-font-controls">
+                <Button
+                  label=""
+                  variant="simpleHighlight"
+                  icon={<Minus size={12} />}
+                  hint="Decrease font size"
+                  onClick={() => setFontScale(s => Math.max(0.8, s - 0.1))}
+                  disabled={fontScale <= 0.8}
+                />
+                <Button
+                  label=""
+                  variant="simpleHighlight"
+                  icon={<Type size={12} />}
+                  hint="Reset font size"
+                  onClick={() => setFontScale(1)}
+                />
+                <Button
+                  label=""
+                  variant="simpleHighlight"
+                  icon={<Plus size={12} />}
+                  hint="Increase font size"
+                  onClick={() => setFontScale(s => Math.min(1.4, s + 0.1))}
+                  disabled={fontScale >= 1.4}
+                />
+              </div>
+              <Button
+                label=""
+                variant="secondary"
+                icon={<X size={14} />}
+                hint="Close documentation"
+                onClick={() => { window.location.hash = "#/"; }}
+              />
+              <ThemeToggle className="docs-theme-toggle" />
+            </div>
           </div>
+        </header>
+        <main className="docs-page">
+          <aside className="docs-page__toc" aria-label="Table of contents">
+            <div className="docs-page__toc-header">
           <dl className="docs-meta">
             {docs.version ? (
               <div>
@@ -743,9 +776,9 @@ const DocsContent: React.FC = () => {
               );
             })}
           </ol>
-        </nav>
-      </aside>
-      <div className="docs-page__content">
+          </nav>
+        </aside>
+        <div className="docs-page__content" role="main" aria-label="Documentation content">
         {docs.sections.map((section) => renderSection(section, figureRegistry))}
         {docs.resources?.length ? (
           <section id="resources" className="docs-section docs-section--resources">
@@ -766,8 +799,9 @@ const DocsContent: React.FC = () => {
             </ul>
           </section>
         ) : null}
-      </div>
-    </main>
+        </div>
+      </main>
+    </div>
   </>);
 };
 

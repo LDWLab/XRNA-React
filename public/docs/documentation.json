@@ -1,7 +1,7 @@
 {
   "title": "Exornata User Guide",
-  "version": "1.0.0",
-  "lastUpdated": "2025-10-28",
+  "version": "1.2.0",
+  "lastUpdated": "2025-11-09",
   "intro": "This guide summarizes the Exornata workflow described in the project paper. Each section maps to a practical task: explore the workspace, use constraint-driven editing, format and annotate structures, and deliver consistent outputs.",
   "sections": [
     {
@@ -143,7 +143,7 @@
       "subsections": [
         {
           "id": "workspace-drawers",
-          "title": "Navigation Panel Breakdown",
+          "title": "Navigation Panel",
           "summary": "Map the panel sections to the modules described in the manuscript.",
           "content": [
             {
@@ -222,7 +222,7 @@
       "subsections": [
         {
           "id": "constraint-deepdive",
-          "title": "Understanding Constraint Modes",
+          "title": "Constraint Modes",
           "summary": "Explore the constraints in detail.",
           "content": [
             {
@@ -325,7 +325,7 @@
       "subsections": [
         {
           "id": "edit-move-nucleotide",
-          "title": "Move a single nucleotide",
+          "title": "Nucleotide",
           "content": [
             {
               "type": "image",
@@ -343,7 +343,7 @@
         },
         {
           "id": "edit-move-strand",
-          "title": "Move a single strand",
+          "title": "Strand",
           "content": [
             {
               "type": "image",
@@ -361,7 +361,7 @@
         },
         {
           "id": "edit-anchor-strand",
-          "title": "Shape a strand with anchor points",
+          "title": "Strand Anchor Points",
           "content": [
             {
               "type": "image",
@@ -379,7 +379,7 @@
         },
         {
           "id": "edit-move-helix",
-          "title": "Move and rotate a helix",
+          "title": "Helix",
           "content": [
             {
               "type": "image",
@@ -405,7 +405,7 @@
         },
         {
           "id": "edit-reposition-cycle",
-          "title": "Reposition a cycle",
+          "title": "Cycle",
           "content": [
             {
               "type": "paragraph",
@@ -455,7 +455,7 @@
         },
         {
           "id": "format-tool-interactive",
-          "title": "Interactive Mode: Add or Delete Base Pairs",
+          "title": "UI Mode",
           "summary": "Create, remove, or realign base pairs directly on the canvas.",
           "content": [
             {
@@ -507,7 +507,7 @@
         },
         {
           "id": "format-tool-basepair-editor",
-          "title": "Create Base Pairs with the Base-Pair Editor",
+          "title": "BP Editor mode",
           "summary": "Specify nucleotide indices numerically to build or correct helices.",
           "content": [
             {
@@ -538,7 +538,7 @@
         },
         {
           "id": "format-tool-helix",
-          "title": "Create a Helix Using the Base-Pair Editor",
+          "title": "Helix Creation",
           "summary": "Generate multi-pair helices without adding each pair manually.",
           "content": [
             {
@@ -589,7 +589,7 @@
       "subsections": [
         {
           "id": "annotate-scope",
-          "title": "Selecting the Annotation Scope",
+          "title": "Setting Up Scope",
           "summary": "Choose which region of the RNA to annotate.",
           "content": [
             {
@@ -612,7 +612,7 @@
         },
         {
           "id": "annotate-parameters",
-          "title": "Setting Up Annotation Parameters",
+          "title": "Configuring Parameters",
           "summary": "Configure Start Index, Increment, Override Start, and End Index.",
           "content": [
             {
@@ -687,12 +687,8 @@
         {
           "type": "code",
           "language": "json",
-          "label": "Example JSON",
+          "label": "Minimal valid XRNA-React JSON file",
           "content": "{\n  \"classes\" : [\n    {\n      \"name\" : \"myStyleA\",\n      \"color\" : \"#FF0000\"\n    },\n    {\n      \"name\" : \"myStyleT\",\n      \"color\" : \"#00FF00\"\n    }\n  ],\n  \"rnaComplexes\" : [{\n    \"name\" : \"myRnaComplex\",\n    \"rnaMolecules\" : [{\n      \"name\" : \"myRnaMolecule\",\n      \"sequence\" : [\n        {\n          \"residueIndex\" : 1,\n          \"residueName\" : \"A\",\n          \"x\" : 0,\n          \"y\" : 0,\n          \"classes\" : [\"myStyleA\"]\n        },\n        {\n          \"residueIndex\" : 2,\n          \"residueName\" : \"T\",\n          \"x\" : 10,\n          \"y\" : 0,\n          \"classes\" : [\"myStyleT\"]\n        }\n      ],\n      \"labels\" : [],\n      \"basePairs\" : [\n        {\n          \"residueIndex1\" : 1,\n          \"residueIndex2\" : 2,\n          \"basePairType\" : \"canonical\"\n        }\n      ]\n    }]\n  }]\n}"
-        },
-        {
-          "type": "paragraph",
-          "text": "Example 1. Minimal valid Exornata-React JSON file"
         }
       ],
       "subsections": [
@@ -774,7 +770,7 @@
           "content": [
             {
               "type": "paragraph",
-              "text": "The sequence array lists all nucleotides present within the current RNA molecule. Each nucleotide object therein has the following required properties: “residueIndex” (integer), “residueName” (string), “x” (floating-point number) and “y” (floating-point number). Residue indices may begin at any arbitrary integer; Exornataautomatically detects the minimum nucleotide index and adjusts accordingly. The “residueName” property has the following supported values: “5’,” “5,” “3’,” “3,” “A,” “C,” “G,” “U” and “N.” Finally, the “info” property (string array) allows users to encode information which will be passed through to other software applications; Exornatadoes not read information from this property."
+              "text": "The sequence array lists every nucleotide in the current RNA molecule. Each nucleotide object includes these required properties: \"residueIndex\" (integer), \"residueName\" (string), \"x\" (floating-point number), and \"y\" (floating-point number). Residue indices can begin at any integer; Exornata automatically detects the minimum index and adjusts accordingly. The \"residueName\" property supports the following values: \"5'\", \"5\", \"3'\", \"3\", \"A\", \"C\", \"G\", \"U\", and \"N\". The optional \"info\" property is a string array for passing metadata to partner tools; Exornata does not read values from this property."
             }
           ]
         },
