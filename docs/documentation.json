@@ -1,6 +1,6 @@
 {
   "title": "Exornata User Guide",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "lastUpdated": "2025-11-09",
   "intro": "This guide summarizes the Exornata workflow described in the project paper. Each section maps to a practical task: explore the workspace, use constraint-driven editing, format and annotate structures, and deliver consistent outputs.",
   "sections": [
@@ -87,11 +87,6 @@
               "Generates a BPSeq file with the nucleotide interactions list."
             ]
           ]
-        },
-        {
-          "type": "note",
-          "variant": "tip",
-          "text": "Switch the **Invert Y-axis** flag to align with external pipelines that flip the origin (R2DT, Traveler)."
         }
       ]
     },
@@ -142,33 +137,87 @@
       ],
       "subsections": [
         {
-          "id": "workspace-drawers",
-          "title": "Navigation Panel",
-          "summary": "Map the panel sections to the modules described in the manuscript.",
+          "id": "workspace-navigation",
+          "title": "Sidebar Navigation",
+          "summary": "The left sidebar provides quick access to all major tools and controls organized into collapsible panels.",
           "content": [
             {
               "type": "paragraph",
-              "text": "**Input / Output** (matches *Supported file formats*): Import or export JSON, XRna legacy files, BPSeq lists, dot-bracket (.dbn) notation, and Traveler-compatible JSON to move layouts between tools."
+              "text": "The sidebar is organized into logical sections that support the complete RNA structure editing workflow:"
+            },
+            {
+              "type": "heading",
+              "level": 3,
+              "text": "File Operations"
             },
             {
               "type": "paragraph",
-              "text": "**Constraints** (matches *Constraints*): Activate the hierarchy level you want to manipulate—from single nucleotide to entire complex—before making structural edits."
+              "text": "**Load**: Import structures from multiple formats including Exornata JSON, XRNA legacy files, BPSeq files, and dot-bracket notation (.dbn). The parser automatically detects format and validates structure integrity."
             },
             {
               "type": "paragraph",
-              "text": "**Editing Tools** (matches *Editing mode*): Translate, rotate, normalize, and freeze subsets with instant visual feedback while staying in the editing workflow."
+              "text": "**Save**: Export your work to Exornata JSON (full fidelity), XRNA XML (legacy compatibility), BPSeq (interaction list), or JSON compatible with external visualization tools like Traveler and R2DT."
+            },
+            {
+              "type": "heading",
+              "level": 3,
+              "text": "Selection Constraints"
             },
             {
               "type": "paragraph",
-              "text": "**Formatting** (matches *Formatting mode*): Apply typography presets, recolor fragments, and adjust stroke widths to polish presentation."
+              "text": "Choose the structural hierarchy level you want to work with. Constraints determine which elements respond to editing operations and which remain locked:"
+            },
+            {
+              "type": "list",
+              "items": [
+                "**Primitives**: Individual nucleotides or base pairs",
+                "**Fragments**: Single strands, helices, stacked helices, or cycles",
+                "**Units**: Sub-domains, molecules, or entire complexes",
+                "**Scope**: All elements of one color, or the entire scene"
+              ]
             },
             {
               "type": "paragraph",
-              "text": "**Annotate** (matches *Labeling, coloring*): Increment residue labels, adjust leader lines, and assign palettes for figure-ready callouts."
+              "text": "Set your constraint *before* selecting elements. The active constraint acts as a filter—only matching structural units will respond to clicks and transformations."
+            },
+            {
+              "type": "heading",
+              "level": 3,
+              "text": "Drawing Modes"
             },
             {
               "type": "paragraph",
-              "text": "**Utilities** (matches *Utility box*): Access grid toggles, autosave reminders, and legacy compatibility flags that support longer sessions."
+              "text": "**Edit Mode**: Drag nucleotides, base pairs, or higher-level structures. Use keyboard shortcuts (R for rotate, S for scale) to apply transformations. Middle-click to create or break base pairs. The active constraint determines what moves as a unit."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Format Mode**: Adjust visual presentation without changing structure topology. Modify base pair rendering, apply color schemes, change fonts and sizes, and control stroke widths for publication-ready figures."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Annotate Mode**: Add text labels, leader lines, and custom annotations. Label nucleotides with sequence numbers, residue names, or custom text. Position labels with drag handles and adjust leader line paths."
+            },
+            {
+              "type": "heading",
+              "level": 3,
+              "text": "Quick Actions"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Transform Tools**: Normalize spacing, align structures, and reset viewport zoom."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Freeze/Unfreeze**: Lock selected nucleotides in place to prevent accidental edits. Frozen elements are visually indicated and immune to transformations. Useful for preserving carefully positioned regions while editing nearby areas."
+            },
+            {
+              "type": "heading",
+              "level": 3,
+              "text": "Properties Panel"
+            },
+            {
+              "type": "paragraph",
+              "text": "Right-click any element to open its properties panel. Edit coordinates, colors, fonts, and element-specific attributes. Changes apply immediately with full undo support. The panel adapts to show relevant controls based on what you've selected."
             }
           ]
         }
