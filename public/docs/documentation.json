@@ -35,6 +35,67 @@
       ]
     },
     {
+      "id": "file-formats",
+      "title": "Supported File Formats",
+      "summary": "Interoperate with legacy Exornata, R2DT, Traveler, and partner pipelines.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Reference this table before sending layouts to collaborators."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Format",
+            "Direction",
+            "Notes"
+          ],
+          "rows": [
+            [
+              "JSON (Exornata schema)",
+              "Import & Export",
+              "Preferred format. Captures styling, constraints, and metadata referenced in the paper."
+            ],
+            [
+              "SVG",
+              "Import & Export",
+              "Adobe illustrator ready format for users looking to add their own artworks."
+            ],
+            [
+              "XRNA (legacy)",
+              "Import & Export",
+              "Maintains compatibility with the original desktop XRNA layouts."
+            ],
+            [
+              "FASTA",
+              "Import",
+              "Supports importing a FASTA file with or without secondary structure annotations (e.g., Vienna dot-bracket notation)."
+            ],
+            [
+              "CSV",
+              "Export",
+              "Generates a CSV file with the nucleotide interactions list."
+            ],
+            [
+              "TR (Traveler)",
+              "Export",
+              "Generates a Traveler file with the layout."
+            ],
+            [
+              "BPSeq",
+              "Export",
+              "Generates a BPSeq file with the nucleotide interactions list."
+            ]
+          ]
+        },
+        {
+          "type": "note",
+          "variant": "tip",
+          "text": "Switch the **Invert Y-axis** flag to align with external pipelines that flip the origin (R2DT, Traveler)."
+        }
+      ]
+    },
+    {
       "id": "workspace",
       "title": "Workspace Overview",
       "summary": "Understand how the navigation panel, canvas, and drawers cooperate during editing.",
@@ -86,44 +147,28 @@
           "summary": "Map the panel sections to the modules described in the manuscript.",
           "content": [
             {
-              "type": "table",
-              "headers": [
-                "Panel section",
-                "Matches paper section",
-                "Highlights"
-              ],
-              "rows": [
-                [
-                  "Input / Output",
-                  "Supported file formats",
-                  "Import or export JSON, XRna legacy files, BPSeq lists, dot-bracket (.dbn) notation, Traveler-compatible JSON."
-                ],
-                [
-                  "Constraints",
-                  "Constraints",
-                  "Activate the hierarchy level you want to manipulate (single nucleotide → complex)."
-                ],
-                [
-                  "Editing Tools",
-                  "Editing mode",
-                  "Translate, rotate, normalize, and freeze subsets with instant visual feedback."
-                ],
-                [
-                  "Formatting",
-                  "Formatting mode",
-                  "Apply typography presets, recolor fragments, adjust stroke widths."
-                ],
-                [
-                  "Annotate",
-                  "Labeling, coloring",
-                  "Increment residue labels, adjust leader lines, assign palettes."
-                ],
-                [
-                  "Utilities",
-                  "Utility box",
-                  "Access grid toggles, autosave reminders, and legacy compatibility flags."
-                ]
-              ]
+              "type": "paragraph",
+              "text": "**Input / Output** (matches *Supported file formats*): Import or export JSON, XRna legacy files, BPSeq lists, dot-bracket (.dbn) notation, and Traveler-compatible JSON to move layouts between tools."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Constraints** (matches *Constraints*): Activate the hierarchy level you want to manipulate—from single nucleotide to entire complex—before making structural edits."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Editing Tools** (matches *Editing mode*): Translate, rotate, normalize, and freeze subsets with instant visual feedback while staying in the editing workflow."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Formatting** (matches *Formatting mode*): Apply typography presets, recolor fragments, and adjust stroke widths to polish presentation."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Annotate** (matches *Labeling, coloring*): Increment residue labels, adjust leader lines, and assign palettes for figure-ready callouts."
+            },
+            {
+              "type": "paragraph",
+              "text": "**Utilities** (matches *Utility box*): Access grid toggles, autosave reminders, and legacy compatibility flags that support longer sessions."
             }
           ]
         }
@@ -182,7 +227,7 @@
           "content": [
             {
               "type": "paragraph",
-              "text": "The **Constraint Modes** in Exornata follow the same structural hierarchy used in XRNA. They describe the biological and graphical level of the RNA structure that will move or reshape together during editing. Each constraint corresponds to a recognized structural unit in RNA secondary structure representation."
+              "text": "The **Constraint Modes** in Exornata follow the same structural hierarchy used throughout Exornata. They describe the biological and graphical level of the RNA structure that will move or reshape together during editing. Each constraint corresponds to a recognized structural unit in RNA secondary structure representation."
             },
             {
               "type": "paragraph",
@@ -196,7 +241,7 @@
               "type": "list",
               "style": "unordered",
               "items": [
-                "**Nucleotide:** A nucleotide is a single RNA residue represented by one letter — 'A', 'U', 'G', 'C', or ambiguous symbols like 'R', 'Y', and 'N'. These are the default characters recognized by XRNA and Exornata. Each viewed nucleotide may have an associated nucleotide number (connected by a line or offset label). Moving a nucleotide in Exornata also translates its nucleotide number and label. Use this constraint to manipulate individual nucleotides when refining fine structural details.",
+                "**Nucleotide:** A nucleotide is a single RNA residue represented by one letter — 'A', 'U', 'G', 'C', or ambiguous symbols like 'R', 'Y', and 'N'. These are the default characters recognized by Exornata. Each viewed nucleotide may have an associated nucleotide number (connected by a line or offset label). Moving a nucleotide in Exornata also translates its nucleotide number and label. Use this constraint to manipulate individual nucleotides when refining fine structural details.",
                 "**Base Pair:** A base pair refers to two nucleotides that are hydrogen-bonded together. The 5′ nucleotide in a pair is called the 5′ side; the 3′ nucleotide is the 3′ side. Base pairs can be of any type (Watson–Crick, GU wobble, or noncanonical)."
               ]
             },
@@ -275,75 +320,139 @@
         {
           "type": "paragraph",
           "text": "**Demonstrating Edit Functions**"
+        }
+      ],
+      "subsections": [
+        {
+          "id": "edit-move-nucleotide",
+          "title": "Move a single nucleotide",
+          "content": [
+            {
+              "type": "image",
+              "src": "docs/images/nt_move.png",
+              "alt": "Dragging a single nucleotide in Edit mode",
+              "caption": "Move a single nucleotide",
+              "width": "lg",
+              "figureId": "fig-1"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Move a single nucleotide:** Switch Constraint Mode to *Primitives → Nucleotide* and activate the Edit tab. Click and drag a nucleotide to reposition it, then use Undo or Restore (Drawing Tools) if you need to revert."
+            }
+          ]
         },
         {
-          "type": "image",
-          "src": "docs/images/nt_move.png",
-          "alt": "Dragging a single nucleotide in Edit mode",
-          "caption": "Move a single nucleotide",
-          "width": "en"
+          "id": "edit-move-strand",
+          "title": "Move a single strand",
+          "content": [
+            {
+              "type": "image",
+              "src": "docs/images/strand_move.png",
+              "alt": "Translating an entire strand segment",
+              "caption": "Move a single strand",
+              "width": "lg",
+              "figureId": "fig-2"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Move a single strand:** Set Constraint Mode to *Fragments → Strand*. Drag any nucleotide inside the single-stranded region you want to reposition; only the residues between the strand's 5′ and 3′ delineators will move."
+            }
+          ]
         },
         {
-          "type": "paragraph",
-          "text": "**Move a single nucleotide:** Switch Constraint Mode to *Primitives → Nucleotide* and activate the Edit tab. Click and drag a nucleotide to reposition it, then use Undo or Restore (Drawing Tools) if you need to revert."
+          "id": "edit-anchor-strand",
+          "title": "Shape a strand with anchor points",
+          "content": [
+            {
+              "type": "image",
+              "src": "docs/images/anchored_move.png",
+              "alt": "Anchoring two nucleotides before bending a strand",
+              "caption": "Shape a strand with anchor points",
+              "width": "lg",
+              "figureId": "fig-3"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Shape a strand with anchor points:** Temporarily switch back to *Primitives → Nucleotide* and middle-click two noncontiguous nucleotides in the strand to anchor them (each displays a red ring). Return to *Fragments → Strand*, then drag a nucleotide between the anchors to bend that portion while the anchored ends stay fixed."
+            }
+          ]
         },
         {
-          "type": "image",
-          "src": "docs/images/strand_move.png",
-          "alt": "Translating an entire strand segment",
-          "caption": "Move a single strand",
-          "width": "en"
+          "id": "edit-move-helix",
+          "title": "Move and rotate a helix",
+          "content": [
+            {
+              "type": "image",
+              "src": "docs/images/helix_move.png",
+              "alt": "Repositioning a cycle constraint",
+              "caption": "Move Helix",
+              "width": "lg",
+              "figureId": "fig-4"
+            },
+            {
+              "type": "image",
+              "src": "docs/images/helix_advance.png",
+              "alt": "Rotating and translating a helix",
+              "caption": "Rotate a helix and Advance options",
+              "width": "lg",
+              "figureId": "fig-5"
+            },
+            {
+              "type": "paragraph",
+              "text": "**Move and rotate a helix:** Choose *Fragments → Helix*. Drag any nucleotide in the helix to translate the entire stack. For precise adjustments, right-click a nucleotide to open the Properties Panel, expand the Positions tab, tweak x/y to move, and adjust θ to rotate around the helix centroid."
+            }
+          ]
         },
         {
-          "type": "paragraph",
-          "text": "**Move a single strand:** Set Constraint Mode to *Fragments → Strand*. Drag any nucleotide inside the single-stranded region you want to reposition; only the residues between the strand's 5′ and 3′ delineators will move."
-        },
-        {
-          "type": "image",
-          "src": "docs/images/anchored_move.png",
-          "alt": "Anchoring two nucleotides before bending a strand",
-          "caption": "Shape a strand with anchor points",
-          "width": "en"
-        },
-        {
-          "type": "paragraph",
-          "text": "**Shape a strand with anchor points:** Temporarily switch back to *Primitives → Nucleotide* and middle-click two noncontiguous nucleotides in the strand to anchor them (each displays a red ring). Return to *Fragments → Strand*, then drag a nucleotide between the anchors to bend that portion while the anchored ends stay fixed."
-        },
-        {
-          "type": "image",
-          "src": "docs/images/helix_move.png",
-          "alt": "Repositioning a cycle constraint",
-          "caption": "Move Helix",
-          "width": "en"
-        },
-        {
-          "type": "image",
-          "src": "docs/images/helix_advance.png",
-          "alt": "Rotating and translating a helix",
-          "caption": "Rotate a helix and Advance options",
-          "width": "en"
-        },
-        {
-          "type": "paragraph",
-          "text": "**Move and rotate a helix:** Choose *Fragments → Helix*. Drag any nucleotide in the helix to translate the entire stack. For precise adjustments, right-click a nucleotide to open the Properties Panel, expand the Positions tab, tweak x/y to move, and adjust θ to rotate around the helix centroid."
-        },
-        {
-          "type": "paragraph",
-          "text": "**Reposition a cycle:** Set Constraint Mode to *Fragments → Cycle*. Select the closed loop you want to normalize—Exornata redistributes the connected helices and strands around the lowest-numbered anchor helix. Drag the cycle boundary after repositioning to widen or tighten the loop for the desired spacing."
+          "id": "edit-reposition-cycle",
+          "title": "Reposition a cycle",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Reposition a cycle:** Set Constraint Mode to *Fragments → Cycle*. Select the closed loop you want to normalize—Exornata redistributes the connected helices and strands around the lowest-numbered anchor helix. Drag the cycle boundary after repositioning to widen or tighten the loop for the desired spacing."
+            }
+          ]
         }
       ]
     },
     {
-      "id": "format-tool",
-      "title": "Format Tool",
+      "id": "format-mode",
+      "title": "Format Mode",
       "summary": "Change base-pairing relationships without leaving the Drawing Tools workflow.",
       "content": [
         {
           "type": "paragraph",
+          "text": "Move into formatting mode once positions feel stable. Use the tools below to polish labels, colors, and base-pair presentation."
+        },
+        {
+          "type": "paragraph",
           "text": "The Format tab under Drawing Tools in Exornata is used to modify the base-pairing relationships within an RNA molecule. Unlike the Edit mode, which only adjusts geometry and layout, the Format mode directly changes which nucleotides are paired — effectively altering the secondary structure. Use this mode when you need to add, delete, or redefine base pairs in your RNA model."
+        },
+        {
+          "type": "image",
+          "src": "docs/images/bp_editor.png",
+          "alt": "Base Pair Editor",
+          "caption": "Base Pair Editor",
+          "width": "lg",
+          "figureId": "fig-6"
         }
       ],
       "subsections": [
+        {
+          "id": "format-mode-basepair-editor",
+          "title": "Base Pair Editor",
+          "summary": "Text-driven topology adjustments with CSV import/export.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Open the editor from *Format → Base Pair Editor* to review nucleotide pairs, classify canonical, wobble, mismatch interactions, or assign Leontis–Westhof (LW) types. Use the export and import buttons to export existing basepair list as CSV or import a new basepair list. To add a base pair, choose *Add Base Pair*, select the relevant complex and molecules, and specify nucleotides 1 and 2. Select *Auto* to infer the type or override it with canonical, wobble, mismatch, or LW schema. Adjust the length to extend the pairing and enable repositioning to place the segment according to your configuration."
+            },
+            {
+              "type": "paragraph",
+              "text": "Use the action icons on the right to modify or delete individual base pairs as required."
+            }
+          ]
+        },
         {
           "id": "format-tool-interactive",
           "title": "Interactive Mode: Add or Delete Base Pairs",
@@ -406,6 +515,14 @@
               "text": "The Base-Pair Editor provides a precise way to define or modify base-pairing relationships numerically rather than by direct clicking. Use this tool when you want to build or correct helices systematically, especially in large or complex RNAs."
             },
             {
+              "type": "image",
+              "src": "docs/images/bp_editor.png",
+              "alt": "Opening the Base-Pair Editor from the Format tab",
+              "caption": "Open the Base-Pair Editor",
+              "width": "lg",
+              "figureId": "fig-14"
+            },
+            {
               "type": "paragraph",
               "text": "Let’s start with adding a new base pair with the Base-Pair Editor. Click on the Format tab under Drawing Tools (you can do this under any Constraint Mode). Then, right-click on the nucleotide you want to pair — this will open the Base-Pair Editor window at the bottom of the screen."
             },
@@ -432,6 +549,7 @@
               "type": "paragraph",
               "text": "In Format mode, you can quickly reconstruct an entire helix instead of adding base pairs one by one. Right-click on any nucleotide in an unpaired region where you want to build a helix. This opens the Base-Pair Editor window at the bottom of the screen."
             },
+            
             {
               "type": "paragraph",
               "text": "In the Base-Pair Editor window, click on the Helices tab in the upper-left corner. This view lets you define a helix by specifying its starting and ending nucleotides and total length. Click Add Base Pair again to define a new helix."
@@ -449,44 +567,10 @@
                 "Length → 10 (number of base pairs)"
               ]
             },
+            
             {
               "type": "paragraph",
               "text": "Click Add to generate the helix. The new helix will appear on the canvas, and its definition will be listed in the Helices table."
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "format-mode",
-      "title": "Formatting Mode",
-      "summary": "Configure base pairs, typography, and color with publication-ready output in mind.",
-      "content": [
-        {
-          "type": "paragraph",
-          "text": "Move into formatting mode once positions feel stable. Use the tools below to polish labels, colors, and base-pair presentation."
-        }
-      ],
-      "subsections": [
-        {
-          "id": "format-mode-basepair-editor",
-          "title": "Base Pair Editor",
-          "summary": "Text-driven topology adjustments with CSV import/export.",
-          "content": [
-            {
-              "type": "image",
-              "src": "docs/images/bp_editor.png",
-              "alt": "Base Pair Editor",
-              "caption": "Base Pair Editor",
-              "width": "en"
-            },
-            {
-              "type": "paragraph",
-              "text": "Open the editor from *Format → Base Pair Editor* to review nucleotide pairs, classify canonical, wobble, mismatch interactions, or assign Leontis–Westhof (LW) types. Use the export and import buttons to export existing basepair list as CSV or import a new basepair list. To add a base pair, choose *Add Base Pair*, select the relevant complex and molecules, and specify nucleotides 1 and 2. Select *Auto* to infer the type or override it with canonical, wobble, mismatch, or LW schema. Adjust the length to extend the pairing and enable repositioning to place the segment according to your configuration."
-            },
-            {
-              "type": "paragraph",
-              "text": "Use the action icons on the right to modify or delete individual base pairs as required."
             }
           ]
         }
@@ -499,107 +583,213 @@
       "content": [
         {
           "type": "paragraph",
-          "text": "When you are ready to communicate findings, switch to annotate mode and refine the storytelling pieces first."
-        },
-        {
-          "type": "list",
-          "style": "unordered",
-          "items": [
-            "Increment labels across a range, shift numbering to match reference indexes, or hide indexes for presentation versions.",
-            "Adjust label line curvature, stroke, and anchor positions to mirror the examples in the manuscript.",
-            "Utilize the properties menu to finetune the labes for custom labeleing or increments."
-          ]
-        },
-        {
-          "type": "image",
-          "src": "docs/images/annotate-panel.png",
-          "alt": "Annotate mode panel with label settings",
-          "caption": "Annotate mode exposes label offsets, numbering presets, and leader line adjustments side by side.",
-          "width": "en"
+          "text": "The Annotation Mode in Exornata adds index labels to RNA structures to help track nucleotide positions, helices, or specific regions. This feature currently supports only numerical labeling, not text comments or highlighting."
         }
-      ]
-    },
-    {
-      "id": "file-formats",
-      "title": "Supported File Formats",
-      "summary": "Interoperate with legacy XRNA, R2DT, Traveler, and partner pipelines.",
-      "content": [
+      ],
+      "subsections": [
         {
-          "type": "paragraph",
-          "text": "Reference this table before sending layouts to collaborators."
-        },
-        {
-          "type": "table",
-          "headers": [
-            "Format",
-            "Direction",
-            "Notes"
-          ],
-          "rows": [
-            [
-              "JSON (Exornata schema)",
-              "Import & Export",
-              "Preferred format. Captures styling, constraints, and metadata referenced in the paper."
-            ],
-            [
-              "SVG",
-              "Import & Export",
-              "Adobe illustrator ready format for users looking to add their own artworks."
-            ],
-            [
-              "XRNA (legacy)",
-              "Import & Export",
-              "Maintains compatibility with the original desktop XRNA layouts."
-            ],
-            [
-              "CSV",
-              "Export",
-              "Generates a CSV file with the nucleotide interactions list."
-            ],
-            [
-              "TR (Traveler)",
-              "Export",
-              "Generates a Traveler file with the layout."
-            ],
-            [
-              "BPSeq",
-              "Export",
-              "Generates a BPSeq file with the nucleotide interactions list."
-            ]
+          "id": "annotate-scope",
+          "title": "Selecting the Annotation Scope",
+          "summary": "Choose which region of the RNA to annotate.",
+          "content": [
+            {
+              "type": "image",
+              "src": "docs/images/annotate_panel.png",
+              "alt": "Annotation properties panel",
+              "caption": "Annotation parameters in the Properties Panel",
+              "width": "lg",
+              "figureId": "fig-20"
+            },
+            {
+              "type": "paragraph",
+              "text": "Start by defining which region of the RNA you want to annotate. In the Constraint Modes panel, select Units → Molecule to annotate the entire RNA structure."
+            },
+            {
+              "type": "paragraph",
+              "text": "In this example, the selected region is the complete 5S rRNA molecule with the right stack annotated."
+            }
           ]
         },
         {
-          "type": "note",
-          "variant": "tip",
-          "text": "Switch the **Invert Y-axis** flag to align with external pipelines that flip the origin (R2DT, Traveler)."
+          "id": "annotate-parameters",
+          "title": "Setting Up Annotation Parameters",
+          "summary": "Configure Start Index, Increment, Override Start, and End Index.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Click Annotate under Drawing Tools, then right-click anywhere on the molecule to open the Properties Panel for annotation. You'll see fields for Start Index, Increment, Override Start, and End Index."
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "Start Index — Defines the first nucleotide in your labeling sequence.",
+                "Increment — Controls how frequently labels appear (e.g., every 10th nucleotide).",
+                "Override Start (Optional) — Specifies the displayed number of the first label (useful for fragments within a larger molecule).",
+                "End Index (Optional) — Defines where labeling stops (leave blank to annotate the entire selected region)."
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "Examples: in [fig-20], The Start Index (16) is Overridden (Override Start = 1), so labels appear as 1, 11, 21, 31, and so on till end index."
+            }
+          ]
+        },
+        {
+          "id": "annotate-apply",
+          "title": "Apply the Labels",
+          "summary": "Generate index labels along the selected region.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Once the settings are defined, click Create Annotations. Exornata will automatically add numbered labels at every Nth nucleotide along the molecule based on your increment."
+            }
+          ]
+        },
+        {
+          "id": "annotate-edit",
+          "title": "Editing Labels After Creation",
+          "summary": "Reposition labels or modify appearance via the Properties Panel.",
+          "content": [
+            {
+              "type": "image",
+              "src": "docs/images/annotate_transform.png",
+              "alt": "Labels created along the molecule with guide lines",
+              "caption": "Labels with leader lines for clarity",
+              "width": "lg",
+              "figureId": "fig-21"
+            },
+            {
+              "type": "paragraph",
+              "text": "After generating index annotations, you can modify or reposition them using the Edit tool. Click Edit under Drawing Tools to exit Annotation Mode."
+            },
+            {
+              "type": "paragraph",
+              "text": "Reposition labels by clicking and dragging any label to adjust its position. The labels will move freely without affecting the underlying RNA structure."
+            },
+            {
+              "type": "paragraph",
+              "text": "To edit label appearance, right-click on any label in Edit mode to open its properties in the Properties Panel. Expand the Color, Font, or Positions tabs to recolor text and lines, adjust font size or orientation, or tweak position offsets (x, y, θ, scale)."
+            }
+          ]
         }
       ]
     },
     {
       "id": "json-schema",
-      "title": "JSON Schema Essentials",
+      "title": "JSON Schema",
       "summary": "Encode complexes, molecules, nucleotides, labels, and base pairs for reproducible layouts.",
       "content": [
         {
           "type": "paragraph",
-          "text": "Exornata uses the lab’s RNA 2D JSON specification. At the top level the file lists `classes` for reusable styling, then `rnaComplexes`, each containing `rnaMolecules`, sequences, and optional base-pair lists."
+          "text": "Exornata uses a specialized RNA 2D JSON format developed in the lab GitHub - LDWLab/RNA2D-data-schema. The JSON schema facilitates the integration with other resources R2DT (R2DT Bio), Traveler, and RiboVision2, previously developed by the members of RNAconsortium. Such integration enables the community to produce, edit and deposit the standardized RNA layouts into R2DT, a template-based pipeline for generating the secondary-structure layouts. This novel format encodes all the information required by Exornata to model a complex scene of RNA molecules, as well as the style information necessary for visual display."
         },
         {
-          "type": "list",
-          "style": "unordered",
-          "items": [
-            "Nucleotides record `residueIndex`, `residueName`, `x`, `y`, plus optional `classes` for styling.",
-            "Labels split into `labelContent` (text + coordinates) and `labelLine` (polyline). Coordinates are absolute to simplify manual adjustments.",
-            "Base pairs stored at the molecule or complex level accept canonical, wobble, mismatch, or explicit Leontis–Westhof identifiers (e.g., `trans_watson_crick_hoogsteen`)."
+          "type": "code",
+          "language": "json",
+          "label": "Example JSON",
+          "content": "{\n  \"classes\" : [\n    {\n      \"name\" : \"myStyleA\",\n      \"color\" : \"#FF0000\"\n    },\n    {\n      \"name\" : \"myStyleT\",\n      \"color\" : \"#00FF00\"\n    }\n  ],\n  \"rnaComplexes\" : [{\n    \"name\" : \"myRnaComplex\",\n    \"rnaMolecules\" : [{\n      \"name\" : \"myRnaMolecule\",\n      \"sequence\" : [\n        {\n          \"residueIndex\" : 1,\n          \"residueName\" : \"A\",\n          \"x\" : 0,\n          \"y\" : 0,\n          \"classes\" : [\"myStyleA\"]\n        },\n        {\n          \"residueIndex\" : 2,\n          \"residueName\" : \"T\",\n          \"x\" : 10,\n          \"y\" : 0,\n          \"classes\" : [\"myStyleT\"]\n        }\n      ],\n      \"labels\" : [],\n      \"basePairs\" : [\n        {\n          \"residueIndex1\" : 1,\n          \"residueIndex2\" : 2,\n          \"basePairType\" : \"canonical\"\n        }\n      ]\n    }]\n  }]\n}"
+        },
+        {
+          "type": "paragraph",
+          "text": "Example 1. Minimal valid Exornata-React JSON file"
+        }
+      ],
+      "subsections": [
+        {
+          "id": "json-schema-hierarchy",
+          "title": "Hierarchy",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "At the top level of the data model are the RNA complexes. RNA complexes contain one or more RNA molecules, which in turn contain one or more nucleotides. RNA complexes may list all of the base pairs within the complex (either inter-molecular or intra-molecular base pairs). Alternatively, RNA molecules may specify all base pairs which are present therein (intramolecular base pairs)."
+            }
           ]
         },
         {
-          "type": "note",
-          "variant": "info",
-          "text": "The minimal JSON example from the paper is included in `public/docs/examples/minimal.json` for quick reference."
+          "id": "json-schema-styling",
+          "title": "Styling",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "To minimize the file size of our JSON files and simplify style management, a top-level CSS-like “classes” array property facilitates styling of visual elements.The names of these optional properties are follow standard CSS conventions: “font-family,” “font-size,” “font-weight,” “font-style,” “stroke,” “stroke-width,” and “color”. The one required property of each entry in “classes” is “name.” The name property enables other elements in the file to be styled according to corresponding “name” properties. Alternatively, the following elements may optionally specify their own individual “classes” property (string array): base pairs, nucleotides, label-content objects and label-line objects."
+            }
+          ]
+        },
+        {
+          "id": "json-schema-rna-complex",
+          "title": "RNA complex",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "The rest of the file defines a hierarchical structure under the property “rnaComplexes.” This array object describes all RNA complexes present within the scene. All files must describe at least one RNA complex, even if the file contains only a single RNA molecule. RNA-complex objects may contain an optional “basePairs” property which describes the base pairs which exist between RNA molecules within the current RNA complex. For these base-pair objects, the following are required properties: “rnaMoleculeName1” (string), “rnaMoleculeName2” (string), “residueIndex1” (integer), “residueIndex2” (integer). Each pair (rnaMoleculeName1, residueIndex1) and (rnaMoleculeName2, residueIndex2) are keys which must match RNA-molecule names found within the current RNA complex and nucleotides within the corresponding RNA molecules. All strings within this file are case-sensitive, with the possible exception of font attributes."
+            }
+          ]
+        },
+        {
+          "id": "json-schema-base-pair",
+          "title": "Base Pair",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Optional properties of each base-pair object include “stroke-width” (floating-point number), “stroke” (a CSS color), “color” (a CSS color) and “basePairType” (string). If “basePairType” is not provided, the type will be inferred according to the nucleotides present within the base pair. The resultant base-pair type will be one of “canonical,” “wobble” or “mismatch.” The user may explicitly specify base-pair types based on Leontis-Westhof rules."
+            }
+          ]
+        },
+        {
+          "id": "json-schema-rna-molecule",
+          "title": "RNA molecule",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "The required properties of each RNA-complex object are “name” and “rnaMolecules.” The “name” property acts as a case-sensitive unique identifier for each RNA complex. The “rnaMolecules” array property must contain at least one RNA-molecule object."
+            },
+            {
+              "type": "paragraph",
+              "text": "Each RNA-molecule object requires the following properties: “name,” “labels,” and “sequence.” The name property acts as a case-sensitive unique identifier for each RNA molecule. The “labels”array property facilitates labeling of nucleotides. The “sequence” array property lists the nucleotides present in the current RNA molecule. Optional properties include “classesForLabels” (string array) and “classesForSequence” (string array); these style the labels and sequence of the current RNA molecule respectively. Finally, the optional property “basePairs” allows for specification of base-pairs which lay strictly within this RNA molecule. They are structured as described above; however, properties “rnaMoleculeName1” and “rnaMoleculeName2” should be omitted."
+            }
+          ]
+        },
+        {
+          "id": "json-schema-label",
+          "title": "Label",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "The only required property of each label object is “residueIndex” (integer), which must match a nucleotide within the current RNA molecule’s “sequence” array object. The optional properties of each label object are “labelContent” and “labelLine.” Note that these are strictly independent of each other."
+            },
+            {
+              "type": "paragraph",
+              "text": "The “labelContent” object details the position and content of the text label; it has the following required properties: “label” (string), “x” (floating-point number) and “y” (floating-point number)."
+            },
+            {
+              "type": "paragraph",
+              "text": "The “labelLine” object details the 2D cartesian coordinates of a polyline; it has the only one required property: “points” (array). The “points” property must contain two or more points. Each point object requires the following properties: “x” (floating-point number) and “y” (floating-point number).  The coordinates within label objects are absolute coordinates. This design makes repositioning label elements easier, making them independent of the nucleotide which they label."
+            }
+          ]
+        },
+        {
+          "id": "json-schema-sequence",
+          "title": "Nucleotide Sequence",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "The sequence array lists all nucleotides present within the current RNA molecule. Each nucleotide object therein has the following required properties: “residueIndex” (integer), “residueName” (string), “x” (floating-point number) and “y” (floating-point number). Residue indices may begin at any arbitrary integer; Exornataautomatically detects the minimum nucleotide index and adjusts accordingly. The “residueName” property has the following supported values: “5’,” “5,” “3’,” “3,” “A,” “C,” “G,” “U” and “N.” Finally, the “info” property (string array) allows users to encode information which will be passed through to other software applications; Exornatadoes not read information from this property."
+            }
+          ]
+        },
+        {
+          "id": "json-schema-summary",
+          "title": "Summary",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "In summary, the Exornata-React JSON schema defines a highly portable human-readable file structure designed for compatibility with partner laboratories’ visualization and analysis tools."
+            }
+          ]
         }
       ]
-   },
+    },
     
     {
       "id": "keybindings",

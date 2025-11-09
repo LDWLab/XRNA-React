@@ -95,6 +95,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ onClic
 
   const variantStyles = getVariantStyles();
 
+  const trimmedLabel = label?.trim?.() ?? label;
+  const hasLabelContent = Boolean(trimmedLabel);
+  const hasDescription = Boolean(description);
+  const shouldRenderText = hasLabelContent || hasDescription;
+
   return (
     <>
       <button
@@ -111,7 +116,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ onClic
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '6px',
+          gap: shouldRenderText ? '6px' : '0',
           height: theme.buttonSizes.md.height,
           padding: theme.buttonSizes.md.padding,
           borderRadius: theme.buttonSizes.md.borderRadius,
@@ -136,29 +141,33 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ onClic
         }}>
           {icon && icon}
         </div>
-        <div style={{ textAlign: 'center', opacity: isHovered ? 1 : 0.9 }}>
-          <div style={{
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: '600',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            maxWidth: '120px',
-            opacity: isHovered ? 1 : 0.9,
-          }}>
-            {label}
+        {shouldRenderText && (
+          <div style={{ textAlign: 'center', opacity: isHovered ? 1 : 0.9 }}>
+            {hasLabelContent && (
+              <div style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                maxWidth: '120px',
+                opacity: isHovered ? 1 : 0.9,
+              }}>
+                {label}
+              </div>
+            )}
+            {hasDescription && (
+              <div style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: disabled ? theme.colors.textMuted : (variant === 'primary' ? theme.colors.textInverse + '80' : theme.colors.textMuted),
+                lineHeight: '1.2',
+                maxWidth: '120px',
+                opacity: isHovered ? 1 : 0.9,
+              }}>
+                {description}
+              </div>
+            )}
           </div>
-          {description && (
-            <div style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: disabled ? theme.colors.textMuted : (variant === 'primary' ? theme.colors.textInverse + '80' : theme.colors.textMuted),
-              lineHeight: '1.2',
-              maxWidth: '120px',
-              opacity: isHovered ? 1 : 0.9,
-            }}>
-              {description}
-            </div>
-          )}
-        </div>
+        )}
       </button>
 
       {isHovered && hint && !disabled && (
