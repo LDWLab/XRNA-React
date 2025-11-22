@@ -38,6 +38,7 @@ import {
   inputFileReadersRecord,
   r2dtLegacyInputFileReadersRecord,
   defaultInvertYAxisFlagRecord,
+  isInputFileExtension,
 } from "./io/InputUI";
 import {
   DEFAULT_SETTINGS,
@@ -3965,6 +3966,21 @@ export namespace App {
             ) as RegExpExecArray;
             let fileName = regexMatch[1];
             let fileExtension = regexMatch[2];
+            const normalizedFileExtension = fileExtension.toLocaleLowerCase();
+            if (!isInputFileExtension(normalizedFileExtension)) {
+              const message = `Unsupported input file extension ".${fileExtension}".`;
+              setSceneState(SceneState.DATA_LOADING_FAILED);
+              setDrawerKind(DrawerKind.PROPERTIES);
+              setDataLoadingFailedErrorMessage(message);
+              const supportedExtensionsList = inputFileExtensions
+                .map((supportedExtension) => `.${supportedExtension}`)
+                .join(", ");
+              setDataLoadingFailedErrorDetails(
+                `Supported extensions: ${supportedExtensionsList}`
+              );
+              return;
+            }
+            const inputFileExtensionValue = normalizedFileExtension;
             if (settingsRecord[Setting.COPY_FILE_NAME]) {
               setOutputFileName(fileName);
             }
@@ -3979,7 +3995,7 @@ export namespace App {
               // Read the content of the input file.
               parseInputFileContent(
                 (event.target as FileReader).result as string,
-                fileExtension.toLocaleLowerCase() as InputFileExtension
+                inputFileExtensionValue
               );
             });
             reader.readAsText(files[0] as File);

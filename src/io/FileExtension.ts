@@ -8,6 +8,9 @@ export enum FileExtension {
   BPSEQ = "bpseq",
   STR = "str",
   DOT_BRACKET = "dbn",
+  FASTA = "fasta",
+  FAS = "fas",
+  FA = "fa",
 }
 
 export const fileExtensionDescriptions : Record<FileExtension, string> = {
@@ -19,7 +22,10 @@ export const fileExtensionDescriptions : Record<FileExtension, string> = {
   [FileExtension.TR] : "an XML-like format for R2DT. Contains nucleotides with 2D coordinates.",
   [FileExtension.SVG] : "an image-file format. Can be converted to other image-file formats (e.g. .jpg) using external tools",
   [FileExtension.STR] : "an image-file format containing nucleotide sequences and base pairs",
-  [FileExtension.DOT_BRACKET] : "a dot-bracket notation file describing nucleotide sequence and secondary structure"
+  [FileExtension.DOT_BRACKET] : "a dot-bracket notation file describing nucleotide sequence and secondary structure",
+  [FileExtension.FASTA] : "a FASTA sequence file containing nucleotide sequences without coordinates",
+  [FileExtension.FAS] : "a FASTA sequence file (alias .fasta)",
+  [FileExtension.FA] : "a FASTA sequence file (alias .fasta)",
 };
 
 export const fileExtensions = Object.values(FileExtension);

@@ -12,7 +12,7 @@ var __assign = (this && this.__assign) || function () {
 };
 var _a, _b, _c, _d;
 exports.__esModule = true;
-exports.defaultInvertYAxisFlagRecord = exports.r2dtLegacyInputFileReadersRecord = exports.inputFileReadersRecord = exports.inputFileExtensions = exports.InputFileExtension = void 0;
+exports.defaultInvertYAxisFlagRecord = exports.r2dtLegacyInputFileReadersRecord = exports.inputFileReadersRecord = exports.isInputFileExtension = exports.inputFileExtensions = exports.InputFileExtension = void 0;
 var FileExtension_1 = require("./FileExtension");
 var XrnaInputFileHandler_1 = require("./XrnaInputFileHandler");
 var JsonInputFileHandler_1 = require("./JsonInputFileHandler");
@@ -20,6 +20,7 @@ var JsonInputFileHandler_relative_coordinates_1 = require("./JsonInputFileHandle
 var StrInputFileHandler_1 = require("./StrInputFileHandler");
 var DotBracketInputFileHandler_1 = require("./DotBracketInputFileHandler");
 var SvgInputFileHandler_1 = require("./SvgInputFileHandler");
+var FastaInputFileHandler_1 = require("./FastaInputFileHandler");
 exports.InputFileExtension = (_a = {},
     _a[FileExtension_1["default"].XRNA] = FileExtension_1["default"].XRNA,
     _a[FileExtension_1["default"].XML] = FileExtension_1["default"].XML,
@@ -27,8 +28,15 @@ exports.InputFileExtension = (_a = {},
     _a[FileExtension_1["default"].STR] = FileExtension_1["default"].STR,
     _a[FileExtension_1["default"].SVG] = FileExtension_1["default"].SVG,
     _a[FileExtension_1["default"].DOT_BRACKET] = FileExtension_1["default"].DOT_BRACKET,
+    _a[FileExtension_1["default"].FASTA] = FileExtension_1["default"].FASTA,
+    _a[FileExtension_1["default"].FAS] = FileExtension_1["default"].FAS,
+    _a[FileExtension_1["default"].FA] = FileExtension_1["default"].FA,
     _a);
 exports.inputFileExtensions = Object.values(exports.InputFileExtension);
+function isInputFileExtension(value) {
+    return exports.inputFileExtensions.includes(value);
+}
+exports.isInputFileExtension = isInputFileExtension;
 exports.inputFileReadersRecord = (_b = {},
     _b[exports.InputFileExtension.xrna] = XrnaInputFileHandler_1.xrnaInputFileHandler,
     _b[exports.InputFileExtension.xml] = XrnaInputFileHandler_1.xrnaInputFileHandler,
@@ -36,6 +44,9 @@ exports.inputFileReadersRecord = (_b = {},
     _b[exports.InputFileExtension.str] = StrInputFileHandler_1.strInputFileHandler,
     _b[exports.InputFileExtension.svg] = SvgInputFileHandler_1.svgInputFileHandler,
     _b[exports.InputFileExtension.dbn] = DotBracketInputFileHandler_1.dotBracketInputFileHandler,
+    _b[exports.InputFileExtension.fasta] = FastaInputFileHandler_1.fastaInputFileHandler,
+    _b[exports.InputFileExtension.fas] = FastaInputFileHandler_1.fastaInputFileHandler,
+    _b[exports.InputFileExtension.fa] = FastaInputFileHandler_1.fastaInputFileHandler,
     _b);
 exports.r2dtLegacyInputFileReadersRecord = __assign(__assign({}, exports.inputFileReadersRecord), (_c = {}, _c[exports.InputFileExtension.json] = JsonInputFileHandler_1.jsonInputFileHandler, _c));
 exports.defaultInvertYAxisFlagRecord = (_d = {},
@@ -45,4 +56,7 @@ exports.defaultInvertYAxisFlagRecord = (_d = {},
     _d[exports.InputFileExtension.str] = false,
     _d[exports.InputFileExtension.svg] = false,
     _d[exports.InputFileExtension.dbn] = false,
+    _d[exports.InputFileExtension.fasta] = false,
+    _d[exports.InputFileExtension.fas] = false,
+    _d[exports.InputFileExtension.fa] = false,
     _d);

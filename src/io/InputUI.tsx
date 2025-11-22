@@ -6,6 +6,7 @@ import { jsonInputFileHandler } from "./JsonInputFileHandler_relative_coordinate
 import { strInputFileHandler } from "./StrInputFileHandler";
 import { dotBracketInputFileHandler } from "./DotBracketInputFileHandler";
 import { svgInputFileHandler } from "./SvgInputFileHandler";
+import { fastaInputFileHandler } from "./FastaInputFileHandler";
 
 export type ParsedInputFile = {
   complexDocumentName : string,
@@ -14,7 +15,18 @@ export type ParsedInputFile = {
 
 export type InputFileReader = (inputFileContent : string) => ParsedInputFile;
 
-export type InputFileExtension = Extract<FileExtension, FileExtension.XRNA | FileExtension.XML | FileExtension.JSON | FileExtension.STR | FileExtension.SVG | FileExtension.DOT_BRACKET>;
+export type InputFileExtension = Extract<
+  FileExtension,
+  | FileExtension.XRNA
+  | FileExtension.XML
+  | FileExtension.JSON
+  | FileExtension.STR
+  | FileExtension.SVG
+  | FileExtension.DOT_BRACKET
+  | FileExtension.FASTA
+  | FileExtension.FAS
+  | FileExtension.FA
+>;
 
 export const InputFileExtension = {
   [FileExtension.XRNA] : FileExtension.XRNA,
@@ -22,10 +34,17 @@ export const InputFileExtension = {
   [FileExtension.JSON] : FileExtension.JSON,
   [FileExtension.STR] : FileExtension.STR,
   [FileExtension.SVG] : FileExtension.SVG,
-  [FileExtension.DOT_BRACKET] : FileExtension.DOT_BRACKET
+  [FileExtension.DOT_BRACKET] : FileExtension.DOT_BRACKET,
+  [FileExtension.FASTA] : FileExtension.FASTA,
+  [FileExtension.FAS] : FileExtension.FAS,
+  [FileExtension.FA] : FileExtension.FA
 } as const;
 
 export const inputFileExtensions = Object.values(InputFileExtension);
+
+export function isInputFileExtension(value : string) : value is InputFileExtension {
+  return inputFileExtensions.includes(value as InputFileExtension);
+}
 
 export const inputFileReadersRecord : Record<InputFileExtension, InputFileReader> = {
   [InputFileExtension.xrna] : xrnaInputFileHandler,
@@ -33,8 +52,11 @@ export const inputFileReadersRecord : Record<InputFileExtension, InputFileReader
   [InputFileExtension.json] : jsonInputFileHandler,
   [InputFileExtension.str] : strInputFileHandler,
   [InputFileExtension.svg] : svgInputFileHandler,
-  [InputFileExtension.dbn] : dotBracketInputFileHandler
-}
+  [InputFileExtension.dbn] : dotBracketInputFileHandler,
+  [InputFileExtension.fasta] : fastaInputFileHandler,
+  [InputFileExtension.fas] : fastaInputFileHandler,
+  [InputFileExtension.fa] : fastaInputFileHandler,
+};
 
 export const r2dtLegacyInputFileReadersRecord = {
   ...inputFileReadersRecord,
@@ -48,4 +70,7 @@ export const defaultInvertYAxisFlagRecord : Record<InputFileExtension, boolean> 
   [InputFileExtension.str] : false,
   [InputFileExtension.svg] : false,
   [InputFileExtension.dbn] : false,
+  [InputFileExtension.fasta] : false,
+  [InputFileExtension.fas] : false,
+  [InputFileExtension.fa] : false,
 };

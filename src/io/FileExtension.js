@@ -13,6 +13,9 @@ var FileExtension;
     FileExtension["BPSEQ"] = "bpseq";
     FileExtension["STR"] = "str";
     FileExtension["DOT_BRACKET"] = "dbn";
+    FileExtension["FASTA"] = "fasta";
+    FileExtension["FAS"] = "fas";
+    FileExtension["FA"] = "fa";
 })(FileExtension = exports.FileExtension || (exports.FileExtension = {}));
 exports.fileExtensionDescriptions = (_a = {},
     _a[FileExtension.XRNA] = "the native input-file format of XRNA (an extension of .xml)",
@@ -24,6 +27,9 @@ exports.fileExtensionDescriptions = (_a = {},
     _a[FileExtension.SVG] = "an image-file format. Can be converted to other image-file formats (e.g. .jpg) using external tools",
     _a[FileExtension.STR] = "an image-file format containing nucleotide sequences and base pairs",
     _a[FileExtension.DOT_BRACKET] = "a dot-bracket notation file describing nucleotide sequence and secondary structure",
+    _a[FileExtension.FASTA] = "a FASTA sequence file containing nucleotide sequences without coordinates",
+    _a[FileExtension.FAS] = "a FASTA sequence file (alias .fasta)",
+    _a[FileExtension.FA] = "a FASTA sequence file (alias .fasta)",
     _a);
 exports.fileExtensions = Object.values(FileExtension);
 exports["default"] = FileExtension;
