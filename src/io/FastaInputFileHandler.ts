@@ -2,6 +2,12 @@ import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { RnaComplex } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
 import { InputFileReader, ParsedInputFile } from "./InputUI";
+import {
+  sanitizeStructure,
+  isStructureCandidate,
+  parseBasePairsFromDotBracket,
+  applyBasePairsToRnaComplex,
+} from "./SecondaryStructureUtils";
 
 const DEFAULT_DOCUMENT_NAME = "FASTA import";
 const MINIMUM_RADIUS = 40;
@@ -10,6 +16,7 @@ const RADIUS_PER_NUCLEOTIDE = 6;
 type FastaEntry = {
   name: string;
   sequence: string;
+  structure?: string;
 };
 
 function sanitizeSequence(sequenceLine: string) {
@@ -24,6 +31,7 @@ function parseFastaFile(inputFileContent: string): {
   const entries = new Array<FastaEntry>();
   let currentEntry: FastaEntry | undefined = undefined;
   let documentName = DEFAULT_DOCUMENT_NAME;
+  let parsingStructure = false;
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
@@ -44,7 +52,9 @@ function parseFastaFile(inputFileContent: string): {
       currentEntry = {
         name,
         sequence: "",
+        structure: undefined,
       };
+      parsingStructure = false;
       continue;
     }
     if (currentEntry === undefined) {
@@ -52,7 +62,17 @@ function parseFastaFile(inputFileContent: string): {
         "FASTA data must start with a header line beginning with '>'"
       );
     }
-    currentEntry.sequence += sanitizeSequence(line);
+    if (!parsingStructure) {
+      if (currentEntry.sequence.length > 0 && isStructureCandidate(line)) {
+        currentEntry.structure = sanitizeStructure(line);
+        parsingStructure = true;
+      } else {
+        currentEntry.sequence += sanitizeSequence(line);
+      }
+    } else {
+      currentEntry.structure =
+        (currentEntry.structure ?? "") + sanitizeStructure(line);
+    }
   }
 
   if (currentEntry !== undefined) {
@@ -66,6 +86,14 @@ function parseFastaFile(inputFileContent: string): {
   for (const entry of entries) {
     if (entry.sequence.length === 0) {
       throw new Error(`Entry "${entry.name}" does not contain a sequence.`);
+    }
+    if (
+      entry.structure !== undefined &&
+      entry.structure.length !== entry.sequence.length
+    ) {
+      throw new Error(
+        `Structure length (${entry.structure.length}) does not match sequence length (${entry.sequence.length}) for entry "${entry.name}".`
+      );
     }
   }
 
@@ -108,7 +136,7 @@ export const fastaInputFileHandler: InputFileReader = function (inputFileContent
   const { entries, documentName } = parseFastaFile(inputFileContent);
 
   const rnaComplexProps = entries.map(function (entry, entryIndex) {
-    const { name, sequence } = entry;
+    const { name, sequence, structure } = entry;
     const rnaComplexName = name;
     const rnaMoleculeName =
       sequence.length > 0 ? name : `RNA molecule ${entryIndex + 1}`;
@@ -140,6 +168,15 @@ export const fastaInputFileHandler: InputFileReader = function (inputFileContent
         x,
         y,
       };
+    }
+
+    if (structure !== undefined) {
+      const basePairs = parseBasePairsFromDotBracket(structure);
+      applyBasePairsToRnaComplex(
+        singularRnaComplexProps,
+        rnaMoleculeName,
+        basePairs
+      );
     }
 
     return singularRnaComplexProps;

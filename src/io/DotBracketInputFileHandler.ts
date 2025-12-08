@@ -1,26 +1,17 @@
 import { Nucleotide } from "../components/app_specific/Nucleotide";
-import { RnaComplex, insertBasePair, DuplicateBasePairKeysHandler } from "../components/app_specific/RnaComplex";
+import { RnaComplex } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
 import { InputFileReader, ParsedInputFile } from "./InputUI";
+import {
+  sanitizeStructure,
+  parseBasePairsFromDotBracket,
+  applyBasePairsToRnaComplex,
+  isStructureCandidate,
+} from "./SecondaryStructureUtils";
 
 const DEFAULT_DOCUMENT_NAME = "Dot-bracket import";
 const MINIMUM_RADIUS = 40;
 const RADIUS_PER_NUCLEOTIDE = 6;
-
-const bracketOpenToCloseMap : Record<string, string> = {
-  "(" : ")",
-  "[" : "]",
-  "{" : "}",
-  "<" : ">"
-};
-
-const bracketCloseToOpenMap : Record<string, string> = Object.entries(bracketOpenToCloseMap).reduce(
-  function(accumulator, [open, close]) {
-    accumulator[close] = open;
-    return accumulator;
-  },
-  {} as Record<string, string>
-);
 
 type DotBracketEntry = {
   name : string,
@@ -35,10 +26,6 @@ type ParsedDotBracket = {
 
 function sanitizeSequence(sequenceLine : string) {
   return sequenceLine.replace(/\s+/g, "").toUpperCase();
-}
-
-function sanitizeStructure(structureLine : string) {
-  return structureLine.replace(/\s+/g, "");
 }
 
 function parseDotBracketFile(inputFileContent : string) : ParsedDotBracket {
@@ -71,27 +58,13 @@ function parseDotBracketFile(inputFileContent : string) : ParsedDotBracket {
     const entryName = trimmedLine.substring(1).trim() || `Entry ${entries.length + 1}`;
     index++;
 
-    // Sequence line
-    while (index < lines.length && lines[index].trim().length === 0) {
-      index++;
-    }
-    if (index >= lines.length) {
-      throw new Error(`No sequence found for entry "${entryName}".`);
-    }
-    const sequenceLine = lines[index].trim();
-    if (sequenceLine.startsWith(">")) {
-      throw new Error(`Sequence for entry "${entryName}" is missing.`);
-    }
-    if (sequenceLine.startsWith("#")) {
-      throw new Error(`Sequence for entry "${entryName}" cannot be a comment.`);
-    }
-    const sequence = sanitizeSequence(sequenceLine);
-    index++;
-
-    // Optional structure line
+    let sequence = "";
     let structure : string | undefined = undefined;
+    let parsingStructure = false;
+
     while (index < lines.length) {
-      const candidate = lines[index].trim();
+      const candidateRaw = lines[index];
+      const candidate = candidateRaw.trim();
       if (candidate.length === 0) {
         index++;
         continue;
@@ -103,9 +76,23 @@ function parseDotBracketFile(inputFileContent : string) : ParsedDotBracket {
       if (candidate.startsWith(">")) {
         break;
       }
-      structure = sanitizeStructure(candidate);
+
+      if (!parsingStructure) {
+        if (sequence.length > 0 && isStructureCandidate(candidate)) {
+          structure = (structure ?? "") + sanitizeStructure(candidate);
+          parsingStructure = true;
+        } else {
+          sequence += sanitizeSequence(candidate);
+        }
+      } else {
+        structure = (structure ?? "") + sanitizeStructure(candidate);
+      }
+
       index++;
-      break;
+    }
+
+    if (sequence.length === 0) {
+      throw new Error(`No sequence found for entry "${entryName}".`);
     }
 
     if (structure !== undefined && structure.length !== sequence.length) {
@@ -127,69 +114,6 @@ function parseDotBracketFile(inputFileContent : string) : ParsedDotBracket {
     entries,
     documentName
   };
-}
-
-type BasePairIndex = {
-  openSymbol : string,
-  index : number
-};
-
-function parseBasePairs(structure : string) {
-  const stacks : Record<string, Array<BasePairIndex>> = {};
-  const basePairs = new Array<[number, number]>();
-
-  for (let i = 0; i < structure.length; i++) {
-    const symbol = structure[i];
-    if (symbol === ".") {
-      continue;
-    }
-
-    const isLowercase = /[a-z]/.test(symbol);
-    const isUppercase = /[A-Z]/.test(symbol);
-
-    if (symbol in bracketOpenToCloseMap || isLowercase) {
-      const openSymbol = isLowercase ? symbol : symbol;
-      if (!(openSymbol in stacks)) {
-        stacks[openSymbol] = [];
-      }
-      stacks[openSymbol].push({
-        openSymbol,
-        index : i
-      });
-      continue;
-    }
-
-    let expectedOpenSymbol : string | undefined = undefined;
-    if (symbol in bracketCloseToOpenMap) {
-      expectedOpenSymbol = bracketCloseToOpenMap[symbol];
-    } else if (isUppercase) {
-      expectedOpenSymbol = symbol.toLowerCase();
-    }
-
-    if (expectedOpenSymbol === undefined) {
-      throw new Error(`Unrecognized structure character "${symbol}" at position ${i + 1}.`);
-    }
-
-    const stack = stacks[expectedOpenSymbol];
-    if (stack === undefined || stack.length === 0) {
-      throw new Error(`Unbalanced structure: found closing "${symbol}" at position ${i + 1} without matching opening.`);
-    }
-
-    const { index : openingIndex } = stack.pop() as BasePairIndex;
-    basePairs.push([
-      openingIndex,
-      i
-    ]);
-  }
-
-  for (const [openSymbol, stack] of Object.entries(stacks)) {
-    if (stack.length > 0) {
-      const { index } = stack[stack.length - 1];
-      throw new Error(`Unbalanced structure: opening "${openSymbol}" at position ${index + 1} has no matching closing character.`);
-    }
-  }
-
-  return basePairs;
 }
 
 function generateCircularLayout(sequenceLength : number) {
@@ -267,17 +191,12 @@ export const dotBracketInputFileHandler : InputFileReader = function(inputFileCo
     }
 
     if (structure !== undefined) {
-      const basePairs = parseBasePairs(structure);
-      for (const [index0, index1] of basePairs) {
-        insertBasePair(
-          singularRnaComplexProps,
-          rnaMoleculeName,
-          index0,
-          rnaMoleculeName,
-          index1,
-          DuplicateBasePairKeysHandler.DO_NOTHING
-        );
-      }
+      const basePairs = parseBasePairsFromDotBracket(structure);
+      applyBasePairsToRnaComplex(
+        singularRnaComplexProps,
+        rnaMoleculeName,
+        basePairs
+      );
     }
 
     return singularRnaComplexProps;

@@ -197,7 +197,8 @@ const tooltipMap: Record<OutputFileExtension, string> = {
   // 'pdf': 'Portable Document Format - No support for non-canonical base pairs',
   [OutputFileExtension.csv]: 'Comma Separated Values - No support for non-canonical base pairs',
   [OutputFileExtension.tr]: 'Traveler Format - No support for non-canonical base pairs',
-  [OutputFileExtension.xrna]: 'XRNA native format - No support for non-canonical base pairs'
+  [OutputFileExtension.xrna]: 'XRNA native format - No support for non-canonical base pairs',
+  [OutputFileExtension.dbn]: 'Dot-bracket secondary structure (sequence + structure, including pseudoknots)'
 };
 type ExportFormats = Array<{ value: OutputFileExtension; label: string; tooltip?: string }>;
 

@@ -7,6 +7,7 @@ import { csvFileWriter } from "./CsvFileWriter";
 import { bpseqFileWriter } from "./BpseqFileWriter";
 import { trFileWriter } from "./TrFileWriter";
 import { svgFileWriter } from "./SvgFileWriter";
+import { dotBracketFileWriter } from "./DotBracketFileWriter";
 
 // Note that these values are arbitrary, but they come from the XRNA Java program.
 export const OUTPUT_BOUNDS = {
@@ -24,7 +25,7 @@ export const OUTPUT_MIDPOINT = {
   y : (OUTPUT_BOUNDS.y.min + OUTPUT_BOUNDS.y.max) * 0.5
 };
 
-export type OutputFileExtension = Extract<FileExtension, FileExtension.XRNA | FileExtension.JSON | FileExtension.CSV | FileExtension.BPSEQ | FileExtension.TR | FileExtension.SVG>;
+export type OutputFileExtension = Extract<FileExtension, FileExtension.XRNA | FileExtension.JSON | FileExtension.CSV | FileExtension.BPSEQ | FileExtension.TR | FileExtension.SVG | FileExtension.DOT_BRACKET>;
 
 export const OutputFileExtension = {
   [FileExtension.JSON] : FileExtension.JSON,
@@ -32,7 +33,8 @@ export const OutputFileExtension = {
   [FileExtension.XRNA] : FileExtension.XRNA,
   [FileExtension.CSV] : FileExtension.CSV,
   [FileExtension.TR] : FileExtension.TR,
-  [FileExtension.BPSEQ] : FileExtension.BPSEQ
+  [FileExtension.BPSEQ] : FileExtension.BPSEQ,
+  [FileExtension.DOT_BRACKET] : FileExtension.DOT_BRACKET
 } as const;
 
 export const outputFileExtensions = Object.values(OutputFileExtension);
@@ -48,7 +50,8 @@ export const outputFileWritersMap : Record<OutputFileExtension, OutputFileWriter
   [OutputFileExtension.csv] : csvFileWriter,
   [OutputFileExtension.bpseq] : bpseqFileWriter,
   [OutputFileExtension.tr] : trFileWriter,
-  [OutputFileExtension.svg] : svgFileWriter
+  [OutputFileExtension.svg] : svgFileWriter,
+  [OutputFileExtension.dbn] : dotBracketFileWriter
 };
 
 export const r2dtLegacyOutputFileWritersMap = {
