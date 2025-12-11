@@ -374,7 +374,7 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
       return basePairsPerNucleotide[0].nucleotideIndex;
     }
     const boundingNucleotideIndex0 = boundingIndices[this.rnaMoleculeName0][0];
-    const boundingNucleotideIndex1 = finalizedIndices[this.rnaMoleculeName0].find((nucleotideIndex, arrayIndex) => (nucleotideIndex !== finalizedIndices[this.rnaMoleculeName0][arrayIndex + 1] - 1))!;
+    const boundingNucleotideIndex1 = finalizedIndices[this.rnaMoleculeName0].find((nucleotideIndex, arrayIndex) => (nucleotideIndex !== finalizedIndices[this.rnaMoleculeName0][arrayIndex + 1] - 1)) ?? finalizedIndices[this.rnaMoleculeName0][finalizedIndices[this.rnaMoleculeName0].length - 1];
     let nucleotideRange0Text = `Nucleotides [${boundingNucleotideIndex0 + singularRnaMoleculeProps0.firstNucleotideIndex}, ${boundingNucleotideIndex1 + singularRnaMoleculeProps0.firstNucleotideIndex}]`;
     let nucleotideRange1Text = `Nucleotides [${getNucleotideIndexOfBasePairedNucleotide(boundingNucleotideIndex0) + singularRnaMoleculeProps1.firstNucleotideIndex}, ${getNucleotideIndexOfBasePairedNucleotide(boundingNucleotideIndex1) + singularRnaMoleculeProps1.firstNucleotideIndex}]`;
     let nucleotideAndRnaMoleculeJsx : JSX.Element;

@@ -29,21 +29,24 @@ export function insertBasePair(
   optionalBasePairParameters : Pick<RnaComplex.MappedBasePair, "basePairType" | "color" | "strokeWidth" | "points"> = {}
 ) {
   const { basePairs } = singularRnaComplexProps;
-  if (
-    rnaMoleculeName0 in basePairs &&
-    nucleotideIndex0 in basePairs[rnaMoleculeName0]
-  ) {
-    let foundBasePair = basePairs[rnaMoleculeName0][nucleotideIndex0].find(basePair => (
+  const basePairsPerRnaMolecule0 = basePairs[rnaMoleculeName0];
+  const basePairsPerNucleotide0 = basePairsPerRnaMolecule0?.[nucleotideIndex0];
+  if (Array.isArray(basePairsPerNucleotide0)) {
+    let foundBasePair = basePairsPerNucleotide0.find(basePair => (
       basePair.rnaMoleculeName === rnaMoleculeName1 &&
       basePair.nucleotideIndex === nucleotideIndex1
     ));
     if (foundBasePair !== undefined) {
       foundBasePair.basePairType = optionalBasePairParameters.basePairType;
       // basePairs is a symmetric data structure. Therefore, definitivity of foundBasePair implies success of the following statement.
-      basePairs[rnaMoleculeName1][nucleotideIndex1].find(basePair => (
+      // However, we add defensive checks to prevent crashes if data is corrupted.
+      const foundBasePairReverse = basePairs[rnaMoleculeName1]?.[nucleotideIndex1]?.find(basePair => (
         basePair.rnaMoleculeName === rnaMoleculeName0 &&
         basePair.nucleotideIndex === nucleotideIndex0
-      ))!.basePairType = optionalBasePairParameters.basePairType;
+      ));
+      if (foundBasePairReverse !== undefined) {
+        foundBasePairReverse.basePairType = optionalBasePairParameters.basePairType;
+      }
     }
     return [{
       keys0 : {
@@ -55,6 +58,8 @@ export function insertBasePair(
         nucleotideIndex : nucleotideIndex1
       }
     }];
+  } else if (basePairsPerRnaMolecule0 !== undefined && Object.prototype.hasOwnProperty.call(basePairsPerRnaMolecule0, nucleotideIndex0)) {
+    delete basePairsPerRnaMolecule0[nucleotideIndex0];
   }
   const duplicateBasePairKeys = new Array<RnaComplex.FullBasePairKeys>();
   const basePairsToCreate = [];
@@ -115,7 +120,10 @@ export function insertBasePair(
               keys0,
               keys1
             });
-            delete basePairs[basePairPerNucleotide.rnaMoleculeName][basePairPerNucleotide.nucleotideIndex];
+            const basePairsForMolecule = basePairs[basePairPerNucleotide.rnaMoleculeName];
+            if (basePairsForMolecule) {
+              delete basePairsForMolecule[basePairPerNucleotide.nucleotideIndex];
+            }
             break;
           }
           case DuplicateBasePairKeysHandler.THROW_ERROR : {
@@ -392,11 +400,17 @@ export namespace RnaComplex {
               rnaMoleculeName,
               nucleotideIndex
             } = keys0;
-            const basePairsPerNucleotide = basePairs[rnaMoleculeName][nucleotideIndex];
+            const basePairsPerNucleotide = basePairs[rnaMoleculeName]?.[nucleotideIndex];
+            if (!basePairsPerNucleotide) {
+              continue;
+            }
             const basePairPerNucleotide = basePairsPerNucleotide.find((basePairPerNucleotide) => (
               basePairPerNucleotide.rnaMoleculeName === keys1.rnaMoleculeName &&
               basePairPerNucleotide.nucleotideIndex === keys1.nucleotideIndex
-            ))!;
+            ));
+            if (!basePairPerNucleotide) {
+              continue;
+            }
             if (isRelevantBasePairKeySetInPair(
               keys0,
               keys1

@@ -42,7 +42,8 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
   border-color: var(--color-primary, #4f46e6);
   outline: none;
-  box-shadow: 0 0 0 3px var(--color-primary, #4f46e6)25;
+  box-shadow: 0 0 0 3px rgba(79, 70, 230, 0.25);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #4f46e6) 25%, transparent);
 }
 
 /* Remove focus outlines only to replace with better visible ones */
@@ -69,8 +70,9 @@ input:focus, select:focus, textarea:focus {
 
 /* Theme-aware selection */
 ::selection {
-  background: var(--color-primary, #4f46e6)40;
-  color: var(--color-text, #0f172a);
+  background: rgba(79, 70, 230, 0.35);
+  background: color-mix(in srgb, var(--color-primary, #4f46e6) 35%, transparent);
+  color: var(--color-textInverse, #ffffff);
 }
 
 /* Global theme utilities */

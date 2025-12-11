@@ -15,7 +15,7 @@ export const RightDrawer: React.FC<RightDrawerProps> = ({ open, onClose, childre
         position: 'fixed',
         top: 56,
         right: 0,
-        height: '100%',
+        height: 'calc(100vh - 56px)',
         width: '480px',
         background: theme.colors.backgroundSecondary,
         // boxShadow: theme.shadows.lg,

@@ -356,13 +356,13 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         const increment1 = Math.sign(stop[1] - start[1]);
         let nucleotideIndex0 = start[0];
         let nucleotideIndex1 = start[1];
-        let helixBasePairType : undefined | null | BasePair.Type = undefined;
-        
+        let helixBasePairType: undefined | null | BasePair.Type = undefined;
+
         for (let i = 0; i < length; i++) {
           const basePairsPerRnaMolecule0 = singularRnaComplexProps.basePairs[rnaMoleculeName0];
           const basePairsPerNucleotide0 = basePairsPerRnaMolecule0?.[nucleotideIndex0];
           const relevantBasePair = basePairsPerNucleotide0?.find(
-            basePair => (
+            (basePair) => (
               basePair.rnaMoleculeName === rnaMoleculeName1 &&
               basePair.nucleotideIndex === nucleotideIndex1
             )
@@ -378,60 +378,63 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           const basePairType = relevantBasePair.basePairType;
 
           if (helixBasePairType === undefined) {
-            helixBasePairType = basePairType;
+            helixBasePairType = basePairType ?? null;
           } else if (helixBasePairType !== basePairType) {
             helixBasePairType = null;
           }
 
           selectedBasePairs.push({
             rnaComplexIndex,
-            rnaComplexName : singularRnaComplexProps.name,
+            rnaComplexName: singularRnaComplexProps.name,
             rnaMoleculeName0,
             nucleotideIndex0,
-            formattedNucleotideIndex0 : singularRnaMoleculeProps0.firstNucleotideIndex + nucleotideIndex0,
+            formattedNucleotideIndex0:
+              singularRnaMoleculeProps0.firstNucleotideIndex + nucleotideIndex0,
             rnaMoleculeName1,
             nucleotideIndex1,
-            formattedNucleotideIndex1 : singularRnaMoleculeProps1.firstNucleotideIndex + nucleotideIndex1,
-            type : relevantBasePair.basePairType
+            formattedNucleotideIndex1:
+              singularRnaMoleculeProps1.firstNucleotideIndex + nucleotideIndex1,
+            type: basePairType,
           });
-          
+
           nucleotideIndex0 += increment0;
           nucleotideIndex1 += increment1;
         }
         selectedHelices.push({
           rnaComplexIndex,
-          rnaComplexName : singularRnaComplexProps.name,
+          rnaComplexName: singularRnaComplexProps.name,
           rnaMoleculeName0,
-          nucleotideIndex0Start : start[0],
-          nucleotideIndex0End : stop[0],
-          formattedNucleotideIndex0Start : start[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
-          formattedNucleotideIndex0End : stop[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
+          nucleotideIndex0Start: start[0],
+          nucleotideIndex0End: stop[0],
+          formattedNucleotideIndex0Start:
+            start[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
+          formattedNucleotideIndex0End:
+            stop[0] + singularRnaMoleculeProps0.firstNucleotideIndex,
           rnaMoleculeName1,
-          nucleotideIndex1Start : start[1],
-          nucleotideIndex1End : stop[1],
-          formattedNucleotideIndex1Start : start[1] + singularRnaMoleculeProps1.firstNucleotideIndex,
-          formattedNucleotideIndex1End : stop[1] + singularRnaMoleculeProps1.firstNucleotideIndex,
-          type : helixBasePairType === null ? undefined : helixBasePairType,
+          nucleotideIndex1Start: start[1],
+          nucleotideIndex1End: stop[1],
+          formattedNucleotideIndex1Start:
+            start[1] + singularRnaMoleculeProps1.firstNucleotideIndex,
+          formattedNucleotideIndex1End:
+            stop[1] + singularRnaMoleculeProps1.firstNucleotideIndex,
+          type: helixBasePairType === null ? undefined : helixBasePairType,
           length,
-          isGrouped : true
+          isGrouped: true,
         });
       }
       return {
         selectedBasePairs,
-        selectedHelices
+        selectedHelices,
       };
     },
     [
       rnaComplexProps,
-      filteredHelices
+      filteredHelices,
     ]
   );
   const rows = useMemo(
-    () => viewMode === "Base Pairs" ? selectedBasePairs : selectedHelices,
-    [
-      viewMode,
-      selectedHelices
-    ]
+    () => (viewMode === "Base Pairs" ? selectedBasePairs : selectedHelices),
+    [viewMode, selectedHelices, selectedBasePairs]
   );
 
   const csvEscape = useCallback(
@@ -908,7 +911,12 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       const idx1 = form.formattedNucleotideIndex1 - mp1.firstNucleotideIndex;
       if (!(idx0 in mp0.nucleotideProps) || !(idx1 in mp1.nucleotideProps))
         return;
-      
+      if (
+        mol0 === mol1 &&
+        idx0 === idx1
+      ) {
+        return;
+      }
       const length = form.length ?? 1;
       const newType =
         form.typeBase === "custom"

@@ -2,7 +2,7 @@ import React, { Fragment, useCallback, useEffect, useMemo, useState } from "reac
 import { ThemeProvider } from "../../context/ThemeContext";
 import ThemeToggle from "../ui/ThemeToggle";
 import { Button } from "../new_sidebar/layout/Button";
-import { X } from "lucide-react";
+import { X, Minus, Plus, Type } from "lucide-react";
 import "./DocsPage.css";
 
 type DocNoteVariant = "tip" | "info" | "warning";
@@ -38,6 +38,14 @@ type DocImageBlock = {
   alt: string;
   caption?: string;
   width?: DocImageWidth;
+  figureId?: string;
+};
+
+type DocCodeBlock = {
+  type: "code";
+  language?: string;
+  label?: string;
+  content: string;
 };
 
 type DocContentBlock =
@@ -45,7 +53,8 @@ type DocContentBlock =
   | DocListBlock
   | DocNoteBlock
   | DocTableBlock
-  | DocImageBlock;
+  | DocImageBlock
+  | DocCodeBlock;
 
 type DocSection = {
   id: string;
@@ -97,13 +106,14 @@ const NOTE_VARIANT_CLASSNAMES: Record<DocNoteVariant, string> = {
 };
 
 type RichTextSegment = {
-  kind: "text" | "em" | "code";
+  kind: "text" | "em" | "strong" | "code" | "figureRef";
   value: string;
+  figureId?: string;
 };
 
 function tokenizeRichText(text: string): RichTextSegment[] {
   const segments: RichTextSegment[] = [];
-  const pattern = /(`[^`]+`|\*[^*]+\*)/g;
+  const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|Figure\s*\[([^\]]+)\])/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text)) !== null) {
@@ -113,8 +123,13 @@ function tokenizeRichText(text: string): RichTextSegment[] {
     const token = match[0];
     if (token.startsWith("`")) {
       segments.push({ kind: "code", value: token.slice(1, -1) });
+    } else if (token.startsWith("**")) {
+      segments.push({ kind: "strong", value: token.slice(2, -2) });
     } else if (token.startsWith("*")) {
       segments.push({ kind: "em", value: token.slice(1, -1) });
+    } else if (token.startsWith("Figure")) {
+      const figureId = match[2];
+      segments.push({ kind: "figureRef", value: token, figureId });
     }
     lastIndex = pattern.lastIndex;
   }
@@ -124,7 +139,24 @@ function tokenizeRichText(text: string): RichTextSegment[] {
   return segments.filter((segment) => segment.value.length > 0);
 }
 
-function renderRichText(text: string) {
+function buildFigureRegistry(sections: DocSection[]): Map<string, number> {
+  const registry = new Map<string, number>();
+  let figureNumber = 1;
+
+  function processSection(section: DocSection) {
+    section.content?.forEach((block) => {
+      if (block.type === "image" && block.figureId) {
+        registry.set(block.figureId, figureNumber++);
+      }
+    });
+    section.subsections?.forEach(processSection);
+  }
+
+  sections.forEach(processSection);
+  return registry;
+}
+
+function renderRichText(text: string, figureRegistry?: Map<string, number>) {
   const segments = tokenizeRichText(text);
   if (segments.length === 0) {
     return text;
@@ -137,12 +169,38 @@ function renderRichText(text: string) {
             {segment.value}
           </code>
         );
+      case "strong":
+        return (
+          <strong key={index} className="docs-strong">
+            {segment.value}
+          </strong>
+        );
       case "em":
         return (
           <em key={index} className="docs-emphasis">
             {segment.value}
           </em>
         );
+      case "figureRef": {
+        const figureNum = segment.figureId && figureRegistry ? figureRegistry.get(segment.figureId) : undefined;
+        if (figureNum) {
+          return (
+            <a
+              key={index}
+              href={`#figure-${segment.figureId}`}
+              className="docs-figure-ref"
+              onClick={(e) => {
+                e.preventDefault();
+                const element = document.getElementById(`figure-${segment.figureId}`);
+                element?.scrollIntoView({ behavior: "smooth", block: "center" });
+              }}
+            >
+              Figure {figureNum}
+            </a>
+          );
+        }
+        return <Fragment key={index}>{segment.value}</Fragment>;
+      }
       default:
         return <Fragment key={index}>{segment.value}</Fragment>;
     }
@@ -177,73 +235,6 @@ function getImageWidthClass(width?: DocImageWidth): string {
   }
 }
 
-function renderContentBlock(block: DocContentBlock, key: string | number) {
-  switch (block.type) {
-    case "paragraph":
-      return (
-        <p key={key} className="docs-paragraph">
-          {renderRichText(block.text)}
-        </p>
-      );
-    case "list": {
-      const ListTag = block.style === "ordered" ? "ol" : "ul";
-      return (
-        <ListTag key={key} className="docs-list">
-          {block.items.map((item, index) => (
-            <li key={index}>{renderRichText(item)}</li>
-          ))}
-        </ListTag>
-      );
-    }
-    case "note":
-      return (
-        <div
-          key={key}
-          className={`docs-note ${NOTE_VARIANT_CLASSNAMES[block.variant]}`}
-        >
-          <span className="docs-note__label">{NOTE_VARIANT_LABELS[block.variant]}</span>
-          <span className="docs-note__content">{renderRichText(block.text)}</span>
-        </div>
-      );
-    case "table":
-      return (
-        <div key={key} className="docs-table-wrapper">
-          <table className="docs-table">
-            <thead>
-              <tr>
-                {block.headers.map((header, index) => (
-                  <th key={index}>{renderRichText(header)}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {block.rows.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {row.map((cell, cellIndex) => (
-                    <td key={cellIndex}>{renderRichText(cell)}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    case "image":
-      return (
-        <figure key={key} className={`docs-image${getImageWidthClass(block.width)}`}>
-          <img src={resolveAssetUrl(block.src)} alt={block.alt} loading="lazy" />
-          {block.caption ? (
-            <figcaption className="docs-image__caption">
-              {renderRichText(block.caption)}
-            </figcaption>
-          ) : null}
-        </figure>
-      );
-    default:
-      return null;
-  }
-}
-
 function flattenSections(
   sections: DocSection[],
   ancestors: string[] = [],
@@ -275,6 +266,15 @@ function collectSectionIds(sections: DocSection[]): string[] {
 const DocsContent: React.FC = () => {
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const [openTocSections, setOpenTocSections] = useState<Set<string>>(new Set());
+  const [fontScale, setFontScale] = useState<number>(1.2);
+  const [expandedImage, setExpandedImage] = useState<{ 
+    src: string; 
+    alt: string; 
+    caption?: string;
+    sectionTitle?: string;
+    sectionContent?: DocContentBlock[];
+  } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -308,6 +308,7 @@ const DocsContent: React.FC = () => {
   useEffect(() => {
     if (loadState.status === "ready") {
       setOpenSections(new Set(collectSectionIds(loadState.docs.sections)));
+      setOpenTocSections(new Set());
     }
   }, [loadState]);
 
@@ -324,6 +325,37 @@ const DocsContent: React.FC = () => {
     return flattenSections(loadState.docs.sections);
   }, [loadState]);
 
+  const figureRegistry = useMemo(() => {
+    if (loadState.status !== "ready") {
+      return new Map<string, number>();
+    }
+    return buildFigureRegistry(loadState.docs.sections);
+  }, [loadState]);
+
+  const toggleTocSection = useCallback((id: string) => {
+    setOpenTocSections((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const ensureTocVisibility = useCallback((entry: FlattenedSection) => {
+    setOpenTocSections((previous) => {
+      const next = new Set(previous);
+      if (entry.level === 2) {
+        next.add(entry.id);
+      } else if (entry.ancestors.length > 0) {
+        next.add(entry.ancestors[0]);
+      }
+      return next;
+    });
+  }, []);
+
   const toggleSection = useCallback((id: string) => {
     setOpenSections((previous) => {
       const next = new Set(previous);
@@ -336,9 +368,125 @@ const DocsContent: React.FC = () => {
     });
   }, []);
 
+  const handleImageClick = useCallback((block: DocImageBlock, sectionTitle?: string, sectionContent?: DocContentBlock[]) => {
+    setExpandedImage({
+      src: resolveAssetUrl(block.src),
+      alt: block.alt,
+      caption: block.caption,
+      sectionTitle,
+      sectionContent,
+    });
+  }, []);
+
+  const closeExpandedImage = useCallback(() => {
+    setExpandedImage(null);
+  }, []);
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && expandedImage) {
+        closeExpandedImage();
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [expandedImage, closeExpandedImage]);
+
+  const renderContentBlock = useCallback((block: DocContentBlock, key: string | number, figReg: Map<string, number>, sectionTitle?: string, allContent?: DocContentBlock[]) => {
+    switch (block.type) {
+      case "paragraph":
+        return (
+          <p key={key} className="docs-paragraph">
+            {renderRichText(block.text, figReg)}
+          </p>
+        );
+      case "list": {
+        const ListTag = block.style === "ordered" ? "ol" : "ul";
+        return (
+          <ListTag key={key} className="docs-list">
+            {block.items.map((item, index) => (
+              <li key={index}>{renderRichText(item, figReg)}</li>
+            ))}
+          </ListTag>
+        );
+      }
+      case "note":
+        return (
+          <div
+            key={key}
+            className={`docs-note ${NOTE_VARIANT_CLASSNAMES[block.variant]}`}
+          >
+            <span className="docs-note__label">{NOTE_VARIANT_LABELS[block.variant]}</span>
+            <span className="docs-note__content">{renderRichText(block.text, figReg)}</span>
+          </div>
+        );
+      case "table":
+        return (
+          <div key={key} className="docs-table-wrapper">
+            <table className="docs-table">
+              <thead>
+                <tr>
+                  {block.headers.map((header, index) => (
+                    <th key={index}>{renderRichText(header, figReg)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {block.rows.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {row.map((cell, cellIndex) => (
+                      <td key={cellIndex}>{renderRichText(cell, figReg)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      case "image": {
+        const figNum = block.figureId ? figReg.get(block.figureId) : undefined;
+        return (
+          <figure 
+            key={key}
+            id={block.figureId ? `figure-${block.figureId}` : undefined}
+            className={`docs-image${getImageWidthClass(block.width)}`}
+            onClick={() => handleImageClick(block, sectionTitle, allContent)}
+            style={{ cursor: "pointer" }}
+          >
+            <img src={resolveAssetUrl(block.src)} alt={block.alt} loading="lazy" />
+            {(figNum || block.caption) ? (
+              <figcaption className="docs-image__caption">
+                {figNum ? <span className="docs-figure-number">Figure {figNum}.</span> : null}
+                {block.caption ? <span>{renderRichText(block.caption, figReg)}</span> : null}
+              </figcaption>
+            ) : null}
+          </figure>
+        );
+      }
+      case "code": {
+        const lines = block.content;
+        return (
+          <figure key={key} className="docs-code-block">
+            {block.label ? (
+              <figcaption className="docs-code-block__label">{block.label}</figcaption>
+            ) : null}
+            <pre className="docs-code-block__pre">
+              <code className={`docs-code-block__code${block.language ? ` language-${block.language}` : ""}`}>
+                {lines}
+              </code>
+            </pre>
+          </figure>
+        );
+      }
+      default:
+        return null;
+    }
+  }, [handleImageClick]);
+
   const handleTocLinkClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>, entry: FlattenedSection) => {
       event.preventDefault();
+      ensureTocVisibility(entry);
       setOpenSections((previous) => {
         const next = new Set(previous);
         entry.ancestors.forEach((ancestorId) => next.add(ancestorId));
@@ -358,14 +506,34 @@ const DocsContent: React.FC = () => {
         targetElement.focus?.();
       }
     },
-    []
+    [ensureTocVisibility]
   );
 
   const renderSection = useCallback(
-    (section: DocSection, level = 2): JSX.Element => {
-      const isOpen = openSections.has(section.id);
+    (section: DocSection, figReg: Map<string, number>, level = 2): JSX.Element => {
       const headingLevel = Math.min(level, 6);
       const HeadingTag = `h${headingLevel}` as keyof JSX.IntrinsicElements;
+
+      if (level > 2) {
+        return (
+          <article key={section.id} id={section.id} className="docs-subsection">
+            <HeadingTag className="docs-subsection__heading">{section.title}</HeadingTag>
+            {section.summary ? (
+              <p className="docs-subsection__summary">{renderRichText(section.summary, figReg)}</p>
+            ) : null}
+            {section.content?.map((block, index) =>
+              renderContentBlock(block, `${section.id}-block-${index}`, figReg, section.title, section.content)
+            )}
+            {section.subsections?.length
+              ? section.subsections.map((subsection) =>
+                  renderSection(subsection, figReg, level + 1)
+                )
+              : null}
+          </article>
+        );
+      }
+
+      const isOpen = openSections.has(section.id);
       const contentId = `${section.id}-content`;
 
       return (
@@ -390,25 +558,23 @@ const DocsContent: React.FC = () => {
               </button>
             </HeadingTag>
             {section.summary ? (
-              <p className="docs-section__summary">{renderRichText(section.summary)}</p>
+              <p className="docs-section__summary">{renderRichText(section.summary, figReg)}</p>
             ) : null}
           </header>
           <div className="docs-section__body" id={contentId} hidden={!isOpen}>
             {section.content?.map((block, index) =>
-              renderContentBlock(block, `${section.id}-block-${index}`)
+              renderContentBlock(block, `${section.id}-block-${index}`, figReg, section.title, section.content)
             )}
-            {section.subsections?.length ? (
-              <div className="docs-section__subsections">
-                {section.subsections.map((subsection) =>
-                  renderSection(subsection, level + 1)
-                )}
-              </div>
-            ) : null}
+            {section.subsections?.length
+              ? section.subsections.map((subsection) =>
+                  renderSection(subsection, figReg, level + 1)
+                )
+              : null}
           </div>
         </section>
       );
     },
-    [openSections, toggleSection]
+    [openSections, toggleSection, renderContentBlock]
   );
 
   if (loadState.status === "loading") {
@@ -437,22 +603,99 @@ const DocsContent: React.FC = () => {
   const { docs } = loadState;
 
   return (
-    <main className="docs-page">
-      <aside className="docs-page__toc" aria-label="Table of contents">
-        <div className="docs-page__toc-header">
-          <div className="docs-page__toc-title-row">
-            <h1>{docs.title}</h1>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-  <Button
-    label=""
-    variant="secondary"
-    icon={<X size={12} />}
-    hint="Close docs"
-    onClick={() => { window.location.hash = "#/"; }}
-  />
-  <ThemeToggle className="docs-theme-toggle" />
-</div>
+    <>
+      {expandedImage && (
+        <div 
+          className="docs-image-modal" 
+          onClick={closeExpandedImage}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Expanded image view"
+        >
+          <button 
+            className="docs-image-modal__close"
+            onClick={closeExpandedImage}
+            aria-label="Close expanded image (Press Escape)"
+            title="Close (Esc)"
+          >
+            <X size={20} />
+          </button>
+          <div 
+            className="docs-image-modal__content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="docs-image-modal__image-container">
+              <img 
+                src={expandedImage.src} 
+                alt={expandedImage.alt}
+                className="docs-image-modal__img"
+              />
+              {expandedImage.caption && (
+                <div className="docs-image-modal__caption">
+                  {renderRichText(expandedImage.caption, figureRegistry)}
+                </div>
+              )}
+            </div>
+            {expandedImage.sectionContent && expandedImage.sectionContent.length > 0 && (
+              <div className="docs-image-modal__context">
+                {expandedImage.sectionTitle && (
+                  <h3 className="docs-image-modal__context-title">{expandedImage.sectionTitle}</h3>
+                )}
+                <div className="docs-image-modal__context-content">
+                  {expandedImage.sectionContent.map((block, index) => {
+                    if (block.type === 'image') return null;
+                    return renderContentBlock(block, `modal-${index}`, figureRegistry);
+                  })}
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+      )}
+      <div className="docs-container" style={{ '--docs-scale': fontScale } as React.CSSProperties}>
+        <header className="docs-header">
+          <div className="docs-header__content">
+            <h1 className="docs-header__title">{docs.title}</h1>
+            <div className="docs-header__controls">
+              <div className="docs-font-controls">
+                <Button
+                  label=""
+                  variant="simpleHighlight"
+                  icon={<Minus size={12} />}
+                  hint="Decrease font size"
+                  onClick={() => setFontScale(s => Math.max(0.8, s - 0.1))}
+                  disabled={fontScale <= 0.8}
+                />
+                <Button
+                  label=""
+                  variant="simpleHighlight"
+                  icon={<Type size={12} />}
+                  hint="Reset font size"
+                  onClick={() => setFontScale(1)}
+                />
+                <Button
+                  label=""
+                  variant="simpleHighlight"
+                  icon={<Plus size={12} />}
+                  hint="Increase font size"
+                  onClick={() => setFontScale(s => Math.min(1.4, s + 0.1))}
+                  disabled={fontScale >= 1.4}
+                />
+              </div>
+              <Button
+                label=""
+                variant="secondary"
+                icon={<X size={14} />}
+                hint="Close documentation"
+                onClick={() => { window.location.hash = "#/"; }}
+              />
+              <ThemeToggle className="docs-theme-toggle" />
+            </div>
+          </div>
+        </header>
+        <main className="docs-page">
+          <aside className="docs-page__toc" aria-label="Table of contents">
+            <div className="docs-page__toc-header">
           <dl className="docs-meta">
             {docs.version ? (
               <div>
@@ -470,23 +713,73 @@ const DocsContent: React.FC = () => {
         </div>
         <nav className="docs-toc-nav">
           <ol>
-            {tableOfContents.map((entry) => (
-              <li key={entry.id} data-level={entry.level}>
-                <a
-                  href={`#/docs?section=${entry.id}`}
-                  onClick={(event) => handleTocLinkClick(event, entry)}
-                  className="docs-toc-link"
-                  style={{ paddingLeft: `${(entry.level - 2) * 12}px` }}
-                >
-                  {entry.title}
-                </a>
-              </li>
-            ))}
+            {tableOfContents.map((entry: FlattenedSection) => {
+              const isTopLevel = entry.level === 2;
+              const topAncestorId = isTopLevel ? entry.id : entry.ancestors[0];
+              const isVisible =
+                isTopLevel || (topAncestorId ? openTocSections.has(topAncestorId) : false);
+
+              if (!isVisible) {
+                return null;
+              }
+
+              if (isTopLevel) {
+                const isOpen = openTocSections.has(entry.id);
+                const hasChildren = tableOfContents.some(
+                  (candidate: FlattenedSection) => candidate.ancestors[0] === entry.id
+                );
+
+                return (
+                  <li key={entry.id} data-level={entry.level}>
+                    <div className="docs-toc-item">
+                      {hasChildren ? (
+                        <button
+                          type="button"
+                          className="docs-toc-toggle"
+                          onClick={() => toggleTocSection(entry.id)}
+                          aria-expanded={isOpen}
+                          aria-label={`${isOpen ? "Collapse" : "Expand"} ${entry.title}`}
+                        >
+                          <span className="docs-toc-toggle__chevron" aria-hidden="true">
+                            ▾
+                          </span>
+                        </button>
+                      ) : (
+                        <span className="docs-toc-toggle docs-toc-toggle--spacer" aria-hidden="true">
+                          ▸
+                        </span>
+                      )}
+                      <a
+                        href={`#/docs?section=${entry.id}`}
+                        onClick={(event) => handleTocLinkClick(event, entry)}
+                        className="docs-toc-link"
+                        style={{ paddingLeft: `${(entry.level - 2) * 12}px` }}
+                      >
+                        {entry.title}
+                      </a>
+                    </div>
+                  </li>
+                );
+              }
+
+              return (
+                <li key={entry.id} data-level={entry.level}>
+                  <a
+                    href={`#/docs?section=${entry.id}`}
+                    onClick={(event) => handleTocLinkClick(event, entry)}
+                    className="docs-toc-link"
+                    style={{ paddingLeft: `${(entry.level - 2) * 12}px` }}
+                  >
+                    {entry.title}
+                  </a>
+                </li>
+              );
+            })}
           </ol>
-        </nav>
-      </aside>
-      <div className="docs-page__content">
-        {docs.sections.map((section) => renderSection(section))}
+          </nav>
+        </aside>
+        <div className="docs-page__content" role="main" aria-label="Documentation content">
+        {docs.sections.map((section) => renderSection(section, figureRegistry))}
         {docs.resources?.length ? (
           <section id="resources" className="docs-section docs-section--resources">
             <header className="docs-section__header">
@@ -499,16 +792,17 @@ const DocsContent: React.FC = () => {
                     {resource.label}
                   </a>
                   {resource.description ? (
-                    <p>{renderRichText(resource.description)}</p>
+                    <p>{renderRichText(resource.description, figureRegistry)}</p>
                   ) : null}
                 </li>
               ))}
             </ul>
           </section>
         ) : null}
-      </div>
-    </main>
-  );
+        </div>
+      </main>
+    </div>
+  </>);
 };
 
 const DocsPage: React.FC = () => (

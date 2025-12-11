@@ -334,7 +334,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           <Button
             label="Save"
             onClick={onSave}
-            disabled={saveButtonsDisabledFlag || !fileName || !exportFormat}
+            disabled={saveButtonsDisabledFlag || !exportFormat}
             variant="secondary"
             icon={<Save size={12} />}
             ref = {downloadButtonReference}
@@ -343,7 +343,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             label="Export"
             variant="primary"
             icon={<FileDown size={12} />}
-            disabled={saveButtonsDisabledFlag || !fileName || !exportFormat}
+            disabled={saveButtonsDisabledFlag || !exportFormat}
             onClick={() => {
               if (!exportFormat) {
                 return;
@@ -355,7 +355,7 @@ export const Topbar: React.FC<TopbarProps> = ({
         {!onSave && <Button
           label="Download"
           onClick={onDownload}
-          disabled={saveButtonsDisabledFlag || !fileName || !exportFormat}
+          disabled={saveButtonsDisabledFlag || !exportFormat}
           variant="secondary"
           icon={<Download size={12} />}
           ref = {downloadButtonReference}
