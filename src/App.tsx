@@ -1203,7 +1203,13 @@ export namespace App {
         // let lookingForLesserHelix = true;
         const helixIndexToDirectionalityIndicators : Array<1 | -1> = [];
         for (let helixIndex = 0; helixIndex < globalHelicesForFormatMenu.length; helixIndex++) {
-          const { rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop } = globalHelicesForFormatMenu[helixIndex];
+          const {
+            rnaComplexIndex,
+            rnaMoleculeName0,
+            rnaMoleculeName1,
+            start,
+            stop
+          } = globalHelicesForFormatMenu[helixIndex];
           if (rnaComplexIndex !== newKeys0.rnaComplexIndex) {
             continue;
           }
@@ -1217,12 +1223,16 @@ export namespace App {
           let increment0 : 1 | -1;
           let increment1 : 1 | -1;
           if (length === 1) {
-            increment0 = 1;
-            const difference = newKeys1.nucleotideIndex - stop[1];
-            if (Math.abs(difference) !== 1) {
+            const difference0 = stop[0] - newKeys0.nucleotideIndex;
+            if (Math.abs(difference0) !== 1) {
               continue;
             }
-            increment1 = difference as 1 | -1;
+            increment0 = difference0 as 1 | -1;
+            const difference1 = stop[1] - newKeys1.nucleotideIndex;
+            if (Math.abs(difference1) !== 1) {
+              continue;
+            }
+            increment1 = difference1 as 1 | -1;
           } else {
             increment0 = Math.sign(stop[0] - start[0]) as 1 | -1;
             increment1 = Math.sign(stop[1] - start[1]) as 1 | -1;
@@ -1397,6 +1407,7 @@ export namespace App {
           }
         }
         setGlobalHelicesForFormatMenu(newHelices);
+        globalHelicesForFormatMenuReference.current = newHelices;
       },
       []
     );
