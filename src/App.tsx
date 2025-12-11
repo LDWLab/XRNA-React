@@ -1194,162 +1194,163 @@ export namespace App {
         newKeys0 : FullKeys,
         newKeys1 : FullKeys
       ) {
-        const globalHelicesForFormatMenu = globalHelicesForFormatMenuReference.current!;
-        [ newKeys0, newKeys1 ] = [ newKeys0, newKeys1 ].sort(compareBasePairKeys);
+        resetGlobalHelicesForFormatMenu(rnaComplexPropsReference.current!);
+        // const globalHelicesForFormatMenu = globalHelicesForFormatMenuReference.current!;
+        // [ newKeys0, newKeys1 ] = [ newKeys0, newKeys1 ].sort(compareBasePairKeys);
 
-        // NOTE: newKeys and helices are BOTH listed in sorted order. This simplifies implementation details.
-        let indexOfLesserContiguousHelix = -1;
-        let indexOfGreaterContiguousHelix = -1;
-        // let lookingForLesserHelix = true;
-        const helixIndexToDirectionalityIndicators : Array<1 | -1> = [];
-        for (let helixIndex = 0; helixIndex < globalHelicesForFormatMenu.length; helixIndex++) {
-          const {
-            rnaComplexIndex,
-            rnaMoleculeName0,
-            rnaMoleculeName1,
-            start,
-            stop
-          } = globalHelicesForFormatMenu[helixIndex];
-          if (rnaComplexIndex !== newKeys0.rnaComplexIndex) {
-            continue;
-          }
-          if ((
-            rnaMoleculeName0 !== newKeys0.rnaMoleculeName ||
-            rnaMoleculeName1 !== newKeys1.rnaMoleculeName
-          )) {
-            continue;
-          }
-          const length = Math.abs(stop[0] - start[0]) + 1;
-          let increment0 : 1 | -1;
-          let increment1 : 1 | -1;
-          if (length === 1) {
-            const difference0 = stop[0] - newKeys0.nucleotideIndex;
-            if (Math.abs(difference0) !== 1) {
-              continue;
-            }
-            increment0 = difference0 as 1 | -1;
-            const difference1 = stop[1] - newKeys1.nucleotideIndex;
-            if (Math.abs(difference1) !== 1) {
-              continue;
-            }
-            increment1 = difference1 as 1 | -1;
-          } else {
-            increment0 = Math.sign(stop[0] - start[0]) as 1 | -1;
-            increment1 = Math.sign(stop[1] - start[1]) as 1 | -1;
-          }
-          let targets = {
-            lesser : [
-              stop[0] + increment0,
-              stop[1] + increment1
-            ],
-            greater : [
-              start[0] - increment0,
-              start[1] - increment1
-            ]
-          };
-          if ((
-            newKeys0.nucleotideIndex === targets.lesser[0] &&
-            newKeys1.nucleotideIndex === targets.lesser[1] &&
-            (
-              length !== -1 ||
-              indexOfLesserContiguousHelix === -1
-            )
-          )) {
-            indexOfLesserContiguousHelix = helixIndex;
-          } else if ((
-            newKeys0.nucleotideIndex === targets.greater[0] &&
-            newKeys1.nucleotideIndex === targets.greater[1] &&
-            (
-              length !== -1 ||
-              indexOfGreaterContiguousHelix === -1  
-            )
-          )) {
-            indexOfGreaterContiguousHelix = helixIndex;
-          }
-          helixIndexToDirectionalityIndicators[helixIndex] = (increment0 * increment1) as 1 | -1;
-        }
-        if (
-          indexOfLesserContiguousHelix !== -1 &&
-          indexOfGreaterContiguousHelix !== -1 &&
-          helixIndexToDirectionalityIndicators[indexOfLesserContiguousHelix] * helixIndexToDirectionalityIndicators[indexOfGreaterContiguousHelix] < 0
-        ) {
-          // Incompatible helices.
-          // Preferrentially retain the helix with the expected directionality indicator.
-          if (helixIndexToDirectionalityIndicators[indexOfLesserContiguousHelix] < 0) {
-            indexOfGreaterContiguousHelix = -1;
-          } else {
-            indexOfLesserContiguousHelix = -1;
-          }
-        }
-        if (
-          indexOfLesserContiguousHelix === -1 &&
-          indexOfGreaterContiguousHelix === -1
-        ) {
-          const newHelix : Helix = {
-            rnaComplexIndex : newKeys0.rnaComplexIndex,
-            rnaMoleculeName0 : newKeys0.rnaMoleculeName,
-            rnaMoleculeName1 : newKeys1.rnaMoleculeName,
-            start : { 0 : newKeys0.nucleotideIndex, 1 : newKeys1.nucleotideIndex },
-            stop : { 0 : newKeys0.nucleotideIndex, 1 : newKeys1.nucleotideIndex }
-          };
-          // This base pair should not be already present in the globalHelices array. 
-          // It would be if the basepair (with identical keys) already existed.
-          sortedArraySplice(
-            globalHelicesForFormatMenu,
-            ({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop } : Helix) => (
-              (rnaComplexIndex - newHelix.rnaComplexIndex) ||
-              rnaMoleculeName0.localeCompare(newHelix.rnaMoleculeName0) ||
-              rnaMoleculeName1.localeCompare(newHelix.rnaMoleculeName1) ||
-              (start[0] - newHelix.start[0]) ||
-              (start[1] - newHelix.start[1])
-              // Ignore stop; it is irrelevant.
-            ),
-            0,
-            [newHelix],
-            HandleQueryNotFound.ADD
-          );
-        } else if (
-          indexOfLesserContiguousHelix !== -1 &&
-          indexOfGreaterContiguousHelix !== -1
-        ) {
-          // Merge the 2 helices and new base pair into 1 helix.
-          const lesserHelix = globalHelicesForFormatMenu[indexOfLesserContiguousHelix];
-          const greaterHelix = globalHelicesForFormatMenu[indexOfGreaterContiguousHelix];
-          lesserHelix.stop = structuredClone(greaterHelix.stop);
-          globalHelicesForFormatMenu.splice(
-            indexOfGreaterContiguousHelix,
-            1
-          );
-        } else if (
-          indexOfLesserContiguousHelix !== -1
-        ) {
-          const lesserHelix = globalHelicesForFormatMenu[indexOfLesserContiguousHelix];
-          const { start, stop } = lesserHelix;
-          const length = Math.abs(stop[0] - start[0]) + 1;
-          if (length === 1) {
-            const [ min0, max0 ] = [start[0], newKeys0.nucleotideIndex].sort(subtractNumbers);
-            const [ min1, max1 ] = [start[1], newKeys1.nucleotideIndex].sort(subtractNumbers);
-            lesserHelix.start = [min0, max1];
-            lesserHelix.stop = [max0, min1];
-          } else {
-            lesserHelix.stop = [newKeys0.nucleotideIndex, newKeys1.nucleotideIndex];
-          }
-        } else {
-          const greaterHelix = globalHelicesForFormatMenu[indexOfGreaterContiguousHelix];
-          const { start, stop } = greaterHelix;
-          const length = Math.abs(stop[0] - start[0]) + 1;
-          if (length === 1) {
-            const [ min0, max0 ] = [start[0], newKeys0.nucleotideIndex].sort(subtractNumbers);
-            const [ min1, max1 ] = [start[1], newKeys1.nucleotideIndex].sort(subtractNumbers);
-            greaterHelix.start = [min0, max1];
-            greaterHelix.stop = [max0, min1];
-          } else {
-            greaterHelix.start = [newKeys0.nucleotideIndex, newKeys1.nucleotideIndex];
-          }
-        }
-        // Force an update of the format menu.
-        const newGlobalHelicesForFormatMenu = structuredClone(globalHelicesForFormatMenu);
-        setGlobalHelicesForFormatMenu(newGlobalHelicesForFormatMenu);
+        // // NOTE: newKeys and helices are BOTH listed in sorted order. This simplifies implementation details.
+        // let indexOfLesserContiguousHelix = -1;
+        // let indexOfGreaterContiguousHelix = -1;
+        // // let lookingForLesserHelix = true;
+        // const helixIndexToDirectionalityIndicators : Array<1 | -1> = [];
+        // for (let helixIndex = 0; helixIndex < globalHelicesForFormatMenu.length; helixIndex++) {
+        //   const {
+        //     rnaComplexIndex,
+        //     rnaMoleculeName0,
+        //     rnaMoleculeName1,
+        //     start,
+        //     stop
+        //   } = globalHelicesForFormatMenu[helixIndex];
+        //   if (rnaComplexIndex !== newKeys0.rnaComplexIndex) {
+        //     continue;
+        //   }
+        //   if ((
+        //     rnaMoleculeName0 !== newKeys0.rnaMoleculeName ||
+        //     rnaMoleculeName1 !== newKeys1.rnaMoleculeName
+        //   )) {
+        //     continue;
+        //   }
+        //   const length = Math.abs(stop[0] - start[0]) + 1;
+        //   let increment0 : 1 | -1;
+        //   let increment1 : 1 | -1;
+        //   if (length === 1) {
+        //     const difference0 = stop[0] - newKeys0.nucleotideIndex;
+        //     if (Math.abs(difference0) !== 1) {
+        //       continue;
+        //     }
+        //     increment0 = difference0 as 1 | -1;
+        //     const difference1 = stop[1] - newKeys1.nucleotideIndex;
+        //     if (Math.abs(difference1) !== 1) {
+        //       continue;
+        //     }
+        //     increment1 = difference1 as 1 | -1;
+        //   } else {
+        //     increment0 = Math.sign(stop[0] - start[0]) as 1 | -1;
+        //     increment1 = Math.sign(stop[1] - start[1]) as 1 | -1;
+        //   }
+        //   let targets = {
+        //     lesser : [
+        //       stop[0] + increment0,
+        //       stop[1] + increment1
+        //     ],
+        //     greater : [
+        //       start[0] - increment0,
+        //       start[1] - increment1
+        //     ]
+        //   };
+        //   if ((
+        //     newKeys0.nucleotideIndex === targets.lesser[0] &&
+        //     newKeys1.nucleotideIndex === targets.lesser[1] &&
+        //     (
+        //       length !== -1 ||
+        //       indexOfLesserContiguousHelix === -1
+        //     )
+        //   )) {
+        //     indexOfLesserContiguousHelix = helixIndex;
+        //   } else if ((
+        //     newKeys0.nucleotideIndex === targets.greater[0] &&
+        //     newKeys1.nucleotideIndex === targets.greater[1] &&
+        //     (
+        //       length !== -1 ||
+        //       indexOfGreaterContiguousHelix === -1  
+        //     )
+        //   )) {
+        //     indexOfGreaterContiguousHelix = helixIndex;
+        //   }
+        //   helixIndexToDirectionalityIndicators[helixIndex] = (increment0 * increment1) as 1 | -1;
+        // }
+        // if (
+        //   indexOfLesserContiguousHelix !== -1 &&
+        //   indexOfGreaterContiguousHelix !== -1 &&
+        //   helixIndexToDirectionalityIndicators[indexOfLesserContiguousHelix] * helixIndexToDirectionalityIndicators[indexOfGreaterContiguousHelix] < 0
+        // ) {
+        //   // Incompatible helices.
+        //   // Preferrentially retain the helix with the expected directionality indicator.
+        //   if (helixIndexToDirectionalityIndicators[indexOfLesserContiguousHelix] < 0) {
+        //     indexOfGreaterContiguousHelix = -1;
+        //   } else {
+        //     indexOfLesserContiguousHelix = -1;
+        //   }
+        // }
+        // if (
+        //   indexOfLesserContiguousHelix === -1 &&
+        //   indexOfGreaterContiguousHelix === -1
+        // ) {
+        //   const newHelix : Helix = {
+        //     rnaComplexIndex : newKeys0.rnaComplexIndex,
+        //     rnaMoleculeName0 : newKeys0.rnaMoleculeName,
+        //     rnaMoleculeName1 : newKeys1.rnaMoleculeName,
+        //     start : { 0 : newKeys0.nucleotideIndex, 1 : newKeys1.nucleotideIndex },
+        //     stop : { 0 : newKeys0.nucleotideIndex, 1 : newKeys1.nucleotideIndex }
+        //   };
+        //   // This base pair should not be already present in the globalHelices array. 
+        //   // It would be if the basepair (with identical keys) already existed.
+        //   sortedArraySplice(
+        //     globalHelicesForFormatMenu,
+        //     ({ rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop } : Helix) => (
+        //       (rnaComplexIndex - newHelix.rnaComplexIndex) ||
+        //       rnaMoleculeName0.localeCompare(newHelix.rnaMoleculeName0) ||
+        //       rnaMoleculeName1.localeCompare(newHelix.rnaMoleculeName1) ||
+        //       (start[0] - newHelix.start[0]) ||
+        //       (start[1] - newHelix.start[1])
+        //       // Ignore stop; it is irrelevant.
+        //     ),
+        //     0,
+        //     [newHelix],
+        //     HandleQueryNotFound.ADD
+        //   );
+        // } else if (
+        //   indexOfLesserContiguousHelix !== -1 &&
+        //   indexOfGreaterContiguousHelix !== -1
+        // ) {
+        //   // Merge the 2 helices and new base pair into 1 helix.
+        //   const lesserHelix = globalHelicesForFormatMenu[indexOfLesserContiguousHelix];
+        //   const greaterHelix = globalHelicesForFormatMenu[indexOfGreaterContiguousHelix];
+        //   lesserHelix.stop = structuredClone(greaterHelix.stop);
+        //   globalHelicesForFormatMenu.splice(
+        //     indexOfGreaterContiguousHelix,
+        //     1
+        //   );
+        // } else if (
+        //   indexOfLesserContiguousHelix !== -1
+        // ) {
+        //   const lesserHelix = globalHelicesForFormatMenu[indexOfLesserContiguousHelix];
+        //   const { start, stop } = lesserHelix;
+        //   const length = Math.abs(stop[0] - start[0]) + 1;
+        //   if (length === 1) {
+        //     const [ min0, max0 ] = [start[0], newKeys0.nucleotideIndex].sort(subtractNumbers);
+        //     const [ min1, max1 ] = [start[1], newKeys1.nucleotideIndex].sort(subtractNumbers);
+        //     lesserHelix.start = [min0, max1];
+        //     lesserHelix.stop = [max0, min1];
+        //   } else {
+        //     lesserHelix.stop = [newKeys0.nucleotideIndex, newKeys1.nucleotideIndex];
+        //   }
+        // } else {
+        //   const greaterHelix = globalHelicesForFormatMenu[indexOfGreaterContiguousHelix];
+        //   const { start, stop } = greaterHelix;
+        //   const length = Math.abs(stop[0] - start[0]) + 1;
+        //   if (length === 1) {
+        //     const [ min0, max0 ] = [start[0], newKeys0.nucleotideIndex].sort(subtractNumbers);
+        //     const [ min1, max1 ] = [start[1], newKeys1.nucleotideIndex].sort(subtractNumbers);
+        //     greaterHelix.start = [min0, max1];
+        //     greaterHelix.stop = [max0, min1];
+        //   } else {
+        //     greaterHelix.start = [newKeys0.nucleotideIndex, newKeys1.nucleotideIndex];
+        //   }
+        // }
+        // // Force an update of the format menu.
+        // const newGlobalHelicesForFormatMenu = structuredClone(globalHelicesForFormatMenu);
+        // setGlobalHelicesForFormatMenu(newGlobalHelicesForFormatMenu);
       },
       []
     );

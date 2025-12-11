@@ -1262,6 +1262,11 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
 
       [basePairKeysToEditPerRnaComplex.add, basePairKeysToEditPerRnaComplex.delete].forEach(array => array.sort(compareFullBasePairKeys));
       setBasePairKeysToEdit(basePairKeysToEdit);
+
+      handleNewBasePair(
+        undefined as any as FullKeys,
+        undefined as any as FullKeys
+      );
     },
     [editForm]
   );
