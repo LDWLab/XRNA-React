@@ -231,106 +231,119 @@ export namespace OrientationEditor {
         setCenterX(initialCenter.x);
         setCenterY(initialCenter.y);
       },
-      [resetDataTrigger]
+      [
+        resetDataTrigger,
+        initialCenter,
+        initialAngleNullCoalesced,
+        initialScaleNullCoalesced
+      ]
     );
     return <>
-      <label>
-        x:&nbsp;
-        <InputWithValidator.Number
-          value = {centerX}
-          setValue = {function(newCenterX : number) {
-            setCenterX(newCenterX);
-            updatePositionsHelper(
-              newCenterX,
-              centerY,
-              angle,
-              scale,
-              flipPositionsFlag
-            );
-          }}
-          disabledFlag = {disabledFlagNullCoalesced}
-        />
-      </label>
-      <br/>
-      <label>
-        y:&nbsp;
-        <InputWithValidator.Number
-          value = {centerY}
-          setValue = {function(newCenterY : number) {
-            setCenterY(newCenterY);
-            updatePositionsHelper(
-              centerX,
-              newCenterY,
-              angle,
-              scale,
-              flipPositionsFlag
-            );
-          }}
-          disabledFlag = {disabledFlagNullCoalesced}
-        />
-      </label>
-      <br/>
-      <label>
-        θ:&nbsp;
-        <InputWithValidator.Angle
-          value = {angle}
-          setValue = {function(newAngle : number) {
-            setAngle(newAngle);
-            updatePositionsHelper(
-              centerX,
-              centerY,
-              newAngle,
-              scale,
-              flipPositionsFlag
-            );
-          }}
-          useDegreesFlag = {useDegreesFlag}
-          disabledFlag = {disabledFlagNullCoalesced}
-        />
-      </label>
-      <br/>
-      <label>
-        scale:&nbsp;
-        <InputWithValidator.Number
-          value = {scale}
-          setValue = {function(newScale : number) {
-            // if (!scaleChangedFlag) {
-            //   pushToUndoStack();
-            //   setScaleChangedFlag(true);
-            // }
-            updatePositionsHelper(
-              centerX,
-              centerY,
-              angle,
-              newScale,
-              flipPositionsFlag
-            );
-            setScale(newScale);
-          }}
-          disabledFlag = {disabledFlagNullCoalesced}
-        />
-      </label>
-      <br/>
-      <button
-        onClick = {function() {
-          // if (!flippedFlag) {
-          //   pushToUndoStack();
-          //   setFlippedFlag(true);
-          // }
-          const newFlipPositionsFlag = !flipPositionsFlag;
-          setFlipPositionsFlag(newFlipPositionsFlag)
-          updatePositionsHelper(
-            centerX,
-            centerY,
-            angle,
-            scale,
-            newFlipPositionsFlag
-          );
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8
         }}
-        disabled = {disabledFlagNullCoalesced}
       >
-        Flip
-      </button>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "auto minmax(0, 1fr) auto minmax(0, 1fr)",
+            columnGap: 8,
+            rowGap: 4,
+            alignItems: "center"
+          }}
+        >
+          <span>x:</span>
+          <InputWithValidator.Integer
+            value={Math.round(centerX)}
+            setValue={function(newCenterX : number) {
+              setCenterX(newCenterX);
+              updatePositionsHelper(
+                newCenterX,
+                centerY,
+                angle,
+                scale,
+                flipPositionsFlag
+              );
+            }}
+            disabledFlag={disabledFlagNullCoalesced}
+          />
+          <span>y:</span>
+          <InputWithValidator.Integer
+            value={Math.round(centerY)}
+            setValue={function(newCenterY : number) {
+              setCenterY(newCenterY);
+              updatePositionsHelper(
+                centerX,
+                newCenterY,
+                angle,
+                scale,
+                flipPositionsFlag
+              );
+            }}
+            disabledFlag={disabledFlagNullCoalesced}
+          />
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "auto minmax(0, 1fr) auto minmax(0, 1fr) auto",
+            columnGap: 8,
+            rowGap: 4,
+            alignItems: "center"
+          }}
+        >
+          <span>rotation:</span>
+          <InputWithValidator.Angle
+            value={angle}
+            setValue={function(newAngle : number) {
+              setAngle(newAngle);
+              updatePositionsHelper(
+                centerX,
+                centerY,
+                newAngle,
+                scale,
+                flipPositionsFlag
+              );
+            }}
+            useDegreesFlag={useDegreesFlag}
+            disabledFlag={disabledFlagNullCoalesced}
+          />
+          <span>scale:</span>
+          <InputWithValidator.Integer
+            value={Math.round(scale)}
+            setValue={function(newScale : number) {
+              updatePositionsHelper(
+                centerX,
+                centerY,
+                angle,
+                newScale,
+                flipPositionsFlag
+              );
+              setScale(newScale);
+            }}
+            disabledFlag={disabledFlagNullCoalesced}
+          />
+          <button
+            onClick={function() {
+              const newFlipPositionsFlag = !flipPositionsFlag;
+              setFlipPositionsFlag(newFlipPositionsFlag)
+              updatePositionsHelper(
+                centerX,
+                centerY,
+                angle,
+                scale,
+                newFlipPositionsFlag
+              );
+            }}
+            disabled={disabledFlagNullCoalesced}
+          >
+            Flip
+          </button>
+        </div>
+      </div>
     </>;
   }
 

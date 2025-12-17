@@ -363,6 +363,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
   }
 
   public override createRightClickMenu(tab : InteractionConstraint.SupportedTab) {
+
     const {
       rnaComplexIndex,
       rnaMoleculeName
@@ -370,14 +371,22 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
     const fullKeys = this.fullKeys0;
     const basePairedKeys = this.basePairedKeys;
     const nucleotideIndices = this.nucleotideIndices;
+    const header = <>
+      <b>
+        {tab} single base pair:
+      </b>
+      <br/>
+      {this.partialHeader}
+    </>;
     let menu : JSX.Element = <></>;
     switch (tab) {
       case Tab.EDIT : {
-        menu = <SingleBasePairInteractionConstraintEditMenu.Component
+        return <SingleBasePairInteractionConstraintEditMenu.Component
           {...this.editMenuProps}
+          headerContent = {header}
         />;
-        break;
       }
+
       case Tab.FORMAT : {
         menu = <BasePairsEditor.Component
           rnaComplexProps = {this.rnaComplexProps}
@@ -470,11 +479,7 @@ export class SingleBasePairInteractionConstraint extends AbstractInteractionCons
       }
     }
     return <>
-      <b>
-        {tab} single base pair:
-      </b>
-      <br/>
-      {this.partialHeader}
+      {header}
       {menu}
     </>;
   }

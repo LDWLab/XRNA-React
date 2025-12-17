@@ -13,6 +13,51 @@ export interface SettingsDrawerProps {
   getDistanceDefaults?: () => Partial<SettingsRecord>;
 }
 
+const preferenceGroups: { id: string; title: string; settings: Setting[] }[] = [
+  {
+    id: 'general',
+    title: 'General',
+    settings: [
+      Setting.COPY_FILE_NAME,
+      Setting.COPY_FILE_EXTENSION,
+      Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD,
+      Setting.DISABLE_NAVIGATE_AWAY_PROMPT,
+    ],
+  },
+  {
+    id: 'editing-formatting',
+    title: 'Editing & Formatting',
+    settings: [
+      Setting.USE_DEGREES,
+      Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING,
+      Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS,
+      Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED,
+    ],
+  },
+  {
+    id: 'base-pair-geometry',
+    title: 'Base Pair Geometry',
+    settings: [
+      Setting.CANONICAL_BASE_PAIR_DISTANCE,
+      Setting.WOBBLE_BASE_PAIR_DISTANCE,
+      Setting.MISMATCH_BASE_PAIR_DISTANCE,
+      Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS,
+      Setting.BASE_PAIR_RADIUS,
+    ],
+  },
+  {
+    id: 'rendering-appearance',
+    title: 'Rendering & Appearance',
+    settings: [
+      Setting.REPLACE_NUCLEOTIDES_WITH_CONTOUR_LINE,
+      Setting.CONTOUR_LINE_WIDTH,
+      Setting.PATH_MODE,
+      Setting.PATH_LINE_WIDTH,
+      Setting.DARK_MODE,
+    ],
+  },
+];
+
 export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, settings, setSettings, getDistanceDefaults }) => {
   const { theme, isDarkMode } = useTheme();
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -216,105 +261,163 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ open, onClose, s
         <div style={{ height: '24px' }} />
 
         {/* Preferences Section */}
-        <PanelContainer title="Preferences" borderRadius={12}>
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr auto', 
-            rowGap: '20px', 
-            columnGap: '24px',
-            alignItems: 'center',
-          }}>
-            {allSettings.filter(setting => !setting.startsWith('grid_')).map((setting, index) => {
-              let input: JSX.Element = <></>;
-              switch (settingsTypeMap[setting]) {
-                case 'boolean': {
-                  input = (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <input
-                        type="checkbox"
-                        checked={settings[setting] as boolean}
-                        onChange={() => setSettings({ ...settings, [setting]: !settings[setting] })}
-                        style={{ 
-                          width: '20px', 
-                          height: '20px',
-                          accentColor: theme.colors.primary,
-                          cursor: 'pointer',
-                        }}
-                      />
-                    </div>
-                  );
-                  break;
-                }
-                case 'number': {
-                  input = (
-                    <div style={{ minWidth: '140px' }}>
-                      <InputWithValidator.Number
-                        value={settings[setting] as number}
-                        setValue={(v: number) => setSettings({ ...settings, [setting]: v })}
-                      />
-                    </div>
-                  );
-                  break;
-                }
-                case 'string': {
-                  input = (
-                    <div style={{ minWidth: '140px' }}>
-                      <input
-                        type="text"
-                        value={settings[setting] as string}
-                        onChange={(e) => setSettings({ ...settings, [setting]: e.target.value })}
-                        placeholder="Enter value..."
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {preferenceGroups.map((group) => (
+            <PanelContainer key={group.id} title={group.title} borderRadius={12}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                {group.settings
+                  .filter((setting) => allSettings.includes(setting))
+                  .map((setting) => {
+                    const settingType = settingsTypeMap[setting];
+                    let input: JSX.Element = <></>;
+                    switch (settingType) {
+                      case 'boolean': {
+                        const checked = settings[setting] as boolean;
+                        input = (
+                          <button
+                            type="button"
+                            onClick={() => setSettings({ ...settings, [setting]: !checked })}
+                            style={{
+                              position: 'relative',
+                              width: '44px',
+                              height: '24px',
+                              borderRadius: '999px',
+                              border: `1px solid ${checked ? theme.colors.primary : theme.colors.border}`,
+                              background: checked ? theme.colors.primary : theme.colors.surface,
+                              padding: 0,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: checked ? 'flex-end' : 'flex-start',
+                              transition: theme.transitions.default,
+                              boxShadow: theme.shadows.sm,
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '999px',
+                                background: checked ? theme.colors.textInverse : theme.colors.background,
+                                boxShadow: theme.shadows.sm,
+                                margin: '2px',
+                              }}
+                            />
+                          </button>
+                        );
+                        break;
+                      }
+                      case 'number': {
+                        input = (
+                          <div style={{ minWidth: '140px' }}>
+                            <InputWithValidator.Number
+                              value={settings[setting] as number}
+                              setValue={(v: number) => setSettings({ ...settings, [setting]: v })}
+                            />
+                          </div>
+                        );
+                        break;
+                      }
+                      case 'string': {
+                        input = (
+                          <div style={{ minWidth: '160px' }}>
+                            <input
+                              type="text"
+                              value={settings[setting] as string}
+                              onChange={(e) => setSettings({ ...settings, [setting]: e.target.value })}
+                              placeholder="Enter value..."
+                              style={{
+                                width: '100%',
+                                padding: '8px 12px',
+                                borderRadius: '8px',
+                                border: `1px solid ${theme.colors.border}`,
+                                background: theme.colors.surface,
+                                color: theme.colors.text,
+                                fontSize: '14px',
+                              }}
+                            />
+                          </div>
+                        );
+                        break;
+                      }
+                      default:
+                        input = <></>;
+                    }
+
+                    return (
+                      <div
+                        key={setting}
                         style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: `1px solid ${theme.colors.border}`,
-                          background: theme.colors.surface,
-                          color: theme.colors.text,
-                          fontSize: '14px',
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(0, 2.5fr) minmax(0, 1.3fr)',
+                          gap: '8px 16px',
+                          alignItems: 'center',
+                          padding: '10px 12px',
+                          borderRadius: '10px',
+                          border: `1px solid ${theme.colors.borderLight}`,
+                          background: theme.colors.background,
+                          transition: theme.transitions.default,
                         }}
-                      />
-                    </div>
-                  );
-                  break;
-                }
-                default:
-                  input = <></>;
-              }
-              return (
-                <React.Fragment key={index}>
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: '6px',
-                  }}>
-                    <label 
-                      title={settingsLongDescriptionsMap[setting]} 
-                      style={{ 
-                        color: theme.colors.textStrong || theme.colors.text, 
-                        fontSize: '15px', 
-                        fontWeight: '600',
-                        lineHeight: '1.4',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {settingsShortDescriptionsMap[setting]}
-                    </label>
-                    <div style={{
-                      fontSize: '13px',
-                      color: theme.colors.textWeak || theme.colors.textSecondary,
-                      lineHeight: '1.4',
-                      maxWidth: '400px',
-                    }}>
-                      {settingsLongDescriptionsMap[setting]}
-                    </div>
-                  </div>
-                  <div>{input}</div>
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </PanelContainer>
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = theme.colors.surfaceHover;
+                          e.currentTarget.style.borderColor = theme.colors.border;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = theme.colors.background;
+                          e.currentTarget.style.borderColor = theme.colors.borderLight;
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px',
+                          }}
+                        >
+                          <label
+                            title={settingsLongDescriptionsMap[setting]}
+                            style={{
+                              color: theme.colors.textStrong || theme.colors.text,
+                              fontSize: '15px',
+                              fontWeight: '600',
+                              lineHeight: '1.4',
+                            }}
+                          >
+                            {settingsShortDescriptionsMap[setting]}
+                          </label>
+                          <div
+                            style={{
+                              fontSize: '13px',
+                              color: theme.colors.textWeak || theme.colors.textSecondary,
+                              lineHeight: '1.4',
+                              opacity: 0.9,
+                            }}
+                          >
+                            {settingsLongDescriptionsMap[setting]}
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: settingType === 'boolean' ? 'flex-end' : 'flex-start',
+                            alignItems: 'center',
+                          }}
+                        >
+                          {input}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </PanelContainer>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -126,18 +126,21 @@ export class SingleNucleotideInteractionConstraint extends AbstractInteractionCo
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const rerender = this.rerender;
-
-    const header = <>
-      <b>
-        {tab} nucleotide #{singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndex}
-      </b>
-      <br/>
-      In RNA molecule "{rnaMoleculeName}"
-      <br/>
-      In RNA complex "{singularRnaComplexProps.name}"
-      <br/>
-    </>;
+    let header : JSX.Element | null = null;
+    if (tab !== Tab.EDIT) {
+      header = <>
+        <b>
+          {tab} nucleotide #{singularRnaMoleculeProps.firstNucleotideIndex + nucleotideIndex}
+        </b>
+        <br/>
+        In RNA molecule "{rnaMoleculeName}"
+        <br/>
+        In RNA complex "{singularRnaComplexProps.name}"
+        <br/>
+      </>;
+    }
     let menu : JSX.Element;
+
     if (this.error !== undefined && this.error !== basePairedNucleotideError) {
       throw this.error;
     }

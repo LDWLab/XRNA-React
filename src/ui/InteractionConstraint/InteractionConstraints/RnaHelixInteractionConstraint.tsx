@@ -246,28 +246,20 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       allNucleotides,
       rerender
     );
-    const nucleotideRange0Text = `Nucleotides [${extrema0[0] + singularRnaMoleculeProps0.firstNucleotideIndex}, ${extrema1[0] + singularRnaMoleculeProps0.firstNucleotideIndex}]`;
-    const nucleotideRange1Text = `Nucleotides [${extrema0[1] + singularRnaMoleculeProps1.firstNucleotideIndex}, ${extrema1[1] + singularRnaMoleculeProps1.firstNucleotideIndex}]`;
+    const nucleotideRange0 = `[${extrema0[0] + singularRnaMoleculeProps0.firstNucleotideIndex}, ${extrema1[0] + singularRnaMoleculeProps0.firstNucleotideIndex}]`;
+    const nucleotideRange1 = `[${extrema0[1] + singularRnaMoleculeProps1.firstNucleotideIndex}, ${extrema1[1] + singularRnaMoleculeProps1.firstNucleotideIndex}]`;
+    const labelStyle : React.CSSProperties = { display: "inline-block", width: 80, color: "#666" };
     let nucleotideAndRnaMoleculeJsx : JSX.Element;
     if (rnaMoleculeName0 === rnaMoleculeName1) {
       nucleotideAndRnaMoleculeJsx = <>
-        {nucleotideRange0Text}
-        <br/>
-        Contiguously bound to
-        <br/>
-        {nucleotideRange1Text}
-        <br/>
-        In RNA molecule "{rnaMoleculeName0}"
+        <div><span style={labelStyle}>Nucleotides:</span>{nucleotideRange0}</div>
+        <div><span style={labelStyle}>Bound to:</span>{nucleotideRange1}</div>
+        <div><span style={labelStyle}>Molecule:</span>{rnaMoleculeName0}</div>
       </>;
     } else {
       nucleotideAndRnaMoleculeJsx = <>
-        {nucleotideRange0Text}
-        <br/>
-        In RNA molecule "{rnaMoleculeName0}"
-        <br/>
-        {nucleotideRange1Text}
-        <br/>
-        In RNA molecule "{rnaMoleculeName1}"
+        <div><span style={labelStyle}>Nucleotides:</span>{nucleotideRange0} in {rnaMoleculeName0}</div>
+        <div><span style={labelStyle}>Bound to:</span>{nucleotideRange1} in {rnaMoleculeName1}</div>
       </>;
     }
     let boundingNucleotide0 : Vector2D;
@@ -319,11 +311,8 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
       boundingNucleotide0
     ));
     this.partialHeader = <>
-      <br/>
       {nucleotideAndRnaMoleculeJsx}
-      <br/>
-      In RNA complex "{singularRnaComplexProps.name}"
-      <br/>
+      <div><span style={labelStyle}>Complex:</span>{singularRnaComplexProps.name}</div>
     </>;
     let singleColorFlag = true;
     const singleColorCandidate = allNucleotides.length > 0 ? allNucleotides[0].color ?? BLACK : BLACK;
@@ -373,6 +362,7 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
   }
 
   public override createRightClickMenu(tab : InteractionConstraint.SupportedTab) {
+
     const {
       rnaComplexIndex,
       rnaMoleculeName
@@ -386,14 +376,13 @@ export class RnaHelixInteractionConstraint extends AbstractInteractionConstraint
     </>;
     switch (tab) {
       case Tab.EDIT : {
-        menu = <>
-          <AllInOneEditor.Simplified
-            {...this.editMenuProps}
-          />
-        </>;
-        break;
+        return <AllInOneEditor.Simplified
+          {...this.editMenuProps}
+          headerContent = {header}
+        />;
       }
       case Tab.FORMAT : {
+
         menu = <BasePairsEditor.Component
           rnaComplexProps = {this.rnaComplexProps}
           approveBasePairs = {function(basePairs : Array<BasePairsEditor.BasePair>) {

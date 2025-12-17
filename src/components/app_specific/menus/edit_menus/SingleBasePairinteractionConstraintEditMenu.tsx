@@ -15,7 +15,8 @@ export namespace SingleBasePairInteractionConstraintEditMenu {
     initialColor : Color,
     initialFont : Font,
     boundingNucleotides : Array<Nucleotide.ExternalProps>,
-    allNucleotides : Array<Nucleotide.ExternalProps>
+    allNucleotides : Array<Nucleotide.ExternalProps>,
+    headerContent? : React.ReactNode
   };
 
   export function Component(props : Props) {
@@ -24,7 +25,8 @@ export namespace SingleBasePairInteractionConstraintEditMenu {
       initialFont,
       onUpdatePositions,
       boundingNucleotides,
-      allNucleotides
+      allNucleotides,
+      headerContent
     } = props;
     // Begin context data.
     const interactionConstraintOptions = useContext(Context.App.InteractionConstraintOptions);
@@ -68,6 +70,7 @@ export namespace SingleBasePairInteractionConstraintEditMenu {
         onUpdatePositions = {onUpdatePositions}
         boundingVector0 = {boundingNucleotides[0]}
         boundingVector1 = {boundingNucleotides[1]}
+        headerContent = {headerContent}
       />
       {/* <AppSpecificOrientationEditor.Simplified
         {...props}

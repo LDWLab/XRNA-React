@@ -159,6 +159,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
   private readonly formattedUpperBoundingNucleotideIndex : number;
   private readonly lowerBoundingNucleotideIndex : number;
   private readonly upperBoundingNucleotideIndex : number;
+  private readonly nucleotideCount : number;
 
   constructor(
     rnaComplexProps : RnaComplexProps,
@@ -417,14 +418,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
         }
       };
     }
-    this.partialMenuHeader = <>
-      {toBeDragged.length} nucleotides in the range ({lowerBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex}, {upperBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex})
-      <br/>
-      In RNA molecule "{rnaMoleculeName}"
-      <br/>
-      In RNA complex "{singularRnaComplexProps.name}"
-      <br/>
-    </>;
+    this.partialMenuHeader = <></>;
     const boundingNucleotidePositionDelta = subtract(
       upperBoundingNucleotidePosition,
       lowerBoundingNucleotidePosition
@@ -581,6 +575,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     }
     this.formattedLowerBoundingNucleotideIndex = lowerBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
     this.formattedUpperBoundingNucleotideIndex = upperBoundingNucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
+    this.nucleotideCount = toBeDragged.length;
   }
 
   public override drag() {
@@ -598,13 +593,6 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
     const singularRnaComplexProps = this.rnaComplexProps[rnaComplexIndex];
     const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
     const formattedNucleotideIndex = nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex;
-    const header = <>
-      <b>
-        {tab} single-stranded region:
-      </b>
-      <br/>
-      {this.partialMenuHeader}
-    </>;
     switch (tab) {
       case Tab.EDIT : {
         let singleColorFlag = true;
@@ -627,22 +615,33 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
             singleFontFlag = false;
           }
         }
-        return <>
-          {header}
-          <RnaSingleStrandInteractionConstraintEditMenu.Component
-            initialColor = {singleColorFlag ? candidateSingleColor : BLACK}
-            initialFont = {singleFontFlag ? candidateSingleFont : Font.DEFAULT}
-            updateSingleStrandPositions = {this.updateSingleStrandPositions}
-            updateSingleStrandColors = {this.updateSingleStrandColors}
-            updateSingleStrandFonts = {this.updateSingleStrandFonts}
-            getDisplacementAlongNormal = {this.getDisplacementAlongNormal}
-            getOrientation = {this.getOrientation}
-          />
-        </>;
+        return <RnaSingleStrandInteractionConstraintEditMenu.Component
+          initialColor = {singleColorFlag ? candidateSingleColor : BLACK}
+          initialFont = {singleFontFlag ? candidateSingleFont : Font.DEFAULT}
+          updateSingleStrandPositions = {this.updateSingleStrandPositions}
+          updateSingleStrandColors = {this.updateSingleStrandColors}
+          updateSingleStrandFonts = {this.updateSingleStrandFonts}
+          getDisplacementAlongNormal = {this.getDisplacementAlongNormal}
+          getOrientation = {this.getOrientation}
+          nucleotideCount = {this.nucleotideCount}
+          formattedLowerBoundingNucleotideIndex = {formattedLowerBoundingNucleotideIndex}
+          formattedUpperBoundingNucleotideIndex = {formattedUpperBoundingNucleotideIndex}
+          rnaMoleculeName = {rnaMoleculeName}
+          rnaComplexName = {singularRnaComplexProps.name}
+        />;
       }
       case Tab.FORMAT : {
         return <>
-          {header}
+          <b>
+            {tab} single-stranded region:
+          </b>
+          <br/>
+          {this.nucleotideCount} nucleotides in the range ({formattedLowerBoundingNucleotideIndex}, {formattedUpperBoundingNucleotideIndex})
+          <br/>
+          In RNA molecule "{rnaMoleculeName}"
+          <br/>
+          In RNA complex "{singularRnaComplexProps.name}"
+          <br/>
           <BasePairsEditor.Component
             rnaComplexProps = {this.rnaComplexProps}
             initialBasePairs = {[
@@ -689,7 +688,16 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
       }
       case Tab.ANNOTATE : {
         return <>
-          {header}
+          <b>
+            {tab} single-stranded region:
+          </b>
+          <br/>
+          {this.nucleotideCount} nucleotides in the range ({formattedLowerBoundingNucleotideIndex}, {formattedUpperBoundingNucleotideIndex})
+          <br/>
+          In RNA molecule "{rnaMoleculeName}"
+          <br/>
+          In RNA complex "{singularRnaComplexProps.name}"
+          <br/>
           <NucleotideRegionsAnnotateMenu.Component
             regions = {{
               [rnaComplexIndex] : {

@@ -1,432 +1,205 @@
 import { useContext, useEffect, useState } from "react";
-import Color, { BLACK, ColorFormat, DEFAULT_ALPHA, DEFAULT_COLOR_FORMAT, colorFormats, fromHexadecimal, toHexadecimal } from "../../../data_structures/Color";
+import Color, { BLACK, DEFAULT_ALPHA } from "../../../data_structures/Color";
 import Wheel from '@uiw/react-color-wheel';
-import { rgbaToHsva, hsvaToRgba } from '@uiw/color-convert';
 import ShadeSlider from '@uiw/react-color-shade-slider';
-import { Collapsible } from "../Collapsible";
+import { rgbaToHsva, hsvaToRgba } from '@uiw/color-convert';
 import { Context } from "../../../context/Context";
 
 export namespace ColorEditor {
-  enum EditMode {
-    RGBA = "RGBA",
-    Hexadecimal = "Hexadecimal",
-    ColorWheel = "Color wheel",
-  }
-
-  const editModes = Object.values(EditMode);
-
   export type Props = {
     setColorHelper : (color : Color) => void,
     color? : Color,
-    children? : React.ReactNode
+    children? : React.ReactNode,
+    title?: string
   };
 
-  export function Component(props : Props) {
-    let {
+  // Convert RGB to hex string
+  function rgbToHex(r: number, g: number, b: number): string {
+    const toHex = (n: number) => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0').toUpperCase();
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  // Parse hex to RGB
+  function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const match = /^#?([a-fA-F0-9]{6})$/.exec(hex);
+    if (!match) return null;
+    return {
+      r: parseInt(match[1].substring(0, 2), 16),
+      g: parseInt(match[1].substring(2, 4), 16),
+      b: parseInt(match[1].substring(4, 6), 16)
+    };
+  }
+
+  // Inline color picker content
+  export function Inline(props : Props) {
+    const {
       setColorHelper : _setColorHelper,
       color,
       children
     } = props;
-    // Begin state data.
-    const [
-      editMode,
-      setEditMode
-    ] = useState(EditMode.ColorWheel);
-    const [
-      red,
-      setRed
-    ] = useState(0);
-    const [
-      green,
-      setGreen
-    ] = useState(0);
-    const [
-      blue,
-      setBlue
-    ] = useState(0);
-    const [
-      alpha,
-      setAlpha
-    ] = useState(0);
-    const [
-      hexadecimalEncoding,
-      setHexadecimalEncoding
-    ] = useState(DEFAULT_COLOR_FORMAT);
-    const [
-      hexadecimal,
-      setHexadecimal
-    ] = useState("");
-    const [
-      hsva,
-      setHsva
-    ] = useState({
-      h : 0,
-      s : 0,
-      v : 100,
-      a : 0
-    });
-    const [
-      pushedColorStateFlag,
-      setPushedColorStateFlag
-    ] = useState(false);
-    // Begin state-update helper functions.
-    function setHexadecimalHelper(
-      red : number,
-      green : number,
-      blue : number,
-      alpha : number,
-      colorFormat : ColorFormat
-    ) {
-      setHexadecimal(
-        toHexadecimal(
-          {
-            red,
-            green,
-            blue,
-            alpha
-          },
-          colorFormat,
-          true
-        )
-      );
-    }
-    function updateColorWheelHelper(
-      red : number,
-      green : number,
-      blue : number,
-      alpha : number,
-    ) {
-      setHsva(rgbaToHsva({
-        r : red,
-        g : green,
-        b : blue,
-        a : alpha
-      }));
-    }
-    function setColorHelper(newColor : Color) {
+    const [red, setRed] = useState(color?.red ?? 0);
+    const [green, setGreen] = useState(color?.green ?? 0);
+    const [blue, setBlue] = useState(color?.blue ?? 0);
+    const [alpha, setAlpha] = useState(color?.alpha ?? 255);
+    const [hexadecimal, setHexadecimal] = useState(() => rgbToHex(color?.red ?? 0, color?.green ?? 0, color?.blue ?? 0));
+    const [hsva, setHsva] = useState(() => rgbaToHsva({ r: color?.red ?? 0, g: color?.green ?? 0, b: color?.blue ?? 0, a: (color?.alpha ?? 255) / 255 }));
+    const [showPicker, setShowPicker] = useState(false);
+    const [pushedColorStateFlag, setPushedColorStateFlag] = useState(false);
+
+    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
+
+    function updateColor(r: number, g: number, b: number, a: number) {
+      setRed(r);
+      setGreen(g);
+      setBlue(b);
+      setAlpha(a);
+      setHexadecimal(rgbToHex(r, g, b));
+      setHsva(rgbaToHsva({ r, g, b, a: a / 255 }));
       if (!pushedColorStateFlag) {
         pushToUndoStack();
+        setPushedColorStateFlag(true);
       }
-      _setColorHelper(newColor);
-      setPushedColorStateFlag(true);
+      _setColorHelper({ red: r, green: g, blue: b, alpha: a });
     }
-    const pushToUndoStack = useContext(Context.App.PushToUndoStack);
-    // Begin effects.
-    useEffect(
-      function() {
-        let localColor = color ?? BLACK;
-        setRed(localColor.red);
-        setGreen(localColor.green);
-        setBlue(localColor.blue);
-        const _alpha = localColor.alpha ?? DEFAULT_ALPHA;
-        setAlpha(_alpha);
-        setHexadecimalHelper(
-          localColor.red,
-          localColor.green,
-          localColor.blue,
-          _alpha,
-          hexadecimalEncoding
-        );
-        updateColorWheelHelper(
-          localColor.red,
-          localColor.green,
-          localColor.blue,
-          _alpha
-        );
-      },
-      [color]
-    );
-    // Begin render data.
-    const modeRenderData : Record<EditMode, JSX.Element> = {
-      [EditMode.RGBA] : <>
-        <label>
-          Red:&nbsp;
-          <input
-            type = "number"
-            min = {0}
-            max = {255}
-            step = {1}
-            value = {red}
-            onChange = {function(e) {
-              const newRed = Number.parseInt(e.target.value);
-              setRed(newRed);
-              setColorHelper({
-                red : newRed,
-                green,
-                blue,
-                alpha
-              });
-              setHexadecimalHelper(
-                newRed,
-                green,
-                blue,
-                alpha,
-                hexadecimalEncoding
-              );
-              updateColorWheelHelper(
-                newRed,
-                green,
-                blue,
-                alpha
-              );
-            }}
-          />
-        </label>
-        <br/>
-        <label>
-          Green:&nbsp;
-          <input
-            type = "number"
-            min = {0}
-            max = {255}
-            step = {1}
-            value = {green}
-            onChange = {function(e) {
-              const newGreen = Number.parseInt(e.target.value);
-              setGreen(newGreen);
-              setColorHelper({
-                red,
-                green : newGreen,
-                blue,
-                alpha
-              });
-              setHexadecimalHelper(
-                red,
-                newGreen,
-                blue,
-                alpha,
-                hexadecimalEncoding
-              );
-              updateColorWheelHelper(
-                red,
-                newGreen,
-                blue,
-                alpha
-              );
-            }}
-          />
-        </label>
-        <br/>
-        <label>
-          Blue:&nbsp;
-          <input
-            type = "number"
-            min = {0}
-            max = {255}
-            step = {1}
-            value = {blue}
-            onChange = {function(e) {
-              const newBlue = Number.parseInt(e.target.value);
-              setBlue(newBlue);
-              setColorHelper({
-                red,
-                green,
-                blue : newBlue,
-                alpha
-              });
-              setHexadecimalHelper(
-                red,
-                green,
-                newBlue,
-                alpha,
-                hexadecimalEncoding
-              );
-              updateColorWheelHelper(
-                red,
-                green,
-                newBlue,
-                alpha
-              );
-            }}
-          />
-        </label>
-        <br/>
-        <label>
-          Alpha:&nbsp;
-          <input
-            type = "number"
-            min = {0}
-            max = {255}
-            step = {1}
-            value = {alpha}
-            onChange = {function(e) {
-              const newAlpha = Number.parseInt(e.target.value);
-              setAlpha(newAlpha);
-              setColorHelper({
-                red,
-                green,
-                blue,
-                alpha : newAlpha
-              });
-              setHexadecimalHelper(
-                red,
-                green,
-                blue,
-                newAlpha,
-                hexadecimalEncoding
-              );
-              updateColorWheelHelper(
-                red,
-                green,
-                blue,
-                newAlpha
-              );
-            }}
-          />
-        </label>
-      </>,
-      [EditMode.Hexadecimal] : <>
-        <label>
-          Encoding:&nbsp;
-          <select
-            value = {hexadecimalEncoding}
-            onChange = {function(e) {
-              const newHexadecimalEncoding = e.target.value as ColorFormat;
-              setHexadecimalEncoding(newHexadecimalEncoding);
-              const newColor = fromHexadecimal(
-                hexadecimal,
-                newHexadecimalEncoding
-              );
-              setRed(newColor.red);
-              setGreen(newColor.green);
-              setBlue(newColor.blue);
-              setAlpha(newColor.alpha ?? DEFAULT_ALPHA);
-              setColorHelper(newColor);
-              updateColorWheelHelper(
-                newColor.red,
-                newColor.green,
-                newColor.blue,
-                newColor.alpha ?? DEFAULT_ALPHA
-              );
-            }}
-          >
-            {colorFormats.map(function(colorFormatI : ColorFormat) {
-              return <option
-                key = {colorFormatI}
-              >
-                {colorFormatI}
-              </option>;
-            })}
-          </select>
-        </label>
-        <br/>
-        <label>
-          Hexadecimal:&nbsp;
-          <input
-            type = "text"
-            value = {hexadecimal}
-            onChange = {function(e) {
-              const newHexadecimal = e.target.value;
-              setHexadecimal(newHexadecimal);
-              const newColor = fromHexadecimal(newHexadecimal, hexadecimalEncoding);
-              setRed(newColor.red);
-              setGreen(newColor.green);
-              setBlue(newColor.blue);
-              setAlpha(newColor.alpha ?? DEFAULT_ALPHA);
-              setColorHelper(newColor);
-              updateColorWheelHelper(
-                newColor.red,
-                newColor.green,
-                newColor.blue,
-                newColor.alpha ?? DEFAULT_ALPHA
-              );
-            }}
-          />
-        </label>
-      </>,
-      [EditMode.ColorWheel] : <>
-        <ShadeSlider
-          hsva = {hsva}
-          onChange = {function(newShade) {
-            const newHsva = {
-              ...hsva,
-              v : newShade.v
-            };
-            setHsva(newHsva);
-            const newRgba = hsvaToRgba(newHsva);
-            const newColor = {
-              red : newRgba.r,
-              green : newRgba.g,
-              blue : newRgba.b,
-              alpha
-            };
-            setColorHelper(newColor);
-            setRed(newColor.red);
-            setGreen(newColor.green);
-            setBlue(newColor.blue);
-            setAlpha(newColor.alpha);
-            setHexadecimalHelper(
-              newColor.red,
-              newColor.green,
-              newColor.blue,
-              newColor.alpha,
-              hexadecimalEncoding
-            );
-          }}
-          width = "100%"
-        />
-        <br/>
-        <Wheel
-          color = {hsva}
-          onChange = {function(color) {
-            setHsva({
-              ...hsva,
-              ...color.hsva
-            });
-            const newColor = {
-              red : color.rgba.r,
-              green : color.rgba.g,
-              blue : color.rgba.b,
-              alpha
-            };
-            setColorHelper(newColor);
-            setRed(newColor.red);
-            setGreen(newColor.green);
-            setBlue(newColor.blue);
-            setAlpha(newColor.alpha);
-            setHexadecimalHelper(
-              newColor.red,
-              newColor.green,
-              newColor.blue,
-              newColor.alpha,
-              hexadecimalEncoding
-            );
-          }}
-        />
-      </>
-    };
-    return <>
-      <Collapsible.Component
-        title = "Color"
-      >
+
+    function handleMouseUp() {
+      setPushedColorStateFlag(false);
+    }
+
+    useEffect(function() {
+      const localColor = color ?? BLACK;
+      setRed(localColor.red);
+      setGreen(localColor.green);
+      setBlue(localColor.blue);
+      setAlpha(localColor.alpha ?? DEFAULT_ALPHA);
+      setHexadecimal(rgbToHex(localColor.red, localColor.green, localColor.blue));
+      setHsva(rgbaToHsva({ r: localColor.red, g: localColor.green, b: localColor.blue, a: (localColor.alpha ?? DEFAULT_ALPHA) / 255 }));
+    }, [color]);
+
+    const sliderStyle = { width: 60, height: 4, cursor: "pointer" };
+    const numInputStyle = { width: 36, textAlign: "center" as const, fontSize: 10, padding: "2px 4px", border: "1px solid #ddd", borderRadius: 3 };
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {children}
-        Edit mode:&nbsp;
-        <select
-          value = {editMode}
-          onChange = {function(e) {
-            const newEditMode = e.target.value;
-            setEditMode(newEditMode as EditMode);
-          }}
-        >
-          {editModes.map(function(editModeI : EditMode) {
-            return <option
-              key = {editModeI}
-            >
-              {editModeI}
-            </option>;
-          })}
-        </select>
-        {editModes.map(function(editModeI : EditMode) {
-          return <div
-            key = {editModeI}
-            style = {{
-              display : editMode === editModeI ? "block" : "none"
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <div
+            onClick={() => setShowPicker(!showPicker)}
+            style={{
+              width: 48, height: 48, borderRadius: 8,
+              backgroundColor: `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`,
+              border: "2px solid #ccc", flexShrink: 0, cursor: "pointer",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
             }}
-          >
-            {modeRenderData[editModeI]}
-          </div>;
-        })}
-      </Collapsible.Component>
-    </>;
+            title="Click for color wheel"
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {/* Red */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ width: 14, fontSize: 10, fontWeight: 600, color: "#e53935" }}>R</span>
+              <input type="range" min={0} max={255} value={red}
+                onChange={(e) => updateColor(parseInt(e.target.value), green, blue, alpha)}
+                onMouseUp={handleMouseUp}
+                style={{ ...sliderStyle, accentColor: "#e53935" }}
+              />
+              <input type="number" min={0} max={255} value={red}
+                onChange={(e) => updateColor(parseInt(e.target.value) || 0, green, blue, alpha)}
+                style={numInputStyle}
+              />
+            </div>
+            {/* Green */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ width: 14, fontSize: 10, fontWeight: 600, color: "#43a047" }}>G</span>
+              <input type="range" min={0} max={255} value={green}
+                onChange={(e) => updateColor(red, parseInt(e.target.value), blue, alpha)}
+                onMouseUp={handleMouseUp}
+                style={{ ...sliderStyle, accentColor: "#43a047" }}
+              />
+              <input type="number" min={0} max={255} value={green}
+                onChange={(e) => updateColor(red, parseInt(e.target.value) || 0, blue, alpha)}
+                style={numInputStyle}
+              />
+            </div>
+            {/* Blue */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ width: 14, fontSize: 10, fontWeight: 600, color: "#1e88e5" }}>B</span>
+              <input type="range" min={0} max={255} value={blue}
+                onChange={(e) => updateColor(red, green, parseInt(e.target.value), alpha)}
+                onMouseUp={handleMouseUp}
+                style={{ ...sliderStyle, accentColor: "#1e88e5" }}
+              />
+              <input type="number" min={0} max={255} value={blue}
+                onChange={(e) => updateColor(red, green, parseInt(e.target.value) || 0, alpha)}
+                style={numInputStyle}
+              />
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 10, color: "#666" }}>#</span>
+              <input
+                type="text"
+                value={hexadecimal.replace('#', '')}
+                onChange={(e) => {
+                  const newHex = '#' + e.target.value;
+                  setHexadecimal(newHex);
+                  const rgb = hexToRgb(newHex);
+                  if (rgb) updateColor(rgb.r, rgb.g, rgb.b, alpha);
+                }}
+                style={{ width: 52, fontFamily: "monospace", fontSize: 10, padding: "2px 4px", border: "1px solid #ddd", borderRadius: 3 }}
+              />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 10, color: "#666" }}>A</span>
+              <input
+                type="number"
+                min={0}
+                max={255}
+                value={alpha}
+                onChange={(e) => updateColor(red, green, blue, parseInt(e.target.value) || 0)}
+                style={{ width: 52, textAlign: "center", fontSize: 10, padding: "2px 4px", border: "1px solid #ddd", borderRadius: 3 }}
+              />
+            </div>
+          </div>
+        </div>
+        {showPicker && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, border: "1px solid #e0e0e0", borderRadius: 8, backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <Wheel
+                color={hsva}
+                onChange={(wheelColor) => {
+                  const newHsva = { ...hsva, ...wheelColor.hsva };
+                  setHsva(newHsva);
+                  updateColor(wheelColor.rgba.r, wheelColor.rgba.g, wheelColor.rgba.b, alpha);
+                }}
+                width={140}
+                height={140}
+              />
+            </div>
+            <ShadeSlider
+              hsva={hsva}
+              onChange={(newShade) => {
+                const newHsva = { ...hsva, v: newShade.v };
+                setHsva(newHsva);
+                const rgba = hsvaToRgba(newHsva);
+                updateColor(rgba.r, rgba.g, rgba.b, alpha);
+              }}
+              style={{ width: "100%", borderRadius: 4 }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Component with section header (no collapsible)
+  export function Component(props : Props) {
+    const { title = "Color" } = props;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#555", marginBottom: 2 }}>{title}</div>
+        <Inline {...props} />
+      </div>
+    );
   }
 }

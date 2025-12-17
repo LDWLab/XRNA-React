@@ -2,7 +2,6 @@ import { useContext, useMemo } from "react";
 import { OrientationEditor } from "../../generic/editors/OrientationEditor";
 import { Context } from "../../../context/Context";
 import { Setting } from "../../../ui/Setting";
-import { Collapsible } from "../../generic/Collapsible";
 import { Nucleotide } from "../Nucleotide";
 import { LabelLine } from "../LabelLine";
 
@@ -59,16 +58,15 @@ export namespace AppSpecificOrientationEditor {
       ]
     );
     return <>
-      <Collapsible.Component
-        title = "Positions"
-      >
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#555", marginBottom: 2 }}>Position</div>
         <OrientationEditor.Component
           {...props}
           useDegreesFlag = {useDegreesFlag}
           relativePositions = {relativePositions}
           onUpdatePositions = {onUpdatePositions}
         />
-      </Collapsible.Component>
+      </div>
     </>;
   }
 
@@ -124,16 +122,15 @@ export namespace AppSpecificOrientationEditor {
       ]
     );
     return <>
-      <Collapsible.Component
-        title = "Positions"
-      >
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#555", marginBottom: 2 }}>Position</div>
         <OrientationEditor.Simplified
           {...props}
           useDegreesFlag = {useDegreesFlag}
           relativePositions = {relativePositions}
           onUpdatePositions = {onUpdatePositions}
         />
-      </Collapsible.Component>
-    </>
+      </div>
+    </>;
   }
 }

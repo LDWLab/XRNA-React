@@ -435,12 +435,10 @@ export class RnaStackedHelixInteractionConstraint extends AbstractInteractionCon
     </>;
     switch (tab) {
       case Tab.EDIT : {
-        return <>
-          {header}
-          <AllInOneEditor.Simplified
-            {...this.editMenuProps}
-          />
-        </>;
+        return <AllInOneEditor.Simplified
+          {...this.editMenuProps}
+          headerContent = {header}
+        />;
       }
       case Tab.FORMAT : {
         return <>

@@ -118,7 +118,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
           }}
         />
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div
             style={{
               width: '6px',
@@ -128,17 +128,33 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
               boxShadow: theme.shadows.sm,
             }}
           />
-          <span
+          <div
             style={{
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-              textTransform: 'uppercase',
-              color: theme.colors.text,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
             }}
           >
-            Properties
-          </span>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: 700,
+                letterSpacing: '0.5px',
+                textTransform: 'uppercase',
+                color: theme.colors.text,
+              }}
+            >
+              Properties
+            </span>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              Edit options for the selected element
+            </span>
+          </div>
         </div>
         <button
           onClick={onClose}
@@ -173,7 +189,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '0' }}>
+      <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
         {content ? (
           <div style={{
             background: theme.colors.backgroundSecondary,
@@ -212,15 +228,27 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
             {/* Content - Scrollable within drawer */}
             <div style={{
               flex: 1,
-              padding: '16px',
+              padding: '16px 20px 24px 20px',
               background: theme.colors.backgroundSecondary,
               fontSize: theme.typography.fontSize.md,
               lineHeight: '1.5',
               color: theme.colors.text,
               overflow: 'auto',
               scrollBehavior: 'smooth',
+              display: 'flex',
+              justifyContent: 'center',
             }}>
-              {content}
+              <div
+                style={{
+                  width: '100%',
+                  maxWidth: 560,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}
+              >
+                {content}
+              </div>
             </div>
           </div>
         ) : (

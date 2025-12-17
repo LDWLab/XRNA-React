@@ -1,6 +1,5 @@
 import { useContext, useState } from "react";
 import Font from "../../../data_structures/Font";
-import { Collapsible } from "../Collapsible";
 import { Context } from "../../../context/Context";
 
 export namespace FontEditor {
@@ -87,16 +86,58 @@ export namespace FontEditor {
       setPushedFontStateFlag(true);
     }
     const pushToUndoStack = useContext(Context.App.PushToUndoStack);
-    return <Collapsible.Component
-      title = "Font"
-    >
-      <label>
-        Family:&nbsp;
-        <br/>
-        &nbsp;&nbsp;Common Families:&nbsp;
+    return <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: "#555", marginBottom: 2 }}>Font</div>
+      <div
+        style = {{
+          display : "flex",
+          alignItems : "center",
+          gap : 8
+        }}
+      >
+        <span>Common Families:</span>
         <select
+          style = {{
+            flex : 1
+          }}
           value = {commonFamilies.some(commonFamily => commonFamily.value === family) ? family : ""}
           onChange = {e => {
+            const newFamily = e.target.value;
+            if (newFamily) {
+              setFont({
+                family : newFamily,
+                style,
+                weight,
+                size
+              });
+            }
+          }}
+        >
+          <option value = "">-</option>
+          {commonFamilies.map(({ value, label }) => <option
+            key = {value}
+            value = {value}
+          >
+            {label}
+          </option>)}
+        </select>
+      </div>
+
+      <div
+        style = {{
+          display : "flex",
+          alignItems : "center",
+          gap : 8
+        }}
+      >
+        <span>Custom Font:</span>
+        <input
+          type = "text"
+          style = {{
+            flex : 1
+          }}
+          value = {family}
+          onChange = {function(e) {
             const newFamily = e.target.value;
             setFont({
               family : newFamily,
@@ -105,79 +146,28 @@ export namespace FontEditor {
               size
             });
           }}
-        >
-          <option
-            value = ""
-            disabled = {true}
-            hidden = {false}
-          >
-            Pick One
-          </option>
-          {commonFamilies.map(({ value, label }) => <option
-            key = {value}
-            value = {value}
-          >
-            {label}
-          </option>)}
-        </select>
-        <br/>
-      </label>
-      &nbsp;&nbsp;Custom:&nbsp;
-      <input
-        type = "text"
-        value = {family}
-        onChange = {function(e) {
-          const newFamily = e.target.value;
-          setFont({
-            family : newFamily,
-            style,
-            weight,
-            size
-          });
+        />
+      </div>
+
+      <div
+        style = {{
+          display : "flex",
+          alignItems : "center",
+          gap : 8
         }}
-      />
-      <br/>
-      <label>
-        Style:&nbsp;
+      >
+        <span>Size:</span>
         <input
-          type = "text"
-          value = {style}
-          onChange = {function(e) {
-            const newStyle = e.target.value;
-            setFont({
-              family,
-              style : newStyle,
-              weight,
-              size
-            });
+          type = "number"
+          step = {0.5}
+          min = {1}
+          style = {{
+            width : 60
           }}
-        />
-      </label>
-      <br/>
-      <label>
-        Weight:&nbsp;
-        <input
-          type = "text"
-          value = {weight}
+          value = {size || "8.0"}
           onChange = {function(e) {
-            const newWeight = e.target.value;
-            setFont({
-              family,
-              style,
-              weight : newWeight,
-              size
-            });
-          }}
-        />
-      </label>
-      <br/>
-      <label>
-        Size:&nbsp;
-        <input
-          type = "text"
-          value = {size}
-          onChange = {function(e) {
-            const newSize = e.target.value;
+            const val = parseFloat(e.target.value);
+            const newSize = isNaN(val) || val < 1 ? "8.0" : val.toFixed(1);
             setFont({
               family,
               style,
@@ -186,7 +176,53 @@ export namespace FontEditor {
             });
           }}
         />
-      </label>
-    </Collapsible.Component>;
+        <span>Style:</span>
+        <select
+          style = {{
+            flex : 1
+          }}
+          value = {style}
+          onChange = {function(e) {
+            setFont({
+              family,
+              style : e.target.value,
+              weight,
+              size
+            });
+          }}
+        >
+          <option value = "normal">Normal</option>
+          <option value = "italic">Italic</option>
+          <option value = "oblique">Oblique</option>
+        </select>
+        <span>Weight:</span>
+        <select
+          style = {{
+            width : 80
+          }}
+          value = {weight}
+          onChange = {function(e) {
+            setFont({
+              family,
+              style,
+              weight : e.target.value,
+              size
+            });
+          }}
+        >
+          <option value = "normal">Normal</option>
+          <option value = "bold">Bold</option>
+          <option value = "100">100</option>
+          <option value = "200">200</option>
+          <option value = "300">300</option>
+          <option value = "400">400</option>
+          <option value = "500">500</option>
+          <option value = "600">600</option>
+          <option value = "700">700</option>
+          <option value = "800">800</option>
+          <option value = "900">900</option>
+        </select>
+      </div>
+    </div>;
   }
 }

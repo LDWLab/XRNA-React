@@ -1,11 +1,8 @@
-import { useContext, useEffect, useState } from "react";
-import Color, { BLACK, toCSS } from "../../../data_structures/Color";
-import Wheel from '@uiw/react-color-wheel';
-import { rgbaToHsva, hsvaToRgba } from '@uiw/color-convert';
-import ShadeSlider from '@uiw/react-color-shade-slider';
-import { Collapsible } from "../Collapsible";
+import { useContext } from "react";
+import Color, { BLACK } from "../../../data_structures/Color";
 import { Context } from "../../../context/Context";
 import { DEFAULT_STROKE_WIDTH } from "../../../utils/Constants";
+import { ColorEditor } from "./ColorEditor";
 
 export namespace PathEditor {
   export type PathStyle = {
@@ -19,7 +16,8 @@ export namespace PathEditor {
     setPathStyle: (style: PathStyle) => void;
   };
 
-  export function Component(props: Props) {
+  // Inline path editor (no Collapsible wrapper)
+  export function Inline(props: Props) {
     const {
       pathStyle,
       setPathStyle
@@ -30,182 +28,100 @@ export namespace PathEditor {
     const pathColor = pathStyle.pathColor ?? BLACK;
     const pathLineWidth = pathStyle.pathLineWidth ?? DEFAULT_STROKE_WIDTH;
     const pathCurvature = pathStyle.pathCurvature ?? 0;
-    
-    // Color wheel state
-    const [hsva, setHsva] = useState({
-      h: 0,
-      s: 0,
-      v: 100,
-      a: 1
-    });
-    
-    const [pushedColorStateFlag, setPushedColorStateFlag] = useState(false);
-    
-    // Update hsva when pathColor changes
-    useEffect(() => {
-      const rgba = {
-        r: pathColor.red,
-        g: pathColor.green,
-        b: pathColor.blue,
-        a: pathColor.alpha ?? 1
-      };
-      setHsva(rgbaToHsva(rgba));
-      setPushedColorStateFlag(false);
-    }, [pathStyle.pathColor]);
-    
-    const setPathColorHelper = (newColor: Color) => {
-      if (!pushedColorStateFlag) {
-        pushToUndoStack();
-        setPushedColorStateFlag(true);
-      }
-      setPathStyle({
-        ...pathStyle,
-        pathColor: newColor
-      });
-    };
 
     return (
-      <Collapsible.Component
-        title="Path"
-        initialCollapsedFlag={false}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {/* Path Color - Color Wheel */}
-          <div>
-            <label style={{ 
-              display: "block", 
-              marginBottom: "8px",
-              fontSize: "13px",
-              fontWeight: "500"
-            }}>
-              Path Color
-            </label>
-            <ShadeSlider
-              hsva={hsva}
-              onChange={(newShade) => {
-                const newHsva = {
-                  ...hsva,
-                  v: newShade.v
-                };
-                setHsva(newHsva);
-                const newRgba = hsvaToRgba(newHsva);
-                const newColor = {
-                  red: newRgba.r,
-                  green: newRgba.g,
-                  blue: newRgba.b,
-                  alpha: pathColor.alpha
-                };
-                setPathColorHelper(newColor);
-              }}
-              style={{ width: "100%", marginBottom: "8px" }}
-            />
-            <Wheel
-              color={hsva}
-              onChange={(color) => {
-                setHsva({
-                  ...hsva,
-                  ...color.hsva
-                });
-                const newColor = {
-                  red: color.rgba.r,
-                  green: color.rgba.g,
-                  blue: color.rgba.b,
-                  alpha: pathColor.alpha
-                };
-                setPathColorHelper(newColor);
-              }}
-            />
-          </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {/* Path Color */}
+        <ColorEditor.Inline
+          color={pathColor}
+          setColorHelper={(newColor) => {
+            setPathStyle({
+              ...pathStyle,
+              pathColor: newColor
+            });
+          }}
+        />
 
-          {/* Path Line Width */}
-          <div>
-            <label style={{ 
-              display: "block", 
-              marginBottom: "8px",
-              fontSize: "13px",
-              fontWeight: "500"
-            }}>
-              Line Width: {pathLineWidth.toFixed(1)}
-            </label>
-            <input
-              type="range"
-              min={0.5}
-              max={10}
-              step={0.5}
-              value={pathLineWidth}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                setPathStyle({
-                  ...pathStyle,
-                  pathLineWidth: value
-                });
-              }}
-              onMouseDown={() => pushToUndoStack()}
-              style={{
-                width: "100%",
-                height: "6px",
-                borderRadius: "3px",
-                outline: "none",
-                cursor: "pointer",
-              }}
-            />
-            <div style={{ 
-              display: "flex", 
-              justifyContent: "space-between", 
-              fontSize: "10px",
-              color: "#666",
-              marginTop: "4px"
-            }}>
-              <span>Thin (0.5)</span>
-              <span>Thick (10)</span>
+        {/* Line Width + Curvature in compact row */}
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          {/* Line Width */}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontSize: 10, color: "#666" }}>Width</span>
+              <input
+                type="range"
+                min={0.5}
+                max={10}
+                step={0.5}
+                value={pathLineWidth}
+                onChange={(e) => {
+                  setPathStyle({
+                    ...pathStyle,
+                    pathLineWidth: parseFloat(e.target.value)
+                  });
+                }}
+                onMouseDown={() => pushToUndoStack()}
+                style={{ width: 60, height: 4, cursor: "pointer" }}
+              />
+              <input
+                type="number"
+                min={0.5}
+                max={10}
+                step={0.5}
+                value={pathLineWidth}
+                onChange={(e) => {
+                  setPathStyle({
+                    ...pathStyle,
+                    pathLineWidth: parseFloat(e.target.value) || 1
+                  });
+                }}
+                style={{ 
+                  width: 36, 
+                  textAlign: "center", 
+                  fontSize: 10,
+                  padding: "2px 4px",
+                  border: "1px solid #ddd",
+                  borderRadius: 3
+                }}
+              />
             </div>
           </div>
 
-          {/* Path Curvature */}
-          <div>
-            <label style={{ 
-              display: "block", 
-              marginBottom: "8px",
-              fontSize: "13px",
-              fontWeight: "500"
-            }}>
-              Curvature: {pathCurvature === 0 ? 'Straight' : pathCurvature < 0.3 ? 'Slight' : pathCurvature < 0.7 ? 'Moderate' : 'High'}
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.05}
-              value={pathCurvature}
-              onChange={(e) => {
-                const value = parseFloat(e.target.value);
-                setPathStyle({
-                  ...pathStyle,
-                  pathCurvature: value
-                });
-              }}
-              onMouseDown={() => pushToUndoStack()}
-              style={{
-                width: "100%",
-                height: "6px",
-                borderRadius: "3px",
-                outline: "none",
-                cursor: "pointer",
-              }}
-            />
-            <div style={{ 
-              display: "flex", 
-              justifyContent: "space-between", 
-              fontSize: "10px",
-              color: "#666",
-              marginTop: "4px"
-            }}>
-              <span>Straight</span>
-              <span>Curvy</span>
+          {/* Curvature */}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+              <span style={{ fontSize: 10, color: "#666" }}>Curve</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.05}
+                value={pathCurvature}
+                onChange={(e) => {
+                  setPathStyle({
+                    ...pathStyle,
+                    pathCurvature: parseFloat(e.target.value)
+                  });
+                }}
+                onMouseDown={() => pushToUndoStack()}
+                style={{ width: 60, height: 4, cursor: "pointer" }}
+              />
+              <span style={{ fontSize: 10, color: "#888", width: 45 }}>
+                {pathCurvature === 0 ? 'Straight' : pathCurvature < 0.5 ? 'Slight' : 'Curvy'}
+              </span>
             </div>
           </div>
         </div>
-      </Collapsible.Component>
+      </div>
+    );
+  }
+
+  export function Component(props: Props) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#555", marginBottom: 2 }}>Path</div>
+        <Inline {...props} />
+      </div>
     );
   }
 }
