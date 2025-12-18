@@ -46,6 +46,16 @@ const preferenceGroups: { id: string; title: string; settings: Setting[] }[] = [
     ],
   },
   {
+    id: 'connectors',
+    title: 'Sequence Connectors',
+    settings: [
+      Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER,
+      Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD,
+      Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE,
+      Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX,
+    ],
+  },
+  {
     id: 'rendering-appearance',
     title: 'Rendering & Appearance',
     settings: [

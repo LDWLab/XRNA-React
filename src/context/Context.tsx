@@ -182,6 +182,39 @@ export namespace Context {
     }
   }
 
+  export namespace SequenceConnector {
+    export type BodySvgRepresentation = SVGPathElement;
+    export type BreakpointSvgRepresentation = SVGElement;
+
+    export namespace Body {
+      export type OnMouseDownHelper = (
+        e : React.MouseEvent<BodySvgRepresentation>,
+        fullKeys : FullKeys,
+        updateRenderData : () => void
+      ) => void;
+      export const OnMouseDownHelper = createContext<OnMouseDownHelper>(function(
+        e : React.MouseEvent<BodySvgRepresentation>,
+        fullKeys : FullKeys,
+        updateRenderData : () => void
+      ) { /* Do nothing. */ });
+    }
+
+    export namespace Breakpoint {
+      export type OnMouseDownHelper = (
+        e : React.MouseEvent<BreakpointSvgRepresentation>,
+        fullKeys : FullKeys,
+        pointIndex : number,
+        updateRenderData : () => void
+      ) => void;
+      export const OnMouseDownHelper = createContext<OnMouseDownHelper>(function(
+        e : React.MouseEvent<BreakpointSvgRepresentation>,
+        fullKeys : FullKeys,
+        pointIndex : number,
+        updateRenderData : () => void
+      ) { /* Do nothing. */ });
+    }
+  }
+
   export namespace OrientationEditor {
     export const ResetDataTrigger = createContext(false);
   }

@@ -67,9 +67,41 @@ export namespace Nucleotide {
     labelLineProps? : LabelLine.ExternalProps,
     pathColor? : Color,
     pathLineWidth? : number,
-    pathCurvature? : number
+    pathCurvature? : number,
+    sequenceConnectorToNext? : SequenceConnector.Props
   };
   
+  export namespace SequenceConnector {
+    export type ArrowShape = 'triangle' | 'chevron' | 'line' | 'diamond';
+    
+    export type BreakpointGroup = {
+      id: string,
+      name: string,
+      indices: number[], // indices of breakpoints in this group
+      locked: boolean
+    };
+    
+    export type Props = {
+      breakpoints : Array<Vector2D>,
+      color? : Color,
+      strokeWidth? : number,
+      opacity? : number,
+      dashArray? : string,
+      curvature? : number,
+      showDirectionArrow? : boolean,
+      showBreakpoints? : boolean,
+      arrowColor? : Color,
+      arrowShape? : ArrowShape,
+      arrowPosition? : number, // 0-1, position along path (0.5 = middle)
+      arrowSize? : number,
+      lockedBreakpoints? : number[], // indices of individually locked breakpoints
+      breakpointGroups? : BreakpointGroup[], // groups for collective movement
+      targetMoleculeName? : string,
+      targetNucleotideIndex? : number,
+      targetComplexIndex? : number
+    };
+  }
+
   export type Props = ExternalProps & {
     nucleotideIndex : number
   };

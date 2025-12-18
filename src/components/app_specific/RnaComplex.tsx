@@ -5,6 +5,7 @@ import { Vector2D, add, distance, scaleUp } from "../../data_structures/Vector2D
 import Scaffolding from "../generic/Scaffolding";
 import BasePair, { getBasePairType } from "./BasePair";
 import { RnaMolecule } from "./RnaMolecule";
+import { SequenceConnector } from "./SequenceConnector";
 import { binarySearch, HandleQueryNotFound, median, sortedArraySplice } from "../../utils/Utils";
 import { SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
@@ -711,6 +712,38 @@ export namespace RnaComplex {
                   nucleotideKeysToRerender = {nucleotideKeysToRerenderPerRnaComplex[rnaMoleculeName] ?? []}
                 />
               </Context.RnaMolecule.Name.Provider>
+            })}
+            {/* Inter-molecule connectors */}
+            {flattenedRnaMoleculeProps.map(function([molName, molProps]) {
+              const connectors: JSX.Element[] = [];
+              for (const [ntIdxStr, ntProps] of Object.entries(molProps.nucleotideProps)) {
+                const ntIdx = Number(ntIdxStr);
+                const connector = ntProps.sequenceConnectorToNext;
+                if (!connector?.targetMoleculeName) continue;
+                
+                const targetMolProps = rnaMoleculeProps[connector.targetMoleculeName];
+                if (!targetMolProps) continue;
+                
+                const targetNtIdx = connector.targetNucleotideIndex ?? 0;
+                const targetNtProps = targetMolProps.nucleotideProps[targetNtIdx];
+                if (!targetNtProps) continue;
+                
+                connectors.push(
+                  <SequenceConnector.MemoizedComponent
+                    key={`${molName}-${ntIdx}-inter-mol-connector`}
+                    id={`${index}|${molName}|${ntIdx}|InterMolConnector`}
+                    start={{ x: ntProps.x, y: ntProps.y }}
+                    end={{ x: targetNtProps.x, y: targetNtProps.y }}
+                    fullKeys={{
+                      rnaComplexIndex: index,
+                      rnaMoleculeName: molName,
+                      nucleotideIndex: ntIdx
+                    }}
+                    {...connector}
+                  />
+                );
+              }
+              return connectors;
             })}
           </>
         </Context.RnaComplex.SingularRnaMoleculeFlag.Provider>

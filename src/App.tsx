@@ -10,7 +10,7 @@ import React, {
   useCallback
 } from "react";
 import { DEFAULT_TAB, Tab, tabs } from "./app_data/Tab";
-import { add, dotProduct, negate, normalize, orthogonalize, scaleDown, scaleUp, subtract, Vector2D } from "./data_structures/Vector2D";
+import { add, distance, dotProduct, negate, normalize, orthogonalize, scaleDown, scaleUp, subtract, Vector2D } from "./data_structures/Vector2D";
 import { useResizeDetector } from "react-resize-detector";
 import {
   compareBasePairKeys,
@@ -82,6 +82,7 @@ import {
 import { areEqual, BLACK } from "./data_structures/Color";
 import { RnaMolecule } from "./components/app_specific/RnaMolecule";
 import { LabelEditMenu } from "./components/app_specific/menus/edit_menus/LabelEditMenu";
+import { SequenceConnectorEditMenu } from "./components/app_specific/menus/edit_menus/SequenceConnectorEditMenu";
 import BasePair, { getBasePairType } from "./components/app_specific/BasePair";
 import { repositionNucleotidesForBasePairs } from "./utils/BasePairRepositioner";
 import {
@@ -1182,6 +1183,258 @@ export namespace App {
         }
       };
     }, []);
+    
+    // Sequence Connector handlers
+    const sequenceConnectorBodyOnMouseDownHelper = useMemo(function() {
+      return function(
+        e: React.MouseEvent<SVGPathElement>,
+        fullKeys: FullKeys,
+        updateRenderData: () => void
+      ) {
+        const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } = fullKeys;
+        
+        const singularNucleotideProps = (
+          rnaComplexPropsReference.current as RnaComplexProps
+        )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
+          nucleotideIndex
+        ];
+        const connector = singularNucleotideProps.sequenceConnectorToNext;
+        if (!connector) return;
+        
+        switch (e.button) {
+          case MouseButtonIndices.Left: {
+            // Ctrl+click to add a new breakpoint at click location
+            if (e.ctrlKey && tabReference.current === Tab.EDIT) {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              pushToUndoStack();
+              
+              // Transform screen coordinates to data space
+              const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
+              const viewportScale = viewportScaleReference.current as number;
+              const transformTranslate0 = transformTranslate0Reference.current!;
+              const transformTranslate1 = transformTranslate1Reference.current!;
+              
+              let transformedCoordinates = { x: e.clientX, y: e.clientY };
+              transformedCoordinates.x -= LEFT_PANEL_WIDTH;
+              transformedCoordinates = scaleDown(
+                transformedCoordinates,
+                sceneBoundsScaleMin * viewportScale
+              );
+              transformedCoordinates.y -= TOPBAR_HEIGHT;
+              transformedCoordinates.y = -transformedCoordinates.y;
+              transformedCoordinates = subtract(
+                transformedCoordinates,
+                add(transformTranslate0.asVector, transformTranslate1.asVector)
+              );
+              
+              // Get start and end points
+              const startNuc = singularNucleotideProps;
+              const nextNuc = (rnaComplexPropsReference.current as RnaComplexProps)
+                [rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[nucleotideIndex + 1];
+              
+              if (!nextNuc) return;
+              
+              const start = { x: startNuc.x, y: startNuc.y };
+              const end = { x: nextNuc.x, y: nextNuc.y };
+              const breakpoints = connector.breakpoints ?? [];
+              const allPoints = [start, ...breakpoints, end];
+              
+              // Find closest segment to insert breakpoint
+              let minDist = Infinity;
+              let insertIndex = 0;
+              
+              for (let i = 0; i < allPoints.length - 1; i++) {
+                const p1 = allPoints[i];
+                const p2 = allPoints[i + 1];
+                // Calculate distance from point to line segment
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const len2 = dx * dx + dy * dy;
+                let t = Math.max(0, Math.min(1, ((transformedCoordinates.x - p1.x) * dx + (transformedCoordinates.y - p1.y) * dy) / len2));
+                const projX = p1.x + t * dx;
+                const projY = p1.y + t * dy;
+                const dist = Math.sqrt((transformedCoordinates.x - projX) ** 2 + (transformedCoordinates.y - projY) ** 2);
+                if (dist < minDist) {
+                  minDist = dist;
+                  insertIndex = i;
+                }
+              }
+              
+              // Insert new breakpoint
+              if (!connector.breakpoints) {
+                connector.breakpoints = [];
+              }
+              connector.breakpoints.splice(insertIndex, 0, { x: transformedCoordinates.x, y: transformedCoordinates.y });
+              
+              updateRenderData();
+              setNucleotideKeysToRerender({
+                [rnaComplexIndex]: {
+                  [rnaMoleculeName]: [nucleotideIndex],
+                },
+              });
+            }
+            break;
+          }
+          case MouseButtonIndices.Right: {
+            // Open edit menu
+            setDrawerKind(DrawerKind.PROPERTIES);
+            setRightClickMenuContent(
+              <SequenceConnectorEditMenu
+                fullKeys={fullKeys}
+                connector={connector}
+                onUpdate={() => {
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex]: {
+                      [rnaMoleculeName]: [nucleotideIndex],
+                    },
+                  });
+                }}
+              />,
+              {}
+            );
+            break;
+          }
+        }
+      };
+    }, []);
+    
+    const sequenceConnectorBreakpointOnMouseDownHelper = useMemo(function() {
+      return function(
+        e: React.MouseEvent<SVGElement>,
+        fullKeys: FullKeys,
+        pointIndex: number,
+        updateRenderData: () => void
+      ) {
+        const { rnaComplexIndex, rnaMoleculeName, nucleotideIndex } = fullKeys;
+        
+        // Ctrl+click to delete breakpoint
+        if (e.ctrlKey && e.button === MouseButtonIndices.Left) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          pushToUndoStack();
+          const singularNucleotideProps = (
+            rnaComplexPropsReference.current as RnaComplexProps
+          )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
+            nucleotideIndex
+          ];
+          const connector = singularNucleotideProps.sequenceConnectorToNext;
+          if (connector?.breakpoints) {
+            connector.breakpoints.splice(pointIndex, 1);
+            updateRenderData();
+            setNucleotideKeysToRerender({
+              [rnaComplexIndex]: {
+                [rnaMoleculeName]: [nucleotideIndex],
+              },
+            });
+          }
+          return;
+        }
+        
+        const singularNucleotideProps = (
+          rnaComplexPropsReference.current as RnaComplexProps
+        )[rnaComplexIndex].rnaMoleculeProps[rnaMoleculeName].nucleotideProps[
+          nucleotideIndex
+        ];
+        const connector = singularNucleotideProps.sequenceConnectorToNext;
+        if (!connector?.breakpoints) return;
+        
+        // Check if breakpoint is locked
+        const isLocked = connector.lockedBreakpoints?.includes(pointIndex) ?? false;
+        
+        switch (e.button) {
+          case MouseButtonIndices.Left: {
+            let newDragListener = viewportDragListener;
+            if (tabReference.current === Tab.EDIT && !isLocked) {
+              const point = connector.breakpoints[pointIndex];
+              
+              // Check if breakpoint belongs to a group for collective movement
+              const group = connector.breakpointGroups?.find(g => g.indices.includes(pointIndex));
+              
+              if (group && !group.locked) {
+                // Group movement - move all breakpoints in group together
+                const groupPoints = group.indices.map(idx => ({
+                  idx,
+                  point: connector.breakpoints[idx],
+                  startX: connector.breakpoints[idx].x,
+                  startY: connector.breakpoints[idx].y
+                }));
+                const startX = point.x;
+                const startY = point.y;
+                
+                newDragListener = {
+                  initiateDrag() {
+                    return { x: startX, y: startY };
+                  },
+                  continueDrag(totalDrag) {
+                    const dx = totalDrag.x - startX;
+                    const dy = totalDrag.y - startY;
+                    // Move all points in group by the delta
+                    for (const gp of groupPoints) {
+                      gp.point.x = gp.startX + dx;
+                      gp.point.y = gp.startY + dy;
+                    }
+                    updateRenderData();
+                    setNucleotideKeysToRerender({
+                      [rnaComplexIndex]: {
+                        [rnaMoleculeName]: [nucleotideIndex],
+                      },
+                    });
+                  },
+                };
+              } else {
+                // Single point movement
+                newDragListener = {
+                  initiateDrag() {
+                    return { x: point.x, y: point.y };
+                  },
+                  continueDrag(totalDrag) {
+                    point.x = totalDrag.x;
+                    point.y = totalDrag.y;
+                    updateRenderData();
+                    setNucleotideKeysToRerender({
+                      [rnaComplexIndex]: {
+                        [rnaMoleculeName]: [nucleotideIndex],
+                      },
+                    });
+                  },
+                };
+              }
+            }
+            const setPerRnaMolecule = new Set<number>();
+            setPerRnaMolecule.add(nucleotideIndex);
+            setDragListener(newDragListener, {
+              [rnaComplexIndex]: {
+                [rnaMoleculeName]: setPerRnaMolecule,
+              },
+            });
+            break;
+          }
+          case MouseButtonIndices.Right: {
+            // Open edit menu
+            setDrawerKind(DrawerKind.PROPERTIES);
+            setRightClickMenuContent(
+              <SequenceConnectorEditMenu
+                fullKeys={fullKeys}
+                connector={connector}
+                onUpdate={() => {
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex]: {
+                      [rnaMoleculeName]: [nucleotideIndex],
+                    },
+                  });
+                }}
+              />,
+              {}
+            );
+            break;
+          }
+        }
+      };
+    }, []);
+    
     const nucleotideOnMouseDownRightClickHelper = useMemo(function () {
       return function (
         fullKeys: FullKeys,
@@ -2381,6 +2634,12 @@ export namespace App {
                       <Context.Label.Line.Endpoint.OnMouseDownHelper.Provider
                         value={labelLineEndpointOnMouseDownHelper}
                       >
+                        <Context.SequenceConnector.Body.OnMouseDownHelper.Provider
+                          value={sequenceConnectorBodyOnMouseDownHelper}
+                        >
+                          <Context.SequenceConnector.Breakpoint.OnMouseDownHelper.Provider
+                            value={sequenceConnectorBreakpointOnMouseDownHelper}
+                          >
                         <g
                           id={SVG_SCENE_GROUP_HTML_ID}
                           {...{
@@ -2434,6 +2693,8 @@ export namespace App {
                             );
                           })}
                         </g>
+                          </Context.SequenceConnector.Breakpoint.OnMouseDownHelper.Provider>
+                        </Context.SequenceConnector.Body.OnMouseDownHelper.Provider>
                       </Context.Label.Line.Endpoint.OnMouseDownHelper.Provider>
                     </Context.Label.Line.Body.OnMouseDownHelper.Provider>
                   </Context.Label.Content.OnMouseDownHelper.Provider>
@@ -2900,6 +3161,166 @@ export namespace App {
             dragListener.terminateDrag();
           }
           setDragListener(null, {});
+
+          // Auto-trigger sequence connectors check after drag
+          const sequenceConnectorAutoTrigger = settingsRecord[
+            Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER
+          ] as boolean;
+          
+          if (sequenceConnectorAutoTrigger) {
+            const distanceThresholdMultiplier = settingsRecord[Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] as number;
+            const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+            const keysToRerender: NucleotideKeysToRerender = {};
+            let hasChanges = false;
+
+            for (const [complexIndexStr, complex] of Object.entries(rnaComplexProps)) {
+              const complexIndex = Number.parseInt(complexIndexStr);
+              for (const [molName, molecule] of Object.entries(complex.rnaMoleculeProps)) {
+                const sortedIndices = Object.keys(molecule.nucleotideProps).map(Number).sort((a,b) => a-b);
+                let totalDist = 0;
+                let count = 0;
+                
+                // Calculate average distance between adjacent nucleotides
+                for(let i=0; i<sortedIndices.length-1; i++) {
+                  const idx1 = sortedIndices[i];
+                  const idx2 = sortedIndices[i+1];
+                  if (idx2 === idx1 + 1) {
+                    const n1 = molecule.nucleotideProps[idx1];
+                    const n2 = molecule.nucleotideProps[idx2];
+                    const dx = n2.x - n1.x;
+                    const dy = n2.y - n1.y;
+                    totalDist += Math.sqrt(dx*dx + dy*dy);
+                    count++;
+                  }
+                }
+
+                if (count === 0) continue;
+                
+                const avgDist = totalDist / count;
+                const threshold = avgDist * distanceThresholdMultiplier;
+
+                // Check for gaps that exceed threshold
+                for(let i=0; i<sortedIndices.length-1; i++) {
+                  const idx1 = sortedIndices[i];
+                  const idx2 = sortedIndices[i+1];
+                  
+                  if (idx2 !== idx1 + 1) continue;
+
+                  const n1 = molecule.nucleotideProps[idx1];
+                  const n2 = molecule.nucleotideProps[idx2];
+                  const dx = n2.x - n1.x;
+                  const dy = n2.y - n1.y;
+                  const d = Math.sqrt(dx*dx + dy*dy);
+
+                  if (d > threshold) {
+                    if (!n1.sequenceConnectorToNext) {
+                      n1.sequenceConnectorToNext = {
+                        breakpoints: []
+                      };
+                      
+                      if(!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
+                      if(!keysToRerender[complexIndex][molName]) keysToRerender[complexIndex][molName] = [];
+                      keysToRerender[complexIndex][molName].push(idx1);
+                      hasChanges = true;
+                    }
+                  } else {
+                    // Remove connector if distance is back to normal
+                    if (n1.sequenceConnectorToNext) {
+                      delete n1.sequenceConnectorToNext;
+                      
+                      if(!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
+                      if(!keysToRerender[complexIndex][molName]) keysToRerender[complexIndex][molName] = [];
+                      keysToRerender[complexIndex][molName].push(idx1);
+                      hasChanges = true;
+                    }
+                  }
+                }
+              }
+            }
+
+            // Inter-molecule connectors (between last nt of one molecule and first of another)
+            const interMoleculeEnabled = settingsRecord[Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] as boolean;
+            if (interMoleculeEnabled) {
+              for (const [complexIndexStr, complex] of Object.entries(rnaComplexProps)) {
+                const complexIndex = Number.parseInt(complexIndexStr);
+                const moleculeNames = Object.keys(complex.rnaMoleculeProps);
+                
+                // Calculate global average distance for this complex
+                let globalTotalDist = 0;
+                let globalCount = 0;
+                for (const molName of moleculeNames) {
+                  const molecule = complex.rnaMoleculeProps[molName];
+                  const sortedIndices = Object.keys(molecule.nucleotideProps).map(Number).sort((a,b) => a-b);
+                  for (let i = 0; i < sortedIndices.length - 1; i++) {
+                    const idx1 = sortedIndices[i];
+                    const idx2 = sortedIndices[i + 1];
+                    if (idx2 === idx1 + 1) {
+                      const n1 = molecule.nucleotideProps[idx1];
+                      const n2 = molecule.nucleotideProps[idx2];
+                      const dx = n2.x - n1.x;
+                      const dy = n2.y - n1.y;
+                      globalTotalDist += Math.sqrt(dx * dx + dy * dy);
+                      globalCount++;
+                    }
+                  }
+                }
+                
+                if (globalCount === 0) continue;
+                const globalAvgDist = globalTotalDist / globalCount;
+                const threshold = globalAvgDist * distanceThresholdMultiplier;
+                
+                // Check connections between molecules
+                for (let i = 0; i < moleculeNames.length - 1; i++) {
+                  const mol1Name = moleculeNames[i];
+                  const mol2Name = moleculeNames[i + 1];
+                  const mol1 = complex.rnaMoleculeProps[mol1Name];
+                  const mol2 = complex.rnaMoleculeProps[mol2Name];
+                  
+                  const mol1Indices = Object.keys(mol1.nucleotideProps).map(Number).sort((a,b) => a-b);
+                  const mol2Indices = Object.keys(mol2.nucleotideProps).map(Number).sort((a,b) => a-b);
+                  
+                  if (mol1Indices.length === 0 || mol2Indices.length === 0) continue;
+                  
+                  const lastIdx = mol1Indices[mol1Indices.length - 1];
+                  const firstIdx = mol2Indices[0];
+                  const lastNt = mol1.nucleotideProps[lastIdx];
+                  const firstNt = mol2.nucleotideProps[firstIdx];
+                  
+                  const dx = firstNt.x - lastNt.x;
+                  const dy = firstNt.y - lastNt.y;
+                  const d = Math.sqrt(dx * dx + dy * dy);
+                  
+                  // Store inter-molecule connector on the last nucleotide of mol1
+                  if (d > threshold) {
+                    if (!lastNt.sequenceConnectorToNext) {
+                      lastNt.sequenceConnectorToNext = {
+                        breakpoints: [],
+                        targetMoleculeName: mol2Name,
+                        targetNucleotideIndex: firstIdx,
+                      };
+                      if (!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
+                      if (!keysToRerender[complexIndex][mol1Name]) keysToRerender[complexIndex][mol1Name] = [];
+                      keysToRerender[complexIndex][mol1Name].push(lastIdx);
+                      hasChanges = true;
+                    }
+                  } else {
+                    // Remove inter-molecule connector if distance is back to normal
+                    if (lastNt.sequenceConnectorToNext?.targetMoleculeName) {
+                      delete lastNt.sequenceConnectorToNext;
+                      if (!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
+                      if (!keysToRerender[complexIndex][mol1Name]) keysToRerender[complexIndex][mol1Name] = [];
+                      keysToRerender[complexIndex][mol1Name].push(lastIdx);
+                      hasChanges = true;
+                    }
+                  }
+                }
+              }
+            }
+
+            if (hasChanges) {
+              setNucleotideKeysToRerender(keysToRerender);
+            }
+          }
         }
         const dataSpaceOriginOfDrag = dataSpaceOriginOfDragReference.current;
         const tab = tabReference.current as Tab;

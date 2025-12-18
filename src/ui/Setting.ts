@@ -20,6 +20,11 @@ export enum Setting {
   DISABLE_NAVIGATE_AWAY_PROMPT = "disable_navigate_away_prompt",
   TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED = "treat_non_canonical_base_pairs_as_unpaired",
   BASE_PAIR_RADIUS = "base_pair_radius",
+  // Connector settings
+  SEQUENCE_CONNECTOR_AUTO_TRIGGER = "sequence_connector_auto_trigger",
+  SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD = "sequence_connector_distance_threshold",
+  SEQUENCE_CONNECTOR_INTER_MOLECULE = "sequence_connector_inter_molecule",
+  SEQUENCE_CONNECTOR_INTER_COMPLEX = "sequence_connector_inter_complex",
   // Grid settings
   GRID_ENABLED = "grid_enabled",
   GRID_HORIZONTAL_LINES = "grid_horizontal_lines",
@@ -54,6 +59,11 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the navigate-away prompt",
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Treat non-canonical base pairs as unpaired (when editing and formatting)",
   [Setting.BASE_PAIR_RADIUS] : "Radius of base-pair circles",
+  // Connector settings
+  [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : "Auto-trigger sequence connectors",
+  [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : "Connector distance threshold (multiplier)",
+  [Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] : "Show inter-molecule connectors",
+  [Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX] : "Show inter-complex connectors",
   // Grid settings
   [Setting.GRID_ENABLED] : "Enable canvas grid",
   [Setting.GRID_HORIZONTAL_LINES] : "Show horizontal grid lines",
@@ -86,6 +96,11 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the prompt asking you to save your work, when you navigate away from this page",
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Disable editing and formatting of non-canonical base pairs.",
   [Setting.BASE_PAIR_RADIUS] : "Radius of base-pair circles (also affects dimensions of non-canonical base pairs)",
+  // Connector settings
+  [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : "Automatically show a connector line between sequential nucleotides when they are moved too far apart.",
+  [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : "The multiplier of the average nucleotide distance at which the sequence connector automatically appears (e.g., 3 means 3x average distance).",
+  [Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] : "Show connector lines between nucleotides that belong to different RNA molecules within the same complex.",
+  [Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX] : "Show connector lines between nucleotides that belong to different RNA complexes.",
   // Grid settings
   [Setting.GRID_ENABLED] : "Enable or disable the canvas grid system. When enabled, you can choose which grid types to display.",
   [Setting.GRID_HORIZONTAL_LINES] : "Display horizontal parallel lines across the canvas. These lines move with the viewport pan but maintain their spacing.",
@@ -118,6 +133,11 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "string"> 
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "boolean",
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "boolean",
   [Setting.BASE_PAIR_RADIUS] : "number",
+  // Connector settings
+  [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : "boolean",
+  [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : "number",
+  [Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] : "boolean",
+  [Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX] : "boolean",
   // Grid settings
   [Setting.GRID_ENABLED] : "boolean",
   [Setting.GRID_HORIZONTAL_LINES] : "boolean",
@@ -158,6 +178,11 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : false,
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : true,
   [Setting.BASE_PAIR_RADIUS] : Number.NaN,
+  // Connector settings
+  [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : true,
+  [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : 3,
+  [Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] : false,
+  [Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX] : false,
   // Grid settings
   [Setting.GRID_ENABLED] : false,
   [Setting.GRID_HORIZONTAL_LINES] : true,

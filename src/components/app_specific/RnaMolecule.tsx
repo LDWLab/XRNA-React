@@ -7,6 +7,7 @@ import Color, { BLACK, areEqual } from "../../data_structures/Color";
 import Font, { PartialFont, parseFontSize } from "../../data_structures/Font";
 import { Setting } from "../../ui/Setting";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
+import { SequenceConnector } from "./SequenceConnector";
 
 export namespace RnaMolecule {
   export type ExternalProps = {
@@ -94,7 +95,7 @@ export namespace RnaMolecule {
         });
         return flattenedNucleotideProps;
       },
-      [nucleotideProps]
+      [nucleotideProps, nucleotideKeysToRerender]
     );
     // Group consecutive frozen nucleotides and create unified outlines
     const frozenNucleotideOutlines = useMemo(
@@ -512,14 +513,33 @@ export namespace RnaMolecule {
         />;
       })()}
       {!displayContourLineFlag && <Context.RnaMolecule.FirstNucleotideIndex.Provider
-        value = {firstNucleotideIndex}
-        // value = {flattenedNucleotideProps.length === 0 ? NaN : flattenedNucleotideProps[0].scaffoldingKey}
+        value={firstNucleotideIndex}
       >
         {flattenedNucleotideProps.map(function(finalizedProps) {
           return createElement(
             Nucleotide.MemoizedComponent,
             finalizedProps
           );
+        })}
+        {flattenedNucleotideProps.map(function(singularNucleotideProps) {
+          const { sequenceConnectorToNext, nucleotideIndex } = singularNucleotideProps;
+          if (!sequenceConnectorToNext) return null;
+          
+          const nextNucleotideProps = nucleotideProps[nucleotideIndex + 1];
+          if (!nextNucleotideProps) return null;
+
+          return <SequenceConnector.MemoizedComponent
+            key={`${nucleotideIndex}-connector`}
+            id={`${rnaComplexIndex}|${name}|${nucleotideIndex}|SequenceConnector`}
+            start={{ x: singularNucleotideProps.x, y: singularNucleotideProps.y }}
+            end={{ x: nextNucleotideProps.x, y: nextNucleotideProps.y }}
+            fullKeys={{
+              rnaComplexIndex,
+              rnaMoleculeName: name,
+              nucleotideIndex
+            }}
+            {...sequenceConnectorToNext}
+          />;
         })}
       </Context.RnaMolecule.FirstNucleotideIndex.Provider>}
       {/* Render unified outlines for consecutive frozen nucleotides */}

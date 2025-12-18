@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import Color, { BLACK, DEFAULT_ALPHA } from "../../../data_structures/Color";
 import Wheel from '@uiw/react-color-wheel';
 import ShadeSlider from '@uiw/react-color-shade-slider';
@@ -45,6 +45,8 @@ export namespace ColorEditor {
     const [hsva, setHsva] = useState(() => rgbaToHsva({ r: color?.red ?? 0, g: color?.green ?? 0, b: color?.blue ?? 0, a: (color?.alpha ?? 255) / 255 }));
     const [showPicker, setShowPicker] = useState(false);
     const [pushedColorStateFlag, setPushedColorStateFlag] = useState(false);
+    const isDraggingRef = useRef(false);
+    const localChangeRef = useRef(false);
 
     const pushToUndoStack = useContext(Context.App.PushToUndoStack);
 
@@ -59,14 +61,27 @@ export namespace ColorEditor {
         pushToUndoStack();
         setPushedColorStateFlag(true);
       }
+      // Mark that we made a local change to prevent useEffect from resetting state
+      localChangeRef.current = true;
       _setColorHelper({ red: r, green: g, blue: b, alpha: a });
     }
 
+    function handleMouseDown() {
+      isDraggingRef.current = true;
+    }
+
     function handleMouseUp() {
+      isDraggingRef.current = false;
       setPushedColorStateFlag(false);
     }
 
     useEffect(function() {
+      // Don't sync from prop while user is dragging a slider or just made a local change
+      if (isDraggingRef.current || localChangeRef.current) {
+        localChangeRef.current = false;
+        return;
+      }
+      
       const localColor = color ?? BLACK;
       setRed(localColor.red);
       setGreen(localColor.green);
@@ -79,64 +94,27 @@ export namespace ColorEditor {
     const sliderStyle = { width: 60, height: 4, cursor: "pointer" };
     const numInputStyle = { width: 36, textAlign: "center" as const, fontSize: 10, padding: "2px 4px", border: "1px solid #ddd", borderRadius: 3 };
 
+    const bgColor = `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`;
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {children}
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <div
-            onClick={() => setShowPicker(!showPicker)}
-            style={{
-              width: 48, height: 48, borderRadius: 8,
-              backgroundColor: `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`,
-              border: "2px solid #ccc", flexShrink: 0, cursor: "pointer",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-            }}
-            title="Click for color wheel"
-          />
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {/* Red */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 14, fontSize: 10, fontWeight: 600, color: "#e53935" }}>R</span>
-              <input type="range" min={0} max={255} value={red}
-                onChange={(e) => updateColor(parseInt(e.target.value), green, blue, alpha)}
-                onMouseUp={handleMouseUp}
-                style={{ ...sliderStyle, accentColor: "#e53935" }}
-              />
-              <input type="number" min={0} max={255} value={red}
-                onChange={(e) => updateColor(parseInt(e.target.value) || 0, green, blue, alpha)}
-                style={numInputStyle}
-              />
-            </div>
-            {/* Green */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 14, fontSize: 10, fontWeight: 600, color: "#43a047" }}>G</span>
-              <input type="range" min={0} max={255} value={green}
-                onChange={(e) => updateColor(red, parseInt(e.target.value), blue, alpha)}
-                onMouseUp={handleMouseUp}
-                style={{ ...sliderStyle, accentColor: "#43a047" }}
-              />
-              <input type="number" min={0} max={255} value={green}
-                onChange={(e) => updateColor(red, parseInt(e.target.value) || 0, blue, alpha)}
-                style={numInputStyle}
-              />
-            </div>
-            {/* Blue */}
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 14, fontSize: 10, fontWeight: 600, color: "#1e88e5" }}>B</span>
-              <input type="range" min={0} max={255} value={blue}
-                onChange={(e) => updateColor(red, green, parseInt(e.target.value), alpha)}
-                onMouseUp={handleMouseUp}
-                style={{ ...sliderStyle, accentColor: "#1e88e5" }}
-              />
-              <input type="number" min={0} max={255} value={blue}
-                onChange={(e) => updateColor(red, green, parseInt(e.target.value) || 0, alpha)}
-                style={numInputStyle}
-              />
-            </div>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: 10, color: "#666" }}>#</span>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+          {/* Color preview with hex below */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+            <div
+              onClick={() => setShowPicker(!showPicker)}
+              style={{
+                width: 48, height: 48, borderRadius: 6,
+                backgroundColor: bgColor,
+                border: "1px solid #ccc", cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              }}
+              title="Click for color wheel"
+            />
+            {/* Hex below preview */}
+            <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <span style={{ fontSize: 9, color: "#666" }}>#</span>
               <input
                 type="text"
                 value={hexadecimal.replace('#', '')}
@@ -146,21 +124,74 @@ export namespace ColorEditor {
                   const rgb = hexToRgb(newHex);
                   if (rgb) updateColor(rgb.r, rgb.g, rgb.b, alpha);
                 }}
-                style={{ width: 52, fontFamily: "monospace", fontSize: 10, padding: "2px 4px", border: "1px solid #ddd", borderRadius: 3 }}
-              />
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ fontSize: 10, color: "#666" }}>A</span>
-              <input
-                type="number"
-                min={0}
-                max={255}
-                value={alpha}
-                onChange={(e) => updateColor(red, green, blue, parseInt(e.target.value) || 0)}
-                style={{ width: 52, textAlign: "center", fontSize: 10, padding: "2px 4px", border: "1px solid #ddd", borderRadius: 3 }}
+                style={{ width: 50, fontFamily: "monospace", fontSize: 10, padding: "3px 4px", border: "1px solid #ddd", borderRadius: 3, textAlign: "center" }}
               />
             </div>
           </div>
+          {/* RGB sliders */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
+            {/* Red */}
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+              <span style={{ width: 12, fontSize: 9, fontWeight: 600, color: "#e53935" }}>R</span>
+              <input type="range" min={0} max={255} value={red}
+                onChange={(e) => updateColor(parseInt(e.target.value), green, blue, alpha)}
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                style={{ ...sliderStyle, accentColor: "#e53935", flex: 1 }}
+              />
+              <input type="number" min={0} max={255} value={red}
+                onChange={(e) => updateColor(parseInt(e.target.value) || 0, green, blue, alpha)}
+                style={numInputStyle}
+              />
+            </div>
+            {/* Green */}
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+              <span style={{ width: 12, fontSize: 9, fontWeight: 600, color: "#43a047" }}>G</span>
+              <input type="range" min={0} max={255} value={green}
+                onChange={(e) => updateColor(red, parseInt(e.target.value), blue, alpha)}
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                style={{ ...sliderStyle, accentColor: "#43a047", flex: 1 }}
+              />
+              <input type="number" min={0} max={255} value={green}
+                onChange={(e) => updateColor(red, parseInt(e.target.value) || 0, blue, alpha)}
+                style={numInputStyle}
+              />
+            </div>
+            {/* Blue */}
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+              <span style={{ width: 12, fontSize: 9, fontWeight: 600, color: "#1e88e5" }}>B</span>
+              <input type="range" min={0} max={255} value={blue}
+                onChange={(e) => updateColor(red, green, parseInt(e.target.value), alpha)}
+                onMouseDown={handleMouseDown}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                style={{ ...sliderStyle, accentColor: "#1e88e5", flex: 1 }}
+              />
+              <input type="number" min={0} max={255} value={blue}
+                onChange={(e) => updateColor(red, green, parseInt(e.target.value) || 0, alpha)}
+                style={numInputStyle}
+              />
+            </div>
+          </div>
+        </div>
+        {/* Alpha slider - full width below */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "#666", minWidth: 40 }}>Alpha</span>
+          <input
+            type="range"
+            min={0}
+            max={255}
+            value={alpha}
+            onChange={(e) => updateColor(red, green, blue, parseInt(e.target.value))}
+            onMouseDown={handleMouseDown}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ flex: 1, height: 6, cursor: "pointer", accentColor: "#666" }}
+          />
+          <span style={{ fontSize: 10, color: "#888", minWidth: 32, textAlign: "right" }}>{Math.round(alpha / 255 * 100)}%</span>
         </div>
         {showPicker && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, border: "1px solid #e0e0e0", borderRadius: 8, backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
