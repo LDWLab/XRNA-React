@@ -287,7 +287,30 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 /* -------------------------------------------
-   Provider (unchanged logic)
+   Cookie helpers
+--------------------------------------------*/
+const THEME_COOKIE_NAME = 'exornata_dark_mode';
+const COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 year in seconds
+
+function getThemeFromCookie(): boolean | null {
+  if (typeof document === 'undefined') return null;
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === THEME_COOKIE_NAME) {
+      return value === 'true';
+    }
+  }
+  return null;
+}
+
+function setThemeCookie(isDark: boolean): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${THEME_COOKIE_NAME}=${isDark}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+}
+
+/* -------------------------------------------
+   Provider
 --------------------------------------------*/
 interface ThemeProviderProps {
   children: ReactNode;
@@ -300,18 +323,30 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   settingsRecord,
   updateSettings,
 }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Initialize from cookie first, then fall back to false
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const cookieValue = getThemeFromCookie();
+    return cookieValue ?? false;
+  });
   const isDarkModeReference = React.useRef(isDarkMode);
   isDarkModeReference.current = isDarkMode;
   const updateSettingsReference = React.useRef(updateSettings);
   updateSettingsReference.current = updateSettings;
 
-  // Initialize from settings or OS preference
+  // Initialize from cookie, then settings, then OS preference
   useEffect(() => {
+    // Cookie takes highest priority (user explicitly set preference)
+    const cookieValue = getThemeFromCookie();
+    if (cookieValue !== null) {
+      setIsDarkMode(cookieValue);
+      return;
+    }
+    // Then check settings record
     if (settingsRecord && settingsRecord[Setting.DARK_MODE] !== undefined) {
       setIsDarkMode(!!settingsRecord[Setting.DARK_MODE]);
       return;
     }
+    // Fall back to OS preference
     if (typeof window !== 'undefined' && window.matchMedia) {
       const m = window.matchMedia('(prefers-color-scheme: dark)');
       setIsDarkMode(m.matches);
@@ -320,6 +355,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   // React to OS changes when user hasn't explicitly set a pref
   useEffect(() => {
+    // Don't react to OS changes if user has set a cookie preference
+    if (getThemeFromCookie() !== null) return;
     if (settingsRecord && settingsRecord[Setting.DARK_MODE] !== undefined) return;
     if (typeof window === 'undefined' || !window.matchMedia) return;
     const m = window.matchMedia('(prefers-color-scheme: dark)');
@@ -332,6 +369,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     (isDark : boolean) => {
       const updateSettings = updateSettingsReference.current;
       setIsDarkMode(isDark);
+      setThemeCookie(isDark); // Persist to cookie
       if (updateSettings) updateSettings({ [Setting.DARK_MODE]: isDark });
     },
     []

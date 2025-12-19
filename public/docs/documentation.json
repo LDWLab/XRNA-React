@@ -725,6 +725,148 @@
       ]
     },
     {
+      "id": "sequence-connectors",
+      "title": "Sequence Connectors",
+      "summary": "Visual links between distant nucleotides indicating sequence continuity.",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "Sequence connectors are visual lines that automatically appear when adjacent nucleotides in the sequence are positioned far apart on the canvas. They indicate that despite the visual gap, the nucleotides are consecutive in the RNA sequence."
+        },
+        {
+          "type": "paragraph",
+          "text": "Connectors appear automatically when nucleotides exceed a distance threshold and disappear when brought closer together. Right-click on any connector to open its properties panel and customize its appearance."
+        }
+      ],
+      "subsections": [
+        {
+          "id": "connector-styling",
+          "title": "Connector Styling",
+          "summary": "Customize the appearance of sequence connectors.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Right-click on a sequence connector to open its properties panel. You can customize:"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "**Color**: Change the connector line color",
+                "**Width**: Adjust the stroke width of the line",
+                "**Pattern**: Choose between solid, dashed, dotted, or custom dash patterns",
+                "**Opacity**: Control the transparency of the connector",
+                "**Curvature**: Add curvature to create smooth curved connectors"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "connector-types",
+          "title": "Connector Types: Continuous vs ORF",
+          "summary": "Choose between continuous connectors or ORF-style connectors.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Sequence connectors come in two types, controlled by the **ORF** toggle in the Arrow section:"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "**Continuous (default)**: Standard connectors with customizable styling — you can set the color, width, pattern (solid, dashed, dotted), opacity, and curvature. Direction arrows appear at a single customizable position along the connector.",
+                "**ORF (Open Reading Frame)**: A connector that visually represents two separate line segments joined by a // symbol at the midpoint. The connector line breaks at the center, showing two forward-leaning slashes (/ /) with an empty gap between them. Both segments preserve the same styling as continuous connectors (color, width, dash pattern, opacity). Direction arrows work exactly as with continuous connectors — position is fully adjustable."
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "To switch between types, right-click on a connector and toggle the **ORF** checkbox in the Arrow section."
+            },
+            {
+              "type": "note",
+              "variant": "tip",
+              "text": "Use ORF connectors in publication figures to indicate that a connector spans a region where intervening sequence has been intentionally omitted from the visualization."
+            }
+          ]
+        },
+        {
+          "id": "connector-arrows",
+          "title": "Direction Arrows",
+          "summary": "Add directional indicators to show sequence flow.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Enable the **Direction Arrow** toggle to show arrows indicating the 5' to 3' direction of the sequence. Arrow options include:"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "**Shape**: Choose from triangle, chevron, diamond, or line styles",
+                "**Color**: Set a custom color or match the connector line color",
+                "**Position**: For continuous connectors, adjust where the arrow appears (0-100% along the path)",
+                "**Size**: Control the arrow size"
+              ]
+            },
+            {
+              "type": "note",
+              "variant": "info",
+              "text": "Arrow position works identically for both continuous and ORF connectors — drag the position slider to place the arrow anywhere along the path."
+            }
+          ]
+        },
+        {
+          "id": "connector-breakpoints",
+          "title": "Breakpoints",
+          "summary": "Add control points to route connectors around structures.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Breakpoints allow you to control the path of a connector by adding intermediate points:"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "**Add breakpoint**: Ctrl+click on the connector line to add a new control point",
+                "**Move breakpoint**: Drag any breakpoint to reposition it",
+                "**Delete breakpoint**: Ctrl+click on an existing breakpoint to remove it"
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "Use breakpoints to route connectors around other structural elements for cleaner, more readable diagrams."
+            }
+          ]
+        },
+        {
+          "id": "connector-delete",
+          "title": "Deleting Connectors",
+          "summary": "Permanently remove connectors that you don't want displayed.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "By default, sequence connectors automatically appear and disappear based on nucleotide positions. To permanently remove a connector:"
+            },
+            {
+              "type": "list",
+              "style": "ordered",
+              "items": [
+                "Right-click on the connector to open its properties panel",
+                "Click the **Delete** button in the Actions section",
+                "The connector will be removed and will not automatically reappear"
+              ]
+            },
+            {
+              "type": "note",
+              "variant": "info",
+              "text": "Deleted connectors are marked internally to prevent auto-recreation. This allows you to have full control over which connectors are displayed, even when nucleotides remain far apart."
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "json-schema",
       "title": "JSON Schema",
       "summary": "Encode complexes, molecules, nucleotides, labels, and base pairs for reproducible layouts.",

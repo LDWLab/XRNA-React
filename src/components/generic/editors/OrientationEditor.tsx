@@ -226,6 +226,7 @@ export namespace OrientationEditor {
     useEffect(
       function() {
         setFlipPositionsFlag(false);
+        setUpdatedPositionsFlag(false);
         setAngle(initialAngleNullCoalesced);
         setScale(initialScaleNullCoalesced);
         setCenterX(initialCenter.x);

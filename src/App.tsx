@@ -83,6 +83,8 @@ import { areEqual, BLACK } from "./data_structures/Color";
 import { RnaMolecule } from "./components/app_specific/RnaMolecule";
 import { LabelEditMenu } from "./components/app_specific/menus/edit_menus/LabelEditMenu";
 import { SequenceConnectorEditMenu } from "./components/app_specific/menus/edit_menus/SequenceConnectorEditMenu";
+import { TextAnnotationEditMenu } from "./components/app_specific/menus/edit_menus/TextAnnotationEditMenu";
+import { TextAnnotation } from "./components/app_specific/TextAnnotation";
 import BasePair, { getBasePairType } from "./components/app_specific/BasePair";
 import { repositionNucleotidesForBasePairs } from "./utils/BasePairRepositioner";
 import {
@@ -1291,6 +1293,16 @@ export namespace App {
                     },
                   });
                 }}
+                onDelete={() => {
+                  pushToUndoStack();
+                  connector.deleted = true;
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex]: {
+                      [rnaMoleculeName]: [nucleotideIndex],
+                    },
+                  });
+                  setDrawerKind(DrawerKind.NONE);
+                }}
               />,
               {}
             );
@@ -1425,6 +1437,82 @@ export namespace App {
                       [rnaMoleculeName]: [nucleotideIndex],
                     },
                   });
+                }}
+                onDelete={() => {
+                  pushToUndoStack();
+                  connector.deleted = true;
+                  setNucleotideKeysToRerender({
+                    [rnaComplexIndex]: {
+                      [rnaMoleculeName]: [nucleotideIndex],
+                    },
+                  });
+                  setDrawerKind(DrawerKind.NONE);
+                }}
+              />,
+              {}
+            );
+            break;
+          }
+        }
+      };
+    }, []);
+
+    // Text annotation handler
+    const textAnnotationOnMouseDownHelper = useMemo(function() {
+      return function(
+        e: React.MouseEvent,
+        rnaComplexIndex: number,
+        annotationId: string
+      ) {
+        const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+        const complex = rnaComplexProps[rnaComplexIndex];
+        if (!complex.textAnnotations?.[annotationId]) return;
+        
+        const annotation = complex.textAnnotations[annotationId];
+        
+        switch (e.button) {
+          case MouseButtonIndices.Left: {
+            // Ctrl+click to delete
+            if (e.ctrlKey && tabReference.current === Tab.ANNOTATE) {
+              e.preventDefault();
+              e.stopPropagation();
+              pushToUndoStack();
+              delete complex.textAnnotations[annotationId];
+              setNucleotideKeysToRerender({});
+              setRightClickMenuContent(<></>, {});
+              return;
+            }
+            
+            // Drag to move
+            if (tabReference.current === Tab.ANNOTATE) {
+              const newDragListener: DragListener = {
+                initiateDrag() {
+                  return { x: annotation.x, y: annotation.y };
+                },
+                continueDrag(totalDrag: Vector2D) {
+                  annotation.x = totalDrag.x;
+                  annotation.y = totalDrag.y;
+                  setNucleotideKeysToRerender({});
+                },
+              };
+              setDragListener(newDragListener, {});
+            }
+            break;
+          }
+          case MouseButtonIndices.Right: {
+            // Open edit menu
+            setDrawerKind(DrawerKind.PROPERTIES);
+            setRightClickMenuContent(
+              <TextAnnotationEditMenu
+                annotation={annotation}
+                onUpdate={() => setNucleotideKeysToRerender({})}
+                onDelete={() => {
+                  pushToUndoStack();
+                  if (complex.textAnnotations) {
+                    delete complex.textAnnotations[annotationId];
+                  }
+                  setNucleotideKeysToRerender({});
+                  setRightClickMenuContent(<></>, {});
                 }}
               />,
               {}
@@ -2214,11 +2302,13 @@ export namespace App {
           const rnaComplexProps =
             rnaComplexPropsReference.current as RnaComplexProps;
           const tab = tabReference.current!;
+          const settingsRecord = settingsRecordReference.current!;
           const { rnaComplexIndex, rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 } = fullKeys0;
           const { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 } = fullKeys1;
           pushToUndoStack();
           const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
           if (singularRnaComplexProps) {
+            let basePairType : BasePair.Type | undefined;
             const basePairs0 = singularRnaComplexProps.basePairs[rnaMoleculeName0];
             if (basePairs0 && nucleotideIndex0 in basePairs0) {
               const arr0 = basePairs0[nucleotideIndex0];
@@ -2226,6 +2316,7 @@ export namespace App {
                 (m) => m.rnaMoleculeName === rnaMoleculeName1 && m.nucleotideIndex === nucleotideIndex1
               );
               if (idx0 !== -1) {
+                basePairType = arr0[idx0]?.basePairType;
                 if (arr0.length === 1) {
                   delete basePairs0[nucleotideIndex0];
                 } else {
@@ -2257,6 +2348,19 @@ export namespace App {
                 delete: [{ keys0, keys1 }],
               },
             });
+            if (
+              basePairType === undefined ||
+              BasePair.isCanonicalType(basePairType) ||
+              !(settingsRecord[Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] as boolean)
+            ) {
+              removeBasePairFromGlobalHelices(
+                rnaComplexIndex,
+                rnaMoleculeName0,
+                rnaMoleculeName1,
+                nucleotideIndex0,
+                nucleotideIndex1
+              );
+            }
           }
           return;
         }
@@ -2548,8 +2652,9 @@ export namespace App {
         _setRightClickMenuContent(
           <div
             style={{
-              width: "auto",
-              display: "inline-block",
+              width: "100%",
+              display: "block",
+              boxSizing: "border-box",
             }}
           >
             {rightClickMenuContent}
@@ -2640,6 +2745,9 @@ export namespace App {
                           <Context.SequenceConnector.Breakpoint.OnMouseDownHelper.Provider
                             value={sequenceConnectorBreakpointOnMouseDownHelper}
                           >
+                            <Context.TextAnnotation.OnMouseDownHelper.Provider
+                              value={textAnnotationOnMouseDownHelper}
+                            >
                         <g
                           id={SVG_SCENE_GROUP_HTML_ID}
                           {...{
@@ -2693,6 +2801,7 @@ export namespace App {
                             );
                           })}
                         </g>
+                            </Context.TextAnnotation.OnMouseDownHelper.Provider>
                           </Context.SequenceConnector.Breakpoint.OnMouseDownHelper.Provider>
                         </Context.SequenceConnector.Body.OnMouseDownHelper.Provider>
                       </Context.Label.Line.Endpoint.OnMouseDownHelper.Provider>
@@ -3213,6 +3322,8 @@ export namespace App {
                   const d = Math.sqrt(dx*dx + dy*dy);
 
                   if (d > threshold) {
+                    // Only create connector if it doesn't exist
+                    // If it exists with deleted=true, it acts as a marker to prevent re-creation
                     if (!n1.sequenceConnectorToNext) {
                       n1.sequenceConnectorToNext = {
                         breakpoints: []
@@ -3224,8 +3335,9 @@ export namespace App {
                       hasChanges = true;
                     }
                   } else {
-                    // Remove connector if distance is back to normal
-                    if (n1.sequenceConnectorToNext) {
+                    // Remove connector if distance is back to normal, but only if not manually deleted
+                    // (deleted connectors stay as markers to prevent re-creation)
+                    if (n1.sequenceConnectorToNext && !n1.sequenceConnectorToNext.deleted) {
                       delete n1.sequenceConnectorToNext;
                       
                       if(!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
@@ -3292,6 +3404,7 @@ export namespace App {
                   
                   // Store inter-molecule connector on the last nucleotide of mol1
                   if (d > threshold) {
+                    // Only create if doesn't exist (deleted connectors act as markers)
                     if (!lastNt.sequenceConnectorToNext) {
                       lastNt.sequenceConnectorToNext = {
                         breakpoints: [],
@@ -3304,8 +3417,8 @@ export namespace App {
                       hasChanges = true;
                     }
                   } else {
-                    // Remove inter-molecule connector if distance is back to normal
-                    if (lastNt.sequenceConnectorToNext?.targetMoleculeName) {
+                    // Remove inter-molecule connector if distance is back to normal, but only if not manually deleted
+                    if (lastNt.sequenceConnectorToNext?.targetMoleculeName && !lastNt.sequenceConnectorToNext.deleted) {
                       delete lastNt.sequenceConnectorToNext;
                       if (!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
                       if (!keysToRerender[complexIndex][mol1Name]) keysToRerender[complexIndex][mol1Name] = [];
@@ -3631,6 +3744,75 @@ export namespace App {
               setXKeyPressedFlag(true);
               break;
             }
+            case "t" : {
+              if (event.altKey) {
+                event.preventDefault();
+                // Switch to Annotate tab
+                setTab(Tab.ANNOTATE);
+                
+                // Create text annotation in center of viewport
+                const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+                const complexIndices = Object.keys(rnaComplexProps).map(Number);
+                if (complexIndices.length === 0) return;
+                
+                const complexIndex = complexIndices[0];
+                const complex = rnaComplexProps[complexIndex];
+                
+                // Initialize textAnnotations if needed
+                if (!complex.textAnnotations) {
+                  complex.textAnnotations = {};
+                }
+                
+                // Calculate center of viewport in data space
+                const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
+                const viewportScale = viewportScaleReference.current as number;
+                const transformTranslate0 = transformTranslate0Reference.current!;
+                const transformTranslate1 = transformTranslate1Reference.current!;
+                
+                const viewportWidth = (parentDivResizeDetector.width ?? 0) - LEFT_PANEL_WIDTH;
+                const viewportHeight = (parentDivResizeDetector.height ?? 0) - TOPBAR_HEIGHT;
+                
+                let centerCoords = { x: viewportWidth / 2, y: viewportHeight / 2 };
+                centerCoords = scaleDown(centerCoords, sceneBoundsScaleMin * viewportScale);
+                centerCoords.y = -centerCoords.y;
+                centerCoords = subtract(
+                  centerCoords,
+                  add(transformTranslate0.asVector, transformTranslate1.asVector)
+                );
+                
+                // Create new annotation
+                const annotationId = `text-${Date.now()}`;
+                const newAnnotation: TextAnnotation.Props = {
+                  id: annotationId,
+                  content: "New Text",
+                  x: centerCoords.x,
+                  y: centerCoords.y,
+                };
+                
+                pushToUndoStack();
+                complex.textAnnotations[annotationId] = newAnnotation;
+                setNucleotideKeysToRerender({});
+                
+                // Open edit menu for the new annotation
+                setDrawerKind(DrawerKind.PROPERTIES);
+                setRightClickMenuContent(
+                  <TextAnnotationEditMenu
+                    annotation={newAnnotation}
+                    onUpdate={() => setNucleotideKeysToRerender({})}
+                    onDelete={() => {
+                      pushToUndoStack();
+                      if (complex.textAnnotations) {
+                        delete complex.textAnnotations[annotationId];
+                      }
+                      setNucleotideKeysToRerender({});
+                      setRightClickMenuContent(<></>, {});
+                    }}
+                  />,
+                  {}
+                );
+              }
+              break;
+            }
           }
         };
       },
@@ -3638,6 +3820,8 @@ export namespace App {
         uploadInputFileHtmlInputReference.current,
         downloadOutputFileHtmlButtonReference.current,
         downloadButtonErrorMessage,
+        parentDivResizeDetector.width,
+        parentDivResizeDetector.height,
       ]
     );
     const onKeyUp = useCallback(
@@ -4183,6 +4367,7 @@ export namespace App {
               undefined
             );
           }}
+          isEditMenu={drawerKind === DrawerKind.PROPERTIES}
           // title={rightDrawerTitle}
           // startWidth={drawerKind === 'about' ? 720 : drawerKind === 'settings' ? 560 : 480}
         >
@@ -4835,6 +5020,7 @@ export namespace App {
         setBasePairKeysToEdit = {setBasePairKeysToEdit}
         singularRnaComplexFlag = {singularRnaComplexFlag}
         averageNucleotideBoundingRectHeight = {averageNucleotideBoundingRectHeight}
+        resetOrientationDataTrigger = {resetOrientationDataTrigger}
       >
         <div
           id={PARENT_DIV_HTML_ID}
@@ -5254,6 +5440,73 @@ export namespace App {
             onContextMenu={function (event) {
               event.preventDefault();
             }}
+            onDoubleClick={function (event: React.MouseEvent<SVGSVGElement>) {
+              // Create text annotation on double-click in Annotate mode
+              if (tabReference.current !== Tab.ANNOTATE) return;
+              
+              // Transform screen coordinates to data space
+              const sceneBoundsScaleMin = sceneBoundsScaleMinReference.current as number;
+              const viewportScale = viewportScaleReference.current as number;
+              const transformTranslate0 = transformTranslate0Reference.current!;
+              const transformTranslate1 = transformTranslate1Reference.current!;
+              
+              let transformedCoordinates = { x: event.clientX, y: event.clientY };
+              transformedCoordinates.x -= LEFT_PANEL_WIDTH;
+              transformedCoordinates = scaleDown(
+                transformedCoordinates,
+                sceneBoundsScaleMin * viewportScale
+              );
+              transformedCoordinates.y -= TOPBAR_HEIGHT;
+              transformedCoordinates.y = -transformedCoordinates.y;
+              transformedCoordinates = subtract(
+                transformedCoordinates,
+                add(transformTranslate0.asVector, transformTranslate1.asVector)
+              );
+              
+              // Find first complex to add annotation to
+              const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+              const complexIndices = Object.keys(rnaComplexProps).map(Number);
+              if (complexIndices.length === 0) return;
+              
+              const complexIndex = complexIndices[0];
+              const complex = rnaComplexProps[complexIndex];
+              
+              // Initialize textAnnotations if needed
+              if (!complex.textAnnotations) {
+                complex.textAnnotations = {};
+              }
+              
+              // Create new annotation
+              const annotationId = `text-${Date.now()}`;
+              const newAnnotation: TextAnnotation.Props = {
+                id: annotationId,
+                content: "New Text",
+                x: transformedCoordinates.x,
+                y: transformedCoordinates.y,
+              };
+              
+              pushToUndoStack();
+              complex.textAnnotations[annotationId] = newAnnotation;
+              setNucleotideKeysToRerender({});
+              
+              // Open edit menu for the new annotation
+              setDrawerKind(DrawerKind.PROPERTIES);
+              setRightClickMenuContent(
+                <TextAnnotationEditMenu
+                  annotation={newAnnotation}
+                  onUpdate={() => setNucleotideKeysToRerender({})}
+                  onDelete={() => {
+                    pushToUndoStack();
+                    if (complex.textAnnotations) {
+                      delete complex.textAnnotations[annotationId];
+                    }
+                    setNucleotideKeysToRerender({});
+                    setRightClickMenuContent(<></>, {});
+                  }}
+                />,
+                {}
+              );
+            }}
             onWheel={onWheel}
             fill={canvasFill}
             stroke={
@@ -5321,7 +5574,7 @@ export namespace App {
               fill={
                 settingsRecord[Setting.CANVAS_COLOR] as string
                   ? settingsRecord[Setting.CANVAS_COLOR] as string
-                  : undefined
+                  : "var(--color-background)"
               }
               onMouseDown={function (e) {
                 switch (e.button) {

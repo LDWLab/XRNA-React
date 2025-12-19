@@ -215,6 +215,19 @@ export namespace Context {
     }
   }
 
+  export namespace TextAnnotation {
+    export type OnMouseDownHelper = (
+      e: React.MouseEvent,
+      rnaComplexIndex: number,
+      annotationId: string
+    ) => void;
+    export const OnMouseDownHelper = createContext<OnMouseDownHelper>(function(
+      e: React.MouseEvent,
+      rnaComplexIndex: number,
+      annotationId: string
+    ) { /* Do nothing. */ });
+  }
+
   export namespace OrientationEditor {
     export const ResetDataTrigger = createContext(false);
   }
@@ -244,7 +257,8 @@ export namespace Context {
     updateRnaMoleculeNameHelper : App.UpdateRnaMoleculeNameHelper,
     setBasePairKeysToEdit : BasePair.SetKeysToEdit,
     singularRnaComplexFlag : boolean,
-    averageNucleotideBoundingRectHeight : number
+    averageNucleotideBoundingRectHeight : number,
+    resetOrientationDataTrigger : boolean
   };
 
   export function Component(props : Props) {
@@ -269,7 +283,8 @@ export namespace Context {
       updateRnaMoleculeNameHelper,
       setBasePairKeysToEdit,
       singularRnaComplexFlag,
-      averageNucleotideBoundingRectHeight
+      averageNucleotideBoundingRectHeight,
+      resetOrientationDataTrigger
     } = props;
     return <ThemeProvider
       settingsRecord={settingsRecord}
@@ -297,7 +312,9 @@ export namespace Context {
                                       <BasePair.SetKeysToEdit.Provider value={setBasePairKeysToEdit}>
                                         <App.SingularRnaComplexFlag.Provider value = {singularRnaComplexFlag}>
                                           <Nucleotide.AverageBoundingRectHeight.Provider value = {averageNucleotideBoundingRectHeight}>
-                                            {children}
+                                            <OrientationEditor.ResetDataTrigger.Provider value = {resetOrientationDataTrigger}>
+                                              {children}
+                                            </OrientationEditor.ResetDataTrigger.Provider>
                                           </Nucleotide.AverageBoundingRectHeight.Provider>
                                         </App.SingularRnaComplexFlag.Provider>
                                       </BasePair.SetKeysToEdit.Provider>
@@ -321,4 +338,4 @@ export namespace Context {
   }
 
   export const MemoizedComponent = React.memo(Component);
-};
+}

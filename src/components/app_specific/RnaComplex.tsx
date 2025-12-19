@@ -6,6 +6,7 @@ import Scaffolding from "../generic/Scaffolding";
 import BasePair, { getBasePairType } from "./BasePair";
 import { RnaMolecule } from "./RnaMolecule";
 import { SequenceConnector } from "./SequenceConnector";
+import { TextAnnotation } from "./TextAnnotation";
 import { binarySearch, HandleQueryNotFound, median, sortedArraySplice } from "../../utils/Utils";
 import { SVG_PROPERTY_XRNA_COMPLEX_NAME, SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
@@ -221,7 +222,8 @@ export namespace RnaComplex {
   export type ExternalProps = {
     name : string,
     rnaMoleculeProps : Record<string, RnaMolecule.ExternalProps>,
-    basePairs : BasePairs
+    basePairs : BasePairs,
+    textAnnotations? : Record<string, TextAnnotation.Props>
   };
 
   export type Props = ExternalProps & {
@@ -744,6 +746,13 @@ export namespace RnaComplex {
                 );
               }
               return connectors;
+            })}
+            {/* Text annotations */}
+            {props.textAnnotations && Object.entries(props.textAnnotations).map(function([annotationId, annotationProps]) {
+              return <TextAnnotation.MemoizedComponent
+                key={annotationId}
+                {...annotationProps}
+              />;
             })}
           </>
         </Context.RnaComplex.SingularRnaMoleculeFlag.Provider>

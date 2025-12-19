@@ -5,12 +5,14 @@ export interface PropertiesDrawerProps {
   open: boolean;
   onClose: () => void;
   content?: JSX.Element;
+  isEditMenu?: boolean;
 }
 
 export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
   open,
   onClose,
   content,
+  isEditMenu = false,
 }) => {
   const { theme } = useTheme();
   const [width, setWidth] = useState(400);
@@ -144,7 +146,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
                 color: theme.colors.text,
               }}
             >
-              Properties
+              {isEditMenu ? 'Edit Panel' : 'Properties'}
             </span>
             <span
               style={{
@@ -152,7 +154,7 @@ export const PropertiesDrawer: React.FC<PropertiesDrawerProps> = ({
                 color: theme.colors.textSecondary,
               }}
             >
-              Edit options for the selected element
+              {isEditMenu ? 'Modify selected element properties' : 'Edit options for the selected element'}
             </span>
           </div>
         </div>

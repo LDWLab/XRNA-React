@@ -91,21 +91,46 @@ export namespace ColorEditor {
       setHsva(rgbaToHsva({ r: localColor.red, g: localColor.green, b: localColor.blue, a: (localColor.alpha ?? DEFAULT_ALPHA) / 255 }));
     }, [color]);
 
-    const sliderStyle = { width: 60, height: 4, cursor: "pointer" };
-    const numInputStyle = { width: 36, textAlign: "center" as const, fontSize: 10, padding: "2px 4px", border: "1px solid #ddd", borderRadius: 3 };
+    const sliderStyle = {
+      width: "var(--color-editor-slider-width, 60px)",
+      height: "var(--color-editor-slider-height, 4px)",
+      cursor: "pointer",
+    };
+    const numInputStyle = {
+      width: "var(--color-editor-number-width, 36px)",
+      textAlign: "center" as const,
+      fontSize: "var(--color-editor-number-font-size, 10px)",
+      padding: "var(--color-editor-number-padding, 2px 4px)",
+      border: "1px solid #ddd",
+      borderRadius: 3,
+    };
 
     const bgColor = `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`;
 
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--color-editor-stack-gap, 8px)",
+        }}
+      >
         {children}
-        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "var(--color-editor-row-gap, 10px)",
+            alignItems: "flex-start",
+          }}
+        >
           {/* Color preview with hex below */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
             <div
               onClick={() => setShowPicker(!showPicker)}
               style={{
-                width: 48, height: 48, borderRadius: 6,
+                width: "var(--color-editor-preview-size, 48px)",
+                height: "var(--color-editor-preview-size, 48px)",
+                borderRadius: "var(--color-editor-preview-radius, 6px)",
                 backgroundColor: bgColor,
                 border: "1px solid #ccc", cursor: "pointer",
                 boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
@@ -114,7 +139,7 @@ export namespace ColorEditor {
             />
             {/* Hex below preview */}
             <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-              <span style={{ fontSize: 9, color: "#666" }}>#</span>
+              <span style={{ fontSize: "var(--color-editor-hex-prefix-font-size, 9px)", color: "#666" }}>#</span>
               <input
                 type="text"
                 value={hexadecimal.replace('#', '')}
@@ -124,15 +149,39 @@ export namespace ColorEditor {
                   const rgb = hexToRgb(newHex);
                   if (rgb) updateColor(rgb.r, rgb.g, rgb.b, alpha);
                 }}
-                style={{ width: 50, fontFamily: "monospace", fontSize: 10, padding: "3px 4px", border: "1px solid #ddd", borderRadius: 3, textAlign: "center" }}
+                style={{
+                  width: "var(--color-editor-hex-width, 50px)",
+                  fontFamily: "monospace",
+                  fontSize: "var(--color-editor-hex-font-size, 10px)",
+                  padding: "var(--color-editor-hex-padding, 3px 4px)",
+                  border: "1px solid #ddd",
+                  borderRadius: 3,
+                  textAlign: "center",
+                }}
               />
             </div>
           </div>
           {/* RGB sliders */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--color-editor-channel-stack-gap, 3px)",
+              flex: 1,
+            }}
+          >
             {/* Red */}
-            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-              <span style={{ width: 12, fontSize: 9, fontWeight: 600, color: "#e53935" }}>R</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--color-editor-channel-row-gap, 3px)" }}>
+              <span
+                style={{
+                  width: "var(--color-editor-channel-label-width, 12px)",
+                  fontSize: "var(--color-editor-channel-label-font-size, 9px)",
+                  fontWeight: 600,
+                  color: "#e53935",
+                }}
+              >
+                R
+              </span>
               <input type="range" min={0} max={255} value={red}
                 onChange={(e) => updateColor(parseInt(e.target.value), green, blue, alpha)}
                 onMouseDown={handleMouseDown}
@@ -146,8 +195,17 @@ export namespace ColorEditor {
               />
             </div>
             {/* Green */}
-            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-              <span style={{ width: 12, fontSize: 9, fontWeight: 600, color: "#43a047" }}>G</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--color-editor-channel-row-gap, 3px)" }}>
+              <span
+                style={{
+                  width: "var(--color-editor-channel-label-width, 12px)",
+                  fontSize: "var(--color-editor-channel-label-font-size, 9px)",
+                  fontWeight: 600,
+                  color: "#43a047",
+                }}
+              >
+                G
+              </span>
               <input type="range" min={0} max={255} value={green}
                 onChange={(e) => updateColor(red, parseInt(e.target.value), blue, alpha)}
                 onMouseDown={handleMouseDown}
@@ -161,8 +219,17 @@ export namespace ColorEditor {
               />
             </div>
             {/* Blue */}
-            <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-              <span style={{ width: 12, fontSize: 9, fontWeight: 600, color: "#1e88e5" }}>B</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--color-editor-channel-row-gap, 3px)" }}>
+              <span
+                style={{
+                  width: "var(--color-editor-channel-label-width, 12px)",
+                  fontSize: "var(--color-editor-channel-label-font-size, 9px)",
+                  fontWeight: 600,
+                  color: "#1e88e5",
+                }}
+              >
+                B
+              </span>
               <input type="range" min={0} max={255} value={blue}
                 onChange={(e) => updateColor(red, green, parseInt(e.target.value), alpha)}
                 onMouseDown={handleMouseDown}
@@ -189,7 +256,7 @@ export namespace ColorEditor {
             onMouseDown={handleMouseDown}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-            style={{ flex: 1, height: 6, cursor: "pointer", accentColor: "#666" }}
+            style={{ flex: 1, height: "var(--color-editor-alpha-slider-height, 6px)", cursor: "pointer", accentColor: "#666" }}
           />
           <span style={{ fontSize: 10, color: "#888", minWidth: 32, textAlign: "right" }}>{Math.round(alpha / 255 * 100)}%</span>
         </div>

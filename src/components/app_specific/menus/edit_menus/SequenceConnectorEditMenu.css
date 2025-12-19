@@ -1,491 +1,392 @@
 .sequence-connector-edit-menu {
-  padding: 12px;
+  padding: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+
+  --color-editor-preview-size: 56px;
+  --color-editor-preview-radius: 8px;
+  --color-editor-stack-gap: 10px;
+  --color-editor-row-gap: 14px;
+  --color-editor-channel-stack-gap: 6px;
+  --color-editor-channel-row-gap: 6px;
+  --color-editor-channel-label-width: 14px;
+  --color-editor-channel-label-font-size: 10px;
+  --color-editor-slider-height: 6px;
+  --color-editor-number-width: 44px;
+  --color-editor-number-font-size: 11px;
+  --color-editor-number-padding: 3px 6px;
+  --color-editor-hex-width: 60px;
+  --color-editor-hex-font-size: 11px;
+  --color-editor-hex-padding: 4px 6px;
+  --color-editor-hex-prefix-font-size: 10px;
+  --color-editor-alpha-slider-height: 8px;
 }
 
+/* Header */
 .sequence-connector-edit-menu .menu-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: baseline;
   margin-bottom: 16px;
-  padding-bottom: 12px;
+}
+
+.sequence-connector-edit-menu .menu-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.sequence-connector-edit-menu .menu-subtitle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* Type Selector */
+.sequence-connector-edit-menu .type-selector {
+  display: flex;
+  margin-bottom: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sequence-connector-edit-menu .type-btn {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sequence-connector-edit-menu .type-btn:first-child {
+  border-right: 1px solid var(--color-border);
+}
+
+.sequence-connector-edit-menu .type-btn:hover {
+  background: var(--color-surface-secondary);
+}
+
+.sequence-connector-edit-menu .type-btn.active {
+  background: var(--color-text);
+  color: var(--color-surface);
+}
+
+/* Section */
+.sequence-connector-edit-menu .section {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--color-border);
 }
 
-.sequence-connector-edit-menu h3 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.sequence-connector-edit-menu .connector-badge {
-  background: var(--color-primary, #4a9eff);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.sequence-connector-edit-menu .section-group {
-  margin-bottom: 16px;
-  padding: 10px;
-  background: var(--color-surface-secondary, rgba(0,0,0,0.03));
-  border-radius: 6px;
-}
-
 .sequence-connector-edit-menu .section-title {
+  margin: 0 0 10px 0;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text);
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-.sequence-connector-edit-menu .edit-row {
+.sequence-connector-edit-menu .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
-.sequence-connector-edit-menu .edit-row:last-child {
+.sequence-connector-edit-menu .section-header .section-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sequence-connector-edit-menu .toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sequence-connector-edit-menu .toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.sequence-connector-edit-menu .toggle-track {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sequence-connector-edit-menu .toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.sequence-connector-edit-menu .toggle input:checked + .toggle-track {
+  background: var(--color-text);
+  border-color: var(--color-text);
+}
+
+.sequence-connector-edit-menu .toggle input:checked + .toggle-track::after {
+  transform: translateY(-50%) translateX(18px);
+  border-color: var(--color-text);
+}
+
+.sequence-connector-edit-menu .toggle input:focus-visible + .toggle-track {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.sequence-connector-edit-menu .section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 20px;
+}
+
+/* Row */
+.sequence-connector-edit-menu .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.sequence-connector-edit-menu .row:last-child {
   margin-bottom: 0;
 }
 
-.sequence-connector-edit-menu .edit-row > label {
+.sequence-connector-edit-menu .row > label {
   font-size: 12px;
   color: var(--color-text-secondary);
-  flex-shrink: 0;
   min-width: 60px;
+  flex-shrink: 0;
 }
 
-.sequence-connector-edit-menu .edit-row input[type="number"] {
-  width: 60px;
-  padding: 4px 6px;
+.sequence-connector-edit-menu .row > div {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Inputs */
+.sequence-connector-edit-menu .row > input[type="number"] {
+  flex: 1;
+  min-width: 60px;
+  padding: 6px 8px;
+  font-size: 12px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
   background: var(--color-surface);
   color: var(--color-text);
-  font-size: 12px;
   text-align: center;
 }
 
-.sequence-connector-edit-menu .edit-row select {
+.sequence-connector-edit-menu .row > select {
   flex: 1;
-  max-width: 120px;
-  padding: 4px 6px;
+  padding: 6px 8px;
+  font-size: 12px;
   border: 1px solid var(--color-border);
   border-radius: 4px;
   background: var(--color-surface);
   color: var(--color-text);
+  cursor: pointer;
+}
+
+.sequence-connector-edit-menu .row > input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-text);
+}
+
+/* Range Control */
+.sequence-connector-edit-menu .range-control {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sequence-connector-edit-menu .range-control input[type="range"] {
+  flex: 1;
+  height: 6px;
+  cursor: pointer;
+  accent-color: var(--color-text);
+}
+
+.sequence-connector-edit-menu .range-control span {
   font-size: 12px;
-  cursor: pointer;
-}
-
-.sequence-connector-edit-menu .input-with-unit {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.sequence-connector-edit-menu .input-with-unit .unit {
-  font-size: 11px;
   color: var(--color-text-secondary);
-}
-
-.sequence-connector-edit-menu .slider-row {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  gap: 8px;
-}
-
-.sequence-connector-edit-menu .slider-row input[type="range"] {
-  flex: 1;
-  height: 4px;
-  cursor: pointer;
-}
-
-.sequence-connector-edit-menu .slider-row .value {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  min-width: 45px;
+  min-width: 40px;
   text-align: right;
 }
 
-.sequence-connector-edit-menu .toggle-label {
+/* Count */
+.sequence-connector-edit-menu .count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-secondary);
+  font-size: 11px;
+  color: var(--color-text);
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Hint */
+.sequence-connector-edit-menu .hint {
+  margin: 8px 0 0 0;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+/* Row right side */
+.sequence-connector-edit-menu .row-right {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.sequence-connector-edit-menu .toggle-label input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  cursor: pointer;
-  accent-color: var(--color-primary, #4a9eff);
-}
-
-.sequence-connector-edit-menu .count-badge {
-  background: var(--color-primary, #4a9eff);
-  color: white;
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 500;
-  margin-left: 4px;
-}
-
-.sequence-connector-edit-menu .sub-options {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--color-border);
-}
-
-.sequence-connector-edit-menu .helper-text {
-  margin: 8px 0 0 0;
-  font-size: 10px;
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-}
-
-.sequence-connector-edit-menu .helper-text strong {
-  color: var(--color-text);
-}
-
-/* Side-by-side row pairs */
-.sequence-connector-edit-menu .edit-row-pair {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.sequence-connector-edit-menu .edit-row-pair .edit-row.compact {
-  flex: 1;
-  margin-bottom: 0;
-}
-
-.sequence-connector-edit-menu .edit-row.compact {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.sequence-connector-edit-menu .edit-row.compact > label {
-  min-width: auto;
-}
-
-/* Color with action button */
-.sequence-connector-edit-menu .color-with-action {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-
-.sequence-connector-edit-menu .use-line-color-btn {
-  padding: 4px 8px;
-  background: var(--color-surface-secondary, #f0f0f0);
-  color: var(--color-text-secondary, #666);
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  align-self: flex-start;
-}
-
-.sequence-connector-edit-menu .use-line-color-btn:hover {
-  background: var(--color-primary, #4a9eff);
-  color: white;
-  border-color: var(--color-primary, #4a9eff);
 }
 
 /* Breakpoint list */
+.sequence-connector-edit-menu .breakpoint-tools {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.sequence-connector-edit-menu .bp-tool-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.sequence-connector-edit-menu .bp-tool-btn:hover {
+  background: var(--color-surface-secondary);
+}
+
+.sequence-connector-edit-menu .bp-tool-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .sequence-connector-edit-menu .breakpoint-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 8px;
-  max-height: 150px;
+  margin: 8px 0;
+  max-height: 120px;
   overflow-y: auto;
 }
 
 .sequence-connector-edit-menu .breakpoint-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-border, #e0e0e0);
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 11px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sequence-connector-edit-menu .breakpoint-item:hover {
+  border-color: var(--color-text-secondary);
 }
 
 .sequence-connector-edit-menu .breakpoint-item.locked {
-  background: rgba(255, 193, 7, 0.1);
-  border-color: #ffc107;
+  background: rgba(251, 191, 36, 0.15);
+  border-color: rgba(251, 191, 36, 0.35);
 }
 
-.sequence-connector-edit-menu .breakpoint-item.grouped {
-  border-left: 3px solid var(--color-primary, #4a9eff);
-}
-
-.sequence-connector-edit-menu .bp-index {
+.sequence-connector-edit-menu .bp-num {
   font-weight: 600;
-  color: var(--color-text-secondary, #666);
-  min-width: 24px;
+  color: var(--color-text-secondary);
+  min-width: 16px;
 }
 
-.sequence-connector-edit-menu .bp-coords {
+.sequence-connector-edit-menu .bp-pos {
   flex: 1;
   font-family: monospace;
   font-size: 10px;
-  color: var(--color-text-secondary, #888);
+  color: var(--color-text-secondary);
 }
 
-.sequence-connector-edit-menu .bp-group-tag {
-  background: var(--color-primary, #4a9eff);
-  color: white;
-  padding: 1px 5px;
-  border-radius: 8px;
-  font-size: 9px;
-  font-weight: 500;
-}
-
-.sequence-connector-edit-menu .bp-lock-btn {
-  padding: 2px 4px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
-}
-
-.sequence-connector-edit-menu .bp-lock-btn:hover,
-.sequence-connector-edit-menu .bp-lock-btn.active {
-  opacity: 1;
-}
-
-/* Breakpoint actions */
-.sequence-connector-edit-menu .breakpoint-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.sequence-connector-edit-menu .action-btn {
-  padding: 4px 8px;
-  background: var(--color-surface, #fff);
-  color: var(--color-text, #333);
-  border: 1px solid var(--color-border, #ddd);
-  border-radius: 4px;
-  font-size: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.sequence-connector-edit-menu .action-btn:hover {
-  background: var(--color-primary, #4a9eff);
-  color: white;
-  border-color: var(--color-primary, #4a9eff);
-}
-
-.sequence-connector-edit-menu .action-btn.primary {
-  background: var(--color-primary, #4a9eff);
-  color: white;
-  border-color: var(--color-primary, #4a9eff);
-}
-
-.sequence-connector-edit-menu .action-btn.primary:hover {
-  background: var(--color-primary-dark, #3a7ecc);
-  border-color: var(--color-primary-dark, #3a7ecc);
-}
-
-.sequence-connector-edit-menu .action-btn.subtle {
-  background: transparent;
-  color: var(--color-text-secondary, #888);
-  border-color: transparent;
-}
-
-.sequence-connector-edit-menu .action-btn.subtle:hover {
-  background: var(--color-surface-secondary, #f0f0f0);
-  color: var(--color-text, #333);
-}
-
-/* Breakpoint selection checkbox */
-.sequence-connector-edit-menu .bp-select {
-  width: 14px;
-  height: 14px;
-  cursor: pointer;
-  accent-color: var(--color-primary, #4a9eff);
-  flex-shrink: 0;
-}
-
-.sequence-connector-edit-menu .breakpoint-item.selected {
-  background: rgba(74, 158, 255, 0.1);
-  border-color: var(--color-primary, #4a9eff);
-}
-
-/* Selection actions bar */
-.sequence-connector-edit-menu .selection-actions {
+.sequence-connector-edit-menu .bp-lock {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
-  margin-bottom: 8px;
-  background: rgba(74, 158, 255, 0.08);
-  border: 1px solid rgba(74, 158, 255, 0.3);
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 6px;
+  cursor: pointer;
+  opacity: 0.7;
+  color: var(--color-text-secondary);
+  transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.sequence-connector-edit-menu .selection-info {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-primary, #4a9eff);
-  margin-right: 4px;
+.sequence-connector-edit-menu .bp-lock:hover,
+.sequence-connector-edit-menu .bp-lock.active {
+  opacity: 1;
+  color: var(--color-text);
+  border-color: var(--color-border);
 }
 
-/* CSS Icons */
-.sequence-connector-edit-menu .lock-icon,
-.sequence-connector-edit-menu .icon-lock,
-.sequence-connector-edit-menu .icon-unlock,
-.sequence-connector-edit-menu .icon-link,
-.sequence-connector-edit-menu .icon-unlink,
-.sequence-connector-edit-menu .icon-x,
-.sequence-connector-edit-menu .icon-check-square {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  vertical-align: middle;
-  position: relative;
-  margin-right: 2px;
+.sequence-connector-edit-menu .bp-lock:hover {
+  background: var(--color-surface);
 }
 
-/* Lock icon (closed) */
-.sequence-connector-edit-menu .lock-icon.locked,
-.sequence-connector-edit-menu .icon-lock {
-  border: 1.5px solid currentColor;
-  border-radius: 2px;
-  height: 8px;
-  width: 10px;
-  margin-top: 4px;
-}
-.sequence-connector-edit-menu .lock-icon.locked::before,
-.sequence-connector-edit-menu .icon-lock::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 1px;
-  width: 6px;
-  height: 5px;
-  border: 1.5px solid currentColor;
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
+/* Delete Button */
+.sequence-connector-edit-menu .delete-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #c53030;
+  background: transparent;
+  border: 1px solid #c53030;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
 
-/* Lock icon (open) */
-.sequence-connector-edit-menu .lock-icon:not(.locked),
-.sequence-connector-edit-menu .icon-unlock {
-  border: 1.5px solid currentColor;
-  border-radius: 2px;
-  height: 8px;
-  width: 10px;
-  margin-top: 4px;
-}
-.sequence-connector-edit-menu .lock-icon:not(.locked)::before,
-.sequence-connector-edit-menu .icon-unlock::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 4px;
-  width: 6px;
-  height: 5px;
-  border: 1.5px solid currentColor;
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
-}
-
-/* Link icon (group) */
-.sequence-connector-edit-menu .icon-link {
-  width: 14px;
-}
-.sequence-connector-edit-menu .icon-link::before,
-.sequence-connector-edit-menu .icon-link::after {
-  content: '';
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  border: 1.5px solid currentColor;
-  border-radius: 50%;
-}
-.sequence-connector-edit-menu .icon-link::before {
-  top: 0;
-  left: 0;
-}
-.sequence-connector-edit-menu .icon-link::after {
-  top: 5px;
-  left: 5px;
-}
-
-/* Unlink icon */
-.sequence-connector-edit-menu .icon-unlink::before {
-  content: '';
-  position: absolute;
-  top: 5px;
-  left: 0;
-  width: 12px;
-  height: 0;
-  border-top: 1.5px solid currentColor;
-  transform: rotate(-45deg);
-  transform-origin: left center;
-}
-
-/* X icon (close) */
-.sequence-connector-edit-menu .icon-x::before,
-.sequence-connector-edit-menu .icon-x::after {
-  content: '';
-  position: absolute;
-  top: 5px;
-  left: 0;
-  width: 10px;
-  height: 0;
-  border-top: 1.5px solid currentColor;
-}
-.sequence-connector-edit-menu .icon-x::before {
-  transform: rotate(45deg);
-}
-.sequence-connector-edit-menu .icon-x::after {
-  transform: rotate(-45deg);
-}
-
-/* Check square icon */
-.sequence-connector-edit-menu .icon-check-square {
-  border: 1.5px solid currentColor;
-  border-radius: 2px;
-  width: 10px;
-  height: 10px;
-}
-.sequence-connector-edit-menu .icon-check-square::before {
-  content: '';
-  position: absolute;
-  top: 4px;
-  left: 1px;
-  width: 3px;
-  height: 5px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg);
+.sequence-connector-edit-menu .delete-btn:hover {
+  background: #c53030;
+  color: white;
 }

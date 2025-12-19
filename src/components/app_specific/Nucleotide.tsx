@@ -72,7 +72,7 @@ export namespace Nucleotide {
   };
   
   export namespace SequenceConnector {
-    export type ArrowShape = 'triangle' | 'chevron' | 'line' | 'diamond';
+    export type ArrowShape = 'triangle' | 'chevron' | 'line';
     
     export type BreakpointGroup = {
       id: string,
@@ -92,13 +92,16 @@ export namespace Nucleotide {
       showBreakpoints? : boolean,
       arrowColor? : Color,
       arrowShape? : ArrowShape,
-      arrowPosition? : number, // 0-1, position along path (0.5 = middle)
+      arrowPosition? : number, // 0-1, position along left segment (for ORF: left arrow)
+      arrowPositionRight? : number, // 0-1, position along right segment (for ORF: right arrow)
       arrowSize? : number,
       lockedBreakpoints? : number[], // indices of individually locked breakpoints
       breakpointGroups? : BreakpointGroup[], // groups for collective movement
       targetMoleculeName? : string,
       targetNucleotideIndex? : number,
-      targetComplexIndex? : number
+      targetComplexIndex? : number,
+      deleted? : boolean, // When true, connector is hidden and won't auto-reappear
+      isORF? : boolean // When true, connector uses ORF style: solid line with -/ /- at midpoint, arrows on both ends
     };
   }
 
