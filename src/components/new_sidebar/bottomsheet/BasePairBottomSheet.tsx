@@ -267,7 +267,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       length: 1
     };
   });
-  const [editRowKey, setEditRowKey] = useState<string | null>(null);
+  const [editRowIndex, setEditRowIndex] = useState<number>();
   const [editForm, setEditForm] = useState<{
     rnaComplexIndex?: number;
     rnaMoleculeName0?: string;
@@ -278,6 +278,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     orientation?: Orientation;
     edgeA?: Edge;
     edgeB?: Edge;
+    length?: number;
   }>({});
   const [updateCalculatedRowsTrigger, setUpdateCalculatedRowsTrigger] = useState(false);
 
@@ -361,12 +362,14 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           const basePairsPerRnaMolecule0 = singularRnaComplexProps.basePairs[rnaMoleculeName0];
           const basePairsPerNucleotide0 = basePairsPerRnaMolecule0?.[nucleotideIndex0];
           const relevantBasePair = basePairsPerNucleotide0?.find(
-            (basePair) =>
+            (basePair) => (
               basePair.rnaMoleculeName === rnaMoleculeName1 &&
               basePair.nucleotideIndex === nucleotideIndex1
+            )
           );
 
-          if (!relevantBasePair) {
+          if (relevantBasePair === undefined) {
+            helixBasePairType = null;
             nucleotideIndex0 += increment0;
             nucleotideIndex1 += increment1;
             continue;
@@ -782,77 +785,102 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       rnaComplexIndex: number,
       molName: string,
       formattedIndex: number
-    ): string => {
+    ) => {
       const rnaComplexProps = rnaComplexPropsReference.current;
       const complex = rnaComplexProps[rnaComplexIndex];
-      if (!complex) return "UNK";
+      if (!complex) return undefined;
       const mp = complex.rnaMoleculeProps[molName];
-      if (!mp) return "UNK";
+      if (!mp) return undefined;
       const idx = formattedIndex - mp.firstNucleotideIndex;
-      if (!(idx in mp.nucleotideProps)) return "UNK";
-      const sym = (mp.nucleotideProps as any)[idx]?.symbol as string | undefined;
-      return sym ? sym.toUpperCase() : "UNK";
+      if (!(idx in mp.nucleotideProps)) return undefined;
+      const sym = mp.nucleotideProps[idx]?.symbol;
+      return sym?.toUpperCase();
     },
     []
   );
 
   const deleteRow = useCallback(
-    (row: Row) => {
+    (row: Row | GroupedRow) => {
       const rnaComplexProps = rnaComplexPropsReference.current;
       const helices = globalHelicesRef.current;
       const complex = rnaComplexProps[row.rnaComplexIndex];
-      if (!complex) return;
+      if (!complex) {
+        return;
+      }
       pushToUndoStack();
       const bp0 = complex.basePairs[row.rnaMoleculeName0];
-      if (bp0 && row.nucleotideIndex0 in bp0) {
-        const arr = bp0[row.nucleotideIndex0];
-        const idx = arr.findIndex(
-          (m) =>
-            m.rnaMoleculeName === row.rnaMoleculeName1 &&
-            m.nucleotideIndex === row.nucleotideIndex1
-        );
-        if (idx !== -1) {
-          if (arr.length === 1) delete bp0[row.nucleotideIndex0];
-          else arr.splice(idx, 1);
-        }
-      }
       const bp1 = complex.basePairs[row.rnaMoleculeName1];
-      if (bp1 && row.nucleotideIndex1 in bp1) {
-        const arr = bp1[row.nucleotideIndex1];
-        const idx = arr.findIndex(
-          (m) =>
-            m.rnaMoleculeName === row.rnaMoleculeName0 &&
-            m.nucleotideIndex === row.nucleotideIndex0
-        );
-        if (idx !== -1) {
-          if (arr.length === 1) delete bp1[row.nucleotideIndex1];
-          else arr.splice(idx, 1);
+      const basePairKeysToEdit : Context.BasePair.KeysToEdit = {
+        [row.rnaComplexIndex] : { add: [], delete: [] },
+      };
+      const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[row.rnaComplexIndex];
+      const nucleotideKeysOfBasePairsToDelete: Array<[number, number]> = [];
+      function pushNucleotideIndexPair(
+        nucleotideIndex0 : number,
+        nucleotideIndex1 : number
+      ) {
+        basePairKeysToEditPerRnaComplex.delete.push({
+          keys0 : {
+            rnaMoleculeName: row.rnaMoleculeName0,
+            nucleotideIndex: nucleotideIndex0,
+          },
+          keys1 : {
+            rnaMoleculeName: row.rnaMoleculeName1,
+            nucleotideIndex: nucleotideIndex1,
+          },
+        });
+        nucleotideKeysOfBasePairsToDelete.push([nucleotideIndex0, nucleotideIndex1]);
+      }
+      if ("nucleotideIndex0" in row) {
+        pushNucleotideIndexPair(row.nucleotideIndex0, row.nucleotideIndex1);
+      } else {
+        let nucleotideIndex0 = row.nucleotideIndex0Start;
+        let nucleotideIndex1 = row.nucleotideIndex1Start;
+        const direction0 = row.nucleotideIndex0End > row.nucleotideIndex0Start ? 1 : -1;
+        const direction1 = row.nucleotideIndex1End > row.nucleotideIndex1Start ? 1 : -1;
+        for (let i = 0; i < row.length; i++) {
+          pushNucleotideIndexPair(
+            nucleotideIndex0,
+            nucleotideIndex1
+          );
+          nucleotideIndex0 += direction0;
+          nucleotideIndex1 += direction1;
         }
       }
-
-      const [keys0, keys1] = [
-        {
-          rnaMoleculeName: row.rnaMoleculeName0,
-          nucleotideIndex: row.nucleotideIndex0,
-        },
-        {
-          rnaMoleculeName: row.rnaMoleculeName1,
-          nucleotideIndex: row.nucleotideIndex1,
-        },
-      ].sort(compareBasePairKeys);
-      setBasePairKeysToEdit({
-        [row.rnaComplexIndex]: {
-          add: [],
-          delete: [{ keys0, keys1 }],
-        },
-      });
-      removeBasePair(
-        row.rnaComplexIndex,
-        row.rnaMoleculeName0,
-        row.rnaMoleculeName1,
-        row.nucleotideIndex0,
-        row.nucleotideIndex1
-      );
+      setBasePairKeysToEdit(basePairKeysToEdit);
+      for (const [nucleotideIndex0, nucleotideIndex1] of nucleotideKeysOfBasePairsToDelete) {
+        if (bp0 && nucleotideIndex0 in bp0) {
+          const arr = bp0[nucleotideIndex0];
+          const idx = arr.findIndex(
+            (m) =>
+              m.rnaMoleculeName === row.rnaMoleculeName1 &&
+              m.nucleotideIndex === nucleotideIndex1
+          );
+          if (idx !== -1) {
+            if (arr.length === 1) delete bp0[nucleotideIndex0];
+            else arr.splice(idx, 1);
+          }
+        }
+        if (bp1 && nucleotideIndex1 in bp1) {
+          const arr = bp1[nucleotideIndex1];
+          const idx = arr.findIndex(
+            (m) =>
+              m.rnaMoleculeName === row.rnaMoleculeName0 &&
+              m.nucleotideIndex === nucleotideIndex0
+          );
+          if (idx !== -1) {
+            if (arr.length === 1) delete bp1[nucleotideIndex1];
+            else arr.splice(idx, 1);
+          }
+        }
+        removeBasePair(
+          row.rnaComplexIndex,
+          row.rnaMoleculeName0,
+          row.rnaMoleculeName1,
+          nucleotideIndex0,
+          nucleotideIndex1
+        );
+      }
     },
     [
       pushToUndoStack,
@@ -883,7 +911,12 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       const idx1 = form.formattedNucleotideIndex1 - mp1.firstNucleotideIndex;
       if (!(idx0 in mp0.nucleotideProps) || !(idx1 in mp1.nucleotideProps))
         return;
-      
+      if (
+        mol0 === mol1 &&
+        idx0 === idx1
+      ) {
+        return;
+      }
       const length = form.length ?? 1;
       const newType =
         form.typeBase === "custom"
@@ -967,11 +1000,21 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   );
 
   const beginEdit = useCallback(
-    (row: Row) => {
+    (
+      row : Row | GroupedRow,
+      rowIndex : number
+    ) => {
       const rnaComplexProps = rnaComplexPropsReference.current!;
-      setEditRowKey(
-        `${row.rnaComplexIndex}:${row.rnaMoleculeName0}:${row.nucleotideIndex0}:${row.rnaMoleculeName1}:${row.nucleotideIndex1}`
-      );
+      let nucleotideIndex0: number;
+      let nucleotideIndex1: number;
+      if ("nucleotideIndex0" in row) {
+        nucleotideIndex0 = row.nucleotideIndex0;
+        nucleotideIndex1 = row.nucleotideIndex1;
+      } else {
+        nucleotideIndex0 = row.nucleotideIndex0Start;
+        nucleotideIndex1 = row.nucleotideIndex1Start;
+      }
+      setEditRowIndex(rowIndex);
       const complex = rnaComplexProps[row.rnaComplexIndex];
       const mp0 = complex.rnaMoleculeProps[row.rnaMoleculeName0];
       const mp1 = complex.rnaMoleculeProps[row.rnaMoleculeName1];
@@ -980,10 +1023,10 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         rnaComplexIndex: row.rnaComplexIndex,
         rnaMoleculeName0: row.rnaMoleculeName0,
         formattedNucleotideIndex0:
-          row.nucleotideIndex0 + mp0.firstNucleotideIndex,
+          nucleotideIndex0 + mp0.firstNucleotideIndex,
         rnaMoleculeName1: row.rnaMoleculeName1,
         formattedNucleotideIndex1:
-          row.nucleotideIndex1 + mp1.firstNucleotideIndex,
+          nucleotideIndex1 + mp1.firstNucleotideIndex,
         typeBase: decomposeTypeBase(row.type),
         orientation: pd.orientation,
         edgeA: pd.edgeA,
@@ -993,31 +1036,23 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     []
   );
 
-  const saveEdit = useCallback(
-    (row: Row) => {
+  const saveBasePairEdit = useCallback(
+    (row : Row) => {
       const form = editForm;
       if (
-        form.rnaComplexIndex == null ||
-        !form.rnaMoleculeName0 ||
-        !form.rnaMoleculeName1 ||
-        form.formattedNucleotideIndex0 == null ||
-        form.formattedNucleotideIndex1 == null
+        form.rnaComplexIndex === undefined ||
+        form.rnaMoleculeName0 === undefined ||
+        form.rnaMoleculeName1 === undefined ||
+        form.formattedNucleotideIndex0 === undefined ||
+        form.formattedNucleotideIndex1 === undefined
       )
         return;
       // Re-resolve molecules by edited formatted indices
       const resolvedMol0 = form.rnaMoleculeName0;
       const resolvedMol1 = form.rnaMoleculeName1;
-      // const resolvedMol0 = (resolveMoleculeByFormattedIndex(
-      //   form.rnaComplexIndex,
-      //   form.formattedNucleotideIndex0
-      // ) ?? fallbackMol0) as string;
-      // const resolvedMol1 = (resolveMoleculeByFormattedIndex(
-      //   form.rnaComplexIndex,
-      //   form.formattedNucleotideIndex1
-      // ) ?? fallbackMol1) as string;
       const complex = rnaComplexProps[form.rnaComplexIndex];
-      const mp0 = complex.rnaMoleculeProps[resolvedMol0 as string];
-      const mp1 = complex.rnaMoleculeProps[resolvedMol1 as string];
+      const mp0 = complex.rnaMoleculeProps[resolvedMol0];
+      const mp1 = complex.rnaMoleculeProps[resolvedMol1];
       const newIdx0 = form.formattedNucleotideIndex0 - mp0.firstNucleotideIndex;
       const newIdx1 = form.formattedNucleotideIndex1 - mp1.firstNucleotideIndex;
       if (!(newIdx0 in mp0.nucleotideProps) || !(newIdx1 in mp1.nucleotideProps))
@@ -1053,8 +1088,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       }
       // add new with possibly updated type
       let newType: BasePair.Type | undefined = undefined;
-      if (form.typeBase === "custom")
-        newType = assembleDirectedType(form.orientation, form.edgeA, form.edgeB);
+      if (form.typeBase === "custom") newType = assembleDirectedType(form.orientation, form.edgeA, form.edgeB);
       else if (form.typeBase === "canonical") newType = BasePair.Type.CANONICAL;
       else if (form.typeBase === "wobble") newType = BasePair.Type.WOBBLE;
       else if (form.typeBase === "mismatch") newType = BasePair.Type.MISMATCH;
@@ -1064,7 +1098,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
         newIdx0,
         resolvedMol1,
         newIdx1,
-        DuplicateBasePairKeysHandler.DELETE_PREVIOUS_MAPPING,
+        DuplicateBasePairKeysHandler.DO_NOTHING,
         { basePairType: newType }
       );
       const sortedOld = [
@@ -1091,7 +1125,156 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           delete: [{ keys0: oldKeys0, keys1: oldKeys1 }],
         },
       });
-      setEditRowKey(null);
+    },
+    [editForm]
+  );
+
+  const saveGroupedBasePairEdit = useCallback(
+    (row : GroupedRow) => {
+      const rnaComplexProps = rnaComplexPropsReference.current;
+      if (
+        editForm.rnaComplexIndex === undefined ||
+        editForm.rnaMoleculeName0 === undefined ||
+        editForm.rnaMoleculeName1 === undefined
+      ) {
+        return;
+      }
+      const editFormLength = editForm.length ?? row.length;
+      pushToUndoStack();
+      const basePairKeysToEdit : Context.BasePair.KeysToEdit = {
+        [editForm.rnaComplexIndex] : { add: [], delete: [] },
+      };
+      const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[editForm.rnaComplexIndex];
+
+      const singularRnaComplexProps = rnaComplexProps[editForm.rnaComplexIndex];
+      const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[editForm.rnaMoleculeName0];
+      const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[editForm.rnaMoleculeName1];
+      const basePairsPerRnaMolecule0 = singularRnaComplexProps.basePairs[editForm.rnaMoleculeName0];
+      const basePairsPerRnaMolecule1 = singularRnaComplexProps.basePairs[editForm.rnaMoleculeName1];
+
+      let direction0 = Math.sign(row.nucleotideIndex0End - row.nucleotideIndex0Start);
+      let direction1 = Math.sign(row.nucleotideIndex1End - row.nucleotideIndex1Start);
+      let nucleotideIndex0 = row.nucleotideIndex0Start;
+      let nucleotideIndex1 = row.nucleotideIndex1Start;
+      for (let i = 0; i < row.length; i++) {
+        const basePairsPerNucleotide0 = basePairsPerRnaMolecule0[nucleotideIndex0];
+        const basePairsPerNucleotide1 = basePairsPerRnaMolecule1[nucleotideIndex1];
+        for (const {
+          array,
+          record,
+          nucleotideIndex,
+          target
+        } of [
+          {
+            array : basePairsPerNucleotide0,
+            record : basePairsPerRnaMolecule0,
+            nucleotideIndex : nucleotideIndex0,
+            target : {
+              rnaMoleculeName : editForm.rnaMoleculeName1,
+              nucleotideIndex : nucleotideIndex1
+            }
+          },
+          {
+            array : basePairsPerNucleotide1,
+            record : basePairsPerRnaMolecule1,
+            nucleotideIndex : nucleotideIndex1,
+            target : {
+              rnaMoleculeName : editForm.rnaMoleculeName0,
+              nucleotideIndex : nucleotideIndex0
+            }
+          }
+        ]) {
+          if (array.length === 1) {
+            delete record[nucleotideIndex];
+          } else {
+            array.splice(
+              array.findIndex(({ rnaMoleculeName, nucleotideIndex }) => (
+                rnaMoleculeName === target.rnaMoleculeName &&
+                nucleotideIndex === target.nucleotideIndex
+              )),
+              1
+            );
+          }
+        }
+        basePairKeysToEditPerRnaComplex.delete.push({
+          keys0 : {
+            rnaMoleculeName : editForm.rnaMoleculeName0,
+            nucleotideIndex : nucleotideIndex0
+          },
+          keys1 : {
+            rnaMoleculeName : editForm.rnaMoleculeName1,
+            nucleotideIndex : nucleotideIndex1
+          }
+        });
+        nucleotideIndex0 += direction0;
+        nucleotideIndex1 += direction1;
+      }
+      
+      let basePairType: BasePair.Type | undefined;
+      switch (editForm.typeBase) {
+        case "custom" : {
+          basePairType = assembleDirectedType(
+            editForm.orientation,
+            editForm.edgeA,
+            editForm.edgeB
+          );
+          break;
+        }
+        case "canonical" : {
+          basePairType = BasePair.Type.CANONICAL;
+          break;
+        }
+        case "wobble" : {
+          basePairType = BasePair.Type.WOBBLE;
+          break;
+        }
+        case "mismatch" : {
+          basePairType = BasePair.Type.MISMATCH;
+          break;
+        }
+        case "auto" : {
+          basePairType = undefined;
+          break;
+        }
+        default : {
+          throw new Error("Unhandled switch case");
+        }
+      }
+      direction0 = 1;
+      direction1 = -1;
+      nucleotideIndex0 = row.nucleotideIndex0Start;
+      nucleotideIndex1 = row.nucleotideIndex1Start;
+      for (let i = 0; i < editFormLength; i++) {
+        insertBasePair(
+          singularRnaComplexProps,
+          editForm.rnaMoleculeName0,
+          nucleotideIndex0,
+          editForm.rnaMoleculeName1,
+          nucleotideIndex1,
+          DuplicateBasePairKeysHandler.DO_NOTHING,
+          { basePairType }
+        );
+        basePairKeysToEditPerRnaComplex.add.push({
+          keys0 : {
+            rnaMoleculeName : editForm.rnaMoleculeName0,
+            nucleotideIndex : nucleotideIndex0 
+          },
+          keys1 : {
+            rnaMoleculeName : editForm.rnaMoleculeName1,
+            nucleotideIndex : nucleotideIndex1
+          }
+        });
+        nucleotideIndex0 += direction0;
+        nucleotideIndex1 += direction1;
+      }
+
+      [basePairKeysToEditPerRnaComplex.add, basePairKeysToEditPerRnaComplex.delete].forEach(array => array.sort(compareFullBasePairKeys));
+      setBasePairKeysToEdit(basePairKeysToEdit);
+
+      handleNewBasePair(
+        undefined as any as FullKeys,
+        undefined as any as FullKeys
+      );
     },
     [editForm]
   );
@@ -1270,6 +1453,14 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       );
     },
     [rnaComplexProps]
+  );
+
+  useEffect(
+    () => setEditRowIndex(undefined),
+    [
+      viewMode,
+      selectionMode
+    ]
   );
 
   return (
@@ -1586,10 +1777,10 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   const idx = addForm.formattedNucleotideIndex0;
                   let initial = "UNK";
                   if (rc != null && idx != null) {
-                    const mol = addForm.rnaMoleculeName0;/* resolveMoleculeByFormattedIndex(rc, idx); */
+                    const mol = addForm.rnaMoleculeName0;
                     if (mol) {
                       const sym = getSymbolByFormattedIndex(rc, mol, idx);
-                      initial = sym === "UNK" ? "UNK" : sym[0].toUpperCase();
+                      initial = sym === undefined ? "UNK" : sym[0].toUpperCase();
                     }
                   }
                   return (
@@ -1671,60 +1862,60 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               </select>}
 
               {/* Nuc #2 (index) compressed */}
-                <div
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  width: 180,
+                  marginRight: 8,
+                }}
+              >
+                {(() => {
+                  const rc = addForm.rnaComplexIndex;
+                  const idx = addForm.formattedNucleotideIndex1;
+                  let initial = "UNK";
+                  if (rc != null && idx != null) {
+                  const mol = addForm.rnaMoleculeName1;
+                  if (mol) {
+                    const sym = getSymbolByFormattedIndex(rc, mol, idx);
+                    initial = sym === undefined ? "UNK" : sym[0].toUpperCase();
+                  }
+                  }
+                  return (
+                  <span title={initial} style={{ fontWeight: 700 }}>
+                    {initial}
+                  </span>
+                  );
+                })()}
+                <input
+                  type="number"
+                  placeholder="nt #2"
+                  value={addForm.formattedNucleotideIndex1 ?? ""}
+                  onChange={(e) =>
+                  setAddForm((f) => ({
+                    ...f,
+                    formattedNucleotideIndex1:
+                    e.target.value === ""
+                      ? undefined
+                      : parseInt(e.target.value),
+                  }))}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    width: 180,
-                    marginRight: 8,
+                    ...inpCell(),
+                    opacity: addForm.rnaMoleculeName1 == null ? 0.6 : 1,
+                    cursor: addForm.rnaMoleculeName1 == null ? "not-allowed" : "text",
+                    background:
+                      addForm.rnaMoleculeName1 == null
+                      ? theme.colors.surfaceHover
+                      : theme.colors.background,
+                    color:
+                      addForm.rnaMoleculeName1 == null
+                      ? theme.colors.textSecondary
+                      : theme.colors.text,
                   }}
-                >
-                  {(() => {
-                    const rc = addForm.rnaComplexIndex;
-                    const idx = addForm.formattedNucleotideIndex1;
-                    let initial = "UNK";
-                    if (rc != null && idx != null) {
-                    const mol = addForm.rnaMoleculeName1; /* resolveMoleculeByFormattedIndex(rc, idx); */
-                    if (mol) {
-                      const sym = getSymbolByFormattedIndex(rc, mol, idx);
-                      initial = sym === "UNK" ? "UNK" : sym[0].toUpperCase();
-                    }
-                    }
-                    return (
-                    <span title={initial} style={{ fontWeight: 700 }}>
-                      {initial}
-                    </span>
-                    );
-                  })()}
-                  <input
-                    type="number"
-                    placeholder="nt #2"
-                    value={addForm.formattedNucleotideIndex1 ?? ""}
-                    onChange={(e) =>
-                    setAddForm((f) => ({
-                      ...f,
-                      formattedNucleotideIndex1:
-                      e.target.value === ""
-                        ? undefined
-                        : parseInt(e.target.value),
-                    }))}
-                    style={{
-                      ...inpCell(),
-                      opacity: addForm.rnaMoleculeName1 == null ? 0.6 : 1,
-                      cursor: addForm.rnaMoleculeName1 == null ? "not-allowed" : "text",
-                      background:
-                        addForm.rnaMoleculeName1 == null
-                        ? theme.colors.surfaceHover
-                        : theme.colors.background,
-                      color:
-                        addForm.rnaMoleculeName1 == null
-                        ? theme.colors.textSecondary
-                        : theme.colors.text,
-                    }}
-                    disabled={addForm.rnaMoleculeName1 == null}
-                  />
-                </div>
+                  disabled={addForm.rnaMoleculeName1 == null}
+                />
+              </div>
 
               {/* Type and custom sub-fields */}
               <select
@@ -1926,7 +2117,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
               <th style={thStyle(80)}>Nt (index) a</th>
               {!rnaMoleculesAreASingleton && <th style={thStyle(80)}>Mol#2</th>}
               <th style={thStyle(80)}>Nt (index) b</th>
-              {viewMode === "Helices" && <th style={thStyle(60)}>Length</th>}
+              {viewMode === "Helices" && <th style={thStyle(80)}>Length</th>}
               <th style={thStyle(120)}>Type</th>
               <th style={thStyle(100)}>Orientation</th>
               <th style={thStyle(130)}>Edge A</th>
@@ -1937,10 +2128,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           <tbody>
             {rows.map((r, i) => {
               const isGrouped = isGroupedRow(r);
-              const rowKey = isGrouped 
-                ? `${r.rnaComplexIndex}:${r.rnaMoleculeName0}:${r.nucleotideIndex0Start}-${r.nucleotideIndex0End}:${r.rnaMoleculeName1}:${r.nucleotideIndex1Start}-${r.nucleotideIndex1End}`
-                : `${r.rnaComplexIndex}:${r.rnaMoleculeName0}:${r.nucleotideIndex0}:${r.rnaMoleculeName1}:${r.nucleotideIndex1}`;
-              const isEditing = !isGrouped && editRowKey === rowKey;
+              const isEditing = editRowIndex === i;
               const base = isEditing
                 ? editForm.typeBase ?? decomposeTypeBase(r.type)
                 : decomposeTypeBase(r.type);
@@ -1958,7 +2146,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                 : undefined;
               return (
                 <tr
-                  key={`${rowKey}:${i}`}
+                  key={i}
                   style={{
                     borderBottom: `1px solid ${theme.colors.border}`,
                     background:
@@ -1967,7 +2155,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         : theme.colors.surface,
                   }}
                 >
-                  {!rnaComplexesAreASingleton &&<td style={tdStyle(120)}>{r.rnaComplexName}</td>}
+                  {!rnaComplexesAreASingleton && <td style={tdStyle(120)}>{r.rnaComplexName}</td>}
                   {/* Mol #1 */}
                   {!rnaMoleculesAreASingleton && <td style={tdStyle(60)}>
                     <div
@@ -2013,7 +2201,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                             r.rnaMoleculeName0,
                             r.formattedNucleotideIndex0Start
                           );
-                          const initialStart = symbolStart === "UNK" ? "UNK" : symbolStart[0].toUpperCase();
+                          const initialStart = symbolStart === undefined ? "UNK" : symbolStart[0].toUpperCase();
                           return (
                             <>
                               <span
@@ -2037,7 +2225,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                             : r.formattedNucleotideIndex0
                         );
                         const initial =
-                          symbol === "UNK" ? "UNK" : symbol[0].toUpperCase();
+                          symbol === undefined ? "UNK" : symbol[0].toUpperCase();
                         return (
                           <>
                             <span
@@ -2117,7 +2305,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                             r.rnaMoleculeName1,
                             r.formattedNucleotideIndex1Start
                           );
-                          const initialStart = symbolStart === "UNK" ? "UNK" : symbolStart[0].toUpperCase();
+                          const initialStart = symbolStart === undefined ? "UNK" : symbolStart[0].toUpperCase();
                           return (
                             <>
                               <span
@@ -2141,7 +2329,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                             : r.formattedNucleotideIndex1
                         );
                         const initial =
-                          symbol === "UNK" ? "UNK" : symbol[0].toUpperCase();
+                          symbol === undefined ? "UNK" : symbol[0].toUpperCase();
                         return (
                           <>
                             <span
@@ -2178,8 +2366,21 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   </td>
                   {/* Length (only in grouped mode) */}
                   {viewMode === "Helices" && (
-                    <td style={tdStyle(60)}>
-                      <span style={{ fontSize: 12, color: theme.colors.text }}>
+                    isEditing ? <td style={tdStyle(60)}>
+                      <input
+                        type = "number"
+                        min = "1"
+                        value = {editForm.length ?? (isGrouped ? r.length : 1)}
+                        onChange = {(e) => setEditForm((f) => ({
+                          ...f,
+                          length : e.target.value === "" ? undefined : parseInt(e.target.value)
+                        }))}
+                      />
+                    </td> : <td style={tdStyle(60)}>
+                      <span style={{
+                        fontSize : 12,
+                        color : theme.colors.text
+                      }}>
                         {isGrouped ? r.length : 1}
                       </span>
                     </td>
@@ -2311,11 +2512,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                   </td>
                   {/* Action */}
                   <td style={{ ...tdStyle(70), textAlign: "center" }}>
-                    {isGrouped ? (
-                      <span style={{ fontSize: 11, color: theme.colors.textSecondary }}>
-                        —
-                      </span>
-                    ) : isEditing ? (
+                    {isEditing ? (
                       <div
                         style={{
                           display: "flex",
@@ -2326,7 +2523,12 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         <MemoizedIconButton
                           title="Save"
                           onClick={() => {
-                            saveEdit(r);
+                            if ("isGrouped" in r) {
+                              saveGroupedBasePairEdit(r);
+                            } else {
+                              saveBasePairEdit(r);
+                            }
+                            setEditRowIndex(undefined);
                             setUpdateCalculatedRowsTrigger(prev => !prev);
                           }}
                           kind="save"
@@ -2334,7 +2536,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                         />
                         <MemoizedIconButton
                           title="Cancel"
-                          onClick={() => setEditRowKey(null)}
+                          onClick={() => setEditRowIndex(undefined)}
                           kind="cancel"
                           theme={theme}
                         />
@@ -2349,7 +2551,7 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
                       >
                         <MemoizedIconButton
                           title="Edit"
-                          onClick={() => beginEdit(r)}
+                          onClick={() => beginEdit(r, i)}
                           kind="edit"
                           theme={theme}
                         />
