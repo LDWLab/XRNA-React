@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useTheme } from "../../../context/ThemeContext";
 import { ThemeToggle } from "../../ui/ThemeToggle";
 import { Button } from "./Button";
-import { FileDown, FolderOpen, Save, ChevronDown, Download } from "lucide-react";
+import { FileDown, FolderOpen, Save, ChevronDown, Download, Import } from "lucide-react";
 import { OutputFileExtension } from "../../../io/OutputUI";
 import { LEFT_PANEL_WIDTH } from '../../../App';
 import { outputFileExtensions } from "../../../io/OutputUI";
@@ -213,7 +213,7 @@ const EXPORT_FORMATS : ExportFormats = outputFileExtensions.map(
 );
 
 export type TopbarProps = {
-  onOpenFile?: (e : React.ChangeEvent<HTMLInputElement>) => void;
+  onImport?: () => void;
   onSave?: () => void;
   onExportWithFormat?: (filename: string, format: OutputFileExtension) => void;
   fileName?: string;
@@ -222,7 +222,6 @@ export type TopbarProps = {
   exportFormats?: ExportFormats;
   onExportFormatChange?: (format: OutputFileExtension) => void;
   downloadButtonReference: React.MutableRefObject<HTMLButtonElement | null>;
-  fileNameInputReference: React.MutableRefObject<HTMLInputElement | null>;
   saveButtonsDisabledFlag : boolean;
   onDownload : () => void;
 };
@@ -230,7 +229,7 @@ export type TopbarProps = {
 export const TOPBAR_HEIGHT = 56;
 
 export const Topbar: React.FC<TopbarProps> = ({
-  onOpenFile,
+  onImport,
   onSave,
   onExportWithFormat,
   fileName = "",
@@ -239,7 +238,6 @@ export const Topbar: React.FC<TopbarProps> = ({
   exportFormats = EXPORT_FORMATS,
   onExportFormatChange,
   downloadButtonReference,
-  fileNameInputReference,
   saveButtonsDisabledFlag,
   onDownload
 }) => {
@@ -276,33 +274,17 @@ export const Topbar: React.FC<TopbarProps> = ({
       />
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <Button
-          label="Open"
-          onClick={() => fileNameInputReference.current?.click()}
-          variant="secondary"
-          icon={<FolderOpen size={12} />}
-        />
-        <input
-          ref={function (x) {
-            if (x !== null) {
-              fileNameInputReference.current = x;
-            }
-          }}
-          style={{
-            display: "none",
-          }}
-          type="file"
-          accept={inputFileExtensions
-            .map(inputFileExtension => `.${inputFileExtension}`)
-            .join(",")}
-          onChange={onOpenFile}
-          onClick={function (e) {
-            e.currentTarget.value = "";
-          }}
-        />
+        {onImport && (
+          <Button
+            label="Import"
+            onClick={onImport}
+            variant="accent"
+            icon={<Import size={12} />}
+          />
+        )}
         <input
           type="text"
-          placeholder="Filename"
+          placeholder="Enter name to export"
           value={fileName}
           onChange={(e) => onFileNameChange?.(e.target.value)}
           style={{

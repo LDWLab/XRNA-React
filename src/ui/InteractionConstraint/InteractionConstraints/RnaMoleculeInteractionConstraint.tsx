@@ -75,7 +75,7 @@ export class RnaMoleculeInteractionConstraint extends AbstractInteractionConstra
         toBeDragged.push(singularRnaMoleculeProps.nucleotideProps[nucleotideIndex]);
         nucleotideKeysToRerenderPerRnaMolecule.push(nucleotideIndex);
       }
-      if (nucleotideIndex in basePairsPerRnaMolecule) {
+      if (basePairsPerRnaMolecule && nucleotideIndex in basePairsPerRnaMolecule) {
         const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
         const keys0 = {
           rnaMoleculeName,

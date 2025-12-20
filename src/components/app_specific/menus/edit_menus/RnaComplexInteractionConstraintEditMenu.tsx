@@ -66,7 +66,7 @@ export namespace RnaComplexInteractionConstraintEditMenu {
             if (!indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
               positions.push(singularNucleotideProps);
             }
-            if (nucleotideIndex in basePairsPerRnaMolecule) {
+            if (basePairsPerRnaMolecule && nucleotideIndex in basePairsPerRnaMolecule) {
               const basePairsPerNucleotide = basePairsPerRnaMolecule[nucleotideIndex];
               const indicesOfBoundingNucleotide1 = basePairsPerNucleotide.reduce(selectRelevantBasePairKeys);
               boundingVectors = {

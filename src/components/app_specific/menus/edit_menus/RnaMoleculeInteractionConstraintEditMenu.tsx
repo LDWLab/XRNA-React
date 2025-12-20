@@ -78,7 +78,7 @@ export namespace RnaMoleculeInteractionConstraintEditMenu {
             if (!indicesOfFrozenNucleotidesPerRnaComplexPerRnaMolecule.has(nucleotideIndex)) {
               toBeDragged.unshift(singularNucleotideProps);
             }
-            if (nucleotideIndex in basePairsPerRnaMolecule) {
+            if (basePairsPerRnaMolecule && nucleotideIndex in basePairsPerRnaMolecule) {
               basePairKeysToRerenderPerRnaComplex.unshift({
                 rnaMoleculeName : initialName,
                 nucleotideIndex

@@ -30,9 +30,10 @@ const rotateMatrixParser : MatrixParser = {
     minimum : 1,
     maximum : 1,
     parser : function(inputNumbers : number[]) : AffineMatrix {
-        const angle = inputNumbers[0];
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
+        // SVG rotate() uses degrees, but Math.cos/sin expect radians
+        const angleInRadians = inputNumbers[0] * Math.PI / 180;
+        const cos = Math.cos(angleInRadians);
+        const sin = Math.sin(angleInRadians);
         return [cos, sin, -sin, cos, 0, 0];
     }
 };
@@ -103,26 +104,29 @@ const matrixParserRecord : Record<string, MatrixParser> = {
         minimum : 1,
         maximum : 2,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            const skewXAngle = inputNumbers[0];
+            // SVG skew uses degrees, convert to radians for Math.tan
+            const skewXAngleRad = inputNumbers[0] * Math.PI / 180;
             let skewY = 0;
             if (inputNumbers.length > 1) {
-                skewY = Math.tan(inputNumbers[1]);
+                skewY = Math.tan(inputNumbers[1] * Math.PI / 180);
             }
-            return [1, skewY, Math.tan(skewXAngle), 1, 0, 0];
+            return [1, skewY, Math.tan(skewXAngleRad), 1, 0, 0];
         }
     },
     "skewx" : {
         minimum : 1,
         maximum : 1,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            return [1, 0, Math.tan(inputNumbers[0]), 1, 0, 0];
+            // SVG skewX uses degrees, convert to radians for Math.tan
+            return [1, 0, Math.tan(inputNumbers[0] * Math.PI / 180), 1, 0, 0];
         }
     },
     "skewy" : {
         maximum : 1,
         minimum : 1,
         parser : function(inputNumbers : number[]) : AffineMatrix {
-            return [1, Math.tan(inputNumbers[0]), 0, 1, 0, 0];
+            // SVG skewY uses degrees, convert to radians for Math.tan
+            return [1, Math.tan(inputNumbers[0] * Math.PI / 180), 0, 1, 0, 0];
         }
     }
 };

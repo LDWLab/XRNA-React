@@ -80,6 +80,7 @@ import {
   SvgPropertyXrnaType,
 } from "./io/SvgInputFileHandler";
 import { areEqual, BLACK } from "./data_structures/Color";
+import Font from "./data_structures/Font";
 import { RnaMolecule } from "./components/app_specific/RnaMolecule";
 import { LabelEditMenu } from "./components/app_specific/menus/edit_menus/LabelEditMenu";
 import { SequenceConnectorEditMenu } from "./components/app_specific/menus/edit_menus/SequenceConnectorEditMenu";
@@ -106,6 +107,8 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { SettingsDrawer } from "./components/new_sidebar/drawer/SettingsDrawer";
 import { AboutDrawer } from "./components/new_sidebar/drawer/AboutDrawer";
 import { StructureTooltip, Grid, FloatingControls, MemoizedFloatingControls } from "./components/ui";
+import { ImportModal, ImportMode } from "./components/app_specific/ImportModal";
+import { fastaInputFileHandler } from "./io/FastaInputFileHandler";
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -302,6 +305,9 @@ export namespace App {
       useState<FullKeysRecord>({});
     const [undoStack, setUndoStack] = useState<UndoRedoStack>([]);
     const [redoStack, setRedoStack] = useState<UndoRedoStack>([]);
+    // Import Modal state
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [importModalError, setImportModalError] = useState<string | undefined>(undefined);
     // Begin UI-relevant state data.
     const [tab, setTab] = useState<Tab>(Tab.EDIT);
     const currentTabRef = useRef<Tab>(Tab.EDIT);
@@ -658,17 +664,7 @@ export namespace App {
         return;
       }
 
-      if (outputFileName === "") {
-        if (!defaultExportFileNameRef.current) {
-          defaultExportFileNameRef.current = getDefaultExportFileName();
-        }
-        const defaultName = defaultExportFileNameRef.current;
-        if (defaultName !== null) {
-          setOutputFileName(defaultName);
-          outputFileNameReference.current = defaultName;
-        }
-      }
-    }, [rnaComplexProps, outputFileName]);
+    }, [rnaComplexProps]);
 
     useEffect(() => {
       if (!isEmpty(rnaComplexProps) && outputFileExtension === undefined) {
@@ -4574,55 +4570,9 @@ export namespace App {
     const renderedTopBar = useMemo(
       () => {
         return <Topbar
-          onOpenFile={function (e : React.ChangeEvent<HTMLInputElement>) {
-            let files = e.target.files;
-            if (files === null || files.length === 0) {
-              return;
-            }
-            setSceneState(SceneState.DATA_IS_LOADING);
-            let file = files[0];
-            let inputFileNameAndExtension = file.name;
-            inputFileNameAndExtensionReference.current =
-              inputFileNameAndExtension;
-            setInputFileNameAndExtension(inputFileNameAndExtension);
-            let regexMatch = /^(.*)\.(.+)$/.exec(
-              inputFileNameAndExtension
-            ) as RegExpExecArray;
-            let fileName = regexMatch[1];
-            let fileExtension = regexMatch[2];
-            const normalizedFileExtension = fileExtension.toLocaleLowerCase();
-            if (!isInputFileExtension(normalizedFileExtension)) {
-              const message = `Unsupported input file extension ".${fileExtension}".`;
-              setSceneState(SceneState.DATA_LOADING_FAILED);
-              setDrawerKind(DrawerKind.PROPERTIES);
-              setDataLoadingFailedErrorMessage(message);
-              const supportedExtensionsList = inputFileExtensions
-                .map((supportedExtension) => `.${supportedExtension}`)
-                .join(", ");
-              setDataLoadingFailedErrorDetails(
-                `Supported extensions: ${supportedExtensionsList}`
-              );
-              return;
-            }
-            const inputFileExtensionValue = normalizedFileExtension;
-            if (settingsRecord[Setting.COPY_FILE_NAME]) {
-              setOutputFileName(fileName);
-            }
-            if (
-              settingsRecord[Setting.COPY_FILE_EXTENSION] &&
-              fileExtension in outputFileWritersMap
-            ) {
-              setOutputFileExtension(fileExtension as OutputFileExtension);
-            }
-            let reader = new FileReader();
-            reader.addEventListener("load", function (event) {
-              // Read the content of the input file.
-              parseInputFileContent(
-                (event.target as FileReader).result as string,
-                inputFileExtensionValue
-              );
-            });
-            reader.readAsText(files[0] as File);
+          onImport={() => {
+            setImportModalError(undefined);
+            setImportModalOpen(true);
           }}
           onSave={saveFile}
           onExportWithFormat={function (
@@ -4651,7 +4601,6 @@ export namespace App {
           exportFormat={outputFileExtension}
           onExportFormatChange={setOutputFileExtension}
           downloadButtonReference={downloadOutputFileHtmlButtonReference}
-          fileNameInputReference={uploadInputFileHtmlInputReference}
           saveButtonsDisabledFlag = {!hasStructureLoaded}
         />;
       },
@@ -5215,34 +5164,6 @@ export namespace App {
               onOpenDocs={() => {
                 window.location.hash = "#/docs";
               }}
-              onLoadExample={async () => {
-                try {
-                  setSceneState(SceneState.DATA_IS_LOADING);
-                  const response = await fetch(`${process.env.PUBLIC_URL ?? ""}/7k00_23_b.json`);
-                  if (!response.ok) {
-                    throw new Error(`Failed to load example (status ${response.status})`);
-                  }
-                  const exampleText = await response.text();
-                  parseInputFileContent(exampleText, InputFileExtension.json);
-                  const exampleName = "7k00_23_b";
-                  const exampleFileName = `${exampleName}.json`;
-                  setInputFileNameAndExtension(exampleFileName);
-                  inputFileNameAndExtensionReference.current = exampleFileName;
-                  if (settingsRecord[Setting.COPY_FILE_NAME]) {
-                    setOutputFileName(exampleName);
-                    outputFileNameReference.current = exampleName;
-                  }
-                  if (settingsRecord[Setting.COPY_FILE_EXTENSION]) {
-                    setOutputFileExtension("json" as OutputFileExtension);
-                    outputFileExtensionReference.current = "json" as OutputFileExtension;
-                  }
-                } catch (error) {
-                  const message = error instanceof Error ? error.message : String(error);
-                  setSceneState(SceneState.DATA_LOADING_FAILED);
-                  setDataLoadingFailedErrorMessage(message);
-                  setDataLoadingFailedErrorDetails(message);
-                }
-              }}
               undoStack={undoStack}
               redoStack={redoStack}
               onJumpToHistory={(index) => {
@@ -5753,6 +5674,245 @@ export namespace App {
           {/* Bottom-docked command terminal (hidden by default, toggle with ~) */}
           <MemoizedCommandTerminal
             rnaComplexProps={rnaComplexProps}
+          />
+
+          {/* Import Modal */}
+          <ImportModal
+            isOpen={importModalOpen}
+            onClose={() => {
+              setImportModalOpen(false);
+              setImportModalError(undefined);
+            }}
+            onImportPaste={(fastaContent: string, mode: ImportMode) => {
+              try {
+                const parsedInput = fastaInputFileHandler(fastaContent);
+                
+                // Apply default colors and fonts to nucleotides
+                for (const singularRnaComplexProps of parsedInput.rnaComplexProps) {
+                  for (const singularRnaMoleculeProps of Object.values(singularRnaComplexProps.rnaMoleculeProps)) {
+                    for (const singularNucleotideProps of Object.values(singularRnaMoleculeProps.nucleotideProps)) {
+                      if (singularNucleotideProps.color === undefined) {
+                        singularNucleotideProps.color = structuredClone(BLACK);
+                      }
+                      if (singularNucleotideProps.font === undefined) {
+                        singularNucleotideProps.font = structuredClone(Font.DEFAULT);
+                      }
+                    }
+                  }
+                }
+
+                let finalRnaComplexProps: RnaComplexProps;
+                
+                if (mode === 'new') {
+                  // Replace everything - convert array to record
+                  finalRnaComplexProps = {};
+                  parsedInput.rnaComplexProps.forEach((complexProps, index) => {
+                    finalRnaComplexProps[index] = complexProps;
+                  });
+                } else {
+                  // Add on top of existing
+                  const newRnaComplexProps: RnaComplexProps = {};
+                  let nextIndex = Object.keys(rnaComplexProps).length;
+                  for (const complexProps of parsedInput.rnaComplexProps) {
+                    newRnaComplexProps[nextIndex] = complexProps;
+                    nextIndex++;
+                  }
+                  finalRnaComplexProps = { ...rnaComplexProps, ...newRnaComplexProps };
+                }
+
+                setRnaComplexProps(finalRnaComplexProps);
+                resetGlobalHelicesForFormatMenu(finalRnaComplexProps);
+                setImportModalOpen(false);
+                setImportModalError(undefined);
+
+                setTimeout(() => {
+                  resetViewport();
+                  setSceneState(SceneState.DATA_IS_LOADED);
+                }, 100);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                setImportModalError(message);
+              }
+            }}
+            onImportFile={(file: File, mode: ImportMode) => {
+              const inputFileNameAndExtension = file.name;
+              inputFileNameAndExtensionReference.current = inputFileNameAndExtension;
+              setInputFileNameAndExtension(inputFileNameAndExtension);
+              
+              const regexMatch = /^(.*)\.(.+)$/.exec(inputFileNameAndExtension);
+              if (!regexMatch) {
+                setImportModalError('Invalid file name');
+                return;
+              }
+              
+              const fileName = regexMatch[1];
+              const fileExtension = regexMatch[2];
+              const normalizedFileExtension = fileExtension.toLowerCase();
+              
+              if (!isInputFileExtension(normalizedFileExtension)) {
+                setImportModalError(`Unsupported file type. Supported: ${inputFileExtensions.join(', ')}`);
+                return;
+              }
+
+              if (settingsRecord[Setting.COPY_FILE_NAME]) {
+                setOutputFileName(fileName);
+              }
+              if (settingsRecord[Setting.COPY_FILE_EXTENSION] && fileExtension in outputFileWritersMap) {
+                setOutputFileExtension(fileExtension as OutputFileExtension);
+              }
+
+              const reader = new FileReader();
+              reader.addEventListener("load", (event) => {
+                try {
+                  const content = (event.target as FileReader).result as string;
+                  const parsedInput = (
+                    r2dtLegacyVersionFlag
+                      ? r2dtLegacyInputFileReadersRecord
+                      : inputFileReadersRecord
+                  )[normalizedFileExtension as InputFileExtension](content);
+
+                  // Apply default colors and Y-axis inversion
+                  const invertYAxisFlag = defaultInvertYAxisFlagRecord[normalizedFileExtension as InputFileExtension];
+                  for (const singularRnaComplexProps of parsedInput.rnaComplexProps) {
+                    for (const [rnaMoleculeName, singularRnaMoleculeProps] of Object.entries(singularRnaComplexProps.rnaMoleculeProps)) {
+                      if (!(rnaMoleculeName in singularRnaComplexProps.basePairs)) {
+                        singularRnaComplexProps.basePairs[rnaMoleculeName] = {};
+                      }
+                      for (const singularNucleotideProps of Object.values(singularRnaMoleculeProps.nucleotideProps)) {
+                        if (singularNucleotideProps.color === undefined) {
+                          singularNucleotideProps.color = structuredClone(BLACK);
+                        }
+                        if (singularNucleotideProps.font === undefined) {
+                          singularNucleotideProps.font = structuredClone(Font.DEFAULT);
+                        }
+                        if (invertYAxisFlag) {
+                          singularNucleotideProps.y *= -1;
+                          if (singularNucleotideProps.labelLineProps !== undefined) {
+                            for (let i = 0; i < singularNucleotideProps.labelLineProps.points.length; i++) {
+                              singularNucleotideProps.labelLineProps.points[i].y *= -1;
+                            }
+                          }
+                          if (singularNucleotideProps.labelContentProps !== undefined) {
+                            singularNucleotideProps.labelContentProps.y *= -1;
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  let finalRnaComplexProps: RnaComplexProps;
+                  
+                  if (mode === 'new') {
+                    finalRnaComplexProps = {};
+                    parsedInput.rnaComplexProps.forEach((complexProps, index) => {
+                      finalRnaComplexProps[index] = complexProps;
+                    });
+                  } else {
+                    const newRnaComplexProps: RnaComplexProps = {};
+                    let nextIndex = Object.keys(rnaComplexProps).length;
+                    for (const complexProps of parsedInput.rnaComplexProps) {
+                      newRnaComplexProps[nextIndex] = complexProps;
+                      nextIndex++;
+                    }
+                    finalRnaComplexProps = { ...rnaComplexProps, ...newRnaComplexProps };
+                  }
+
+                  setUndoStack([]);
+                  setRedoStack([]);
+                  setBasePairKeysToEdit({});
+                  setRnaComplexProps(finalRnaComplexProps);
+                  resetGlobalHelicesForFormatMenu(finalRnaComplexProps);
+                  setImportModalOpen(false);
+                  setImportModalError(undefined);
+
+                  setTimeout(() => {
+                    resetViewport();
+                    setSceneState(SceneState.DATA_IS_LOADED);
+                  }, 100);
+                } catch (error) {
+                  const message = error instanceof Error ? error.message : String(error);
+                  setImportModalError(message);
+                }
+              });
+              reader.readAsText(file);
+            }}
+            onLoadExample={(mode: ImportMode) => {
+              fetch(`${process.env.PUBLIC_URL ?? ""}/7k00_23_b.json`)
+                .then((response) => response.text())
+                .then((content) => {
+                  try {
+                    const parsedInput = inputFileReadersRecord[InputFileExtension.json](content);
+                    
+                    // Apply default colors and Y-axis inversion (JSON files need Y inversion)
+                    for (const singularRnaComplexProps of parsedInput.rnaComplexProps) {
+                      for (const [rnaMoleculeName, singularRnaMoleculeProps] of Object.entries(singularRnaComplexProps.rnaMoleculeProps)) {
+                        if (!(rnaMoleculeName in singularRnaComplexProps.basePairs)) {
+                          singularRnaComplexProps.basePairs[rnaMoleculeName] = {};
+                        }
+                        for (const singularNucleotideProps of Object.values(singularRnaMoleculeProps.nucleotideProps)) {
+                          if (singularNucleotideProps.color === undefined) {
+                            singularNucleotideProps.color = structuredClone(BLACK);
+                          }
+                          if (singularNucleotideProps.font === undefined) {
+                            singularNucleotideProps.font = structuredClone(Font.DEFAULT);
+                          }
+                          // Invert Y axis for JSON format
+                          singularNucleotideProps.y *= -1;
+                          if (singularNucleotideProps.labelLineProps !== undefined) {
+                            for (let i = 0; i < singularNucleotideProps.labelLineProps.points.length; i++) {
+                              singularNucleotideProps.labelLineProps.points[i].y *= -1;
+                            }
+                          }
+                          if (singularNucleotideProps.labelContentProps !== undefined) {
+                            singularNucleotideProps.labelContentProps.y *= -1;
+                          }
+                        }
+                      }
+                    }
+
+                    let finalRnaComplexProps: RnaComplexProps;
+                    
+                    if (mode === 'new') {
+                      finalRnaComplexProps = {};
+                      parsedInput.rnaComplexProps.forEach((complexProps, index) => {
+                        finalRnaComplexProps[index] = complexProps;
+                      });
+                      setOutputFileName("7k00_23_b");
+                      setOutputFileExtension("json" as OutputFileExtension);
+                      outputFileExtensionReference.current = "json" as OutputFileExtension;
+                    } else {
+                      const newRnaComplexProps: RnaComplexProps = {};
+                      let nextIndex = Object.keys(rnaComplexProps).length;
+                      for (const complexProps of parsedInput.rnaComplexProps) {
+                        newRnaComplexProps[nextIndex] = complexProps;
+                        nextIndex++;
+                      }
+                      finalRnaComplexProps = { ...rnaComplexProps, ...newRnaComplexProps };
+                    }
+
+                    setUndoStack([]);
+                    setRedoStack([]);
+                    setBasePairKeysToEdit({});
+                    setRnaComplexProps(finalRnaComplexProps);
+                    resetGlobalHelicesForFormatMenu(finalRnaComplexProps);
+                    setImportModalOpen(false);
+                    setImportModalError(undefined);
+
+                    setTimeout(() => {
+                      resetViewport();
+                      setSceneState(SceneState.DATA_IS_LOADED);
+                    }, 100);
+                  } catch (error) {
+                    const message = error instanceof Error ? error.message : String(error);
+                    setImportModalError(message);
+                  }
+                })
+                .catch((error) => {
+                  const message = error instanceof Error ? error.message : String(error);
+                  setImportModalError(message);
+                });
+            }}
+            errorMessage={importModalError}
           />
         </div>
       </Context.MemoizedComponent>
