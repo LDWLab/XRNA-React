@@ -1,7 +1,7 @@
 {
   "title": "Exornata User Guide",
-  "version": "1.2.1",
-  "lastUpdated": "2025-11-09",
+  "version": "1.3.0",
+  "lastUpdated": "2025-12-21",
   "intro": "This guide summarizes the Exornata workflow described in the project paper. Each section maps to a practical task: explore the workspace, use constraint-driven editing, format and annotate structures, and deliver consistent outputs.",
   "sections": [
     {
@@ -18,7 +18,7 @@
           "style": "ordered",
           "items": [
             "The workspace initializes in *Edit* mode with a blank canvas.",
-            "Select *Load example* to import the 5S ribosomal RNA structure of E.coli.",
+            "Click *Import* in the top bar to open the import modal. Choose *Load Example* for the 5S ribosomal RNA structure, or drop a file to open your own.",
             "The default constraint is Units/Complex, encompassing the entire structure, with drawing tools set to edit mode.",
             "Drag to reposition the entire structure. For precise edits, select a smaller region via the constraints menu.",
             "Switch to format mode to modify base pairs.",
@@ -152,7 +152,7 @@
             },
             {
               "type": "paragraph",
-              "text": "**Load**: Import structures from multiple formats including Exornata JSON, XRNA legacy files, BPSeq files, and dot-bracket notation (.dbn). The parser automatically detects format and validates structure integrity."
+              "text": "**Import**: Click the Import button in the top bar to open the unified import modal. You can drag and drop files directly, load a built-in example structure, or expand the paste section to enter FASTA notation manually. Choose between *New Canvas* (replaces current content) or *Add to Existing* (appends to current structure). Supported formats include Exornata JSON, XRNA legacy files, SVG, and extended FASTA with dot-bracket notation."
             },
             {
               "type": "paragraph",
@@ -490,7 +490,7 @@
         {
           "id": "format-mode-basepair-editor",
           "title": "Base Pair Editor",
-          "summary": "Text-driven topology adjustments with CSV import/export.",
+          "summary": "Text-driven topology adjustments with CSV import/export and FR3D integration.",
           "content": [
             {
               "type": "paragraph",
@@ -498,7 +498,7 @@
             },
             {
               "type": "paragraph",
-              "text": "Use the action icons on the right to modify or delete individual base pairs as required."
+              "text": "Use the action icons on the right to modify or delete individual base pairs as required. **FR3D Import:** Use the FR3D Fetch section to automatically import base pairs from the BGSU RNA 3D Hub database by entering a PDB ID and Chain ID."
             }
           ]
         },
