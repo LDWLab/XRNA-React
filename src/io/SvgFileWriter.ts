@@ -52,16 +52,20 @@ export function svgFileWriter(
     [SvgPropertyXrnaType.LABEL_LINE] : "LabelLines",
     [SvgPropertyXrnaType.LABEL_CONTENT] : "LabelContents",
     [SvgPropertyXrnaType.PATH] : "Paths",
-    [SvgPropertyXrnaType.CENTERLINE] : "Centerline"
+    [SvgPropertyXrnaType.CENTERLINE] : "Centerline",
+    [SvgPropertyXrnaType.TEXT_ANNOTATION] : "TextAnnotations",
+    [SvgPropertyXrnaType.SEQUENCE_CONNECTOR] : "SequenceConnectors"
   };
   // Layer order for Adobe Illustrator (bottom to top)
   const layerOrder = [
-    "Nucleotides",    // 1. Sequence (the letters)
-    "BasePairs",      // 2. Base pairs (lines and shapes between nucleotides)
-    "LabelLines",     // 3. Label lines
-    "LabelContents",  // 4. Label content (text)
-    "Paths",          // 5. Path lines
-    "Centerline",     // 6. Centerline (hidden by default)
+    "SequenceConnectors", // 1. Sequence connectors (dashed lines between distant nucleotides)
+    "Nucleotides",    // 2. Sequence (the letters)
+    "BasePairs",      // 3. Base pairs (lines and shapes between nucleotides)
+    "LabelLines",     // 4. Label lines
+    "LabelContents",  // 5. Label content (text)
+    "TextAnnotations", // 6. Text annotations (free-form text)
+    "Paths",          // 7. Path lines
+    "Centerline",     // 8. Centerline (hidden by default)
     MISCELLANEOUS     // Any other elements
   ];
   const htmlIdToGroupMap : Record<string, HTMLElement>  = {};

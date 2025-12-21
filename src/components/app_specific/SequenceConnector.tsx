@@ -5,6 +5,7 @@ import Color, { toCSS, BLACK } from "../../data_structures/Color";
 import { Vector2D } from "../../data_structures/Vector2D";
 import { Nucleotide } from "./Nucleotide";
 import { SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
+
 import { getLineBoundingPath } from "../../utils/Utils";
 
 // Gap distance from nucleotide center to connector endpoint
@@ -478,7 +479,7 @@ export namespace SequenceConnector {
     return (
       <g 
         id={id}
-        {...{ [SVG_PROPERTY_XRNA_TYPE]: "sequence_connector" }}
+        {...{ [SVG_PROPERTY_XRNA_TYPE]: SvgPropertyXrnaType.SEQUENCE_CONNECTOR }}
       >
         {/* Visual path - for continuous connectors */}
         {!isORF && (

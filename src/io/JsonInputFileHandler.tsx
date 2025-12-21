@@ -2,6 +2,7 @@ import BasePair, { isBasePairType } from "../components/app_specific/BasePair";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { RnaComplex, insertBasePair, DuplicateBasePairKeysHandler } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
+import { TextAnnotation } from "../components/app_specific/TextAnnotation";
 import Color, { fromCssString, BLACK } from "../data_structures/Color";
 import Font from "../data_structures/Font";
 import { Vector2D, subtract } from "../data_structures/Vector2D";
@@ -144,6 +145,73 @@ function parseBasePair(
   );
 }
 
+function parseSequenceConnector(connectorData: any): Nucleotide.SequenceConnector.Props {
+  const connector: Nucleotide.SequenceConnector.Props = {
+    breakpoints: []
+  };
+  
+  if (connectorData.breakpoints && Array.isArray(connectorData.breakpoints)) {
+    connector.breakpoints = connectorData.breakpoints.map((bp: any) => ({
+      x: Number.parseFloat(bp.x),
+      y: -Number.parseFloat(bp.y) // Flip Y back
+    }));
+  }
+  
+  if (connectorData.color) connector.color = fromCssString(connectorData.color);
+  if (connectorData.strokeWidth !== undefined) connector.strokeWidth = Number.parseFloat(connectorData.strokeWidth);
+  if (connectorData.opacity !== undefined) connector.opacity = Number.parseFloat(connectorData.opacity);
+  if (connectorData.dashArray) connector.dashArray = connectorData.dashArray;
+  if (connectorData.curvature !== undefined) connector.curvature = Number.parseFloat(connectorData.curvature);
+  if (connectorData.showDirectionArrow !== undefined) connector.showDirectionArrow = connectorData.showDirectionArrow;
+  if (connectorData.showBreakpoints !== undefined) connector.showBreakpoints = connectorData.showBreakpoints;
+  if (connectorData.arrowColor) connector.arrowColor = fromCssString(connectorData.arrowColor);
+  if (connectorData.arrowShape) connector.arrowShape = connectorData.arrowShape;
+  if (connectorData.arrowPosition !== undefined) connector.arrowPosition = Number.parseFloat(connectorData.arrowPosition);
+  if (connectorData.arrowPositionRight !== undefined) connector.arrowPositionRight = Number.parseFloat(connectorData.arrowPositionRight);
+  if (connectorData.arrowSize !== undefined) connector.arrowSize = Number.parseFloat(connectorData.arrowSize);
+  if (connectorData.lockedBreakpoints) connector.lockedBreakpoints = connectorData.lockedBreakpoints;
+  if (connectorData.breakpointGroups) connector.breakpointGroups = connectorData.breakpointGroups;
+  if (connectorData.targetMoleculeName) connector.targetMoleculeName = connectorData.targetMoleculeName;
+  if (connectorData.targetNucleotideIndex !== undefined) connector.targetNucleotideIndex = Number.parseInt(connectorData.targetNucleotideIndex);
+  if (connectorData.targetComplexIndex !== undefined) connector.targetComplexIndex = Number.parseInt(connectorData.targetComplexIndex);
+  if (connectorData.deleted !== undefined) connector.deleted = connectorData.deleted;
+  if (connectorData.isORF !== undefined) connector.isORF = connectorData.isORF;
+  
+  return connector;
+}
+
+function parseTextAnnotation(annotationData: any): TextAnnotation.Props {
+  const annotation: TextAnnotation.Props = {
+    id: annotationData.id,
+    content: annotationData.content,
+    x: Number.parseFloat(annotationData.x),
+    y: -Number.parseFloat(annotationData.y) // Flip Y back
+  };
+  
+  if (annotationData.font) {
+    annotation.font = {
+      family: annotationData.font.family ?? Font.DEFAULT.family,
+      size: annotationData.font.size ?? Font.DEFAULT.size,
+      weight: annotationData.font.weight ?? Font.DEFAULT.weight,
+      style: annotationData.font.style ?? Font.DEFAULT.style
+    };
+  }
+  
+  if (annotationData.color) annotation.color = fromCssString(annotationData.color);
+  if (annotationData.strokeColor) annotation.strokeColor = fromCssString(annotationData.strokeColor);
+  if (annotationData.strokeWidth !== undefined) annotation.strokeWidth = Number.parseFloat(annotationData.strokeWidth);
+  if (annotationData.strokeOpacity !== undefined) annotation.strokeOpacity = Number.parseFloat(annotationData.strokeOpacity);
+  if (annotationData.opacity !== undefined) annotation.opacity = Number.parseFloat(annotationData.opacity);
+  if (annotationData.rotation !== undefined) annotation.rotation = Number.parseFloat(annotationData.rotation);
+  if (annotationData.backgroundColor) annotation.backgroundColor = fromCssString(annotationData.backgroundColor);
+  if (annotationData.padding !== undefined) annotation.padding = Number.parseFloat(annotationData.padding);
+  if (annotationData.borderColor) annotation.borderColor = fromCssString(annotationData.borderColor);
+  if (annotationData.borderWidth !== undefined) annotation.borderWidth = Number.parseFloat(annotationData.borderWidth);
+  if (annotationData.borderRadius !== undefined) annotation.borderRadius = Number.parseFloat(annotationData.borderRadius);
+  
+  return annotation;
+}
+
 export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
   if (!("classes" in parsedJson) || !("rnaComplexes" in parsedJson)) {
     throw "Input Json should have \"classes\" and \"rnaComplexes\" variables.";
@@ -241,6 +309,10 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
         };
         singularNucleotideProps.font = structuredClone(parsedClassesForSequence.font);
         singularNucleotideProps.color = structuredClone(parsedClassesForSequence.color);
+        // Parse sequence connector if present
+        if (inputSequenceEntry.sequenceConnector) {
+          singularNucleotideProps.sequenceConnectorToNext = parseSequenceConnector(inputSequenceEntry.sequenceConnector);
+        }
         singularRnaMoleculeProps.nucleotideProps[nucleotideIndex] = singularNucleotideProps;
         const classes = inputSequenceEntry.classes;
         if (classes !== undefined) {
@@ -583,6 +655,14 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
           parsedClassesForBasePairs.stroke,
           parsedClassesForBasePairs.strokeWidth
         );
+      }
+    }
+    // Parse text annotations if present
+    if (inputRnaComplex.textAnnotations && Array.isArray(inputRnaComplex.textAnnotations)) {
+      singularRnaComplexProps.textAnnotations = {};
+      for (const annotationData of inputRnaComplex.textAnnotations) {
+        const annotation = parseTextAnnotation(annotationData);
+        singularRnaComplexProps.textAnnotations[annotation.id] = annotation;
       }
     }
     return singularRnaComplexProps;

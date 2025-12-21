@@ -4,6 +4,7 @@ import Color, { BLACK, toCSS } from "../../data_structures/Color";
 import Font from "../../data_structures/Font";
 import { Vector2D } from "../../data_structures/Vector2D";
 import { DEFAULT_STROKE_WIDTH } from "../../utils/Constants";
+import { SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
 
 export namespace TextAnnotation {
   export type SvgRepresentation = SVGTextElement;
@@ -84,6 +85,7 @@ export namespace TextAnnotation {
       <g
         transform={`translate(${x}, ${y}) rotate(${-rotation})`}
         style={{ cursor: 'move' }}
+        {...{ [SVG_PROPERTY_XRNA_TYPE]: SvgPropertyXrnaType.TEXT_ANNOTATION }}
       >
         {/* Background rectangle */}
         {(hasBackground || hasBorder) && (

@@ -203,6 +203,63 @@ const ABOUT_SHORTCUTS_NOTE =
 
 export const LEFT_PANEL_WIDTH = 420;
 
+// Cookie helpers for canvas/grid settings persistence
+const SETTINGS_COOKIE_PREFIX = 'exornata_setting_';
+const COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 year in seconds
+
+// Settings to persist in cookies
+const PERSISTED_SETTINGS: Setting[] = [
+  Setting.CANVAS_COLOR,
+  Setting.GRID_ENABLED,
+  Setting.GRID_HORIZONTAL_LINES,
+  Setting.GRID_VERTICAL_LINES,
+  Setting.GRID_LEFT_RIGHT_DIAGONAL,
+  Setting.GRID_RIGHT_LEFT_DIAGONAL,
+  Setting.GRID_CONCENTRIC_CIRCLES,
+  Setting.GRID_DOTTED,
+  Setting.GRID_SPACING,
+  Setting.GRID_COLOR,
+];
+
+function getSettingFromCookie(setting: Setting): string | null {
+  if (typeof document === 'undefined') return null;
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === `${SETTINGS_COOKIE_PREFIX}${setting}`) {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+}
+
+function setSettingCookie(setting: Setting, value: string | number | boolean): void {
+  if (typeof document === 'undefined') return;
+  const encodedValue = encodeURIComponent(String(value));
+  document.cookie = `${SETTINGS_COOKIE_PREFIX}${setting}=${encodedValue}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+}
+
+function getInitialSettingsFromCookies(): Partial<SettingsRecord> {
+  const cookieSettings: Partial<SettingsRecord> = {};
+  for (const setting of PERSISTED_SETTINGS) {
+    const cookieValue = getSettingFromCookie(setting);
+    if (cookieValue !== null) {
+      const settingType = settingsTypeMap[setting];
+      if (settingType === 'boolean') {
+        cookieSettings[setting] = cookieValue === 'true';
+      } else if (settingType === 'number') {
+        const numValue = parseFloat(cookieValue);
+        if (!isNaN(numValue)) {
+          cookieSettings[setting] = numValue;
+        }
+      } else {
+        cookieSettings[setting] = cookieValue;
+      }
+    }
+  }
+  return cookieSettings;
+}
+
 export const PARENT_DIV_HTML_ID = "parent_div";
 export const SVG_ELEMENT_HTML_ID = "viewport";
 export const TEST_SPACE_ID = "testSpace";
@@ -425,7 +482,19 @@ export namespace App {
       InteractionConstraint.Enum | undefined
     >(InteractionConstraint.Enum.SINGLE_NUCLEOTIDE);
     const [settingsRecord, setSettingsRecord] =
-      useState<SettingsRecord>(DEFAULT_SETTINGS);
+      useState<SettingsRecord>(() => {
+        // Initialize with defaults, then override with cookie values
+        const cookieSettings = getInitialSettingsFromCookies();
+        return { ...DEFAULT_SETTINGS, ...cookieSettings };
+      });
+    
+    // Save persisted settings to cookies when they change
+    useEffect(() => {
+      for (const setting of PERSISTED_SETTINGS) {
+        setSettingCookie(setting, settingsRecord[setting]);
+      }
+    }, [settingsRecord]);
+    
     const [rightClickMenuContent, _setRightClickMenuContent] = useState(<></>);
     const [nucleotideKeysToRerender, setNucleotideKeysToRerender] =
       useState<NucleotideKeysToRerender>({});
@@ -3040,7 +3109,7 @@ export namespace App {
                     numberOfBoundingRects == 0
                       ? 1
                       : (boundingRectHeightsSum / numberOfBoundingRects);
-                  const newBasePairRadius = averageBoundingRectHeight * 0.33;
+                  const newBasePairRadius = averageBoundingRectHeight * 0.6;
                   setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
                   setBasePairRadius(newBasePairRadius);
                   setSettingsRecord(prevSettings => ({
@@ -5911,6 +5980,169 @@ export namespace App {
                   const message = error instanceof Error ? error.message : String(error);
                   setImportModalError(message);
                 });
+            }}
+            onImportFR3D={async (pdbId: string, chainId: string, mode: ImportMode) => {
+              try {
+                // Use CORS proxy to work around FR3D API CORS issues
+                const fr3dUrl = `https://rna.bgsu.edu/rna3dhub/rest/getChainSequenceBasePairs?pdb_id=${encodeURIComponent(pdbId)}&chain=${encodeURIComponent(chainId)}`;
+                const response = await fetch(
+                  `https://corsproxy.io/?${encodeURIComponent(fr3dUrl)}`
+                );
+                
+                if (!response.ok) {
+                  throw new Error(`Failed to fetch from FR3D: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Check for error response
+                if (data.sequence === "No sequence was found for the given id" || !data.sequence || data.sequence.length === 0) {
+                  throw new Error(`No sequence found for PDB ID "${pdbId}" chain "${chainId}". Please check the IDs and try again.`);
+                }
+                
+                // Parse FR3D response into RNA complex props
+                const sequence = data.sequence as string;
+                const annotations = (data.annotations || []) as Array<{
+                  seq_id1: string;
+                  seq_id2: string;
+                  bp: string;
+                  nt1: string;
+                  nt2: string;
+                }>;
+                
+                const rnaComplexName = `${pdbId}_${chainId}`;
+                const rnaMoleculeName = chainId;
+                
+                // Generate circular layout
+                const MINIMUM_RADIUS = 40;
+                const RADIUS_PER_NUCLEOTIDE = 6;
+                const radius = Math.max(MINIMUM_RADIUS, sequence.length * RADIUS_PER_NUCLEOTIDE);
+                const centerOffset = radius + 10;
+                
+                const singularRnaMoleculeProps: RnaMolecule.ExternalProps = {
+                  firstNucleotideIndex: 1,
+                  nucleotideProps: {},
+                };
+                
+                // Create nucleotides with circular layout
+                for (let i = 0; i < sequence.length; i++) {
+                  const desiredGapNucleotideCount = Math.min(2, Math.max(0, sequence.length - 2));
+                  const baseSpacing = (2 * Math.PI) / sequence.length;
+                  const gapAngle = (desiredGapNucleotideCount + 1) * baseSpacing;
+                  const usableAngle = 2 * Math.PI - gapAngle;
+                  const angleIncrement = sequence.length > 1 ? usableAngle / (sequence.length - 1) : 0;
+                  const startAngle = -Math.PI / 2 + gapAngle / 2;
+                  const angle = startAngle + i * angleIncrement;
+                  
+                  const x = centerOffset + radius * Math.cos(angle);
+                  const y = centerOffset + radius * Math.sin(angle);
+                  
+                  const rawSymbol = sequence[i].toUpperCase();
+                  const sanitizedSymbol = rawSymbol === "T" ? Nucleotide.Symbol.U : rawSymbol;
+                  const symbol = Nucleotide.isSymbol(sanitizedSymbol)
+                    ? sanitizedSymbol
+                    : Nucleotide.Symbol.N;
+                  
+                  singularRnaMoleculeProps.nucleotideProps[i] = {
+                    symbol,
+                    x,
+                    y,
+                    color: structuredClone(BLACK),
+                    font: structuredClone(Font.DEFAULT),
+                  };
+                }
+                
+                const singularRnaComplexProps: RnaComplex.ExternalProps = {
+                  name: rnaComplexName,
+                  rnaMoleculeProps: {
+                    [rnaMoleculeName]: singularRnaMoleculeProps,
+                  },
+                  basePairs: {
+                    [rnaMoleculeName]: {},
+                  },
+                };
+                
+                // Parse base pairs from annotations
+                // FR3D bp types: cWW (canonical Watson-Crick), tWW (trans WW), cWH, cHW, cWS, cSW, etc.
+                for (const annotation of annotations) {
+                  const idx1 = parseInt(annotation.seq_id1, 10) - 1; // Convert to 0-indexed
+                  const idx2 = parseInt(annotation.seq_id2, 10) - 1;
+                  
+                  if (idx1 >= 0 && idx1 < sequence.length && idx2 >= 0 && idx2 < sequence.length && idx1 !== idx2) {
+                    // Determine base pair type from FR3D annotation
+                    const bpType = annotation.bp || 'cWW';
+                    let basePairType: BasePair.Type = BasePair.Type.CANONICAL;
+                    
+                    // cWW is canonical Watson-Crick
+                    if (bpType.startsWith('c') && bpType.includes('WW')) {
+                      basePairType = BasePair.Type.CANONICAL;
+                    } else if (bpType.includes('WW')) {
+                      // tWW and other WW variations
+                      basePairType = BasePair.Type.WOBBLE;
+                    } else {
+                      // Non-canonical (tSH, cSH, cHW, etc.)
+                      basePairType = BasePair.Type.MISMATCH;
+                    }
+                    
+                    // Only add if not already added (to avoid duplicates)
+                    if (!singularRnaComplexProps.basePairs[rnaMoleculeName][idx1]) {
+                      singularRnaComplexProps.basePairs[rnaMoleculeName][idx1] = [];
+                    }
+                    
+                    // Check if this pair already exists
+                    const existingPair = singularRnaComplexProps.basePairs[rnaMoleculeName][idx1].find(
+                      bp => bp.rnaMoleculeName === rnaMoleculeName && bp.nucleotideIndex === idx2
+                    );
+                    
+                    if (!existingPair) {
+                      singularRnaComplexProps.basePairs[rnaMoleculeName][idx1].push({
+                        rnaMoleculeName,
+                        nucleotideIndex: idx2,
+                        basePairType,
+                        strokeWidth: DEFAULT_STROKE_WIDTH,
+                      });
+                      
+                      // Add symmetric entry
+                      if (!singularRnaComplexProps.basePairs[rnaMoleculeName][idx2]) {
+                        singularRnaComplexProps.basePairs[rnaMoleculeName][idx2] = [];
+                      }
+                      singularRnaComplexProps.basePairs[rnaMoleculeName][idx2].push({
+                        rnaMoleculeName,
+                        nucleotideIndex: idx1,
+                        basePairType,
+                        strokeWidth: DEFAULT_STROKE_WIDTH,
+                      });
+                    }
+                  }
+                }
+                
+                let finalRnaComplexProps: RnaComplexProps;
+                
+                if (mode === 'new') {
+                  finalRnaComplexProps = { 0: singularRnaComplexProps };
+                  setOutputFileName(rnaComplexName);
+                } else {
+                  const nextIndex = Object.keys(rnaComplexProps).length;
+                  finalRnaComplexProps = { ...rnaComplexProps, [nextIndex]: singularRnaComplexProps };
+                }
+                
+                setUndoStack([]);
+                setRedoStack([]);
+                setBasePairKeysToEdit({});
+                setRnaComplexProps(finalRnaComplexProps);
+                resetGlobalHelicesForFormatMenu(finalRnaComplexProps);
+                setImportModalOpen(false);
+                setImportModalError(undefined);
+                
+                setTimeout(() => {
+                  resetViewport();
+                  setSceneState(SceneState.DATA_IS_LOADED);
+                }, 100);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                setImportModalError(message);
+                throw error; // Re-throw to let the modal know loading is done
+              }
             }}
             errorMessage={importModalError}
           />

@@ -3,6 +3,7 @@ import BasePair, { getBasePairType } from "../components/app_specific/BasePair";
 import { Nucleotide } from "../components/app_specific/Nucleotide";
 import { RnaComplex, isRelevantBasePairKeySetInPair } from "../components/app_specific/RnaComplex";
 import { RnaMolecule } from "../components/app_specific/RnaMolecule";
+import { TextAnnotation } from "../components/app_specific/TextAnnotation";
 import Color, { toCSS, BLACK } from "../data_structures/Color";
 import Font from "../data_structures/Font";
 import { Vector2D, add } from "../data_structures/Vector2D";
@@ -45,7 +46,54 @@ type LabelForJson = {
   },
   residueIndex : number
 };
-  
+
+type SequenceConnectorForJson = {
+  breakpoints : Array<Vector2D>,
+  color? : string,
+  strokeWidth? : number,
+  opacity? : number,
+  dashArray? : string,
+  curvature? : number,
+  showDirectionArrow? : boolean,
+  showBreakpoints? : boolean,
+  arrowColor? : string,
+  arrowShape? : Nucleotide.SequenceConnector.ArrowShape,
+  arrowPosition? : number,
+  arrowPositionRight? : number,
+  arrowSize? : number,
+  lockedBreakpoints? : number[],
+  breakpointGroups? : Nucleotide.SequenceConnector.BreakpointGroup[],
+  targetMoleculeName? : string,
+  targetNucleotideIndex? : number,
+  targetComplexIndex? : number,
+  deleted? : boolean,
+  isORF? : boolean
+};
+
+type TextAnnotationForJson = {
+  id : string,
+  content : string,
+  x : number,
+  y : number,
+  font? : {
+    family : string,
+    size : string,
+    weight : string,
+    style : string
+  },
+  color? : string,
+  strokeColor? : string,
+  strokeWidth? : number,
+  strokeOpacity? : number,
+  opacity? : number,
+  rotation? : number,
+  backgroundColor? : string,
+  padding? : number,
+  borderColor? : string,
+  borderWidth? : number,
+  borderRadius? : number
+};
+
 export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexProps) => {
   let fontCssClasses : Array<CssClassForJson> = [];
   let strokeCssClasses : Array<CssClassForJson> = [];
@@ -239,17 +287,74 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
               nucleotideIndex,
               singularNucleotideProps
             }) {
-              return {
+              const sequenceEntry : any = {
                 classes : nucleotideCssClasses[nucleotideIndex],
                 residueIndex : nucleotideIndex + singularRnaMoleculeProps.firstNucleotideIndex,
                 residueName : singularNucleotideProps.symbol,
                 x : singularNucleotideProps.x,
                 y : -singularNucleotideProps.y
               };
+              // Export sequence connector if present
+              const connector = singularNucleotideProps.sequenceConnectorToNext;
+              if (connector) {
+                const connectorForJson : SequenceConnectorForJson = {
+                  breakpoints : connector.breakpoints?.map(bp => ({ x: bp.x, y: -bp.y })) ?? []
+                };
+                if (connector.color) connectorForJson.color = toCSS(connector.color);
+                if (connector.strokeWidth !== undefined) connectorForJson.strokeWidth = connector.strokeWidth;
+                if (connector.opacity !== undefined) connectorForJson.opacity = connector.opacity;
+                if (connector.dashArray) connectorForJson.dashArray = connector.dashArray;
+                if (connector.curvature !== undefined) connectorForJson.curvature = connector.curvature;
+                if (connector.showDirectionArrow !== undefined) connectorForJson.showDirectionArrow = connector.showDirectionArrow;
+                if (connector.showBreakpoints !== undefined) connectorForJson.showBreakpoints = connector.showBreakpoints;
+                if (connector.arrowColor) connectorForJson.arrowColor = toCSS(connector.arrowColor);
+                if (connector.arrowShape) connectorForJson.arrowShape = connector.arrowShape;
+                if (connector.arrowPosition !== undefined) connectorForJson.arrowPosition = connector.arrowPosition;
+                if (connector.arrowPositionRight !== undefined) connectorForJson.arrowPositionRight = connector.arrowPositionRight;
+                if (connector.arrowSize !== undefined) connectorForJson.arrowSize = connector.arrowSize;
+                if (connector.lockedBreakpoints?.length) connectorForJson.lockedBreakpoints = connector.lockedBreakpoints;
+                if (connector.breakpointGroups?.length) connectorForJson.breakpointGroups = connector.breakpointGroups;
+                if (connector.targetMoleculeName) connectorForJson.targetMoleculeName = connector.targetMoleculeName;
+                if (connector.targetNucleotideIndex !== undefined) connectorForJson.targetNucleotideIndex = connector.targetNucleotideIndex;
+                if (connector.targetComplexIndex !== undefined) connectorForJson.targetComplexIndex = connector.targetComplexIndex;
+                if (connector.deleted !== undefined) connectorForJson.deleted = connector.deleted;
+                if (connector.isORF !== undefined) connectorForJson.isORF = connector.isORF;
+                sequenceEntry.sequenceConnector = connectorForJson;
+              }
+              return sequenceEntry;
             })
           };
         }),
-        basePairs : outputBasePairsPerRnaComplex
+        basePairs : outputBasePairsPerRnaComplex,
+        textAnnotations : singularRnaComplexProps.textAnnotations ? 
+          Object.entries(singularRnaComplexProps.textAnnotations).map(([id, annotation]) => {
+            const annotationForJson : TextAnnotationForJson = {
+              id : annotation.id,
+              content : annotation.content,
+              x : annotation.x,
+              y : -annotation.y
+            };
+            if (annotation.font) {
+              annotationForJson.font = {
+                family : annotation.font.family,
+                size : String(annotation.font.size),
+                weight : annotation.font.weight,
+                style : annotation.font.style
+              };
+            }
+            if (annotation.color) annotationForJson.color = toCSS(annotation.color);
+            if (annotation.strokeColor) annotationForJson.strokeColor = toCSS(annotation.strokeColor);
+            if (annotation.strokeWidth !== undefined) annotationForJson.strokeWidth = annotation.strokeWidth;
+            if (annotation.strokeOpacity !== undefined) annotationForJson.strokeOpacity = annotation.strokeOpacity;
+            if (annotation.opacity !== undefined) annotationForJson.opacity = annotation.opacity;
+            if (annotation.rotation !== undefined) annotationForJson.rotation = annotation.rotation;
+            if (annotation.backgroundColor) annotationForJson.backgroundColor = toCSS(annotation.backgroundColor);
+            if (annotation.padding !== undefined) annotationForJson.padding = annotation.padding;
+            if (annotation.borderColor) annotationForJson.borderColor = toCSS(annotation.borderColor);
+            if (annotation.borderWidth !== undefined) annotationForJson.borderWidth = annotation.borderWidth;
+            if (annotation.borderRadius !== undefined) annotationForJson.borderRadius = annotation.borderRadius;
+            return annotationForJson;
+          }) : []
       };
     })
   });

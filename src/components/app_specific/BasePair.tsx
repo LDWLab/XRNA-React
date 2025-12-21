@@ -302,7 +302,7 @@ export namespace BasePair {
     }
   }
 
-  const AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR = 0.5;
+  const AVERAGE_NUCLEOTIDE_RECT_HEIGHT_SCALAR = 0.75;
 
   function interpolatedPositions(
     position0 : Vector2D,
@@ -1551,21 +1551,20 @@ export namespace BasePair {
     const rnaComplexProps = useContext(Context.App.RnaComplexProps)!;
     const basePairOnMouseDownHelper = useContext(Context.BasePair.OnMouseDownHelper);
     const singularRnaComplexFlag = useContext(Context.App.SingularRnaComplexFlag);
-    const singularRnaMoleculeFlag = useContext(Context.RnaComplex.SingularRnaMoleculeFlag);
     let basePairRadius = useContext(Context.BasePair.Radius);
     if (Number.isNaN(basePairRadius)) {
       basePairRadius = 1;
     }
     let averageNucleotideBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
-    if (Number.isNaN(averageNucleotideBoundingRectHeight)) {
-      averageNucleotideBoundingRectHeight = 0.1;
-      // averageNucleotideBoundingRectHeight = Font.DEFAULT_SIZE;
+    if (Number.isNaN(averageNucleotideBoundingRectHeight) || averageNucleotideBoundingRectHeight === 0) {
+      averageNucleotideBoundingRectHeight = Font.DEFAULT_SIZE;
     }
     if (mappedBasePair === undefined) {
       return null;
     }
     const basePairType = mappedBasePair.basePairType;
     const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+    const singularRnaMoleculeFlag = Object.keys(singularRnaComplexProps.rnaMoleculeProps).length === 1;
     const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
     const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
     const nucleotideIndex0 = formattedNucleotideIndex0 - singularRnaMoleculeProps0.firstNucleotideIndex;
@@ -1577,7 +1576,7 @@ export namespace BasePair {
     ));
     const strokeWidth = mappedBasePair.strokeWidth ?? defaultStrokeWidth;
     if (mappedBasePair.points !== undefined) {
-      const points = mappedBasePair.points.map(function({ x, y }) {
+      const points = mappedBasePair.points.map(function({ x, y } : { x : number, y : number }) {
         return `${x},${y}`;
       }).join(" ");
       return <polyline

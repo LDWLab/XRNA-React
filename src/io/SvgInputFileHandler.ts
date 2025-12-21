@@ -21,7 +21,9 @@ export enum SvgPropertyXrnaType {
   LABEL_CONTENT = "label_content",
   BASE_PAIR = "base_pair",
   PATH = "path",
-  CENTERLINE = "centerline"
+  CENTERLINE = "centerline",
+  TEXT_ANNOTATION = "text_annotation",
+  SEQUENCE_CONNECTOR = "sequence_connector"
 };
 const svgPropertyXrnaDataTypes = Object.values(SvgPropertyXrnaType);
 

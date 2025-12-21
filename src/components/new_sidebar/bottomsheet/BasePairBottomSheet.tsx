@@ -20,7 +20,7 @@ import {
 import { Context } from "../../../context/Context";
 import { Setting } from "../../../ui/Setting";
 import { Vector2D, add, subtract, scaleUp, normalize, magnitude, orthogonalize, dotProduct, negate } from "../../../data_structures/Vector2D";
-import { Pencil, Check, Trash2, X, Download, Upload } from "lucide-react";
+import { Pencil, Check, Trash2, X, Download, Upload, Database, Loader2 } from "lucide-react";
 import { repositionNucleotidesForBasePairs } from "../../../utils/BasePairRepositioner";
 import { Helix, iterateOverFreeNucleotidesAndHelicesPerScene } from "../../../ui/InteractionConstraint/InteractionConstraints";
 
@@ -229,6 +229,12 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
   globalHelicesRef.current = globalHelices;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAdd, setShowAdd] = useState<boolean>(false);
+  const [showFR3D, setShowFR3D] = useState<boolean>(false);
+  const [fr3dPdbId, setFr3dPdbId] = useState<string>('');
+  const [fr3dChainId, setFr3dChainId] = useState<string>('');
+  const [fr3dLoading, setFr3dLoading] = useState<boolean>(false);
+  const [fr3dOverwrite, setFr3dOverwrite] = useState<boolean>(true);
+  const [fr3dError, setFr3dError] = useState<string | null>(null);
   const [repositionWithCalculatedDistances, setRepositionWithCalculatedDistances] = useState<boolean>(false);
   const repositionWithCalculatedDistancesReference = useRef(repositionWithCalculatedDistances);
   repositionWithCalculatedDistancesReference.current = repositionWithCalculatedDistances;
@@ -779,6 +785,100 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     },
     [parseAndApplyCsv]
   );
+
+  const handleFR3DImport = useCallback(async () => {
+    const trimmedPdbId = fr3dPdbId.trim().toUpperCase();
+    const trimmedChainId = fr3dChainId.trim();
+    if (!trimmedPdbId) { setFr3dError('Please enter a PDB ID.'); return; }
+    if (!trimmedChainId) { setFr3dError('Please enter a Chain ID.'); return; }
+    setFr3dError(null);
+    setFr3dLoading(true);
+    try {
+      const fr3dUrl = `https://rna.bgsu.edu/rna3dhub/rest/getChainSequenceBasePairs?pdb_id=${encodeURIComponent(trimmedPdbId)}&chain=${encodeURIComponent(trimmedChainId)}`;
+      const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(fr3dUrl)}`);
+      if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
+      const data = await response.json();
+      if (data.sequence === "No sequence was found for the given id" || !data.sequence) {
+        throw new Error(`No sequence found for ${trimmedPdbId} chain ${trimmedChainId}.`);
+      }
+      const fr3dSeq = data.sequence as string;
+      const annotations = (data.annotations || []) as Array<{ seq_id1: string; seq_id2: string; bp: string }>;
+      const currentRnaComplexProps = rnaComplexPropsReference.current;
+      const rcIndices = Object.keys(currentRnaComplexProps).map(k => parseInt(k));
+      if (rcIndices.length === 0) throw new Error('No RNA complex found.');
+      const rcIdx = rcIndices[0];
+      const cplx = currentRnaComplexProps[rcIdx];
+      const molNames = Object.keys(cplx.rnaMoleculeProps);
+      if (molNames.length === 0) throw new Error('No RNA molecule found.');
+      const molName = molNames[0];
+      const molProps = cplx.rnaMoleculeProps[molName];
+      const ntCount = Object.keys(molProps.nucleotideProps).length;
+      if (fr3dSeq.length !== ntCount) {
+        throw new Error(`Length mismatch: FR3D=${fr3dSeq.length}, structure=${ntCount}.`);
+      }
+      // Parse FR3D LW Schema: c/t = cis/trans, W/H/S = Watson-Crick/Hoogsteen/Sugar
+      const parseLWEdge = (ch: string): Edge | undefined => {
+        switch (ch.toUpperCase()) {
+          case 'W': return 'watson_crick';
+          case 'H': return 'hoogsteen';
+          case 'S': return 'sugar_edge';
+          default: return undefined;
+        }
+      };
+      const parseLWType = (code: string): BasePair.Type | undefined => {
+        if (!code || code.length < 3) return undefined;
+        const orientation: Orientation = code[0].toLowerCase() === 't' ? 'trans' : 'cis';
+        const edgeA = parseLWEdge(code[1]);
+        const edgeB = parseLWEdge(code[2]);
+        if (!edgeA || !edgeB) return undefined;
+        return assembleDirectedType(orientation, edgeA, edgeB);
+      };
+      pushToUndoStack();
+      const prevDel: Array<{ keys0: any; keys1: any }> = [];
+      if (fr3dOverwrite) {
+        // Collect and remove all existing base pairs from global helices
+        for (const [mn, pm] of Object.entries(cplx.basePairs)) {
+          for (const [ni, pn] of Object.entries(pm)) {
+            const nIdx = parseInt(ni);
+            for (const mp of pn) {
+              const kA = { rnaMoleculeName: mn, nucleotideIndex: nIdx };
+              const kB = { rnaMoleculeName: mp.rnaMoleculeName, nucleotideIndex: mp.nucleotideIndex };
+              const [k0, k1] = [kA, kB].sort(compareBasePairKeys);
+              if (k0.rnaMoleculeName === kA.rnaMoleculeName && k0.nucleotideIndex === kA.nucleotideIndex) {
+                prevDel.push({ keys0: k0, keys1: k1 });
+                // Remove from global helices (canvas)
+                removeBasePair(rcIdx, mn, mp.rnaMoleculeName, nIdx, mp.nucleotideIndex);
+              }
+            }
+          }
+        }
+        (cplx as any).basePairs = {};
+      }
+      const adds: Array<{ keys0: any; keys1: any }> = [];
+      for (const ann of annotations) {
+        const i1 = parseInt(ann.seq_id1, 10) - 1;
+        const i2 = parseInt(ann.seq_id2, 10) - 1;
+        if (i1 >= 0 && i1 < ntCount && i2 >= 0 && i2 < ntCount && i1 !== i2) {
+          const bpCode = ann.bp || 'cWW';
+          const bpType = parseLWType(bpCode) ?? BasePair.Type.CANONICAL;
+          if (!cplx.basePairs[molName]?.[i1]?.find(b => b.rnaMoleculeName === molName && b.nucleotideIndex === i2)) {
+            insertBasePair(cplx, molName, i1, molName, i2, DuplicateBasePairKeysHandler.DO_NOTHING, { basePairType: bpType });
+            const [k0, k1] = [{ rnaMoleculeName: molName, nucleotideIndex: i1 }, { rnaMoleculeName: molName, nucleotideIndex: i2 }].sort(compareBasePairKeys);
+            adds.push({ keys0: k0, keys1: k1 });
+          }
+        }
+      }
+      setBasePairKeysToEdit({ [rcIdx]: { add: adds, delete: prevDel } });
+      handleNewBasePair(undefined as any, undefined as any);
+      setShowFR3D(false);
+      setFr3dPdbId('');
+      setFr3dChainId('');
+    } catch (e) {
+      setFr3dError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setFr3dLoading(false);
+    }
+  }, [fr3dPdbId, fr3dChainId, fr3dOverwrite, pushToUndoStack, setBasePairKeysToEdit, handleNewBasePair, removeBasePair]);
 
   const getSymbolByFormattedIndex = useCallback(
     (
@@ -1624,6 +1724,26 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           >
             <Upload size={14} /> Import
           </button>
+          <button
+            onClick={() => setShowFR3D(!showFR3D)}
+            title="Import base pairs from FR3D"
+            style={{
+              padding: "8px 12px",
+              borderRadius: 8,
+              border: `1px solid ${showFR3D ? theme.colors.primary : theme.colors.border}`,
+              background: showFR3D ? theme.colors.primary : theme.colors.background,
+              color: showFR3D ? theme.colors.textInverse : theme.colors.text,
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 0.3,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Database size={14} /> FR3D
+          </button>
           {/* Stylized Reformat button (note: behavior delegated to existing editor elsewhere) */}
           <button
             onClick={reformatAll}
@@ -1656,6 +1776,85 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
           </button>
         </div>
       </div>
+
+      {/* FR3D Import Panel */}
+      {showFR3D && (
+        <div style={{
+          padding: "12px 16px",
+          borderBottom: `1px solid ${theme.colors.border}`,
+          background: theme.colors.backgroundSecondary,
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="text"
+              placeholder="PDB ID (e.g. 1GID)"
+              value={fr3dPdbId}
+              onChange={(e) => { setFr3dPdbId(e.target.value); setFr3dError(null); }}
+              style={{
+                padding: "6px 10px",
+                fontSize: 12,
+                fontFamily: "monospace",
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: 6,
+                background: theme.colors.background,
+                color: theme.colors.text,
+                width: 100,
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Chain"
+              value={fr3dChainId}
+              onChange={(e) => { setFr3dChainId(e.target.value); setFr3dError(null); }}
+              style={{
+                padding: "6px 10px",
+                fontSize: 12,
+                fontFamily: "monospace",
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: 6,
+                background: theme.colors.background,
+                color: theme.colors.text,
+                width: 60,
+              }}
+            />
+          </div>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: theme.colors.textSecondary, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={fr3dOverwrite}
+              onChange={(e) => setFr3dOverwrite(e.target.checked)}
+              style={{ cursor: "pointer" }}
+            />
+            Overwrite existing
+          </label>
+          <button
+            onClick={handleFR3DImport}
+            disabled={fr3dLoading}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "none",
+              background: fr3dLoading ? theme.colors.textMuted : theme.colors.primary,
+              color: theme.colors.textInverse,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: fr3dLoading ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            {fr3dLoading ? <><Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> Fetching...</> : "Fetch Base Pairs"}
+          </button>
+          {fr3dError && (
+            <span style={{ fontSize: 11, color: theme.colors.error, maxWidth: 300 }}>{fr3dError}</span>
+          )}
+        </div>
+      )}
 
       {/* Table and controls */}
       <div style={{ flex: 1, overflow: "auto" }}>
