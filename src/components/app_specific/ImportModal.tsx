@@ -17,8 +17,8 @@ export interface ImportModalProps {
 }
 
 const SAMPLE_FASTA = `> molecule_name
-GCGGAUUUAGCUCAGUUGGG...
-(((((((..((((........`;
+UGAAGAACGCAGCGAAAUGCGAUACGUAAUGUGAAUUGCAGAAUUCCGUGAAUCAUCGAAUCUUUGAAC
+....(((((((......)))).....(.(((......................)))..)...)))....`;
 
 export const ImportModal: React.FC<ImportModalProps> = ({
   isOpen,
