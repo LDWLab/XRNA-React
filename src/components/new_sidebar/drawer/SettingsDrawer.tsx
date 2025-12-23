@@ -43,6 +43,8 @@ const preferenceGroups: { id: string; title: string; settings: Setting[] }[] = [
       Setting.MISMATCH_BASE_PAIR_DISTANCE,
       Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS,
       Setting.BASE_PAIR_RADIUS,
+      Setting.DEFAULT_FONT_SIZE,
+      Setting.DEFAULT_FONT_FAMILY,
     ],
   },
   {

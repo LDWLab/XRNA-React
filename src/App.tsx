@@ -107,6 +107,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { SettingsDrawer } from "./components/new_sidebar/drawer/SettingsDrawer";
 import { AboutDrawer } from "./components/new_sidebar/drawer/AboutDrawer";
 import { StructureTooltip, Grid, FloatingControls, MemoizedFloatingControls } from "./components/ui";
+import { fetchJsonWithCorsProxy } from "./utils/corsProxy";
 import { ImportModal, ImportMode } from "./components/app_specific/ImportModal";
 import { fastaInputFileHandler } from "./io/FastaInputFileHandler";
 
@@ -3109,7 +3110,7 @@ export namespace App {
                     numberOfBoundingRects == 0
                       ? 1
                       : (boundingRectHeightsSum / numberOfBoundingRects);
-                  const newBasePairRadius = averageBoundingRectHeight * 0.6;
+                  const newBasePairRadius = averageBoundingRectHeight * 0.3; // font 6 -> bp 1.8
                   setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
                   setBasePairRadius(newBasePairRadius);
                   setSettingsRecord(prevSettings => ({
@@ -5789,15 +5790,69 @@ export namespace App {
                   finalRnaComplexProps = { ...rnaComplexProps, ...newRnaComplexProps };
                 }
 
+                // Calculate and prefill base pair distance settings
+                const calculatedDistances = calculateBasePairDistances(parsedInput.rnaComplexProps);
+                
+                // Calculate average font size and most common font family
+                let fontSizeSum = 0;
+                let fontCount = 0;
+                const fontFamilyCounts: Record<string, number> = {};
+                for (const complexProps of parsedInput.rnaComplexProps) {
+                  for (const molProps of Object.values(complexProps.rnaMoleculeProps)) {
+                    for (const nucProps of Object.values(molProps.nucleotideProps)) {
+                      if (nucProps.font?.size) {
+                        fontSizeSum += typeof nucProps.font.size === 'number' ? nucProps.font.size : parseFloat(nucProps.font.size);
+                        fontCount++;
+                      }
+                      if (nucProps.font?.family) {
+                        fontFamilyCounts[nucProps.font.family] = (fontFamilyCounts[nucProps.font.family] || 0) + 1;
+                      }
+                    }
+                  }
+                }
+                const avgFontSize = fontCount > 0 ? fontSizeSum / fontCount : Font.DEFAULT_SIZE;
+                const mostCommonFontFamily = Object.entries(fontFamilyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || Font.DEFAULT.family;
+                
+                setSettingsRecord(prevSettings => ({
+                  ...prevSettings,
+                  [Setting.CANONICAL_BASE_PAIR_DISTANCE]: calculatedDistances.canonicalDistance,
+                  [Setting.WOBBLE_BASE_PAIR_DISTANCE]: calculatedDistances.wobbleDistance,
+                  [Setting.MISMATCH_BASE_PAIR_DISTANCE]: calculatedDistances.mismatchDistance,
+                  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]: calculatedDistances.contiguousDistance,
+                  [Setting.DEFAULT_FONT_SIZE]: avgFontSize,
+                  [Setting.DEFAULT_FONT_FAMILY]: mostCommonFontFamily
+                }));
+
                 setRnaComplexProps(finalRnaComplexProps);
                 resetGlobalHelicesForFormatMenu(finalRnaComplexProps);
                 setImportModalOpen(false);
                 setImportModalError(undefined);
 
+                // Calculate base pair radius after DOM renders
                 setTimeout(() => {
-                  resetViewport();
-                  setSceneState(SceneState.DATA_IS_LOADED);
-                }, 100);
+                  let boundingRectHeightsSum = 0;
+                  let numberOfBoundingRects = 0;
+                  const nucleotideElements = Array.from(
+                    document.querySelectorAll(`.${NUCLEOTIDE_CLASS_NAME}`) as NodeListOf<SVGGraphicsElement>
+                  );
+                  for (const nucleotideElement of nucleotideElements) {
+                    const boundingClientRect = nucleotideElement.getBBox();
+                    boundingRectHeightsSum += boundingClientRect.height;
+                    numberOfBoundingRects++;
+                  }
+                  const averageBoundingRectHeight = numberOfBoundingRects === 0 ? 1 : (boundingRectHeightsSum / numberOfBoundingRects);
+                  const newBasePairRadius = averageBoundingRectHeight * 0.3; // font 6 -> bp 1.8
+                  setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
+                  setBasePairRadius(newBasePairRadius);
+                  setSettingsRecord(prev => ({
+                    ...prev,
+                    [Setting.BASE_PAIR_RADIUS]: newBasePairRadius
+                  }));
+                  setTimeout(() => {
+                    resetViewport();
+                    setSceneState(SceneState.DATA_IS_LOADED);
+                  }, 0);
+                }, 500);
               } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 setImportModalError(message);
@@ -5889,15 +5944,70 @@ export namespace App {
                   setUndoStack([]);
                   setRedoStack([]);
                   setBasePairKeysToEdit({});
+
+                  // Calculate and prefill base pair distance settings
+                  const calculatedDistances = calculateBasePairDistances(parsedInput.rnaComplexProps);
+                  
+                  // Calculate average font size and most common font family
+                  let fontSizeSum = 0;
+                  let fontCount = 0;
+                  const fontFamilyCounts: Record<string, number> = {};
+                  for (const complexProps of parsedInput.rnaComplexProps) {
+                    for (const molProps of Object.values(complexProps.rnaMoleculeProps)) {
+                      for (const nucProps of Object.values(molProps.nucleotideProps)) {
+                        if (nucProps.font?.size) {
+                          fontSizeSum += typeof nucProps.font.size === 'number' ? nucProps.font.size : parseFloat(nucProps.font.size);
+                          fontCount++;
+                        }
+                        if (nucProps.font?.family) {
+                          fontFamilyCounts[nucProps.font.family] = (fontFamilyCounts[nucProps.font.family] || 0) + 1;
+                        }
+                      }
+                    }
+                  }
+                  const avgFontSize = fontCount > 0 ? fontSizeSum / fontCount : Font.DEFAULT_SIZE;
+                  const mostCommonFontFamily = Object.entries(fontFamilyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || Font.DEFAULT.family;
+                  
+                  setSettingsRecord(prevSettings => ({
+                    ...prevSettings,
+                    [Setting.CANONICAL_BASE_PAIR_DISTANCE]: calculatedDistances.canonicalDistance,
+                    [Setting.WOBBLE_BASE_PAIR_DISTANCE]: calculatedDistances.wobbleDistance,
+                    [Setting.MISMATCH_BASE_PAIR_DISTANCE]: calculatedDistances.mismatchDistance,
+                    [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]: calculatedDistances.contiguousDistance,
+                    [Setting.DEFAULT_FONT_SIZE]: avgFontSize,
+                    [Setting.DEFAULT_FONT_FAMILY]: mostCommonFontFamily
+                  }));
+
                   setRnaComplexProps(finalRnaComplexProps);
                   resetGlobalHelicesForFormatMenu(finalRnaComplexProps);
                   setImportModalOpen(false);
                   setImportModalError(undefined);
 
+                  // Calculate base pair radius after DOM renders
                   setTimeout(() => {
-                    resetViewport();
-                    setSceneState(SceneState.DATA_IS_LOADED);
-                  }, 100);
+                    let boundingRectHeightsSum = 0;
+                    let numberOfBoundingRects = 0;
+                    const nucleotideElements = Array.from(
+                      document.querySelectorAll(`.${NUCLEOTIDE_CLASS_NAME}`) as NodeListOf<SVGGraphicsElement>
+                    );
+                    for (const nucleotideElement of nucleotideElements) {
+                      const boundingClientRect = nucleotideElement.getBBox();
+                      boundingRectHeightsSum += boundingClientRect.height;
+                      numberOfBoundingRects++;
+                    }
+                    const averageBoundingRectHeight = numberOfBoundingRects === 0 ? 1 : (boundingRectHeightsSum / numberOfBoundingRects);
+                    const newBasePairRadius = averageBoundingRectHeight * 0.3; // font 6 -> bp 1.8
+                    setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
+                    setBasePairRadius(newBasePairRadius);
+                    setSettingsRecord(prev => ({
+                      ...prev,
+                      [Setting.BASE_PAIR_RADIUS]: newBasePairRadius
+                    }));
+                    setTimeout(() => {
+                      resetViewport();
+                      setSceneState(SceneState.DATA_IS_LOADED);
+                    }, 0);
+                  }, 500);
                 } catch (error) {
                   const message = error instanceof Error ? error.message : String(error);
                   setImportModalError(message);
@@ -5962,15 +6072,70 @@ export namespace App {
                     setUndoStack([]);
                     setRedoStack([]);
                     setBasePairKeysToEdit({});
+
+                    // Calculate and prefill base pair distance settings
+                    const calculatedDistances = calculateBasePairDistances(parsedInput.rnaComplexProps);
+                    
+                    // Calculate average font size and most common font family
+                    let fontSizeSum = 0;
+                    let fontCount = 0;
+                    const fontFamilyCounts: Record<string, number> = {};
+                    for (const complexProps of parsedInput.rnaComplexProps) {
+                      for (const molProps of Object.values(complexProps.rnaMoleculeProps)) {
+                        for (const nucProps of Object.values(molProps.nucleotideProps)) {
+                          if (nucProps.font?.size) {
+                            fontSizeSum += typeof nucProps.font.size === 'number' ? nucProps.font.size : parseFloat(nucProps.font.size);
+                            fontCount++;
+                          }
+                          if (nucProps.font?.family) {
+                            fontFamilyCounts[nucProps.font.family] = (fontFamilyCounts[nucProps.font.family] || 0) + 1;
+                          }
+                        }
+                      }
+                    }
+                    const avgFontSize = fontCount > 0 ? fontSizeSum / fontCount : Font.DEFAULT_SIZE;
+                    const mostCommonFontFamily = Object.entries(fontFamilyCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || Font.DEFAULT.family;
+                    
+                    setSettingsRecord(prevSettings => ({
+                      ...prevSettings,
+                      [Setting.CANONICAL_BASE_PAIR_DISTANCE]: calculatedDistances.canonicalDistance,
+                      [Setting.WOBBLE_BASE_PAIR_DISTANCE]: calculatedDistances.wobbleDistance,
+                      [Setting.MISMATCH_BASE_PAIR_DISTANCE]: calculatedDistances.mismatchDistance,
+                      [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]: calculatedDistances.contiguousDistance,
+                      [Setting.DEFAULT_FONT_SIZE]: avgFontSize,
+                      [Setting.DEFAULT_FONT_FAMILY]: mostCommonFontFamily
+                    }));
+
                     setRnaComplexProps(finalRnaComplexProps);
                     resetGlobalHelicesForFormatMenu(finalRnaComplexProps);
                     setImportModalOpen(false);
                     setImportModalError(undefined);
 
+                    // Calculate base pair radius after DOM renders
                     setTimeout(() => {
-                      resetViewport();
-                      setSceneState(SceneState.DATA_IS_LOADED);
-                    }, 100);
+                      let boundingRectHeightsSum = 0;
+                      let numberOfBoundingRects = 0;
+                      const nucleotideElements = Array.from(
+                        document.querySelectorAll(`.${NUCLEOTIDE_CLASS_NAME}`) as NodeListOf<SVGGraphicsElement>
+                      );
+                      for (const nucleotideElement of nucleotideElements) {
+                        const boundingClientRect = nucleotideElement.getBBox();
+                        boundingRectHeightsSum += boundingClientRect.height;
+                        numberOfBoundingRects++;
+                      }
+                      const averageBoundingRectHeight = numberOfBoundingRects === 0 ? 1 : (boundingRectHeightsSum / numberOfBoundingRects);
+                      const newBasePairRadius = averageBoundingRectHeight * 0.3; // font 6 -> bp 1.8
+                      setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
+                      setBasePairRadius(newBasePairRadius);
+                      setSettingsRecord(prev => ({
+                        ...prev,
+                        [Setting.BASE_PAIR_RADIUS]: newBasePairRadius
+                      }));
+                      setTimeout(() => {
+                        resetViewport();
+                        setSceneState(SceneState.DATA_IS_LOADED);
+                      }, 0);
+                    }, 500);
                   } catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
                     setImportModalError(message);
@@ -5983,17 +6148,12 @@ export namespace App {
             }}
             onImportFR3D={async (pdbId: string, chainId: string, mode: ImportMode) => {
               try {
-                // Use CORS proxy to work around FR3D API CORS issues
+                // Use CORS proxy with fallbacks to work around FR3D API CORS issues
                 const fr3dUrl = `https://rna.bgsu.edu/rna3dhub/rest/getChainSequenceBasePairs?pdb_id=${encodeURIComponent(pdbId)}&chain=${encodeURIComponent(chainId)}`;
-                const response = await fetch(
-                  `https://corsproxy.io/?${encodeURIComponent(fr3dUrl)}`
-                );
-                
-                if (!response.ok) {
-                  throw new Error(`Failed to fetch from FR3D: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
+                const data = await fetchJsonWithCorsProxy<{
+                  sequence?: string;
+                  annotations?: Array<{ seq_id1: string; seq_id2: string; bp: string; nt1?: string; nt2?: string }>;
+                }>(fr3dUrl);
                 
                 // Check for error response
                 if (data.sequence === "No sequence was found for the given id" || !data.sequence || data.sequence.length === 0) {
@@ -6062,26 +6222,44 @@ export namespace App {
                   },
                 };
                 
-                // Parse base pairs from annotations
-                // FR3D bp types: cWW (canonical Watson-Crick), tWW (trans WW), cWH, cHW, cWS, cSW, etc.
                 for (const annotation of annotations) {
                   const idx1 = parseInt(annotation.seq_id1, 10) - 1; // Convert to 0-indexed
                   const idx2 = parseInt(annotation.seq_id2, 10) - 1;
                   
                   if (idx1 >= 0 && idx1 < sequence.length && idx2 >= 0 && idx2 < sequence.length && idx1 !== idx2) {
-                    // Determine base pair type from FR3D annotation
                     const bpType = annotation.bp || 'cWW';
                     let basePairType: BasePair.Type = BasePair.Type.CANONICAL;
                     
-                    // cWW is canonical Watson-Crick
-                    if (bpType.startsWith('c') && bpType.includes('WW')) {
-                      basePairType = BasePair.Type.CANONICAL;
-                    } else if (bpType.includes('WW')) {
-                      // tWW and other WW variations
-                      basePairType = BasePair.Type.WOBBLE;
-                    } else {
-                      // Non-canonical (tSH, cSH, cHW, etc.)
-                      basePairType = BasePair.Type.MISMATCH;
+                    const parseLWEdge = (ch: string): 'watson_crick' | 'hoogsteen' | 'sugar_edge' | undefined => {
+                      switch (ch.toUpperCase()) {
+                        case 'W': return 'watson_crick';
+                        case 'H': return 'hoogsteen';
+                        case 'S': return 'sugar_edge';
+                        default: return undefined;
+                      }
+                    };
+                    
+                    let normalizedCode = bpType;
+                    if (normalizedCode.toLowerCase().startsWith('n')) {
+                      normalizedCode = normalizedCode.substring(1);
+                    }
+                    
+                    if (normalizedCode.length >= 3) {
+                      const orientation = normalizedCode[0].toLowerCase() === 't' ? 'trans' : 'cis';
+                      const edgeA = parseLWEdge(normalizedCode[1]);
+                      const edgeB = parseLWEdge(normalizedCode[2]);
+                      
+                      if (edgeA && edgeB) {
+                        // Build full LW type
+                        const lwType = `${orientation}_${edgeA}_${edgeB}` as BasePair.Type;
+                        if (BasePair.types.includes(lwType)) {
+                          basePairType = lwType;
+                        } else if (edgeA === 'watson_crick' && edgeB === 'watson_crick') {
+                          basePairType = orientation === 'cis' ? BasePair.Type.CANONICAL : BasePair.Type.WOBBLE;
+                        } else {
+                          basePairType = BasePair.Type.MISMATCH;
+                        }
+                      }
                     }
                     
                     // Only add if not already added (to avoid duplicates)
@@ -6129,15 +6307,51 @@ export namespace App {
                 setUndoStack([]);
                 setRedoStack([]);
                 setBasePairKeysToEdit({});
+
+                // Calculate and prefill base pair distance settings
+                const calculatedDistances = calculateBasePairDistances([singularRnaComplexProps]);
+                
+                // For FR3D imports, nucleotides are created with Font.DEFAULT
+                setSettingsRecord(prevSettings => ({
+                  ...prevSettings,
+                  [Setting.CANONICAL_BASE_PAIR_DISTANCE]: calculatedDistances.canonicalDistance,
+                  [Setting.WOBBLE_BASE_PAIR_DISTANCE]: calculatedDistances.wobbleDistance,
+                  [Setting.MISMATCH_BASE_PAIR_DISTANCE]: calculatedDistances.mismatchDistance,
+                  [Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS]: calculatedDistances.contiguousDistance,
+                  [Setting.DEFAULT_FONT_SIZE]: Font.DEFAULT_SIZE,
+                  [Setting.DEFAULT_FONT_FAMILY]: Font.DEFAULT.family
+                }));
+
                 setRnaComplexProps(finalRnaComplexProps);
                 resetGlobalHelicesForFormatMenu(finalRnaComplexProps);
                 setImportModalOpen(false);
                 setImportModalError(undefined);
                 
+                // Calculate base pair radius after DOM renders
                 setTimeout(() => {
-                  resetViewport();
-                  setSceneState(SceneState.DATA_IS_LOADED);
-                }, 100);
+                  let boundingRectHeightsSum = 0;
+                  let numberOfBoundingRects = 0;
+                  const nucleotideElements = Array.from(
+                    document.querySelectorAll(`.${NUCLEOTIDE_CLASS_NAME}`) as NodeListOf<SVGGraphicsElement>
+                  );
+                  for (const nucleotideElement of nucleotideElements) {
+                    const boundingClientRect = nucleotideElement.getBBox();
+                    boundingRectHeightsSum += boundingClientRect.height;
+                    numberOfBoundingRects++;
+                  }
+                  const averageBoundingRectHeight = numberOfBoundingRects === 0 ? 1 : (boundingRectHeightsSum / numberOfBoundingRects);
+                  const newBasePairRadius = averageBoundingRectHeight * 0.3; // font 6 -> bp 1.8
+                  setAverageNucleotideBoundingRectHeight(averageBoundingRectHeight);
+                  setBasePairRadius(newBasePairRadius);
+                  setSettingsRecord(prev => ({
+                    ...prev,
+                    [Setting.BASE_PAIR_RADIUS]: newBasePairRadius
+                  }));
+                  setTimeout(() => {
+                    resetViewport();
+                    setSceneState(SceneState.DATA_IS_LOADED);
+                  }, 0);
+                }, 500);
               } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 setImportModalError(message);

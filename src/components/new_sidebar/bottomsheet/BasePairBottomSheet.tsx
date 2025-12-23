@@ -23,6 +23,7 @@ import { Vector2D, add, subtract, scaleUp, normalize, magnitude, orthogonalize, 
 import { Pencil, Check, Trash2, X, Download, Upload, Database, Loader2 } from "lucide-react";
 import { repositionNucleotidesForBasePairs } from "../../../utils/BasePairRepositioner";
 import { Helix, iterateOverFreeNucleotidesAndHelicesPerScene } from "../../../ui/InteractionConstraint/InteractionConstraints";
+import { fetchJsonWithCorsProxy } from "../../../utils/corsProxy";
 
 export type FullKeysRecord = Record<
   RnaComplexKey,
@@ -795,9 +796,10 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
     setFr3dLoading(true);
     try {
       const fr3dUrl = `https://rna.bgsu.edu/rna3dhub/rest/getChainSequenceBasePairs?pdb_id=${encodeURIComponent(trimmedPdbId)}&chain=${encodeURIComponent(trimmedChainId)}`;
-      const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(fr3dUrl)}`);
-      if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
-      const data = await response.json();
+      const data = await fetchJsonWithCorsProxy<{
+        sequence?: string;
+        annotations?: Array<{ seq_id1: string; seq_id2: string; bp: string }>;
+      }>(fr3dUrl);
       if (data.sequence === "No sequence was found for the given id" || !data.sequence) {
         throw new Error(`No sequence found for ${trimmedPdbId} chain ${trimmedChainId}.`);
       }
@@ -816,7 +818,6 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       if (fr3dSeq.length !== ntCount) {
         throw new Error(`Length mismatch: FR3D=${fr3dSeq.length}, structure=${ntCount}.`);
       }
-      // Parse FR3D LW Schema: c/t = cis/trans, W/H/S = Watson-Crick/Hoogsteen/Sugar
       const parseLWEdge = (ch: string): Edge | undefined => {
         switch (ch.toUpperCase()) {
           case 'W': return 'watson_crick';
@@ -827,9 +828,15 @@ export const BasePairBottomSheet: React.FC<BasePairBottomSheetProps> = ({
       };
       const parseLWType = (code: string): BasePair.Type | undefined => {
         if (!code || code.length < 3) return undefined;
-        const orientation: Orientation = code[0].toLowerCase() === 't' ? 'trans' : 'cis';
-        const edgeA = parseLWEdge(code[1]);
-        const edgeB = parseLWEdge(code[2]);
+        let normalizedCode = code;
+        if (normalizedCode.toLowerCase().startsWith('n')) {
+          normalizedCode = normalizedCode.substring(1);
+        }
+        if (normalizedCode.length < 3) return undefined;
+        
+        const orientation: Orientation = normalizedCode[0].toLowerCase() === 't' ? 'trans' : 'cis';
+        const edgeA = parseLWEdge(normalizedCode[1]);
+        const edgeB = parseLWEdge(normalizedCode[2]);
         if (!edgeA || !edgeB) return undefined;
         return assembleDirectedType(orientation, edgeA, edgeB);
       };

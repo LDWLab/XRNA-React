@@ -1,76 +1,41 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { Setting } from '../ui/Setting';
 
-/* -------------------------------------------------
-   PANTONE-inspired palette (hex approximations)
-   Extracted/eyedropped from the provided image.
-   Feel free to tweak to your brand standards.
--------------------------------------------------- */
 const palette = {
-  gardenia: '#EFE8E0',        // PANTONE 11-0604 Gardenia
-  cornflower: '#7491C8',      // PANTONE 16-4031 Cornflower Blue
-  viola: '#A693B8',           // PANTONE 16-3815 Viola
-  roseTan: '#BA897D',         // PANTONE 16-1511 Rose Tan
-  mochaMousse: '#A47764',     // PANTONE 17-1230 Mocha Mousse
-  cobblestone: '#BAB2AD',     // PANTONE 16-1407 Cobblestone
-  willow: '#899F6A',          // PANTONE 16-0632 Willow
-  tendril: '#A6BE82',         // PANTONE 16-0123 Tendril (harmonized to sit above Willow)
-
-  // Utility neutrals derived from the image
-  espresso900: '#11100F',
-  espresso800: '#171615',
-  espresso700: '#1D1B1A',
-  espresso600: '#242220',
+  gardenia: '#EFE8E0',
+  cornflower: '#7491C8',
+  mochaMousse: '#A47764',
+  willow: '#899F6A',
 };
 
-/* -------------------------------------------
-   Theme types (unchanged)
---------------------------------------------*/
 export interface ThemeColors {
-  // Primary colors
   primary: string;
   primaryHover: string;
   primaryActive: string;
-
-  // Background colors
   background: string;
   backgroundSecondary: string;
   surface: string;
   surfaceHover: string;
-
-  // Border colors
   border: string;
   borderLight: string;
   borderDark: string;
-
-  // Text colors
   text: string;
   textSecondary: string;
   textMuted: string;
   textInverse: string;
-
-  // State colors
   success: string;
   warning: string;
   error: string;
   info: string;
-
-  // Accent colors
   accent: string;
   accentHover: string;
-
-  // Component specific
   shadow: string;
   overlay: string;
   highlight: string;
-
-  // Additional for UI
   successLight: string;
   warningLight: string;
   errorLight: string;
   infoLight: string;
-
-  // Enhanced contrast colors
   textStrong: string;
   textWeak: string;
   surfaceStrong: string;
@@ -113,58 +78,35 @@ export interface Theme {
   colorPalleteCircleFills: [string, string, string];
 }
 
-/* ===========================================
-   LIGHT — "Porcelain Latte" — PANTONE aligned
-   - Soft Gardenia bases
-   - Primary = Cornflower Blue (interactive)
-   - Accent = Mocha Mousse (brand warmth)
-=========================================== */
 const lightTheme: Theme = {
   colors: {
-    // Primary (interactive focus)
-    primary: palette.cornflower,                 // #7491C8
-    primaryHover: '#6683BA',                     // ~12% darker
+    primary: palette.cornflower,
+    primaryHover: '#6683BA',
     primaryActive: '#5A78AF',
-
-    // Gardenia + warm porcelain surfaces
-    background: palette.gardenia,                // app chrome
-    backgroundSecondary: '#EAE2DA',              // subtle step down from Gardenia
-    surface: '#F4EEE7',                          // cards / panels
+    background: palette.gardenia,
+    backgroundSecondary: '#EAE2DA',
+    surface: '#F4EEE7',
     surfaceHover: '#EDE5DD',
-
-    // Warm grey borders from Cobblestone family
     border: '#D9CFC8',
     borderLight: '#E7DFD7',
     borderDark: '#C9BFB7',
-
-    // Espresso-on-porcelain text
     text: '#2C2320',
     textSecondary: '#5B4E48',
     textMuted: '#8E847E',
     textInverse: '#FFFFFF',
-
-    // Semantic states — harmonized to palette
-    success: palette.willow,                     // Willow
-    warning: '#D1A56C',                          // warm amber that fits the set
-    error:   '#C96B5A',                          // soft terracotta (kept for clarity)
-    info:    palette.cornflower,
-
-    // Accent — Mocha Mousse
+    success: palette.willow,
+    warning: '#D1A56C',
+    error: '#C96B5A',
+    info: palette.cornflower,
     accent: palette.mochaMousse,
     accentHover: '#8F6657',
-
-    // Components
     shadow: 'rgba(61, 35, 19, 0.06)',
     overlay: 'rgba(40, 26, 18, 0.40)',
     highlight: '#F2E9E2',
-
-    // Tints
     successLight: '#EDF2E6',
     warningLight: '#FFF1DB',
-    errorLight:   '#F6E6E4',
-    infoLight:    '#E8EFF9',
-
-    // Enhanced contrast
+    errorLight: '#F6E6E4',
+    infoLight: '#E8EFF9',
     textStrong: '#1E1512',
     textWeak: '#A09088',
     surfaceStrong: '#E5DBD3',
@@ -201,58 +143,35 @@ const lightTheme: Theme = {
   colorPalleteCircleFills: ["#E8C26A", "#A9E890", "#E890C0"]
 };
 
-/* ===========================================
-   DARK — "Velvet Espresso" — PANTONE aligned
-   - Deep espresso layers
-   - Primary = lighter Cornflower for contrast
-   - Accent = Mocha Mousse
-=========================================== */
 const darkTheme: Theme = {
   colors: {
-    // Primary — Mocha Mousse for a true coffee vibe on dark
     primary: '#C89B85',
     primaryHover: '#BE8F79',
     primaryActive: '#B4836D',
-
-    // Espresso–taupe stack (warm, muted, not muddy)
-    background: '#25211F',           // café wall
-    backgroundSecondary: '#292421',  // sidebar
-    surface: '#2E2826',              // cards / panels
+    background: '#25211F',
+    backgroundSecondary: '#292421',
+    surface: '#2E2826',
     surfaceHover: '#352E2B',
-
-    // Borders — warm graphite
     border: '#3A332F',
     borderLight: '#473F3B',
     borderDark: '#2E2724',
-
-    // Text — warm porcelain on espresso
     text: '#F3EEEA',
     textSecondary: '#D9CFC8',
     textMuted: '#B7AAA4',
     textInverse: '#0F0E0D',
-
-    // States (subtle, caffeinated undertones)
     success: '#94B17E',
     warning: '#D2A274',
-    error:   '#C77C6F',
-    info:    '#A1BDE6',              // gentle cornflower for clarity
-
-    // Accent — Mocha for focus rings / chips
+    error: '#C77C6F',
+    info: '#A1BDE6',
     accent: palette.mochaMousse,
     accentHover: '#B78976',
-
-    // Components
     shadow: 'rgba(0, 0, 0, 0.45)',
     overlay: 'rgba(14, 10, 8, 0.68)',
     highlight: '#302A27',
-
-    // State tints
     successLight: '#1E261C',
     warningLight: '#272016',
-    errorLight:   '#261A18',
-    infoLight:    '#182231',
-
-    // Enhanced contrast
+    errorLight: '#261A18',
+    infoLight: '#182231',
     textStrong: '#FAF7F4',
     textWeak: '#B9ADA7',
     surfaceStrong: '#292421',
@@ -274,9 +193,6 @@ const darkTheme: Theme = {
   colorPalleteCircleFills: ["#4E7DA6", "#7A9E3E", "#C84E4E"]
 };
 
-/* -------------------------------------------
-   Theme context
---------------------------------------------*/
 interface ThemeContextType {
   theme: Theme;
   isDarkMode: boolean;
@@ -286,9 +202,6 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-/* -------------------------------------------
-   Cookie helpers
---------------------------------------------*/
 const THEME_COOKIE_NAME = 'exornata_dark_mode';
 const COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 year in seconds
 
@@ -309,9 +222,6 @@ function setThemeCookie(isDark: boolean): void {
   document.cookie = `${THEME_COOKIE_NAME}=${isDark}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
 }
 
-/* -------------------------------------------
-   Provider
---------------------------------------------*/
 interface ThemeProviderProps {
   children: ReactNode;
   settingsRecord?: Record<Setting, any>;
@@ -323,7 +233,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   settingsRecord,
   updateSettings,
 }) => {
-  // Initialize from cookie first, then fall back to false
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const cookieValue = getThemeFromCookie();
     return cookieValue ?? false;
@@ -333,29 +242,23 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   const updateSettingsReference = React.useRef(updateSettings);
   updateSettingsReference.current = updateSettings;
 
-  // Initialize from cookie, then settings, then OS preference
   useEffect(() => {
-    // Cookie takes highest priority (user explicitly set preference)
     const cookieValue = getThemeFromCookie();
     if (cookieValue !== null) {
       setIsDarkMode(cookieValue);
       return;
     }
-    // Then check settings record
     if (settingsRecord && settingsRecord[Setting.DARK_MODE] !== undefined) {
       setIsDarkMode(!!settingsRecord[Setting.DARK_MODE]);
       return;
     }
-    // Fall back to OS preference
     if (typeof window !== 'undefined' && window.matchMedia) {
       const m = window.matchMedia('(prefers-color-scheme: dark)');
       setIsDarkMode(m.matches);
     }
   }, [settingsRecord]);
 
-  // React to OS changes when user hasn't explicitly set a pref
   useEffect(() => {
-    // Don't react to OS changes if user has set a cookie preference
     if (getThemeFromCookie() !== null) return;
     if (settingsRecord && settingsRecord[Setting.DARK_MODE] !== undefined) return;
     if (typeof window === 'undefined' || !window.matchMedia) return;
@@ -369,7 +272,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     (isDark : boolean) => {
       const updateSettings = updateSettingsReference.current;
       setIsDarkMode(isDark);
-      setThemeCookie(isDark); // Persist to cookie
+      setThemeCookie(isDark);
       if (updateSettings) updateSettings({ [Setting.DARK_MODE]: isDark });
     },
     []
@@ -381,7 +284,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 
   const theme = isDarkMode ? darkTheme : lightTheme;
 
-  // Apply CSS custom properties to :root
   useEffect(() => {
     const root = document.documentElement;
 
@@ -435,9 +337,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   return <ThemeContext.Provider value={contextValue}>{children}</ThemeContext.Provider>;
 };
 
-/* -------------------------------------------
-   Hook
---------------------------------------------*/
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);
   if (context === undefined) {
@@ -446,15 +345,12 @@ export const useTheme = (): ThemeContextType => {
   return context;
 };
 
-/* -------------------------------------------
-   Optional theme-aware styles (unchanged)
---------------------------------------------*/
 export const getThemeStyles = (theme: Theme) => {
   return {
     button: {
       primary: {
         background: theme.colors.primary,
-        color: theme.colors.textInverse, // light: #fff; dark: espresso text
+        color: theme.colors.textInverse,
         border: `1px solid ${theme.colors.primary}`,
         borderRadius: theme.borderRadius.md,
         padding: `${theme.spacing.sm} ${theme.spacing.lg}`,

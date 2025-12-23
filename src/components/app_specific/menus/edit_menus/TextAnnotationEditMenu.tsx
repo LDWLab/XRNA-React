@@ -20,6 +20,8 @@ export function TextAnnotationEditMenu(props: TextAnnotationEditMenuProps) {
   const [localContent, setLocalContent] = useState(annotation.content);
   const [localX, setLocalX] = useState(annotation.x);
   const [localY, setLocalY] = useState(annotation.y);
+  const [localXStr, setLocalXStr] = useState(annotation.x.toFixed(1));
+  const [localYStr, setLocalYStr] = useState(annotation.y.toFixed(1));
   const [localColor, setLocalColor] = useState<Color>(annotation.color ?? BLACK);
   const [localFontSize, setLocalFontSize] = useState(annotation.font?.size ?? Font.DEFAULT.size);
   const [localFontFamily, setLocalFontFamily] = useState(annotation.font?.family ?? Font.DEFAULT.family);
@@ -44,6 +46,8 @@ export function TextAnnotationEditMenu(props: TextAnnotationEditMenuProps) {
       setLocalContent(annotation.content);
       setLocalX(annotation.x);
       setLocalY(annotation.y);
+      setLocalXStr(annotation.x.toFixed(1));
+      setLocalYStr(annotation.y.toFixed(1));
       setLocalColor(annotation.color ?? BLACK);
       setLocalFontSize(annotation.font?.size ?? Font.DEFAULT.size);
       setLocalFontFamily(annotation.font?.family ?? Font.DEFAULT.family);
@@ -112,13 +116,24 @@ export function TextAnnotationEditMenu(props: TextAnnotationEditMenuProps) {
             <label>X</label>
             <input
               type="number"
-              value={localX.toFixed(1)}
+              value={localXStr}
               onChange={(e) => {
+                setLocalXStr(e.target.value);
+              }}
+              onBlur={(e) => {
                 const num = parseFloat(e.target.value);
                 if (!isNaN(num)) {
                   setLocalX(num);
+                  setLocalXStr(num.toFixed(1));
                   annotation.x = num;
                   onUpdate();
+                } else {
+                  setLocalXStr(localX.toFixed(1));
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  (e.target as HTMLInputElement).blur();
                 }
               }}
             />
@@ -127,13 +142,24 @@ export function TextAnnotationEditMenu(props: TextAnnotationEditMenuProps) {
             <label>Y</label>
             <input
               type="number"
-              value={localY.toFixed(1)}
+              value={localYStr}
               onChange={(e) => {
+                setLocalYStr(e.target.value);
+              }}
+              onBlur={(e) => {
                 const num = parseFloat(e.target.value);
                 if (!isNaN(num)) {
                   setLocalY(num);
+                  setLocalYStr(num.toFixed(1));
                   annotation.y = num;
                   onUpdate();
+                } else {
+                  setLocalYStr(localY.toFixed(1));
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  (e.target as HTMLInputElement).blur();
                 }
               }}
             />

@@ -20,6 +20,9 @@ export enum Setting {
   DISABLE_NAVIGATE_AWAY_PROMPT = "disable_navigate_away_prompt",
   TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED = "treat_non_canonical_base_pairs_as_unpaired",
   BASE_PAIR_RADIUS = "base_pair_radius",
+  // Font settings
+  DEFAULT_FONT_SIZE = "default_font_size",
+  DEFAULT_FONT_FAMILY = "default_font_family",
   // Connector settings
   SEQUENCE_CONNECTOR_AUTO_TRIGGER = "sequence_connector_auto_trigger",
   SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD = "sequence_connector_distance_threshold",
@@ -59,6 +62,9 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the navigate-away prompt",
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Treat non-canonical base pairs as unpaired (when editing and formatting)",
   [Setting.BASE_PAIR_RADIUS] : "Radius of base-pair circles",
+  // Font settings
+  [Setting.DEFAULT_FONT_SIZE] : "Default font size",
+  [Setting.DEFAULT_FONT_FAMILY] : "Default font family",
   // Connector settings
   [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : "Auto-trigger sequence connectors",
   [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : "Connector distance threshold (multiplier)",
@@ -96,6 +102,9 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "Disable the prompt asking you to save your work, when you navigate away from this page",
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "Disable editing and formatting of non-canonical base pairs.",
   [Setting.BASE_PAIR_RADIUS] : "Radius of base-pair circles (also affects dimensions of non-canonical base pairs)",
+  // Font settings
+  [Setting.DEFAULT_FONT_SIZE] : "The default font size used for nucleotides. Calculated from the loaded structure's average font size.",
+  [Setting.DEFAULT_FONT_FAMILY] : "The default font family used for nucleotides. Calculated from the most common font in the loaded structure.",
   // Connector settings
   [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : "Automatically show a connector line between sequential nucleotides when they are moved too far apart.",
   [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : "The multiplier of the average nucleotide distance at which the sequence connector automatically appears (e.g., 3 means 3x average distance).",
@@ -133,6 +142,9 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "string"> 
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : "boolean",
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : "boolean",
   [Setting.BASE_PAIR_RADIUS] : "number",
+  // Font settings
+  [Setting.DEFAULT_FONT_SIZE] : "number",
+  [Setting.DEFAULT_FONT_FAMILY] : "string",
   // Connector settings
   [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : "boolean",
   [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : "number",
@@ -178,6 +190,9 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   [Setting.DISABLE_NAVIGATE_AWAY_PROMPT] : false,
   [Setting.TREAT_NON_CANONICAL_BASE_PAIRS_AS_UNPAIRED] : true,
   [Setting.BASE_PAIR_RADIUS] : Number.NaN,
+  // Font settings
+  [Setting.DEFAULT_FONT_SIZE] : Number.NaN,
+  [Setting.DEFAULT_FONT_FAMILY] : "",
   // Connector settings
   [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : true,
   [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : 3,

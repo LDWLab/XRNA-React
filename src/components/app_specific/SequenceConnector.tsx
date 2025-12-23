@@ -5,6 +5,7 @@ import Color, { toCSS, BLACK } from "../../data_structures/Color";
 import { Vector2D } from "../../data_structures/Vector2D";
 import { Nucleotide } from "./Nucleotide";
 import { SVG_PROPERTY_XRNA_TYPE, SvgPropertyXrnaType } from "../../io/SvgInputFileHandler";
+import Font from "../../data_structures/Font";
 
 import { getLineBoundingPath } from "../../utils/Utils";
 
@@ -47,6 +48,12 @@ export namespace SequenceConnector {
     const setMouseOverText = useContext(Context.App.SetMouseOverText);
     const firstNucleotideIndex = useContext(Context.RnaMolecule.FirstNucleotideIndex);
     const rnaComplexName = useContext(Context.RnaComplex.Name);
+    
+    // Get average nucleotide size for relative sizing
+    let averageNucleotideBoundingRectHeight = useContext(Context.Nucleotide.AverageBoundingRectHeight);
+    if (Number.isNaN(averageNucleotideBoundingRectHeight) || averageNucleotideBoundingRectHeight === 0) {
+      averageNucleotideBoundingRectHeight = Font.DEFAULT_SIZE;
+    }
     const {
       nucleotideIndex,
       rnaMoleculeName,
@@ -447,8 +454,8 @@ export namespace SequenceConnector {
     
     // Breakpoint size proportional to stroke width
     const bpSize = Math.max(finalStrokeWidth * 0.8, 1);
-    // Arrow size - use prop or proportional to stroke width
-    const arrowSize = arrowSizeProp ?? Math.max(finalStrokeWidth * 1.5, 2);
+    // Arrow size - use prop or proportional to font size (~83% of nucleotide height, so font 6 -> arrow 5)
+    const arrowSize = arrowSizeProp ?? Math.max(averageNucleotideBoundingRectHeight * (5 / 6), 2);
     // Arrow color - use prop or line color
     const finalArrowColor = arrowColor ?? finalColor;
     
