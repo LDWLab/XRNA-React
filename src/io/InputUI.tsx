@@ -7,6 +7,8 @@ import { strInputFileHandler } from "./StrInputFileHandler";
 import { dotBracketInputFileHandler } from "./DotBracketInputFileHandler";
 import { svgInputFileHandler } from "./SvgInputFileHandler";
 import { fastaInputFileHandler } from "./FastaInputFileHandler";
+import { bpseqInputFileHandler } from "./BpseqInputFileHandler";
+import { ctInputFileHandler } from "./CtInputFileHandler";
 
 export type ParsedInputFile = {
   complexDocumentName : string,
@@ -26,6 +28,8 @@ export type InputFileExtension = Extract<
   | FileExtension.FASTA
   | FileExtension.FAS
   | FileExtension.FA
+  | FileExtension.BPSEQ
+  | FileExtension.CT
 >;
 
 export const InputFileExtension = {
@@ -37,7 +41,9 @@ export const InputFileExtension = {
   [FileExtension.DOT_BRACKET] : FileExtension.DOT_BRACKET,
   [FileExtension.FASTA] : FileExtension.FASTA,
   [FileExtension.FAS] : FileExtension.FAS,
-  [FileExtension.FA] : FileExtension.FA
+  [FileExtension.FA] : FileExtension.FA,
+  [FileExtension.BPSEQ] : FileExtension.BPSEQ,
+  [FileExtension.CT] : FileExtension.CT
 } as const;
 
 export const inputFileExtensions = Object.values(InputFileExtension);
@@ -56,6 +62,8 @@ export const inputFileReadersRecord : Record<InputFileExtension, InputFileReader
   [InputFileExtension.fasta] : fastaInputFileHandler,
   [InputFileExtension.fas] : fastaInputFileHandler,
   [InputFileExtension.fa] : fastaInputFileHandler,
+  [InputFileExtension.bpseq] : bpseqInputFileHandler,
+  [InputFileExtension.ct] : ctInputFileHandler,
 };
 
 export const r2dtLegacyInputFileReadersRecord = {
@@ -73,4 +81,6 @@ export const defaultInvertYAxisFlagRecord : Record<InputFileExtension, boolean> 
   [InputFileExtension.fasta] : false,
   [InputFileExtension.fas] : false,
   [InputFileExtension.fa] : false,
+  [InputFileExtension.bpseq] : false,
+  [InputFileExtension.ct] : false,
 };

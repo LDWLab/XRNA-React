@@ -192,6 +192,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({ value, options, onChang
 const tooltipMap: Record<OutputFileExtension, string> = {
   [OutputFileExtension.json] : 'Structured format, maximum support for all features',
   [OutputFileExtension.bpseq]: 'Base Pair Sequence - No support for non-canonical base pairs',
+  [OutputFileExtension.ct]: 'Connectivity Table - RNAstructure format for secondary structure',
   [OutputFileExtension.svg]: 'Scalable Vector Graphics - Suitable for publications',
   // 'png': 'Portable Network Graphics - No support for non-canonical base pairs',
   // 'pdf': 'Portable Document Format - No support for non-canonical base pairs',

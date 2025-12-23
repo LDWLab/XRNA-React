@@ -5,6 +5,7 @@ import { jsonFileWriter } from "./JsonFileWriter_relative_coordinates";
 import { xrnaFileWriter } from "./XrnaFileWriter";
 import { csvFileWriter } from "./CsvFileWriter";
 import { bpseqFileWriter } from "./BpseqFileWriter";
+import { ctFileWriter } from "./CtFileWriter";
 import { trFileWriter } from "./TrFileWriter";
 import { svgFileWriter } from "./SvgFileWriter";
 import { dotBracketFileWriter } from "./DotBracketFileWriter";
@@ -25,7 +26,7 @@ export const OUTPUT_MIDPOINT = {
   y : (OUTPUT_BOUNDS.y.min + OUTPUT_BOUNDS.y.max) * 0.5
 };
 
-export type OutputFileExtension = Extract<FileExtension, FileExtension.XRNA | FileExtension.JSON | FileExtension.CSV | FileExtension.BPSEQ | FileExtension.TR | FileExtension.SVG | FileExtension.DOT_BRACKET>;
+export type OutputFileExtension = Extract<FileExtension, FileExtension.XRNA | FileExtension.JSON | FileExtension.CSV | FileExtension.BPSEQ | FileExtension.CT | FileExtension.TR | FileExtension.SVG | FileExtension.DOT_BRACKET>;
 
 export const OutputFileExtension = {
   [FileExtension.JSON] : FileExtension.JSON,
@@ -34,6 +35,7 @@ export const OutputFileExtension = {
   [FileExtension.CSV] : FileExtension.CSV,
   [FileExtension.TR] : FileExtension.TR,
   [FileExtension.BPSEQ] : FileExtension.BPSEQ,
+  [FileExtension.CT] : FileExtension.CT,
   [FileExtension.DOT_BRACKET] : FileExtension.DOT_BRACKET
 } as const;
 
@@ -49,6 +51,7 @@ export const outputFileWritersMap : Record<OutputFileExtension, OutputFileWriter
   [OutputFileExtension.json] : jsonFileWriter,
   [OutputFileExtension.csv] : csvFileWriter,
   [OutputFileExtension.bpseq] : bpseqFileWriter,
+  [OutputFileExtension.ct] : ctFileWriter,
   [OutputFileExtension.tr] : trFileWriter,
   [OutputFileExtension.svg] : svgFileWriter,
   [OutputFileExtension.dbn] : dotBracketFileWriter
