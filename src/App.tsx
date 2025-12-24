@@ -109,7 +109,6 @@ import { AboutDrawer } from "./components/new_sidebar/drawer/AboutDrawer";
 import { StructureTooltip, Grid, FloatingControls, MemoizedFloatingControls } from "./components/ui";
 import { fetchJsonWithCorsProxy } from "./utils/corsProxy";
 import { ImportModal, ImportMode } from "./components/app_specific/ImportModal";
-import { fastaInputFileHandler } from "./io/FastaInputFileHandler";
 
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
@@ -5753,9 +5752,10 @@ export namespace App {
               setImportModalOpen(false);
               setImportModalError(undefined);
             }}
-            onImportPaste={(fastaContent: string, mode: ImportMode) => {
+            onImportPaste={(content: string, mode: ImportMode, format: InputFileExtension) => {
               try {
-                const parsedInput = fastaInputFileHandler(fastaContent);
+                const handler = inputFileReadersRecord[format];
+                const parsedInput = handler(content);
                 
                 // Apply default colors and fonts to nucleotides
                 for (const singularRnaComplexProps of parsedInput.rnaComplexProps) {
