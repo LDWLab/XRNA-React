@@ -6,10 +6,12 @@ import { inputFileExtensions, InputFileExtension } from '../../io/InputUI';
 
 export type ImportMode = 'new' | 'add';
 
+export type PasteFormat = 'fasta' | 'bpseq' | 'ct' | 'str' | 'json' | 'xrna' | 'xml' | 'svg';
+
 export interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onImportPaste: (content: string, mode: ImportMode) => void;
+  onImportPaste: (content: string, mode: ImportMode, format: InputFileExtension) => void;
   onImportFile: (file: File, mode: ImportMode) => void;
   onLoadExample: (mode: ImportMode) => void;
   onImportFR3D: (pdbId: string, chainId: string, mode: ImportMode) => Promise<void>;
@@ -19,6 +21,64 @@ export interface ImportModalProps {
 const SAMPLE_FASTA = `> molecule_name
 UGAAGAACGCAGCGAAAUGCGAUACGUAAUGUGAAUUGCAGAAUUCCGUGAAUCAUCGAAUCUUUGAAC
 ....(((((((......)))).....(.(((......................)))..)...)))....`;
+
+const SAMPLE_BPSEQ = `1 G 9
+2 G 8
+3 A 7
+4 U 0
+5 U 0
+6 U 0
+7 U 3
+8 C 2
+9 C 1`;
+
+const SAMPLE_CT = `9 Example RNA
+1 G 0 2 9 1
+2 G 1 3 8 2
+3 A 2 4 7 3
+4 U 3 5 0 4
+5 U 4 6 0 5
+6 U 5 7 0 6
+7 U 6 8 3 7
+8 C 7 9 2 8
+9 C 8 0 1 9`;
+
+type PasteFormatOption = {
+  value: InputFileExtension;
+  label: string;
+};
+
+const PASTE_FORMAT_OPTIONS: PasteFormatOption[] = [
+  { value: 'fasta' as InputFileExtension, label: 'FASTA/DBN' },
+  { value: 'bpseq' as InputFileExtension, label: 'BPSEQ' },
+  { value: 'ct' as InputFileExtension, label: 'CT' },
+  { value: 'str' as InputFileExtension, label: 'STR' },
+  { value: 'json' as InputFileExtension, label: 'JSON' },
+  { value: 'xrna' as InputFileExtension, label: 'XRNA' },
+  { value: 'xml' as InputFileExtension, label: 'XML' },
+  { value: 'svg' as InputFileExtension, label: 'SVG' },
+];
+
+function getPlaceholderForFormat(format: InputFileExtension): string {
+  switch (format) {
+    case 'fasta':
+    case 'fas':
+    case 'fa':
+    case 'dbn':
+      return SAMPLE_FASTA;
+    case 'bpseq':
+      return SAMPLE_BPSEQ;
+    case 'ct':
+      return SAMPLE_CT;
+    default:
+      return '';
+  }
+}
+
+function getFormatLabel(format: InputFileExtension): string {
+  const option = PASTE_FORMAT_OPTIONS.find(opt => opt.value === format);
+  return option?.label || format.toUpperCase();
+}
 
 export const ImportModal: React.FC<ImportModalProps> = ({
   isOpen,
@@ -32,6 +92,8 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const { theme } = useTheme();
   const [mode, setMode] = useState<ImportMode>('new');
   const [pasteContent, setPasteContent] = useState('');
+  const [pasteFormat, setPasteFormat] = useState<InputFileExtension>('fasta' as InputFileExtension);
+  const [formatDropdownOpen, setFormatDropdownOpen] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [pdbId, setPdbId] = useState('');
@@ -39,6 +101,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
   const [fr3dLoading, setFr3dLoading] = useState(false);
   const [showFR3D, setShowFR3D] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formatDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -48,8 +111,23 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       setChainId('');
       setFr3dLoading(false);
       setShowFR3D(false);
+      setFormatDropdownOpen(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (formatDropdownRef.current && !formatDropdownRef.current.contains(event.target as Node)) {
+        setFormatDropdownOpen(false);
+      }
+    };
+    if (formatDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [formatDropdownOpen]);
 
   useEffect(() => {
     if (errorMessage) {
@@ -63,13 +141,14 @@ export const ImportModal: React.FC<ImportModalProps> = ({
       setLocalError('Please enter content to import.');
       return;
     }
-    if (!trimmed.startsWith('>')) {
+    const isFastaFormat = pasteFormat === 'fasta' || pasteFormat === 'fas' || pasteFormat === 'fa' || pasteFormat === 'dbn';
+    if (isFastaFormat && !trimmed.startsWith('>')) {
       setLocalError('Extended FASTA must start with ">" followed by the molecule name.');
       return;
     }
     setLocalError(null);
-    onImportPaste(trimmed, mode);
-  }, [pasteContent, mode, onImportPaste]);
+    onImportPaste(trimmed, mode, pasteFormat);
+  }, [pasteContent, mode, pasteFormat, onImportPaste]);
 
   const handleFR3DSubmit = useCallback(async () => {
     const trimmedPdbId = pdbId.trim().toUpperCase();
@@ -353,21 +432,117 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             style={{ display: 'none' }}
           />
 
-          {/* Paste FASTA - Main Input */}
+          {/* Paste Data - Main Input */}
           <div style={{ marginBottom: '12px' }}>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               marginBottom: '6px',
             }}>
-              Paste Extended FASTA
-            </label>
+              <label style={{
+                fontSize: theme.typography.fontSize.xs,
+                fontWeight: theme.typography.fontWeight.medium,
+                color: theme.colors.textSecondary,
+              }}>
+                Paste Data
+              </label>
+              {/* Format Dropdown */}
+              <div
+                ref={formatDropdownRef}
+                style={{ position: 'relative' }}
+              >
+                <button
+                  onClick={() => setFormatDropdownOpen(!formatDropdownOpen)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 8px',
+                    fontSize: theme.typography.fontSize.xs,
+                    fontWeight: theme.typography.fontWeight.medium,
+                    color: theme.colors.text,
+                    backgroundColor: theme.colors.surface,
+                    border: `1px solid ${theme.colors.border}`,
+                    borderRadius: theme.borderRadius.sm,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = theme.colors.textSecondary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = theme.colors.border;
+                  }}
+                >
+                  {getFormatLabel(pasteFormat)}
+                  <ChevronDown
+                    size={12}
+                    style={{
+                      transform: formatDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.2s',
+                    }}
+                  />
+                </button>
+                {formatDropdownOpen && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: 0,
+                      marginTop: '4px',
+                      minWidth: '120px',
+                      backgroundColor: theme.colors.surface,
+                      border: `1px solid ${theme.colors.border}`,
+                      borderRadius: theme.borderRadius.md,
+                      boxShadow: theme.shadows.lg,
+                      zIndex: 1000,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {PASTE_FORMAT_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setPasteFormat(option.value);
+                          setFormatDropdownOpen(false);
+                          setLocalError(null);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          fontSize: theme.typography.fontSize.xs,
+                          fontWeight: theme.typography.fontWeight.medium,
+                          color: pasteFormat === option.value ? theme.colors.textInverse : theme.colors.text,
+                          backgroundColor: pasteFormat === option.value ? theme.colors.primary : 'transparent',
+                          border: 'none',
+                          borderBottom: `1px solid ${theme.colors.border}`,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.1s',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (pasteFormat !== option.value) {
+                            e.currentTarget.style.backgroundColor = theme.colors.surfaceHover;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (pasteFormat !== option.value) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
             <textarea
               value={pasteContent}
               onChange={(e) => { setPasteContent(e.target.value); setLocalError(null); }}
-              placeholder={SAMPLE_FASTA}
+              placeholder={getPlaceholderForFormat(pasteFormat)}
               style={{
                 width: '100%',
                 height: '120px',
@@ -423,7 +598,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               }}
             >
               {mode === 'new' ? <RefreshCw size={14} /> : <Plus size={14} />}
-              Import FASTA
+              Import {getFormatLabel(pasteFormat)}
             </button>
           </div>
 

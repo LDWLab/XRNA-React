@@ -9,7 +9,9 @@ export function dotBracketFileWriter(
   complexDocumentName: string
 ) {
   const lines = new Array<string>();
-  lines.push(`# ${complexDocumentName}`);
+  if (complexDocumentName.trim().length > 0) {
+    lines.push(`# ${complexDocumentName}`);
+  }
 
   for (const rnaComplexIndexAsString of Object.keys(rnaComplexProps)) {
     const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString, 10);

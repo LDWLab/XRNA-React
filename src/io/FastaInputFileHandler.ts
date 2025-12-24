@@ -8,10 +8,9 @@ import {
   parseBasePairsFromDotBracket,
   applyBasePairsToRnaComplex,
 } from "./SecondaryStructureUtils";
+import { generateCircularLayout, calculateEntryOffset } from "./LayoutUtils";
 
 const DEFAULT_DOCUMENT_NAME = "FASTA import";
-const MINIMUM_RADIUS = 40;
-const RADIUS_PER_NUCLEOTIDE = 6;
 
 type FastaEntry = {
   name: string;
@@ -100,38 +99,6 @@ function parseFastaFile(inputFileContent: string): {
   return { entries, documentName };
 }
 
-function generateCircularLayout(sequenceLength: number) {
-  const radius = Math.max(MINIMUM_RADIUS, sequenceLength * RADIUS_PER_NUCLEOTIDE);
-  const centerOffset = radius + 10;
-  const positions = new Array<{ x: number; y: number }>(sequenceLength);
-
-  if (sequenceLength <= 1) {
-    const angle = -Math.PI / 2;
-    positions[0] = {
-      x: centerOffset + radius * Math.cos(angle),
-      y: centerOffset + radius * Math.sin(angle),
-    };
-    return positions;
-  }
-
-  const desiredGapNucleotideCount = Math.min(2, Math.max(0, sequenceLength - 2));
-  const baseSpacing = (2 * Math.PI) / sequenceLength;
-  const gapAngle = (desiredGapNucleotideCount + 1) * baseSpacing;
-  const usableAngle = 2 * Math.PI - gapAngle;
-  const angleIncrement = usableAngle / (sequenceLength - 1);
-  const startAngle = -Math.PI / 2 + gapAngle / 2;
-
-  for (let i = 0; i < sequenceLength; i++) {
-    const angle = startAngle + i * angleIncrement;
-    positions[i] = {
-      x: centerOffset + radius * Math.cos(angle),
-      y: centerOffset + radius * Math.sin(angle),
-    };
-  }
-
-  return positions;
-}
-
 export const fastaInputFileHandler: InputFileReader = function (inputFileContent) {
   const { entries, documentName } = parseFastaFile(inputFileContent);
 
@@ -154,7 +121,8 @@ export const fastaInputFileHandler: InputFileReader = function (inputFileContent
       basePairs: {},
     };
 
-    const positions = generateCircularLayout(sequence.length || 1);
+    const { offsetX, offsetY } = calculateEntryOffset(entryIndex, sequence.length);
+    const positions = generateCircularLayout(sequence.length || 1, offsetX, offsetY);
 
     for (let i = 0; i < sequence.length; i++) {
       const rawSymbol = sequence[i];
