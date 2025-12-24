@@ -53,8 +53,6 @@ const preferenceGroups: { id: string; title: string; settings: Setting[] }[] = [
     settings: [
       Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER,
       Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD,
-      Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE,
-      Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX,
     ],
   },
   {

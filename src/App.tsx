@@ -110,6 +110,103 @@ import { StructureTooltip, Grid, FloatingControls, MemoizedFloatingControls } fr
 import { fetchJsonWithCorsProxy } from "./utils/corsProxy";
 import { ImportModal, ImportMode } from "./components/app_specific/ImportModal";
 
+// Helper function to generate unique molecule names when adding molecules
+function getUniqueMoleculeName(existingNames: Set<string>, proposedName: string): string {
+  if (!existingNames.has(proposedName)) {
+    return proposedName;
+  }
+  // Check if the name already has a numeric suffix
+  const suffixMatch = proposedName.match(/^(.+)_(\d+)$/);
+  let baseName = proposedName;
+  let counter = 1;
+  
+  if (suffixMatch) {
+    baseName = suffixMatch[1];
+    counter = parseInt(suffixMatch[2], 10) + 1;
+  }
+  
+  // Find the next available number
+  while (existingNames.has(`${baseName}_${counter}`)) {
+    counter++;
+  }
+  return `${baseName}_${counter}`;
+}
+
+// Helper function to rename molecule references in basePairs structure
+function renameMoleculeInBasePairs(
+  basePairs: RnaComplex.BasePairs,
+  oldName: string,
+  newName: string
+): RnaComplex.BasePairs {
+  const newBasePairs: RnaComplex.BasePairs = {};
+  
+  for (const [molName, bpPerMol] of Object.entries(basePairs)) {
+    const actualMolName = molName === oldName ? newName : molName;
+    newBasePairs[actualMolName] = {};
+    
+    for (const [nucIdx, bpArray] of Object.entries(bpPerMol)) {
+      newBasePairs[actualMolName][Number(nucIdx)] = bpArray.map(bp => ({
+        ...bp,
+        rnaMoleculeName: bp.rnaMoleculeName === oldName ? newName : bp.rnaMoleculeName
+      }));
+    }
+  }
+  
+  return newBasePairs;
+}
+
+// Helper function to merge molecules from imported complex into existing complex
+function mergeMoleculesIntoComplex(
+  existingComplex: RnaComplex.ExternalProps,
+  importedComplex: RnaComplex.ExternalProps
+): { mergedComplex: RnaComplex.ExternalProps; renamedMolecules: Map<string, string> } {
+  const existingMoleculeNames = new Set(Object.keys(existingComplex.rnaMoleculeProps));
+  const renamedMolecules = new Map<string, string>();
+  
+  const mergedRnaMoleculeProps = { ...existingComplex.rnaMoleculeProps };
+  let mergedBasePairs = { ...existingComplex.basePairs };
+  
+  // Process each molecule from the imported complex
+  for (const [originalMolName, molProps] of Object.entries(importedComplex.rnaMoleculeProps)) {
+    const uniqueName = getUniqueMoleculeName(existingMoleculeNames, originalMolName);
+    
+    if (uniqueName !== originalMolName) {
+      renamedMolecules.set(originalMolName, uniqueName);
+    }
+    
+    // Add the molecule with its unique name
+    mergedRnaMoleculeProps[uniqueName] = molProps;
+    existingMoleculeNames.add(uniqueName);
+  }
+  
+  // Now process base pairs from the imported complex
+  for (const [molName, bpPerMol] of Object.entries(importedComplex.basePairs)) {
+    const actualMolName = renamedMolecules.get(molName) ?? molName;
+    
+    if (!mergedBasePairs[actualMolName]) {
+      mergedBasePairs[actualMolName] = {};
+    }
+    
+    for (const [nucIdxStr, bpArray] of Object.entries(bpPerMol)) {
+      const nucIdx = Number(nucIdxStr);
+      mergedBasePairs[actualMolName][nucIdx] = bpArray.map(bp => ({
+        ...bp,
+        rnaMoleculeName: renamedMolecules.get(bp.rnaMoleculeName) ?? bp.rnaMoleculeName
+      }));
+    }
+  }
+  
+  return {
+    mergedComplex: {
+      name: existingComplex.name,
+      rnaMoleculeProps: mergedRnaMoleculeProps,
+      basePairs: mergedBasePairs,
+      textAnnotations: { ...existingComplex.textAnnotations, ...importedComplex.textAnnotations }
+    },
+    renamedMolecules
+  };
+}
+
 const VIEWPORT_SCALE_EXPONENT_MINIMUM = -50;
 const VIEWPORT_SCALE_EXPONENT_MAXIMUM = 50;
 const viewportScalePowPrecalculation: Record<number, number> = {};
@@ -569,6 +666,9 @@ export namespace App {
     const [pendingPairNucleotide, setPendingPairNucleotide] = useState<
       FullKeys | undefined
     >(undefined);
+    const [pendingConnectorSource, setPendingConnectorSource] = useState<
+      FullKeys | undefined
+    >(undefined);
     // Begin viewport-relevant state data.
     const [viewportTranslateX, setViewportTranslateX] = useState(0);
     const [viewportTranslateY, setViewportTranslateY] = useState(0);
@@ -722,6 +822,8 @@ export namespace App {
     outputFileHandleReference.current = outputFileHandle;
     const pendingPairNucleotideReference = useRef<FullKeys | undefined>();
     pendingPairNucleotideReference.current = pendingPairNucleotide;
+    const pendingConnectorSourceReference = useRef<FullKeys | undefined>();
+    pendingConnectorSourceReference.current = pendingConnectorSource;
 
     useEffect(() => {
       if (isEmpty(rnaComplexProps)) {
@@ -1899,6 +2001,74 @@ export namespace App {
         fullKeys: FullKeys
       ) {
         const settingsRecord = settingsRecordReference.current!;
+        
+        // Shift+click (without Ctrl) to create inter-molecular connectors
+        if (e.button === MouseButtonIndices.Left && e.shiftKey && !e.ctrlKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const pendingSource = pendingConnectorSourceReference.current;
+          if (!pendingSource) {
+            // First click - store as source
+            setPendingConnectorSource(fullKeys);
+            return;
+          }
+          
+          // Second click - create connector
+          if (pendingSource.rnaComplexIndex !== fullKeys.rnaComplexIndex) {
+            // Different complex - reset and store new source
+            setPendingConnectorSource(fullKeys);
+            return;
+          }
+          
+          if (
+            pendingSource.rnaMoleculeName === fullKeys.rnaMoleculeName &&
+            pendingSource.nucleotideIndex === fullKeys.nucleotideIndex
+          ) {
+            // Same nucleotide - cancel
+            setPendingConnectorSource(undefined);
+            return;
+          }
+          
+          // Create connector from pendingSource to fullKeys
+          pushToUndoStack();
+          const rnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+          const complex = rnaComplexProps[fullKeys.rnaComplexIndex];
+          if (!complex) {
+            setPendingConnectorSource(undefined);
+            return;
+          }
+          
+          const sourceMolProps = complex.rnaMoleculeProps[pendingSource.rnaMoleculeName];
+          if (!sourceMolProps) {
+            setPendingConnectorSource(undefined);
+            return;
+          }
+          
+          const sourceNucProps = sourceMolProps.nucleotideProps[pendingSource.nucleotideIndex];
+          if (!sourceNucProps) {
+            setPendingConnectorSource(undefined);
+            return;
+          }
+          
+          // Create the inter-molecular connector
+          sourceNucProps.sequenceConnectorToNext = {
+            breakpoints: [],
+            targetMoleculeName: fullKeys.rnaMoleculeName,
+            targetNucleotideIndex: fullKeys.nucleotideIndex
+          };
+          
+          // Trigger re-render
+          setNucleotideKeysToRerender({
+            [fullKeys.rnaComplexIndex]: {
+              [pendingSource.rnaMoleculeName]: [pendingSource.nucleotideIndex]
+            }
+          });
+          
+          setPendingConnectorSource(undefined);
+          return;
+        }
+        
         if (e.button === MouseButtonIndices.Left && e.ctrlKey) {
           e.preventDefault();
           e.stopPropagation();
@@ -3426,86 +3596,6 @@ export namespace App {
                       if(!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
                       if(!keysToRerender[complexIndex][molName]) keysToRerender[complexIndex][molName] = [];
                       keysToRerender[complexIndex][molName].push(idx1);
-                      hasChanges = true;
-                    }
-                  }
-                }
-              }
-            }
-
-            // Inter-molecule connectors (between last nt of one molecule and first of another)
-            const interMoleculeEnabled = settingsRecord[Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] as boolean;
-            if (interMoleculeEnabled) {
-              for (const [complexIndexStr, complex] of Object.entries(rnaComplexProps)) {
-                const complexIndex = Number.parseInt(complexIndexStr);
-                const moleculeNames = Object.keys(complex.rnaMoleculeProps);
-                
-                // Calculate global average distance for this complex
-                let globalTotalDist = 0;
-                let globalCount = 0;
-                for (const molName of moleculeNames) {
-                  const molecule = complex.rnaMoleculeProps[molName];
-                  const sortedIndices = Object.keys(molecule.nucleotideProps).map(Number).sort((a,b) => a-b);
-                  for (let i = 0; i < sortedIndices.length - 1; i++) {
-                    const idx1 = sortedIndices[i];
-                    const idx2 = sortedIndices[i + 1];
-                    if (idx2 === idx1 + 1) {
-                      const n1 = molecule.nucleotideProps[idx1];
-                      const n2 = molecule.nucleotideProps[idx2];
-                      const dx = n2.x - n1.x;
-                      const dy = n2.y - n1.y;
-                      globalTotalDist += Math.sqrt(dx * dx + dy * dy);
-                      globalCount++;
-                    }
-                  }
-                }
-                
-                if (globalCount === 0) continue;
-                const globalAvgDist = globalTotalDist / globalCount;
-                const threshold = globalAvgDist * distanceThresholdMultiplier;
-                
-                // Check connections between molecules
-                for (let i = 0; i < moleculeNames.length - 1; i++) {
-                  const mol1Name = moleculeNames[i];
-                  const mol2Name = moleculeNames[i + 1];
-                  const mol1 = complex.rnaMoleculeProps[mol1Name];
-                  const mol2 = complex.rnaMoleculeProps[mol2Name];
-                  
-                  const mol1Indices = Object.keys(mol1.nucleotideProps).map(Number).sort((a,b) => a-b);
-                  const mol2Indices = Object.keys(mol2.nucleotideProps).map(Number).sort((a,b) => a-b);
-                  
-                  if (mol1Indices.length === 0 || mol2Indices.length === 0) continue;
-                  
-                  const lastIdx = mol1Indices[mol1Indices.length - 1];
-                  const firstIdx = mol2Indices[0];
-                  const lastNt = mol1.nucleotideProps[lastIdx];
-                  const firstNt = mol2.nucleotideProps[firstIdx];
-                  
-                  const dx = firstNt.x - lastNt.x;
-                  const dy = firstNt.y - lastNt.y;
-                  const d = Math.sqrt(dx * dx + dy * dy);
-                  
-                  // Store inter-molecule connector on the last nucleotide of mol1
-                  if (d > threshold) {
-                    // Only create if doesn't exist (deleted connectors act as markers)
-                    if (!lastNt.sequenceConnectorToNext) {
-                      lastNt.sequenceConnectorToNext = {
-                        breakpoints: [],
-                        targetMoleculeName: mol2Name,
-                        targetNucleotideIndex: firstIdx,
-                      };
-                      if (!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
-                      if (!keysToRerender[complexIndex][mol1Name]) keysToRerender[complexIndex][mol1Name] = [];
-                      keysToRerender[complexIndex][mol1Name].push(lastIdx);
-                      hasChanges = true;
-                    }
-                  } else {
-                    // Remove inter-molecule connector if distance is back to normal, but only if not manually deleted
-                    if (lastNt.sequenceConnectorToNext?.targetMoleculeName && !lastNt.sequenceConnectorToNext.deleted) {
-                      delete lastNt.sequenceConnectorToNext;
-                      if (!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
-                      if (!keysToRerender[complexIndex][mol1Name]) keysToRerender[complexIndex][mol1Name] = [];
-                      keysToRerender[complexIndex][mol1Name].push(lastIdx);
                       hasChanges = true;
                     }
                   }
@@ -5780,14 +5870,27 @@ export namespace App {
                     finalRnaComplexProps[index] = complexProps;
                   });
                 } else {
-                  // Add on top of existing
-                  const newRnaComplexProps: RnaComplexProps = {};
-                  let nextIndex = Object.keys(rnaComplexProps).length;
-                  for (const complexProps of parsedInput.rnaComplexProps) {
-                    newRnaComplexProps[nextIndex] = complexProps;
-                    nextIndex++;
+                  // Add molecules to existing complex (merge into first complex)
+                  finalRnaComplexProps = structuredClone(rnaComplexProps);
+                  
+                  // If no existing complex, create one
+                  if (Object.keys(finalRnaComplexProps).length === 0) {
+                    finalRnaComplexProps[0] = {
+                      name: 'Complex',
+                      rnaMoleculeProps: {},
+                      basePairs: {}
+                    };
                   }
-                  finalRnaComplexProps = { ...rnaComplexProps, ...newRnaComplexProps };
+                  
+                  // Merge all imported molecules into the first complex
+                  const firstComplexIndex = Number(Object.keys(finalRnaComplexProps)[0]);
+                  for (const importedComplex of parsedInput.rnaComplexProps) {
+                    const { mergedComplex } = mergeMoleculesIntoComplex(
+                      finalRnaComplexProps[firstComplexIndex],
+                      importedComplex
+                    );
+                    finalRnaComplexProps[firstComplexIndex] = mergedComplex;
+                  }
                 }
 
                 // Calculate and prefill base pair distance settings
@@ -5932,13 +6035,27 @@ export namespace App {
                       finalRnaComplexProps[index] = complexProps;
                     });
                   } else {
-                    const newRnaComplexProps: RnaComplexProps = {};
-                    let nextIndex = Object.keys(rnaComplexProps).length;
-                    for (const complexProps of parsedInput.rnaComplexProps) {
-                      newRnaComplexProps[nextIndex] = complexProps;
-                      nextIndex++;
+                    // Add molecules to existing complex (merge into first complex)
+                    finalRnaComplexProps = structuredClone(rnaComplexProps);
+                    
+                    // If no existing complex, create one
+                    if (Object.keys(finalRnaComplexProps).length === 0) {
+                      finalRnaComplexProps[0] = {
+                        name: 'Complex',
+                        rnaMoleculeProps: {},
+                        basePairs: {}
+                      };
                     }
-                    finalRnaComplexProps = { ...rnaComplexProps, ...newRnaComplexProps };
+                    
+                    // Merge all imported molecules into the first complex
+                    const firstComplexIndex = Number(Object.keys(finalRnaComplexProps)[0]);
+                    for (const importedComplex of parsedInput.rnaComplexProps) {
+                      const { mergedComplex } = mergeMoleculesIntoComplex(
+                        finalRnaComplexProps[firstComplexIndex],
+                        importedComplex
+                      );
+                      finalRnaComplexProps[firstComplexIndex] = mergedComplex;
+                    }
                   }
 
                   setUndoStack([]);
@@ -6060,13 +6177,27 @@ export namespace App {
                       setOutputFileExtension("json" as OutputFileExtension);
                       outputFileExtensionReference.current = "json" as OutputFileExtension;
                     } else {
-                      const newRnaComplexProps: RnaComplexProps = {};
-                      let nextIndex = Object.keys(rnaComplexProps).length;
-                      for (const complexProps of parsedInput.rnaComplexProps) {
-                        newRnaComplexProps[nextIndex] = complexProps;
-                        nextIndex++;
+                      // Add molecules to existing complex (merge into first complex)
+                      finalRnaComplexProps = structuredClone(rnaComplexProps);
+                      
+                      // If no existing complex, create one
+                      if (Object.keys(finalRnaComplexProps).length === 0) {
+                        finalRnaComplexProps[0] = {
+                          name: 'Complex',
+                          rnaMoleculeProps: {},
+                          basePairs: {}
+                        };
                       }
-                      finalRnaComplexProps = { ...rnaComplexProps, ...newRnaComplexProps };
+                      
+                      // Merge all imported molecules into the first complex
+                      const firstComplexIndex = Number(Object.keys(finalRnaComplexProps)[0]);
+                      for (const importedComplex of parsedInput.rnaComplexProps) {
+                        const { mergedComplex } = mergeMoleculesIntoComplex(
+                          finalRnaComplexProps[firstComplexIndex],
+                          importedComplex
+                        );
+                        finalRnaComplexProps[firstComplexIndex] = mergedComplex;
+                      }
                     }
 
                     setUndoStack([]);
@@ -6300,8 +6431,25 @@ export namespace App {
                   finalRnaComplexProps = { 0: singularRnaComplexProps };
                   setOutputFileName(rnaComplexName);
                 } else {
-                  const nextIndex = Object.keys(rnaComplexProps).length;
-                  finalRnaComplexProps = { ...rnaComplexProps, [nextIndex]: singularRnaComplexProps };
+                  // Add molecules to existing complex (merge into first complex)
+                  finalRnaComplexProps = structuredClone(rnaComplexProps);
+                  
+                  // If no existing complex, create one
+                  if (Object.keys(finalRnaComplexProps).length === 0) {
+                    finalRnaComplexProps[0] = {
+                      name: 'Complex',
+                      rnaMoleculeProps: {},
+                      basePairs: {}
+                    };
+                  }
+                  
+                  // Merge the FR3D molecule into the first complex
+                  const firstComplexIndex = Number(Object.keys(finalRnaComplexProps)[0]);
+                  const { mergedComplex } = mergeMoleculesIntoComplex(
+                    finalRnaComplexProps[firstComplexIndex],
+                    singularRnaComplexProps
+                  );
+                  finalRnaComplexProps[firstComplexIndex] = mergedComplex;
                 }
                 
                 setUndoStack([]);

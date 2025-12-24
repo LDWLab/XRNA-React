@@ -26,8 +26,6 @@ export enum Setting {
   // Connector settings
   SEQUENCE_CONNECTOR_AUTO_TRIGGER = "sequence_connector_auto_trigger",
   SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD = "sequence_connector_distance_threshold",
-  SEQUENCE_CONNECTOR_INTER_MOLECULE = "sequence_connector_inter_molecule",
-  SEQUENCE_CONNECTOR_INTER_COMPLEX = "sequence_connector_inter_complex",
   // Grid settings
   GRID_ENABLED = "grid_enabled",
   GRID_HORIZONTAL_LINES = "grid_horizontal_lines",
@@ -48,7 +46,7 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   [Setting.COPY_FILE_EXTENSION] : "Copy input-file extensions to downloadable output files",
   [Setting.RESET_VIEWPORT_AFTER_FILE_UPLOAD] : "Reset viewport after file upload",
   [Setting.USE_DEGREES] : "Use degrees",
-  [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "Reposition annotations when editing",
+  [Setting.AUTOMATICALLY_REPOSITION_ANNOTATIONS] : "Reposition annotations when their parent nucleotides are repositioned",
   [Setting.REPOSITION_NUCLEOTIDES_WHEN_FORMATTING] : "Reposition nucleotides when formatting",
   [Setting.CANONICAL_BASE_PAIR_DISTANCE] : "Canonical base-pair distance",
   [Setting.WOBBLE_BASE_PAIR_DISTANCE] : "Wobble base-pair distance",
@@ -68,8 +66,6 @@ export const settingsShortDescriptionsMap : Record<Setting, string> = {
   // Connector settings
   [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : "Auto-trigger sequence connectors",
   [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : "Connector distance threshold (multiplier)",
-  [Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] : "Show inter-molecule connectors",
-  [Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX] : "Show inter-complex connectors",
   // Grid settings
   [Setting.GRID_ENABLED] : "Enable canvas grid",
   [Setting.GRID_HORIZONTAL_LINES] : "Show horizontal grid lines",
@@ -108,8 +104,6 @@ export const settingsLongDescriptionsMap : Record<Setting, string> = {
   // Connector settings
   [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : "Automatically show a connector line between sequential nucleotides when they are moved too far apart.",
   [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : "The multiplier of the average nucleotide distance at which the sequence connector automatically appears (e.g., 3 means 3x average distance).",
-  [Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] : "Show connector lines between nucleotides that belong to different RNA molecules within the same complex.",
-  [Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX] : "Show connector lines between nucleotides that belong to different RNA complexes.",
   // Grid settings
   [Setting.GRID_ENABLED] : "Enable or disable the canvas grid system. When enabled, you can choose which grid types to display.",
   [Setting.GRID_HORIZONTAL_LINES] : "Display horizontal parallel lines across the canvas. These lines move with the viewport pan but maintain their spacing.",
@@ -148,8 +142,6 @@ export const settingsTypeMap : Record<Setting, "boolean" | "number" | "string"> 
   // Connector settings
   [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : "boolean",
   [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : "number",
-  [Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] : "boolean",
-  [Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX] : "boolean",
   // Grid settings
   [Setting.GRID_ENABLED] : "boolean",
   [Setting.GRID_HORIZONTAL_LINES] : "boolean",
@@ -196,8 +188,6 @@ export const DEFAULT_SETTINGS : SettingsRecord = {
   // Connector settings
   [Setting.SEQUENCE_CONNECTOR_AUTO_TRIGGER] : true,
   [Setting.SEQUENCE_CONNECTOR_DISTANCE_THRESHOLD] : 3,
-  [Setting.SEQUENCE_CONNECTOR_INTER_MOLECULE] : false,
-  [Setting.SEQUENCE_CONNECTOR_INTER_COMPLEX] : false,
   // Grid settings
   [Setting.GRID_ENABLED] : false,
   [Setting.GRID_HORIZONTAL_LINES] : true,

@@ -203,7 +203,11 @@ const tooltipMap: Record<OutputFileExtension, string> = {
 };
 type ExportFormats = Array<{ value: OutputFileExtension; label: string; tooltip?: string }>;
 
-const EXPORT_FORMATS : ExportFormats = outputFileExtensions.map(
+const exportFileExtensionsSafe = outputFileExtensions.filter(
+  (ext): ext is OutputFileExtension => typeof ext === "string" && ext.length > 0
+);
+
+const EXPORT_FORMATS : ExportFormats = exportFileExtensionsSafe.map(
   (ext) => {
     return {
       value: ext,

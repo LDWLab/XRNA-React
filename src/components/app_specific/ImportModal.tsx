@@ -332,7 +332,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               }}
             >
               <RefreshCw size={12} />
-              New Canvas
+              New Complex
             </button>
             <button
               onClick={() => setMode('add')}
@@ -354,7 +354,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
               }}
             >
               <Plus size={12} />
-              Add to Existing
+              Add Molecule
             </button>
           </div>
 
