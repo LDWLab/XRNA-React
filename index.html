@@ -2,16 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Redirecting...</title>
-    <script>
-        // Preserve path and query string when redirecting
-        var newBase = "https://exornata.chemistry.gatech.edu";
-        var path = window.location.pathname.replace(/^\/XRNA-React\/?/, '/');
-        var query = window.location.search;
-        var hash = window.location.hash;
-        var newUrl = newBase + path + query + hash;
-        window.location.replace(newUrl);
-    </script>
+    <title>Redirecting to Exornata...</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -20,21 +11,88 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background: #f5f5f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         .redirect-msg {
             text-align: center;
-            padding: 2rem;
+            padding: 2.5rem 3rem;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 400px;
+        }
+        h1 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-size: 1.5rem;
+        }
+        .subtitle {
+            color: #666;
+            margin: 0 0 1.5rem 0;
+            font-size: 0.95rem;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .status {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+        .manual-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .manual-link:hover {
+            text-decoration: underline;
+        }
+        .url-preview {
+            background: #f5f5f5;
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: #666;
+            word-break: break-all;
+            margin-top: 1rem;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
     </style>
 </head>
 <body>
     <div class="redirect-msg">
-        <h1>Redirecting...</h1>
-        <p>If you are not redirected automatically, <a href="https://exornata.chemistry.gatech.edu/">click here</a>.</p>
+        <div class="spinner"></div>
+        <h1>Redirecting to Exornata</h1>
+        <p class="subtitle">We've moved to a new home!</p>
+        <p class="status">Please wait while we transfer you...</p>
+        <a id="manual-link" class="manual-link" href="https://exornata.chemistry.gatech.edu/">Click here if not redirected</a>
+        <div id="url-preview" class="url-preview"></div>
     </div>
+    <script>
+        // Preserve path and query string when redirecting
+        var newBase = "https://exornata.chemistry.gatech.edu";
+        var path = window.location.pathname.replace(/^\/XRNA-React\/?/, '/');
+        var query = window.location.search;
+        var hash = window.location.hash;
+        var newUrl = newBase + path + query + hash;
+        
+        // Update the manual link and preview
+        document.getElementById('manual-link').href = newUrl;
+        document.getElementById('url-preview').textContent = newUrl;
+        
+        // Redirect
+        window.location.replace(newUrl);
+    </script>
 </body>
 </html>
