@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=https://exornata.chemistry.gatech.edu/">
-    <link rel="canonical" href="https://exornata.chemistry.gatech.edu/">
     <title>Redirecting...</title>
+    <script>
+        // Preserve path and query string when redirecting
+        var newBase = "https://exornata.chemistry.gatech.edu";
+        var path = window.location.pathname.replace(/^\/XRNA-React\/?/, '/');
+        var query = window.location.search;
+        var hash = window.location.hash;
+        var newUrl = newBase + path + query + hash;
+        window.location.replace(newUrl);
+    </script>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -29,9 +36,5 @@
         <h1>Redirecting...</h1>
         <p>If you are not redirected automatically, <a href="https://exornata.chemistry.gatech.edu/">click here</a>.</p>
     </div>
-    <script>
-        // JavaScript redirect as backup
-        window.location.href = "https://exornata.chemistry.gatech.edu/";
-    </script>
 </body>
 </html>
