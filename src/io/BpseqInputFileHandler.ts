@@ -156,7 +156,7 @@ export const bpseqInputFileHandler: InputFileReader = function (inputFileContent
 
     for (let i = 0; i < nucleotides.length; i++) {
       const rawSymbol = nucleotides[i].symbol;
-      const sanitizedSymbol = rawSymbol === "T" ? Nucleotide.Symbol.U : rawSymbol;
+      const sanitizedSymbol = Nucleotide.sanitizeSymbol(rawSymbol);
       const symbol = Nucleotide.isSymbol(sanitizedSymbol)
         ? sanitizedSymbol
         : Nucleotide.Symbol.N;

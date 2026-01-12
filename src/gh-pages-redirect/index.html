@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecting...</title>
+    <script>
+        // Preserve path and query string when redirecting
+        var newBase = "https://exornata.chemistry.gatech.edu";
+        var path = window.location.pathname.replace(/^\/XRNA-React\/?/, '/');
+        var query = window.location.search;
+        var hash = window.location.hash;
+        var newUrl = newBase + path + query + hash;
+        window.location.replace(newUrl);
+    </script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: #f5f5f5;
+        }
+        .redirect-msg {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-msg">
+        <h1>Redirecting...</h1>
+        <p>If you are not redirected automatically, <a href="https://exornata.chemistry.gatech.edu/">click here</a>.</p>
+    </div>
+</body>
+</html>

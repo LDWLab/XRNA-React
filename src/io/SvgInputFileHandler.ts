@@ -378,13 +378,12 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
               throw `Required SVG-element property "${SVG_PROPERTY_XRNA_NUCLEOTIDE_INDEX}" is missing.`;
             }
             const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
-            const symbol = svgElement.textContent;
-            if (symbol === null) {
+            const rawSymbol = svgElement.textContent;
+            if (rawSymbol === null) {
               throw `Required SVG-element property "textContent" is missing.`;
             }
-            if (!Nucleotide.isSymbol(symbol)) {
-              throw `"${symbol}" is not a valid nucleotide symbol.`;
-            }
+            const sanitizedSymbol = Nucleotide.sanitizeSymbol(rawSymbol);
+            const symbol = Nucleotide.isSymbol(sanitizedSymbol) ? sanitizedSymbol : Nucleotide.Symbol.N;
             let x = transformAsMatrix[4];
             let y = transformAsMatrix[5];
             if (invertYAxisFlag) {

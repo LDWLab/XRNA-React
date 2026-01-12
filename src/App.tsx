@@ -3324,6 +3324,7 @@ export namespace App {
     );
     const parseJson = useMemo(function () {
       return function (url: string) {
+        setSceneState(SceneState.DATA_IS_LOADING);
         let promise = fetch(url, {
           method: "GET",
         });
@@ -3331,6 +3332,10 @@ export namespace App {
           data.text().then((dataAsText) => {
             parseInputFileContent(dataAsText, InputFileExtension.json);
           });
+        }).catch((error) => {
+          setSceneState(SceneState.DATA_LOADING_FAILED);
+          setDataLoadingFailedErrorMessage(`Failed to fetch from URL: ${url}`);
+          setDataLoadingFailedErrorDetails(error?.message || String(error));
         });
       };
     }, []);
@@ -6328,8 +6333,8 @@ export namespace App {
                   const x = centerOffset + radius * Math.cos(angle);
                   const y = centerOffset + radius * Math.sin(angle);
                   
-                  const rawSymbol = sequence[i].toUpperCase();
-                  const sanitizedSymbol = rawSymbol === "T" ? Nucleotide.Symbol.U : rawSymbol;
+                  const rawSymbol = sequence[i];
+                  const sanitizedSymbol = Nucleotide.sanitizeSymbol(rawSymbol);
                   const symbol = Nucleotide.isSymbol(sanitizedSymbol)
                     ? sanitizedSymbol
                     : Nucleotide.Symbol.N;

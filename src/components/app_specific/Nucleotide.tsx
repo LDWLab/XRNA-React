@@ -54,6 +54,13 @@ export namespace Nucleotide {
   };
   export const symbols = Object.values(Symbol);
 
+  export function sanitizeSymbol(symbol: string): string {
+    const upper = symbol.toUpperCase();
+    if (upper === 'T') return symbol === 't' ? 'u' : 'U';
+    if (upper === 'X') return symbol === 'x' ? 'n' : 'N';
+    return symbol;
+  }
+
   export function isSymbol(candidateSymbol : string) : candidateSymbol is Symbol {
     return (symbols as string[]).includes(candidateSymbol);
   }

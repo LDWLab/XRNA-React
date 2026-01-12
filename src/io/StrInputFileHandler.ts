@@ -63,13 +63,16 @@ export function strInputFileHandler(inputFileContent : string) {
     let label = regexMatch[1];
     switch (label) {
       case "text" : {
-        const regex = /\{\s*(-?[\d.]+)\s+(-?[\d.]+)\s*\}.*(A|C|G|U)\s+0\s*$/;
+        const regex = /\{\s*(-?[\d.]+)\s+(-?[\d.]+)\s*\}.*([A-Za-z])\s+0\s*$/;
         const textRegexMatch = subcontents.match(regex);
         if (textRegexMatch !== null) {
+          const rawSymbol = textRegexMatch[3];
+          const sanitizedSymbol = Nucleotide.sanitizeSymbol(rawSymbol);
+          const symbol = Nucleotide.isSymbol(sanitizedSymbol) ? sanitizedSymbol : Nucleotide.Symbol.N;
           nucleotideProps.push({
             x : Number.parseFloat(textRegexMatch[1]),
             y : Number.parseFloat(textRegexMatch[2]),
-            symbol : textRegexMatch[3] as Nucleotide.Symbol
+            symbol
           });
         }
         break;
