@@ -10,7 +10,8 @@ export namespace ColorEditor {
     setColorHelper : (color : Color) => void,
     color? : Color,
     children? : React.ReactNode,
-    title?: string
+    title?: string,
+    showAlpha?: boolean
   };
 
   // Convert RGB to hex string
@@ -35,7 +36,8 @@ export namespace ColorEditor {
     const {
       setColorHelper : _setColorHelper,
       color,
-      children
+      children,
+      showAlpha = false
     } = props;
     const [red, setRed] = useState(color?.red ?? 0);
     const [green, setGreen] = useState(color?.green ?? 0);
@@ -244,22 +246,23 @@ export namespace ColorEditor {
             </div>
           </div>
         </div>
-        {/* Alpha slider - full width below */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: "#666", minWidth: 40 }}>Alpha</span>
-          <input
-            type="range"
-            min={0}
-            max={255}
-            value={alpha}
-            onChange={(e) => updateColor(red, green, blue, parseInt(e.target.value))}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            style={{ flex: 1, height: "var(--color-editor-alpha-slider-height, 6px)", cursor: "pointer", accentColor: "#666" }}
-          />
-          <span style={{ fontSize: 10, color: "#888", minWidth: 32, textAlign: "right" }}>{Math.round(alpha / 255 * 100)}%</span>
-        </div>
+        {showAlpha && (
+          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}>
+            <span style={{ fontSize: 10, fontWeight: 600, color: "#666", minWidth: 40 }}>Opacity</span>
+            <input
+              type="range"
+              min={0}
+              max={255}
+              value={alpha}
+              onChange={(e) => updateColor(red, green, blue, parseInt(e.target.value))}
+              onMouseDown={handleMouseDown}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              style={{ flex: 1, height: "var(--color-editor-alpha-slider-height, 6px)", cursor: "pointer", accentColor: "#666" }}
+            />
+            <span style={{ fontSize: 10, color: "#888", minWidth: 32, textAlign: "right" }}>{Math.round(alpha / 255 * 100)}%</span>
+          </div>
+        )}
         {showPicker && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, border: "1px solid #e0e0e0", borderRadius: 8, backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
             <div style={{ display: "flex", justifyContent: "center" }}>

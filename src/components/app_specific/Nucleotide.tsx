@@ -102,6 +102,7 @@ export namespace Nucleotide {
       arrowPosition? : number, // 0-1, position along left segment (for ORF: left arrow)
       arrowPositionRight? : number, // 0-1, position along right segment (for ORF: right arrow)
       arrowSize? : number,
+      arrowLinkedToConnector? : boolean, // When true, arrow inherits color/size/opacity from connector
       lockedBreakpoints? : number[], // indices of individually locked breakpoints
       breakpointGroups? : BreakpointGroup[], // groups for collective movement
       targetMoleculeName? : string,

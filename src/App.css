@@ -33,3 +33,13 @@ html, body {
   color: var(--color-textInverse, white);
   transform: translateY(-1px);
 }
+
+/* Hidden sequence connectors - invisible until hovered */
+.sequence-connector-hidden {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.sequence-connector-hidden:hover {
+  opacity: 0.4;
+}

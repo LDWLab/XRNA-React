@@ -20,11 +20,12 @@ export type SequenceConnectorEditMenuProps = {
   fullKeys: FullKeys;
   connector: Nucleotide.SequenceConnector.Props;
   onUpdate: () => void;
-  onDelete: () => void;
+  onToggleVisibility: (hidden: boolean) => void;
+  onApplyToAll: (style: Partial<Nucleotide.SequenceConnector.Props>) => void;
 };
 
 export function SequenceConnectorEditMenu(props: SequenceConnectorEditMenuProps) {
-  const { fullKeys, connector, onUpdate, onDelete } = props;
+  const { fullKeys, connector, onUpdate, onToggleVisibility, onApplyToAll } = props;
   const { nucleotideIndex, rnaMoleculeName, rnaComplexIndex } = fullKeys;
 
   // Track connector identity to only sync when switching connectors
@@ -33,10 +34,10 @@ export function SequenceConnectorEditMenu(props: SequenceConnectorEditMenuProps)
 
   // Local state - synced with connector prop
   const [localColor, setLocalColor] = useState<Color>(connector.color ?? BLACK);
-  const [localStrokeWidth, setLocalStrokeWidth] = useState(connector.strokeWidth ?? 1.5);
+  const [localStrokeWidth, setLocalStrokeWidth] = useState(connector.strokeWidth ?? 0.5);
   const [localCurvature, setLocalCurvature] = useState(connector.curvature ?? 0);
-  const [localOpacity, setLocalOpacity] = useState(connector.opacity ?? 1);
-  const [localDashArray, setLocalDashArray] = useState(connector.dashArray ?? "4 2");
+  const [localOpacity, setLocalOpacity] = useState(connector.opacity ?? 0.3);
+  const [localDashArray, setLocalDashArray] = useState(connector.dashArray ?? "");
   const [localShowArrow, setLocalShowArrow] = useState(connector.showDirectionArrow ?? false);
   const [localShowBreakpoints, setLocalShowBreakpoints] = useState(connector.showBreakpoints ?? true);
   const [localArrowColor, setLocalArrowColor] = useState<Color>(connector.arrowColor ?? connector.color ?? BLACK);
@@ -48,16 +49,18 @@ export function SequenceConnectorEditMenu(props: SequenceConnectorEditMenuProps)
   const [localBreakpointGroups, setLocalBreakpointGroups] = useState<Nucleotide.SequenceConnector.BreakpointGroup[]>(connector.breakpointGroups ?? []);
   const [selectedBreakpoints, setSelectedBreakpoints] = useState<Set<number>>(new Set());
   const [localIsORF, setLocalIsORF] = useState(connector.isORF ?? false);
+  const [localArrowLinked, setLocalArrowLinked] = useState(connector.arrowLinkedToConnector ?? true);
+  const [localHidden, setLocalHidden] = useState(connector.deleted ?? false);
 
   // Only sync local state when switching to a DIFFERENT connector
   useEffect(() => {
     if (connectorIdRef.current !== currentConnectorId) {
       connectorIdRef.current = currentConnectorId;
       setLocalColor(connector.color ?? BLACK);
-      setLocalStrokeWidth(connector.strokeWidth ?? 1.5);
+      setLocalStrokeWidth(connector.strokeWidth ?? 0.5);
       setLocalCurvature(connector.curvature ?? 0);
-      setLocalOpacity(connector.opacity ?? 1);
-      setLocalDashArray(connector.dashArray ?? "4 2");
+      setLocalOpacity(connector.opacity ?? 0.3);
+      setLocalDashArray(connector.dashArray ?? "");
       setLocalShowArrow(connector.showDirectionArrow ?? false);
       setLocalShowBreakpoints(connector.showBreakpoints ?? true);
       setLocalArrowColor(connector.arrowColor ?? connector.color ?? BLACK);
@@ -69,6 +72,8 @@ export function SequenceConnectorEditMenu(props: SequenceConnectorEditMenuProps)
       setLocalBreakpointGroups(connector.breakpointGroups ?? []);
       setSelectedBreakpoints(new Set());
       setLocalIsORF(connector.isORF ?? false);
+      setLocalArrowLinked(connector.arrowLinkedToConnector ?? true);
+      setLocalHidden(connector.deleted ?? false);
     }
   }, [currentConnectorId, connector]);
 
@@ -250,6 +255,23 @@ export function SequenceConnectorEditMenu(props: SequenceConnectorEditMenuProps)
         {localShowArrow && (
           <>
             <div className="row">
+              <label>Link to Line</label>
+              <label className="toggle" title="Arrow inherits color and opacity from connector line">
+                <input
+                  type="checkbox"
+                  checked={localArrowLinked}
+                  onChange={(e) => {
+                    setLocalArrowLinked(e.target.checked);
+                    connector.arrowLinkedToConnector = e.target.checked;
+                    onUpdate();
+                  }}
+                  aria-label="Link arrow to connector"
+                />
+                <span className="toggle-track" />
+              </label>
+            </div>
+
+            <div className="row">
               <label>Shape</label>
               <select
                 value={localArrowShape}
@@ -268,17 +290,20 @@ export function SequenceConnectorEditMenu(props: SequenceConnectorEditMenuProps)
               </select>
             </div>
 
-            <div className="row">
-              <label>Color</label>
-              <ColorEditor.Inline
-                color={localArrowColor}
-                setColorHelper={(newColor: Color) => {
-                  setLocalArrowColor(newColor);
-                  connector.arrowColor = newColor;
-                  onUpdate();
-                }}
-              />
-            </div>
+            {!localArrowLinked && (
+              <div className="row">
+                <label>Color</label>
+                <ColorEditor.Inline
+                  color={localArrowColor}
+                  showAlpha={true}
+                  setColorHelper={(newColor: Color) => {
+                    setLocalArrowColor(newColor);
+                    connector.arrowColor = newColor;
+                    onUpdate();
+                  }}
+                />
+              </div>
+            )}
 
             {localIsORF ? (
               /* Dual sliders for ORF mode */
@@ -345,24 +370,26 @@ export function SequenceConnectorEditMenu(props: SequenceConnectorEditMenuProps)
               </div>
             )}
 
-            <div className="row">
-              <label>Size</label>
-              <input
-                type="number"
-                min="1"
-                max="15"
-                step="0.5"
-                value={localArrowSize}
-                onChange={(e) => {
-                  const num = parseFloat(e.target.value);
-                  if (!isNaN(num) && num > 0) {
-                    setLocalArrowSize(num);
-                    connector.arrowSize = num;
-                    onUpdate();
-                  }
-                }}
-              />
-            </div>
+            {!localArrowLinked && (
+              <div className="row">
+                <label>Size</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="15"
+                  step="0.5"
+                  value={localArrowSize}
+                  onChange={(e) => {
+                    const num = parseFloat(e.target.value);
+                    if (!isNaN(num) && num > 0) {
+                      setLocalArrowSize(num);
+                      connector.arrowSize = num;
+                      onUpdate();
+                    }
+                  }}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
@@ -446,9 +473,38 @@ export function SequenceConnectorEditMenu(props: SequenceConnectorEditMenuProps)
         <p className="hint">Ctrl+click line to add · Ctrl+click point to remove</p>
       </div>
 
-      {/* Delete */}
-      <button className="delete-btn" onClick={onDelete}>
-        Delete Connector
+      {/* Apply to All */}
+      <button 
+        className="apply-all-btn" 
+        onClick={() => {
+          onApplyToAll({
+            color: localColor,
+            strokeWidth: localStrokeWidth,
+            opacity: localOpacity,
+            dashArray: localDashArray || undefined,
+            curvature: localCurvature,
+            showDirectionArrow: localShowArrow,
+            arrowColor: localArrowColor,
+            arrowShape: localArrowShape,
+            arrowSize: localArrowSize,
+            arrowLinkedToConnector: localArrowLinked,
+            isORF: localIsORF,
+          });
+        }}
+      >
+        Apply Style to All Connectors
+      </button>
+
+      {/* Hide/Show */}
+      <button 
+        className={localHidden ? "show-btn" : "hide-btn"} 
+        onClick={() => {
+          const newHidden = !localHidden;
+          setLocalHidden(newHidden);
+          onToggleVisibility(newHidden);
+        }}
+      >
+        {localHidden ? "Show Connector" : "Hide Connector"}
       </button>
     </div>
   );

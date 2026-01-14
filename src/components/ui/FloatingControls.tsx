@@ -79,6 +79,38 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
     });
   };
 
+  // LocalStorage keys for recent colors
+  const RECENT_CANVAS_COLORS_KEY = "exornata_recent_canvas_colors";
+  const RECENT_GRID_COLORS_KEY = "exornata_recent_grid_colors";
+  const MAX_RECENT_COLORS = 4;
+
+  // Helper to get recent colors from localStorage
+  const getRecentColors = (key: string): string[] => {
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed.slice(0, MAX_RECENT_COLORS);
+      }
+    } catch (e) {
+      console.warn("Failed to load recent colors:", e);
+    }
+    return [];
+  };
+
+  // Helper to save recent color to localStorage
+  const saveRecentColor = (key: string, color: string) => {
+    try {
+      const recent = getRecentColors(key);
+      // Remove if already exists, then add to front
+      const filtered = recent.filter(c => c.toLowerCase() !== color.toLowerCase());
+      const updated = [color, ...filtered].slice(0, MAX_RECENT_COLORS);
+      localStorage.setItem(key, JSON.stringify(updated));
+    } catch (e) {
+      console.warn("Failed to save recent color:", e);
+    }
+  };
+
   // Simple color swatches component
   const ColorSwatches = ({
     currentColor,
@@ -92,6 +124,16 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [tempColor, setTempColor] = useState<string>(currentColor || "#808080");
     const popoverRef = useRef<HTMLDivElement | null>(null);
+    const isGridColor = label === "Grid Lines";
+    const storageKey = isGridColor ? RECENT_GRID_COLORS_KEY : RECENT_CANVAS_COLORS_KEY;
+    const [recentColors, setRecentColors] = useState<string[]>(() => getRecentColors(storageKey));
+
+    // Handle color change with persistence
+    const handleColorChangeWithPersistence = (color: string) => {
+      saveRecentColor(storageKey, color);
+      setRecentColors(getRecentColors(storageKey));
+      onColorChange(color);
+    };
 
     useEffect(() => {
       if (!isPickerOpen) return;
@@ -106,11 +148,10 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
       return () => document.removeEventListener("mousedown", onDocMouseDown);
     }, [isPickerOpen]);
     // Different color palettes for grid vs canvas
-    const isGridColor = label === "Grid Lines";
 
     if (isGridColor) {
-      // Muted colors for grid - good contrast, not too bright
-      const gridColors = isDarkMode
+      // Default colors for grid - used when no recent colors
+      const defaultGridColors = isDarkMode
         ? [
             "#FFB3BA", // Soft pink
             "#BAFFC9", // Soft mint
@@ -123,6 +164,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
             "#45B7D1", // Sky blue
             "#96CEB4", // Sage green
           ];
+      // Use recent colors, filling remaining slots with defaults to always show 4
+      const gridColors = [...recentColors, ...defaultGridColors.filter(c => !recentColors.includes(c))].slice(0, 4);
       return (
         <div style={{ marginBottom: "16px" }}>
           <div
@@ -281,12 +324,12 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
               )}
             </div>
 
-            {/* Predefined color swatches */}
-            {gridColors.map((color) => (
+            {/* Color swatches - shows recent colors or defaults */}
+            {gridColors.map((color, idx) => (
               <button
-                key={color}
+                key={`swatch-${idx}-${color}`}
                 onClick={() => {
-                  onColorChange(color);
+                  handleColorChangeWithPersistence(color);
                   if (isPickerOpen) setIsPickerOpen(false);
                 }}
                 style={{
@@ -307,20 +350,22 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
         </div>
       );
     } else {
-      // Pastel colors for canvas - nice looking, good contrast
-      const canvasColors = isDarkMode
+      // Default colors for canvas - used when no recent colors
+      const defaultCanvasColors = isDarkMode
         ? [
-            "#E0E0E0", // Light gray
-            "#B0B0B0", // Medium light gray
-            "#808080", // Medium gray
-            "#404040", // Dark gray
+            "#1a1a2e", // Deep navy
+            "#16213e", // Dark blue
+            "#1f4037", // Dark teal
+            "#2d132c", // Dark purple
           ]
         : [
-            "#404040", // Dark gray
-            "#606060", // Medium dark gray
-            "#808080", // Medium gray
-            "#A0A0A0", // Light gray
+            "#f5f5dc", // Beige
+            "#e6f3ff", // Light blue
+            "#f0fff0", // Honeydew (light green)
+            "#fff5ee", // Seashell (light peach)
           ];
+      // Use recent colors, filling remaining slots with defaults to always show 4
+      const canvasColors = [...recentColors, ...defaultCanvasColors.filter(c => !recentColors.includes(c))].slice(0, 4);
       return (
         <div style={{ marginBottom: "16px" }}>
           <div
@@ -359,7 +404,7 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
                     setTempColor(
                       currentColor && /^#([0-9A-Fa-f]{3}){1,2}$/.test(currentColor)
                         ? currentColor
-                        : (isDarkMode ? "#E0E0E0" : "#404040")
+                        : (isDarkMode ? "#1a1a2e" : "#f5f5dc")
                     );
                     setIsPickerOpen(true);
                   }
@@ -404,8 +449,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
                   onKeyDown={(e) => {
                     if (e.key === "Escape") setIsPickerOpen(false);
                     if (e.key === "Enter") {
-                      const value = /^#([0-9A-Fa-f]{3}){1,2}$/.test(tempColor) ? tempColor : (isDarkMode ? "#E0E0E0" : "#404040");
-                      onColorChange(value);
+                      const value = /^#([0-9A-Fa-f]{3}){1,2}$/.test(tempColor) ? tempColor : (isDarkMode ? "#1a1a2e" : "#f5f5dc");
+                      handleColorChangeWithPersistence(value);
                       setIsPickerOpen(false);
                     }
                   }}
@@ -457,8 +502,8 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
                     </button>
                     <button
                       onClick={() => {
-                        const value = /^#([0-9A-Fa-f]{3}){1,2}$/.test(tempColor) ? tempColor : (isDarkMode ? "#E0E0E0" : "#404040");
-                        onColorChange(value);
+                        const value = /^#([0-9A-Fa-f]{3}){1,2}$/.test(tempColor) ? tempColor : (isDarkMode ? "#1a1a2e" : "#f5f5dc");
+                        handleColorChangeWithPersistence(value);
                         setIsPickerOpen(false);
                       }}
                       style={{
@@ -479,12 +524,12 @@ export const FloatingControls: React.FC<FloatingControlsProps> = ({
               )}
             </div>
 
-            {/* Predefined color swatches */}
-            {canvasColors.map((color) => (
+            {/* Color swatches - shows recent colors or defaults */}
+            {canvasColors.map((color, idx) => (
               <button
-                key={color}
+                key={`swatch-${idx}-${color}`}
                 onClick={() => {
-                  onColorChange(color);
+                  handleColorChangeWithPersistence(color);
                   if (isPickerOpen) setIsPickerOpen(false);
                 }}
                 style={{

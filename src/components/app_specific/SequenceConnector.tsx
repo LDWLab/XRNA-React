@@ -37,7 +37,9 @@ export namespace SequenceConnector {
       arrowPosition = 0.5,
       arrowPositionRight = 0.5,
       arrowSize: arrowSizeProp,
+      arrowLinkedToConnector = true,
       isORF,
+      deleted,
       fullKeys,
       id
     } = props;
@@ -60,7 +62,7 @@ export namespace SequenceConnector {
       rnaComplexIndex
     } = fullKeys;
 
-    const finalStrokeWidth = strokeWidth ?? 1.5;
+    const finalStrokeWidth = strokeWidth ?? 0.5;
 
     // Calculate offset start and end points (with gap from nucleotide centers)
     const safeBreakpoints = breakpoints ?? [];
@@ -449,15 +451,20 @@ export namespace SequenceConnector {
         
         
     const finalColor = color ?? BLACK;
+    const finalOpacity = opacity ?? 0.3;
     // Handle dash array - same for both continuous and ORF connectors
     const finalDashArray = dashArray && dashArray.trim() !== '' ? dashArray : undefined;
     
     // Breakpoint size proportional to stroke width
     const bpSize = Math.max(finalStrokeWidth * 0.8, 1);
     // Arrow size - use prop or proportional to font size (~83% of nucleotide height, so font 6 -> arrow 5)
-    const arrowSize = arrowSizeProp ?? Math.max(averageNucleotideBoundingRectHeight * (5 / 6), 2);
-    // Arrow color - use prop or line color
-    const finalArrowColor = arrowColor ?? finalColor;
+    // When linked, arrow size scales with stroke width
+    const arrowSize = arrowLinkedToConnector 
+      ? Math.max(finalStrokeWidth * 3, 3)
+      : (arrowSizeProp ?? Math.max(averageNucleotideBoundingRectHeight * (5 / 6), 2));
+    // Arrow color and opacity - when linked, inherit from connector line
+    const finalArrowColor = arrowLinkedToConnector ? finalColor : (arrowColor ?? finalColor);
+    const finalArrowOpacity = arrowLinkedToConnector ? finalOpacity : ((arrowColor?.alpha ?? 255) / 255);
     
     // Generate arrow shape based on type - centered at origin
     const getArrowShape = (size: number, shape: Nucleotide.SequenceConnector.ArrowShape) => {
@@ -486,6 +493,7 @@ export namespace SequenceConnector {
     return (
       <g 
         id={id}
+        className={deleted ? 'sequence-connector-hidden' : undefined}
         {...{ [SVG_PROPERTY_XRNA_TYPE]: SvgPropertyXrnaType.SEQUENCE_CONNECTOR }}
       >
         {/* Visual path - for continuous connectors */}
@@ -494,7 +502,7 @@ export namespace SequenceConnector {
             d={pathData}
             stroke={toCSS(finalColor)}
             strokeWidth={finalStrokeWidth}
-            strokeOpacity={opacity ?? 1}
+            strokeOpacity={opacity ?? 0.3}
             strokeDasharray={finalDashArray || 'none'}
             fill="none"
             strokeLinecap="round"
@@ -510,7 +518,7 @@ export namespace SequenceConnector {
               d={finalOrfPaths.leftPath}
               stroke={toCSS(finalColor)}
               strokeWidth={finalStrokeWidth}
-              strokeOpacity={opacity ?? 1}
+              strokeOpacity={opacity ?? 0.3}
               strokeDasharray={finalDashArray || 'none'}
               fill="none"
               strokeLinecap="round"
@@ -521,7 +529,7 @@ export namespace SequenceConnector {
               d={finalOrfPaths.rightPath}
               stroke={toCSS(finalColor)}
               strokeWidth={finalStrokeWidth}
-              strokeOpacity={opacity ?? 1}
+              strokeOpacity={opacity ?? 0.3}
               strokeDasharray={finalDashArray || 'none'}
               fill="none"
               strokeLinecap="round"
@@ -611,7 +619,7 @@ export namespace SequenceConnector {
                 points={getArrowShape(arrowSize, arrowShape)}
                 fill={toCSS(finalArrowColor)}
                 stroke="none"
-                fillOpacity={opacity ?? 0.9}
+                fillOpacity={finalArrowOpacity}
                 pointerEvents="none"
               />
             )}
@@ -636,7 +644,7 @@ export namespace SequenceConnector {
                 points={getArrowShape(arrowSize, arrowShape)}
                 fill={toCSS(finalArrowColor)}
                 stroke="none"
-                fillOpacity={opacity ?? 0.9}
+                fillOpacity={finalArrowOpacity}
                 pointerEvents="none"
               />
             )}
@@ -659,7 +667,7 @@ export namespace SequenceConnector {
                 points={getArrowShape(arrowSize, arrowShape)}
                 fill={toCSS(finalArrowColor)}
                 stroke="none"
-                fillOpacity={opacity ?? 0.9}
+                fillOpacity={finalArrowOpacity}
                 pointerEvents="none"
               />
             )}

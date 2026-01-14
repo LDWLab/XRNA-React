@@ -22,6 +22,7 @@ export interface SidebarProps {
   onToggleSettingsDrawer?: () => void;
   onToggleAboutDrawer?: () => void;
   onOpenDocs?: () => void;
+  onReformatAll?: () => void;
   undoStack?: UndoRedoStack;
   redoStack?: UndoRedoStack;
   onJumpToHistory?: (index: number) => void;
@@ -39,7 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     onUndo, onRedo, canUndo, canRedo, onResetViewport,
     onToggleBasePairEditor, onTogglePropertiesDrawer,
     onToggleSettingsDrawer, onToggleAboutDrawer,
-    onOpenDocs,
+    onOpenDocs, onReformatAll,
     undoStack, redoStack, onJumpToHistory, onResetToLastCheckpoint,
     onFreezeSelected, onUnfreezeSelected, onUnfreezeAll,
     hasFrozenNucleotides, hasSelectedNucleotides,
@@ -67,6 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
         onToggleSettingsDrawer={onToggleSettingsDrawer}
         onToggleAboutDrawer={onToggleAboutDrawer}
         onOpenDocs={onOpenDocs}
+        onReformatAll={onReformatAll}
       />
     </SidebarLayout>
   );

@@ -1,7 +1,7 @@
 {
   "title": "Exornata User Guide",
-  "version": "1.3.0",
-  "lastUpdated": "2025-12-21",
+  "version": "1.4.0",
+  "lastUpdated": "2026-01-13",
   "intro": "This guide summarizes the Exornata workflow described in the project paper. Each section maps to a practical task: explore the workspace, use constraint-driven editing, format and annotate structures, and deliver consistent outputs.",
   "sections": [
     {
@@ -136,6 +136,50 @@
         }
       ],
       "subsections": [
+        {
+          "id": "workspace-view-settings",
+          "title": "View Settings",
+          "summary": "Customize canvas appearance, grid options, and color schemes via the floating controls.",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "The floating controls panel in the top-right corner of the canvas provides quick access to zoom controls and view settings. Click the settings gear icon to expand the panel and access canvas and grid customization options."
+            },
+            {
+              "type": "heading",
+              "level": 3,
+              "text": "Canvas Background"
+            },
+            {
+              "type": "paragraph",
+              "text": "Customize the canvas background color using the provided color swatches or the custom color picker. The swatches display your recently used colors for quick access, with curated default colors available when no history exists. Recently selected colors are automatically saved and persist across sessions, allowing you to maintain a consistent color palette throughout your work."
+            },
+            {
+              "type": "heading",
+              "level": 3,
+              "text": "Grid Lines"
+            },
+            {
+              "type": "paragraph",
+              "text": "Configure the grid overlay to assist with alignment and positioning. Grid options include:"
+            },
+            {
+              "type": "list",
+              "style": "unordered",
+              "items": [
+                "**Grid Types**: Enable horizontal lines, vertical lines, diagonal lines, or concentric circles",
+                "**Grid Color**: Select from preset color swatches or choose a custom color. Like canvas colors, your recently used grid colors are remembered and displayed for quick reuse",
+                "**Grid Spacing**: Adjust the distance between grid lines",
+                "**Dotted Mode**: Toggle between solid and dotted grid lines for reduced visual weight"
+              ]
+            },
+            {
+              "type": "note",
+              "variant": "tip",
+              "text": "The color swatches remember your four most recently used colors, making it easy to maintain consistency when switching between different color schemes during editing sessions."
+            }
+          ]
+        },
         {
           "id": "workspace-navigation",
           "title": "Sidebar Navigation",
@@ -598,7 +642,6 @@
               "type": "paragraph",
               "text": "In Format mode, you can quickly reconstruct an entire helix instead of adding base pairs one by one. Right-click on any nucleotide in an unpaired region where you want to build a helix. This opens the Base-Pair Editor window at the bottom of the screen."
             },
-            
             {
               "type": "paragraph",
               "text": "In the Base-Pair Editor window, click on the Helices tab in the upper-left corner. This view lets you define a helix by specifying its starting and ending nucleotides and total length. Click Add Base Pair again to define a new helix."
@@ -616,7 +659,6 @@
                 "Length → 10 (number of base pairs)"
               ]
             },
-            
             {
               "type": "paragraph",
               "text": "Click Add to generate the helix. The new helix will appear on the canvas, and its definition will be listed in the Helices table."
@@ -730,12 +772,40 @@
       "summary": "Visual links between distant nucleotides indicating sequence continuity.",
       "content": [
         {
-          "type": "paragraph",
-          "text": "Sequence connectors are visual lines that automatically appear when adjacent nucleotides in the sequence are positioned far apart on the canvas. They indicate that despite the visual gap, the nucleotides are consecutive in the RNA sequence."
+          "type": "image",
+          "src": "docs/images/line_connector_auto.png",
+          "alt": "Automatic insertion of a line connector between distant nucleotides",
+          "caption": "Automatic line connector insertion when distance threshold is exceeded",
+          "width": "lg",
+          "figureId": "fig-2"
         },
         {
           "type": "paragraph",
-          "text": "Connectors appear automatically when nucleotides exceed a distance threshold and disappear when brought closer together. Right-click on any connector to open its properties panel and customize its appearance."
+          "text": "**Automatic insertion:** Under any sub-molecular constraint mode, if a structure is moved such that the distance between two consecutive nucleotides exceeds a defined threshold, Exornata will automatically insert a line connector between them. By default, this threshold is three times the average distance between consecutive nucleotides, but it can be adjusted in the settings."
+        },
+        {
+          "type": "image",
+          "src": "docs/images/line_connector_edit_panel.png",
+          "alt": "Edit Panel options for a line connector",
+          "caption": "Editing line connector properties in the Edit Panel",
+          "width": "lg",
+          "figureId": "fig-3"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Editing connectors:** Right-click on a connector to open the Edit Panel for the line connector. From here, you can change the color, width, and style (solid or dashed), add an arrow to indicate the 5′ → 3′ directionality, and toggle between continuous and broken (ORF) representations."
+        },
+        {
+          "type": "image",
+          "src": "docs/images/line_connector_breakpoints.png",
+          "alt": "Adding and adjusting breakpoints on a line connector",
+          "caption": "Using breakpoints to bend or reroute a line connector",
+          "width": "lg",
+          "figureId": "fig-4"
+        },
+        {
+          "type": "paragraph",
+          "text": "**Breakpoints:** To modify the shape of a connector, hold Ctrl and left-click anywhere on the connector to add a breakpoint. Ctrl-click an existing breakpoint to remove it. Breakpoints allow you to bend or reroute connectors for improved clarity and layout control. You can reposition a breakpoint by dragging it, add multiple breakpoints along the same connector, and lock breakpoints from the Edit Panel to prevent accidental movement. The Curve control in the Edit Panel can be used to introduce smooth curvature through breakpoints."
         }
       ],
       "subsections": [
@@ -802,16 +872,21 @@
               "type": "list",
               "style": "unordered",
               "items": [
-                "**Shape**: Choose from triangle, chevron, diamond, or line styles",
-                "**Color**: Set a custom color or match the connector line color",
-                "**Position**: For continuous connectors, adjust where the arrow appears (0-100% along the path)",
+                "**Shape**: Choose from triangle, chevron, or line styles",
+                "**Link to Line**: Toggle to inherit color and opacity from the connector line, or disable to set independent arrow styling",
+                "**Color**: When unlinked, set a custom color for the arrow independent of the connector",
+                "**Position**: Adjust where the arrow appears along the path (0-100%)",
                 "**Size**: Control the arrow size"
               ]
             },
             {
+              "type": "paragraph",
+              "text": "For **ORF connectors**, dual position sliders are provided — one for the left segment and one for the right segment — allowing independent arrow placement on each side of the break symbol."
+            },
+            {
               "type": "note",
               "variant": "info",
-              "text": "Arrow position works identically for both continuous and ORF connectors — drag the position slider to place the arrow anywhere along the path."
+              "text": "When 'Link to Line' is enabled, the arrow automatically matches the connector's color and opacity. Disable this option to customize the arrow appearance independently."
             }
           ]
         },
@@ -977,7 +1052,6 @@
         }
       ]
     },
-    
     {
       "id": "keybindings",
       "title": "Keybindings",

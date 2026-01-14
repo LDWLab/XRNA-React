@@ -1460,15 +1460,33 @@ export namespace App {
                     },
                   });
                 }}
-                onDelete={() => {
+                onToggleVisibility={(hidden) => {
                   pushToUndoStack();
-                  connector.deleted = true;
+                  connector.deleted = hidden;
                   setNucleotideKeysToRerender({
                     [rnaComplexIndex]: {
                       [rnaMoleculeName]: [nucleotideIndex],
                     },
                   });
-                  setDrawerKind(DrawerKind.NONE);
+                }}
+                onApplyToAll={(style) => {
+                  pushToUndoStack();
+                  const allRnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+                  const keysToRerender: Record<number, Record<string, number[]>> = {};
+                  for (const [complexIdx, complex] of Object.entries(allRnaComplexProps)) {
+                    const complexIndex = Number(complexIdx);
+                    for (const [molName, mol] of Object.entries(complex.rnaMoleculeProps)) {
+                      for (const [nucIdx, nuc] of Object.entries(mol.nucleotideProps)) {
+                        if (nuc.sequenceConnectorToNext && !nuc.sequenceConnectorToNext.deleted) {
+                          Object.assign(nuc.sequenceConnectorToNext, style);
+                          if (!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
+                          if (!keysToRerender[complexIndex][molName]) keysToRerender[complexIndex][molName] = [];
+                          keysToRerender[complexIndex][molName].push(Number(nucIdx));
+                        }
+                      }
+                    }
+                  }
+                  setNucleotideKeysToRerender(keysToRerender);
                 }}
               />,
               {}
@@ -1605,15 +1623,33 @@ export namespace App {
                     },
                   });
                 }}
-                onDelete={() => {
+                onToggleVisibility={(hidden) => {
                   pushToUndoStack();
-                  connector.deleted = true;
+                  connector.deleted = hidden;
                   setNucleotideKeysToRerender({
                     [rnaComplexIndex]: {
                       [rnaMoleculeName]: [nucleotideIndex],
                     },
                   });
-                  setDrawerKind(DrawerKind.NONE);
+                }}
+                onApplyToAll={(style) => {
+                  pushToUndoStack();
+                  const allRnaComplexProps = rnaComplexPropsReference.current as RnaComplexProps;
+                  const keysToRerender: Record<number, Record<string, number[]>> = {};
+                  for (const [complexIdx, complex] of Object.entries(allRnaComplexProps)) {
+                    const complexIndex = Number(complexIdx);
+                    for (const [molName, mol] of Object.entries(complex.rnaMoleculeProps)) {
+                      for (const [nucIdx, nuc] of Object.entries(mol.nucleotideProps)) {
+                        if (nuc.sequenceConnectorToNext && !nuc.sequenceConnectorToNext.deleted) {
+                          Object.assign(nuc.sequenceConnectorToNext, style);
+                          if (!keysToRerender[complexIndex]) keysToRerender[complexIndex] = {};
+                          if (!keysToRerender[complexIndex][molName]) keysToRerender[complexIndex][molName] = [];
+                          keysToRerender[complexIndex][molName].push(Number(nucIdx));
+                        }
+                      }
+                    }
+                  }
+                  setNucleotideKeysToRerender(keysToRerender);
                 }}
               />,
               {}
@@ -4683,6 +4719,412 @@ export namespace App {
       },
       []
     );
+    // Reformat All at molecule level - uses D_cbp derived distances and backbone pull
+    const reformatAllAtMoleculeLevel = useCallback(
+      () => {
+        pushToUndoStack();
+        const settingsRecord = settingsRecordReference.current!;
+        const rnaComplexProps = rnaComplexPropsReference.current!;
+        const basePairAverageDistances = basePairAverageDistancesReference.current!;
+        const globalHelices = globalHelicesForFormatMenuReference.current!;
+        
+        // Get D_cbp (distance between contiguous base pairs)
+        const basePairKeysToEdit: Context.BasePair.KeysToEdit = {};
+        const nucleotideKeysToRerender: NucleotideKeysToRerender = {};
+        
+        for (const helix of globalHelices) {
+          const { rnaComplexIndex, rnaMoleculeName0, rnaMoleculeName1, start, stop } = helix;
+          const averageDistancesPerRnaComplex = basePairAverageDistances[rnaComplexIndex];
+          const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
+          const basePairsPerRnaComplex = singularRnaComplexProps.basePairs;
+          
+          if (!(rnaComplexIndex in basePairKeysToEdit)) {
+            basePairKeysToEdit[rnaComplexIndex] = { add: [], delete: [] };
+          }
+          if (!(rnaComplexIndex in nucleotideKeysToRerender)) {
+            nucleotideKeysToRerender[rnaComplexIndex] = {};
+          }
+          
+          const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[rnaComplexIndex];
+          const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+          const basePairsPerRnaMolecule0 = basePairsPerRnaComplex[rnaMoleculeName0];
+          const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
+          
+          // Get D_cbp from settings or calculated average
+          const helixDistanceFromSettings = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
+          const D_cbp = Number.isNaN(helixDistanceFromSettings) 
+            ? averageDistancesPerRnaComplex.helixDistance 
+            : helixDistanceFromSettings;
+          
+          // Calculate distances using D_cbp formula:
+          // Canonical/Wobble = 2.2 * D_cbp
+          // Mismatch = 2.2 * 1.5 * D_cbp = 3.3 * D_cbp
+          const canonicalDistance = 2.2 * D_cbp;
+          const wobbleDistance = 2.2 * D_cbp;
+          const mismatchDistance = 3.3 * D_cbp;
+          
+          const rangeIndexToSingularRnaMoleculeProps = {
+            0: singularRnaMoleculeProps0,
+            1: singularRnaMoleculeProps1
+          };
+          
+          const helixStart0 = singularRnaMoleculeProps0.nucleotideProps[start[0]];
+          const helixStart1 = singularRnaMoleculeProps1.nucleotideProps[start[1]];
+          let center = scaleUp(add(helixStart0, helixStart1), 0.5);
+          const dv = subtract(helixStart0, helixStart1);
+          const normalizedDv = normalize(dv);
+          let normalOrthogonal = orthogonalize(normalizedDv);
+          
+          // Determine orientation
+          const rangeIndexToMinMax: Record<number, { min: number; max: number }> = {};
+          let orientationVote = 0;
+          for (const rangeIndex of [0, 1] as Array<0 | 1>) {
+            const min = Math.min(start[rangeIndex], stop[rangeIndex]);
+            const max = Math.max(start[rangeIndex], stop[rangeIndex]);
+            rangeIndexToMinMax[rangeIndex] = { min, max };
+            for (let nucleotideIndex = min; nucleotideIndex <= max; nucleotideIndex++) {
+              const singularNucleotideProps = rangeIndexToSingularRnaMoleculeProps[rangeIndex].nucleotideProps[nucleotideIndex];
+              orientationVote += Math.sign(dotProduct(subtract(singularNucleotideProps, center), normalOrthogonal));
+            }
+          }
+          if (orientationVote < 0) {
+            normalOrthogonal = negate(normalOrthogonal);
+          }
+          
+          const helixCenterIncrement = scaleUp(normalOrthogonal, D_cbp);
+          let nucleotideIndex0 = start[0];
+          let nucleotideIndex1 = start[1];
+          const nucleotideIndexIncrement0 = Math.sign(stop[0] - start[0]);
+          const nucleotideIndexIncrement1 = Math.sign(stop[1] - start[1]);
+          const length = rangeIndexToMinMax[0].max - rangeIndexToMinMax[0].min + 1;
+          
+          // Track nucleotides for backbone pull
+          const affectedNucleotides0: number[] = [];
+          const affectedNucleotides1: number[] = [];
+          
+          for (let i = 0; i < length; i++) {
+            const singularNucleotideProps0 = rangeIndexToSingularRnaMoleculeProps[0].nucleotideProps[nucleotideIndex0];
+            const singularNucleotideProps1 = rangeIndexToSingularRnaMoleculeProps[1].nucleotideProps[nucleotideIndex1];
+            const basePairsPerNucleotide0 = basePairsPerRnaMolecule0?.[nucleotideIndex0];
+            const relevantBasePair = basePairsPerNucleotide0?.find(basePair => (
+              basePair.rnaMoleculeName === rnaMoleculeName1 &&
+              basePair.nucleotideIndex === nucleotideIndex1
+            ));
+            
+            let basePairType = relevantBasePair?.basePairType;
+            if (basePairType === undefined) {
+              try {
+                basePairType = getBasePairType(singularNucleotideProps0.symbol, singularNucleotideProps1.symbol);
+              } catch (e) {
+                basePairType = undefined;
+              }
+            }
+            
+            // Use D_cbp derived distances
+            let basePairDistance: number;
+            switch (basePairType) {
+              case BasePair.Type.CIS_WATSON_CRICK_WATSON_CRICK:
+              case BasePair.Type.TRANS_WATSON_CRICK_WATSON_CRICK:
+              case BasePair.Type.CANONICAL:
+                basePairDistance = canonicalDistance;
+                break;
+              case BasePair.Type.WOBBLE:
+                basePairDistance = wobbleDistance;
+                break;
+              default:
+                basePairDistance = mismatchDistance;
+                break;
+            }
+            
+            const basePairFullKeys = {
+              keys0: { rnaMoleculeName: rnaMoleculeName0, nucleotideIndex: nucleotideIndex0 },
+              keys1: { rnaMoleculeName: rnaMoleculeName1, nucleotideIndex: nucleotideIndex1 }
+            };
+            basePairKeysToEditPerRnaComplex.add.push(basePairFullKeys);
+            basePairKeysToEditPerRnaComplex.delete.push(basePairFullKeys);
+            
+            const scaledUpDv = scaleUp(normalizedDv, basePairDistance * 0.5);
+            const newPosition0 = add(center, scaledUpDv);
+            const newPosition1 = subtract(center, scaledUpDv);
+            singularNucleotideProps0.x = newPosition0.x;
+            singularNucleotideProps0.y = newPosition0.y;
+            singularNucleotideProps1.x = newPosition1.x;
+            singularNucleotideProps1.y = newPosition1.y;
+            
+            affectedNucleotides0.push(nucleotideIndex0);
+            affectedNucleotides1.push(nucleotideIndex1);
+            
+            center = add(center, helixCenterIncrement);
+            nucleotideIndex0 += nucleotideIndexIncrement0;
+            nucleotideIndex1 += nucleotideIndexIncrement1;
+          }
+          
+          // Add affected nucleotides to rerender
+          for (const mol of [
+            { name: rnaMoleculeName0, affected: affectedNucleotides0 },
+            { name: rnaMoleculeName1, affected: affectedNucleotides1 }
+          ]) {
+            if (!(mol.name in nucleotideKeysToRerender[rnaComplexIndex])) {
+              nucleotideKeysToRerender[rnaComplexIndex][mol.name] = [];
+            }
+            nucleotideKeysToRerender[rnaComplexIndex][mol.name].push(...mol.affected);
+          }
+        }
+        
+        // Force-directed relaxation for backbone continuity (inspired by forna)
+        // Run multiple iterations to relax the structure
+        const iterations = 50;
+        const backboneStrength = 0.3; // Spring strength for backbone
+        
+        // Compute global D_cbp for backbone target distance
+        const helixDistanceFromSettingsGlobal = settingsRecord[Setting.DISTANCE_BETWEEN_CONTIGUOUS_BASE_PAIRS] as number;
+        const firstComplexKey = Object.keys(rnaComplexProps)[0];
+        const globalD_cbp = Number.isNaN(helixDistanceFromSettingsGlobal) 
+          ? (firstComplexKey && basePairAverageDistances[Number(firstComplexKey)]?.helixDistance) || 10
+          : helixDistanceFromSettingsGlobal;
+        const backboneTargetDistance = globalD_cbp * 0.8; // Target distance between adjacent nucleotides
+        const friction = 0.9; // Damping factor
+        
+        for (const [rnaComplexIndexStr, complex] of Object.entries(rnaComplexProps)) {
+          const rnaComplexIndex = Number.parseInt(rnaComplexIndexStr);
+          
+          for (const [rnaMoleculeName, molProps] of Object.entries(complex.rnaMoleculeProps)) {
+            const nucIndices = Object.keys(molProps.nucleotideProps).map(Number).sort((a, b) => a - b);
+            if (nucIndices.length < 2) continue;
+            
+            // Initialize velocities
+            const velocities: Record<number, { vx: number; vy: number }> = {};
+            for (const idx of nucIndices) {
+              velocities[idx] = { vx: 0, vy: 0 };
+            }
+            
+            // Get helix-involved nucleotides (these are "fixed" anchors)
+            const helixNucs = new Set<number>();
+            for (const helix of globalHelices) {
+              if (helix.rnaMoleculeName0 === rnaMoleculeName) {
+                const min = Math.min(helix.start[0], helix.stop[0]);
+                const max = Math.max(helix.start[0], helix.stop[0]);
+                for (let i = min; i <= max; i++) helixNucs.add(i);
+              }
+              if (helix.rnaMoleculeName1 === rnaMoleculeName) {
+                const min = Math.min(helix.start[1], helix.stop[1]);
+                const max = Math.max(helix.start[1], helix.stop[1]);
+                for (let i = min; i <= max; i++) helixNucs.add(i);
+              }
+            }
+            
+            // Run force-directed iterations
+            for (let iter = 0; iter < iterations; iter++) {
+              // Apply backbone spring forces
+              for (let i = 0; i < nucIndices.length - 1; i++) {
+                const idx0 = nucIndices[i];
+                const idx1 = nucIndices[i + 1];
+                const nuc0 = molProps.nucleotideProps[idx0];
+                const nuc1 = molProps.nucleotideProps[idx1];
+                if (!nuc0 || !nuc1) continue;
+                
+                const dx = nuc1.x - nuc0.x;
+                const dy = nuc1.y - nuc0.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 0.001) continue;
+                
+                // Spring force: F = k * (dist - targetDist)
+                const displacement = dist - backboneTargetDistance;
+                const force = backboneStrength * displacement;
+                const fx = (dx / dist) * force;
+                const fy = (dy / dist) * force;
+                
+                // Apply forces (only to non-helix nucleotides)
+                if (!helixNucs.has(idx0)) {
+                  velocities[idx0].vx += fx;
+                  velocities[idx0].vy += fy;
+                }
+                if (!helixNucs.has(idx1)) {
+                  velocities[idx1].vx -= fx;
+                  velocities[idx1].vy -= fy;
+                }
+              }
+              
+              // Update positions with friction
+              for (const idx of nucIndices) {
+                if (helixNucs.has(idx)) continue; // Don't move helix nucleotides
+                
+                const nuc = molProps.nucleotideProps[idx];
+                if (!nuc) continue;
+                
+                velocities[idx].vx *= friction;
+                velocities[idx].vy *= friction;
+                nuc.x += velocities[idx].vx;
+                nuc.y += velocities[idx].vy;
+              }
+            }
+            
+            // Mark all nucleotides for rerender
+            if (!(rnaComplexIndex in nucleotideKeysToRerender)) {
+              nucleotideKeysToRerender[rnaComplexIndex] = {};
+            }
+            if (!(rnaMoleculeName in nucleotideKeysToRerender[rnaComplexIndex])) {
+              nucleotideKeysToRerender[rnaComplexIndex][rnaMoleculeName] = [];
+            }
+            nucleotideKeysToRerender[rnaComplexIndex][rnaMoleculeName].push(...nucIndices);
+          }
+        }
+        
+        // Circularize Exterior Loop (inspired by forna)
+        // Arrange unpaired nucleotides at the ends of molecules in a circular arc
+        for (const [rnaComplexIndexStr, complex] of Object.entries(rnaComplexProps)) {
+          const rnaComplexIndex = Number.parseInt(rnaComplexIndexStr);
+          
+          for (const [rnaMoleculeName, molProps] of Object.entries(complex.rnaMoleculeProps)) {
+            const nucIndices = Object.keys(molProps.nucleotideProps).map(Number).sort((a, b) => a - b);
+            if (nucIndices.length < 3) continue;
+            
+            // Find helix-involved nucleotides
+            const helixNucs = new Set<number>();
+            for (const helix of globalHelices) {
+              if (helix.rnaMoleculeName0 === rnaMoleculeName) {
+                const min = Math.min(helix.start[0], helix.stop[0]);
+                const max = Math.max(helix.start[0], helix.stop[0]);
+                for (let i = min; i <= max; i++) helixNucs.add(i);
+              }
+              if (helix.rnaMoleculeName1 === rnaMoleculeName) {
+                const min = Math.min(helix.start[1], helix.stop[1]);
+                const max = Math.max(helix.start[1], helix.stop[1]);
+                for (let i = min; i <= max; i++) helixNucs.add(i);
+              }
+            }
+            
+            // Find exterior loop segments (consecutive unpaired nucleotides)
+            const exteriorSegments: Array<{ start: number; end: number; indices: number[] }> = [];
+            let currentSegment: number[] = [];
+            
+            for (const idx of nucIndices) {
+              if (!helixNucs.has(idx)) {
+                currentSegment.push(idx);
+              } else {
+                if (currentSegment.length >= 3) {
+                  exteriorSegments.push({
+                    start: currentSegment[0],
+                    end: currentSegment[currentSegment.length - 1],
+                    indices: [...currentSegment]
+                  });
+                }
+                currentSegment = [];
+              }
+            }
+            if (currentSegment.length >= 3) {
+              exteriorSegments.push({
+                start: currentSegment[0],
+                end: currentSegment[currentSegment.length - 1],
+                indices: [...currentSegment]
+              });
+            }
+            
+            // Circularize each exterior segment
+            for (const segment of exteriorSegments) {
+              const { indices } = segment;
+              if (indices.length < 3) continue;
+              
+              // Find anchor points (adjacent helix nucleotides or endpoints)
+              const firstIdx = indices[0];
+              const lastIdx = indices[indices.length - 1];
+              
+              let anchorStart = molProps.nucleotideProps[firstIdx - 1] || molProps.nucleotideProps[firstIdx];
+              let anchorEnd = molProps.nucleotideProps[lastIdx + 1] || molProps.nucleotideProps[lastIdx];
+              
+              // Calculate center and radius for the arc
+              const centerX = (anchorStart.x + anchorEnd.x) / 2;
+              const centerY = (anchorStart.y + anchorEnd.y) / 2;
+              const dx = anchorEnd.x - anchorStart.x;
+              const dy = anchorEnd.y - anchorStart.y;
+              const chordLength = Math.sqrt(dx * dx + dy * dy);
+              
+              // Arc radius based on number of nucleotides and spacing
+              const arcLength = indices.length * backboneTargetDistance;
+              const radius = Math.max(chordLength / 2, arcLength / Math.PI);
+              
+              // Calculate perpendicular direction for arc bulge
+              const chordAngle = Math.atan2(dy, dx);
+              const perpAngle = chordAngle + Math.PI / 2;
+              
+              // Arc center is offset from chord center
+              const arcCenterX = centerX + Math.cos(perpAngle) * radius * 0.3;
+              const arcCenterY = centerY + Math.sin(perpAngle) * radius * 0.3;
+              
+              // Distribute nucleotides along the arc
+              const startAngle = Math.atan2(anchorStart.y - arcCenterY, anchorStart.x - arcCenterX);
+              const endAngle = Math.atan2(anchorEnd.y - arcCenterY, anchorEnd.x - arcCenterX);
+              
+              // Normalize angle difference
+              let angleDiff = endAngle - startAngle;
+              if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+              if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+              
+              // Place nucleotides along the arc
+              for (let i = 0; i < indices.length; i++) {
+                const t = (i + 1) / (indices.length + 1);
+                const angle = startAngle + angleDiff * t;
+                const nuc = molProps.nucleotideProps[indices[i]];
+                if (nuc) {
+                  nuc.x = arcCenterX + Math.cos(angle) * radius;
+                  nuc.y = arcCenterY + Math.sin(angle) * radius;
+                }
+              }
+            }
+          }
+        }
+        
+        // Include ALL base pairs (including non-canonical) for re-rendering
+        // This ensures non-canonical base pairs move with their nucleotides
+        // even when "Treat non-canonical base pairs as unpaired" is enabled
+        for (const [rnaComplexIndexStr, complex] of Object.entries(rnaComplexProps)) {
+          const rnaComplexIndex = Number.parseInt(rnaComplexIndexStr);
+          if (!(rnaComplexIndex in basePairKeysToEdit)) {
+            basePairKeysToEdit[rnaComplexIndex] = { add: [], delete: [] };
+          }
+          const basePairKeysToEditPerRnaComplex = basePairKeysToEdit[rnaComplexIndex];
+          
+          // Iterate through all base pairs in this complex
+          for (const [rnaMoleculeName, basePairsPerMolecule] of Object.entries(complex.basePairs)) {
+            for (const [nucleotideIndexStr, basePairsPerNucleotide] of Object.entries(basePairsPerMolecule)) {
+              const nucleotideIndex = Number.parseInt(nucleotideIndexStr);
+              for (const basePair of basePairsPerNucleotide) {
+                // Only add each pair once (when first nucleotide comes before second alphabetically/numerically)
+                const keys0 = { rnaMoleculeName, nucleotideIndex };
+                const keys1 = { rnaMoleculeName: basePair.rnaMoleculeName, nucleotideIndex: basePair.nucleotideIndex };
+                const [sortedKeys0, sortedKeys1] = [keys0, keys1].sort(compareBasePairKeys);
+                
+                // Only process if this is the "first" side of the pair
+                if (sortedKeys0.rnaMoleculeName === rnaMoleculeName && sortedKeys0.nucleotideIndex === nucleotideIndex) {
+                  // Check if this pair is already in the list
+                  const alreadyExists = basePairKeysToEditPerRnaComplex.add.some(
+                    existing => 
+                      existing.keys0.rnaMoleculeName === sortedKeys0.rnaMoleculeName &&
+                      existing.keys0.nucleotideIndex === sortedKeys0.nucleotideIndex &&
+                      existing.keys1.rnaMoleculeName === sortedKeys1.rnaMoleculeName &&
+                      existing.keys1.nucleotideIndex === sortedKeys1.nucleotideIndex
+                  );
+                  
+                  if (!alreadyExists) {
+                    basePairKeysToEditPerRnaComplex.add.push({ keys0: sortedKeys0, keys1: sortedKeys1 });
+                    basePairKeysToEditPerRnaComplex.delete.push({ keys0: sortedKeys0, keys1: sortedKeys1 });
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        // Sort and set keys
+        for (const basePairKeysToEditPerRnaComplex of Object.values(basePairKeysToEdit)) {
+          basePairKeysToEditPerRnaComplex.add.sort(compareFullBasePairKeys);
+          basePairKeysToEditPerRnaComplex.delete.sort(compareFullBasePairKeys);
+        }
+        setBasePairKeysToEdit(basePairKeysToEdit);
+        setNucleotideKeysToRerender(nucleotideKeysToRerender);
+      },
+      []
+    );
     const renderedBasePairBottomSheet = useMemo(
       function () {
         const constrainRelevantHelices = constrainRelevantHelicesReference.current;
@@ -5512,6 +5954,7 @@ export namespace App {
               })()}
               hasFrozenNucleotides={Object.keys(indicesOfFrozenNucleotides).length > 0}
               hasSelectedNucleotides={Object.keys(rightClickMenuAffectedNucleotideIndices).length > 0}
+              onReformatAll={reformatAllAtMoleculeLevel}
             />
           </div>
 

@@ -39,7 +39,7 @@
 
 .sequence-connector-edit-menu .menu-subtitle {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: var(--color-textSecondary);
 }
 
 /* Type Selector */
@@ -57,7 +57,7 @@
   font-size: 12px;
   font-weight: 500;
   background: var(--color-surface);
-  color: var(--color-text-secondary);
+  color: var(--color-textSecondary);
   border: none;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -68,12 +68,12 @@
 }
 
 .sequence-connector-edit-menu .type-btn:hover {
-  background: var(--color-surface-secondary);
+  background: var(--color-surfaceHover);
 }
 
 .sequence-connector-edit-menu .type-btn.active {
-  background: var(--color-text);
-  color: var(--color-surface);
+  background: var(--color-primary);
+  color: var(--color-textInverse);
 }
 
 /* Section */
@@ -124,7 +124,7 @@
   position: relative;
   width: 38px;
   height: 20px;
-  background: var(--color-surface-secondary);
+  background: var(--color-surfaceHover);
   border: 1px solid var(--color-border);
   border-radius: 999px;
   transition: background 0.15s, border-color 0.15s;
@@ -179,7 +179,7 @@
 
 .sequence-connector-edit-menu .row > label {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: var(--color-textSecondary);
   min-width: 60px;
   flex-shrink: 0;
 }
@@ -237,7 +237,7 @@
 
 .sequence-connector-edit-menu .range-control span {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: var(--color-textSecondary);
   min-width: 40px;
   text-align: right;
 }
@@ -250,7 +250,7 @@
   padding: 2px 6px;
   border-radius: 999px;
   border: 1px solid var(--color-border);
-  background: var(--color-surface-secondary);
+  background: var(--color-surfaceHover);
   font-size: 11px;
   color: var(--color-text);
   font-weight: 600;
@@ -261,7 +261,7 @@
 .sequence-connector-edit-menu .hint {
   margin: 8px 0 0 0;
   font-size: 11px;
-  color: var(--color-text-secondary);
+  color: var(--color-textSecondary);
 }
 
 /* Row right side */
@@ -294,7 +294,7 @@
 }
 
 .sequence-connector-edit-menu .bp-tool-btn:hover {
-  background: var(--color-surface-secondary);
+  background: var(--color-surfaceHover);
 }
 
 .sequence-connector-edit-menu .bp-tool-btn:disabled {
@@ -316,7 +316,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: var(--color-surface-secondary);
+  background: var(--color-surfaceHover);
   border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 11px;
@@ -324,7 +324,7 @@
 }
 
 .sequence-connector-edit-menu .breakpoint-item:hover {
-  border-color: var(--color-text-secondary);
+  border-color: var(--color-textSecondary);
 }
 
 .sequence-connector-edit-menu .breakpoint-item.locked {
@@ -334,7 +334,7 @@
 
 .sequence-connector-edit-menu .bp-num {
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-textSecondary);
   min-width: 16px;
 }
 
@@ -342,7 +342,7 @@
   flex: 1;
   font-family: monospace;
   font-size: 10px;
-  color: var(--color-text-secondary);
+  color: var(--color-textSecondary);
 }
 
 .sequence-connector-edit-menu .bp-lock {
@@ -357,7 +357,7 @@
   border-radius: 6px;
   cursor: pointer;
   opacity: 0.7;
-  color: var(--color-text-secondary);
+  color: var(--color-textSecondary);
   transition: opacity 0.15s, background 0.15s, border-color 0.15s, color 0.15s;
 }
 
@@ -372,21 +372,60 @@
   background: var(--color-surface);
 }
 
-/* Delete Button */
-.sequence-connector-edit-menu .delete-btn {
+/* Apply to All Button */
+.sequence-connector-edit-menu .apply-all-btn {
   width: 100%;
   padding: 10px;
+  margin-bottom: 10px;
   font-size: 12px;
   font-weight: 500;
-  color: #c53030;
+  color: var(--color-primary);
   background: transparent;
-  border: 1px solid #c53030;
+  border: 1px solid var(--color-primary);
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
-.sequence-connector-edit-menu .delete-btn:hover {
-  background: #c53030;
-  color: white;
+.sequence-connector-edit-menu .apply-all-btn:hover {
+  background: var(--color-primary);
+  color: var(--color-textInverse);
+}
+
+/* Hide Button */
+.sequence-connector-edit-menu .hide-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-textSecondary);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sequence-connector-edit-menu .hide-btn:hover {
+  background: var(--color-surfaceHover);
+  border-color: var(--color-textSecondary);
+}
+
+/* Show Button */
+.sequence-connector-edit-menu .show-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sequence-connector-edit-menu .show-btn:hover {
+  background: var(--color-primary);
+  color: var(--color-textInverse);
 }

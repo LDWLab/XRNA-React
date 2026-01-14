@@ -523,8 +523,8 @@ export namespace RnaMolecule {
         })}
         {flattenedNucleotideProps.map(function(singularNucleotideProps) {
           const { sequenceConnectorToNext, nucleotideIndex } = singularNucleotideProps;
-          // Skip if no connector or if connector is marked as deleted
-          if (!sequenceConnectorToNext || sequenceConnectorToNext.deleted) return null;
+          // Skip if no connector
+          if (!sequenceConnectorToNext) return null;
           
           const nextNucleotideProps = nucleotideProps[nucleotideIndex + 1];
           if (!nextNucleotideProps) return null;
