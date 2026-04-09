@@ -126,7 +126,7 @@ export const fastaInputFileHandler: InputFileReader = function (inputFileContent
 
     for (let i = 0; i < sequence.length; i++) {
       const rawSymbol = sequence[i];
-      const sanitizedSymbol = rawSymbol === "T" ? Nucleotide.Symbol.U : rawSymbol;
+      const sanitizedSymbol = Nucleotide.sanitizeSymbol(rawSymbol);
       const symbol = Nucleotide.isSymbol(sanitizedSymbol)
         ? sanitizedSymbol
         : Nucleotide.Symbol.N;

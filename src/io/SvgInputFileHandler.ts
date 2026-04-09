@@ -697,7 +697,8 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
                 nucleotideIndex = Number.parseInt(idRegexMatch[3]);
               }
               const textContent = (requiredAttributes.textContent as string).trim();
-              if (!Nucleotide.isSymbol(textContent)) {
+              const sanitizedTextContent = Nucleotide.sanitizeSymbol(textContent);
+              if (!Nucleotide.isSymbol(sanitizedTextContent)) {
                 throw `Unrecognized nucleotide symbol "${textContent}"`;
               }
               const transform = requiredAttributes.transform as string;
@@ -706,7 +707,7 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
                 throw `Unrecognized transform format "${transform}"`;
               }
               const singularNucleotideProps : Nucleotide.ExternalProps = {
-                symbol : textContent,
+                symbol : sanitizedTextContent,
                 x : Number.parseFloat(transformRegexMatch[1]),
                 y : Number.parseFloat(transformRegexMatch[2])
               };

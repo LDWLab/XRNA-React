@@ -99,12 +99,11 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
           textContentLine.split(/\s+/).forEach(function(data : string, index : number) {
             switch (indexToDataTypeMap[index]) {
               case "NucChar":
-                if (!Nucleotide.symbols.some(function(symbolI : Nucleotide.Symbol) {
-                  return data === symbolI;
-                })) {
+                const sanitizedData = Nucleotide.sanitizeSymbol(data);
+                if (!Nucleotide.isSymbol(sanitizedData)) {
                   throw new Error(`This input NucChar is not a <Nucleotide.Symbol>: ${data}`);
                 }
-                symbol = data as Nucleotide.Symbol;
+                symbol = sanitizedData as Nucleotide.Symbol;
                 break;
               case "NucID":
                 nucleotideIndex = Number.parseInt(data) - singularRnaMoleculeProps.firstNucleotideIndex;
