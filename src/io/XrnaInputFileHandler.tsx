@@ -100,7 +100,11 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
         let runningNucleotideIndex = 0;
         let nucleotideIndexToBasePairNucleotideIndexMap : Record<number, number> = {};
         let rnaMoleculeName = cache.rnaMoleculeName as string;
-        for (let textContentLine of (domElement.textContent as string).split("\n")) {
+        const nucListTextContent = domElement.textContent;
+        if (nucListTextContent === null) {
+          throw new Error('This <NucListData> element has no text content.');
+        }
+        for (let textContentLine of nucListTextContent.split("\n")) {
           if (/^\s*$/.test(textContentLine)) {
             continue;
           }
@@ -320,7 +324,11 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
               throw new Error(`This <Nuc> had no attribute <RefID>`);
             }
             let nucleotideProps = (cache.singularRnaMoleculeProps as RnaMolecule.ExternalProps).nucleotideProps[previousDomElementInformation.referencedNucleotideIndex as number];
-            (domElement.textContent as string).split("\n").forEach(function(textContentLine : string) {
+            const labelListTextContent = domElement.textContent;
+            if (labelListTextContent === null) {
+              throw new Error('This <LabelList> element has no text content.');
+            }
+            labelListTextContent.split("\n").forEach(function(textContentLine : string) {
               let textContentLineData = textContentLine.trim().split(/\s+/);
               switch (textContentLineData[0]) {
                 case "l": {

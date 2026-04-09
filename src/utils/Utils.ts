@@ -245,7 +245,7 @@ export function getLineBoundingPath(
 }
 
 export function median(numbers : Array<number>) {
-  numbers.sort(subtractNumbers);
+  numbers = [...numbers].sort(subtractNumbers);
   const middleIndex = numbers.length >> 1;
   if (numbers.length % 2 == 0) {
     return (numbers[middleIndex - 1] + numbers[middleIndex]) * 0.5;

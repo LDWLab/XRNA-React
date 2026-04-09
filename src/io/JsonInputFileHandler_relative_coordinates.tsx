@@ -187,13 +187,13 @@ function parseBasePair(
       throw "No rnaMoleculeName2 was provided.";
     }
   }
-  const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
-  const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
   for (const rnaMoleculeName of [rnaMoleculeName0, rnaMoleculeName1]) {
     if (!(rnaMoleculeName in singularRnaComplexProps.rnaMoleculeProps)) {
       throw `RNA molecule "${rnaMoleculeName}" does not exist in the RNA complex.`;
     }
   }
+  const singularRnaMoleculeProps0 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName0];
+  const singularRnaMoleculeProps1 = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName1];
   let residueIndex1 = Number.parseInt(basePair.residueIndex1) - singularRnaMoleculeProps0.firstNucleotideIndex;
   let residueIndex2 = Number.parseInt(basePair.residueIndex2) - singularRnaMoleculeProps1.firstNucleotideIndex;
   insertBasePair(
@@ -413,7 +413,11 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
         if (!("residueIndex" in label)) {
           throw "Input label elements of input Json should have a \"residueIndex\" variable."
         }
-        let nucleotideProps = singularRnaMoleculeProps.nucleotideProps[Number.parseInt(label.residueIndex) - singularRnaMoleculeProps.firstNucleotideIndex];
+        const labelNucleotideIndex = Number.parseInt(label.residueIndex) - singularRnaMoleculeProps.firstNucleotideIndex;
+        let nucleotideProps = singularRnaMoleculeProps.nucleotideProps[labelNucleotideIndex];
+        if (nucleotideProps === undefined) {
+          throw `Label references residueIndex ${label.residueIndex}, but no nucleotide exists at that index.`;
+        }
         if ("labelContent" in label) {
           let font = structuredClone(parsedClassesForLabels.font);
           let color = structuredClone(parsedClassesForLabels.color);

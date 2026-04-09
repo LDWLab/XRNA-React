@@ -40,9 +40,11 @@ export function trFileWriter(
     x : (nucleotideBounds.x.min + nucleotideBounds.x.max) * 0.5,
     y : (nucleotideBounds.y.min + nucleotideBounds.y.max) * 0.5
   };
+  const xRange = nucleotideBounds.x.max - nucleotideBounds.x.min;
+  const yRange = nucleotideBounds.y.max - nucleotideBounds.y.min;
   const scaleX = Math.min(
-    (OUTPUT_BOUNDS.x.max - OUTPUT_BOUNDS.x.min) / (nucleotideBounds.x.max - nucleotideBounds.x.min),
-    (OUTPUT_BOUNDS.y.max - OUTPUT_BOUNDS.y.min) / (nucleotideBounds.y.max  - nucleotideBounds.y.min)
+    xRange > 0 ? (OUTPUT_BOUNDS.x.max - OUTPUT_BOUNDS.x.min) / xRange : 1,
+    yRange > 0 ? (OUTPUT_BOUNDS.y.max - OUTPUT_BOUNDS.y.min) / yRange : 1
   );
   const scaleY = -scaleX;
 
@@ -51,10 +53,10 @@ export function trFileWriter(
   for (let rnaComplexIndexAsString in rnaComplexProps) {
     const rnaComplexIndex = Number.parseInt(rnaComplexIndexAsString);
     const singularRnaComplexProps = rnaComplexProps[rnaComplexIndex];
-    lines.push(`<!-- <rnaComplex name="${singularRnaComplexProps.name.replace(`"`, `\\"`)}"> -->`);
+    lines.push(`<!-- <rnaComplex name="${singularRnaComplexProps.name.replaceAll(`"`, `\\"`)}"> -->`);
     const rnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps;
     for (let rnaMoleculeName in rnaMoleculeProps) {
-      lines.push(`<structure name="${rnaMoleculeName.replace(`"`, `\\"`)}">`);
+      lines.push(`<structure name="${rnaMoleculeName.replaceAll(`"`, `\\"`)}">`);
       const singularRnaMoleculeProps = rnaMoleculeProps[rnaMoleculeName];
       const nucleotideProps = singularRnaMoleculeProps.nucleotideProps;
       for (let nucleotideIndexAsString in nucleotideProps) {

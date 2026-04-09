@@ -149,7 +149,7 @@ export function fromCssString(
   colorFormat : ColorFormat = ColorFormat.RGB,
   handleUndefined : HandleUndefined = HandleUndefined.RETURN_BLACK
 ) : Color {
-  let match = /^rgb\((\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})\)$/.exec(cssString);
+  let match = /^rgb\((\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})\)$/i.exec(cssString);
   if (match !== null) {
     return {
       red : Number.parseInt(match[1]),
@@ -157,7 +157,7 @@ export function fromCssString(
       blue : Number.parseInt(match[3])
     };
   }
-  match = /^rgba\((\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)([\d\.]+)\)$/.exec(cssString);
+  match = /^rgba\((\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)([\d\.]+)\)$/i.exec(cssString);
   if (match !== null) {
     return {
       red : Number.parseInt(match[1]),
@@ -166,7 +166,7 @@ export function fromCssString(
       alpha : Number.parseFloat(match[4]) * 255
     };
   }
-  match = /^rgb\(([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)\)$/.exec(cssString);
+  match = /^rgb\(([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)\)$/i.exec(cssString);
   if (match !== null) {
     return {
       red : Number.parseFloat(match[1]),
@@ -174,7 +174,7 @@ export function fromCssString(
       blue : Number.parseFloat(match[3])
     };
   }
-  match = /^rgba\(([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)\)$/.exec(cssString);
+  match = /^rgba\(([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)(?:\s*,\s*|\s+)([\d\.]+)\)$/i.exec(cssString);
   if (match !== null) {
     return {
       red : Number.parseFloat(match[1]),
@@ -218,7 +218,7 @@ export function fromCssString(
       }
     }
   }
-  switch (cssString) {
+  switch (cssString.toLowerCase()) {
     case "none" : {
       return {
         red : 0,
@@ -486,6 +486,14 @@ export function fromCssString(
         blue : 11
       };
     }
+    case "darkgray" :
+    case "darkgrey" : {
+      return {
+        red : 169,
+        green : 169,
+        blue : 169
+      };
+    }
     case "darkgreen" : {
       return {
         red : 0,
@@ -523,6 +531,13 @@ export function fromCssString(
     }
     case "darkorchid" : {
       return {
+        red : 153,
+        green : 50,
+        blue : 204
+      };
+    }
+    case "darkred" : {
+      return {
         red : 139,
         green : 0,
         blue : 0
@@ -556,7 +571,7 @@ export function fromCssString(
         blue : 79
       };
     }
-    case "darkturqoise" : {
+    case "darkturquoise" :{
       return {
         red : 0,
         green : 206,
@@ -885,6 +900,7 @@ export function fromCssString(
         blue : 211
       };
     }
+    case "mediumpurple" :
     case "mediumpruple" : {
       return {
         red : 147,
@@ -1126,7 +1142,7 @@ export function fromCssString(
     case "sandybrown" : {
       return {
         red : 244,
-        green : 264,
+        green : 164,
         blue : 96
       };
     }

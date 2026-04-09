@@ -13,7 +13,7 @@ export function bpseqFileWriter(
     for (let rnaMoleculeName in singularRnaComplexProps.rnaMoleculeProps) {
       lines.push(`# RNA molecule "${rnaMoleculeName}"`);
       const singularRnaMoleculeProps = singularRnaComplexProps.rnaMoleculeProps[rnaMoleculeName];
-      const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
+      const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName] || {};
       for (let nucleotideIndexAsString in singularRnaMoleculeProps.nucleotideProps) {
         const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);
         const singularNucleotideProps = singularRnaMoleculeProps.nucleotideProps[nucleotideIndex];

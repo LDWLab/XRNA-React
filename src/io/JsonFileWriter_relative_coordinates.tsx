@@ -181,7 +181,7 @@ export const jsonFileWriter : OutputFileWriter = (rnaComplexProps : RnaComplexPr
           singularRnaMoleculeProps
         ]) {
           const outputBasePairsPerRnaMolecule = new Array<BasePairForJsonPerRnaMolecule>();
-          const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
+          const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName] || {};
           const flattenedBasePairsPerRnaMolecule = Object.entries(basePairsPerRnaMolecule);
           for (const [nucleotideIndexAsString, basePairsPerNucleotide] of flattenedBasePairsPerRnaMolecule) {
             const nucleotideIndex = Number.parseInt(nucleotideIndexAsString);

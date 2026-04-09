@@ -87,9 +87,11 @@ export function csvFileWriter(
       }
     }
   }
+  const xRange = nucleotideBounds.x.max - nucleotideBounds.x.min;
+  const yRange = nucleotideBounds.y.max - nucleotideBounds.y.min;
   const scaleX = Math.min(
-    (OUTPUT_BOUNDS.x.max - OUTPUT_BOUNDS.x.min) / (nucleotideBounds.x.max - nucleotideBounds.x.min),
-    (OUTPUT_BOUNDS.y.max - OUTPUT_BOUNDS.y.min) / (nucleotideBounds.y.max  - nucleotideBounds.y.min)
+    xRange > 0 ? (OUTPUT_BOUNDS.x.max - OUTPUT_BOUNDS.x.min) / xRange : 1,
+    yRange > 0 ? (OUTPUT_BOUNDS.y.max - OUTPUT_BOUNDS.y.min) / yRange : 1
   );
   const scaleY = -scaleX;
   const inputMidpoint = {

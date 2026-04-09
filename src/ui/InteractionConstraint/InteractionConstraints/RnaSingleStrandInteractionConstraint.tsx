@@ -506,7 +506,7 @@ export class RnaSingleStrandInteractionConstraint extends AbstractInteractionCon
               lowerBoundingNucleotidePosition,
               upperBoundingNucleotidePosition,
               function(angleTraversal) {
-                return angleTraversal < 0 !== clockwiseFlag;
+                return (angleTraversal < 0) !== clockwiseFlag;
               }
             ),
             boundingCircle : {

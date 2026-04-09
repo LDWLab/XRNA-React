@@ -136,7 +136,7 @@ export function xrnaFileWriter(
         }
       });
 
-      const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName];
+      const basePairsPerRnaMolecule = basePairsPerRnaComplex[rnaMoleculeName] || {};
       Object.entries(basePairsPerRnaMolecule).forEach(function([
         nucleotideIndexAsString,
         basePairsPerNucleotide
