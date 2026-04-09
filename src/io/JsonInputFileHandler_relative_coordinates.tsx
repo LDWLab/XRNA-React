@@ -299,11 +299,13 @@ export function jsonObjectHandler(parsedJson : any) : ParsedInputFile {
       });
       (inputRnaMolecule.sequence as Array<any>).forEach(inputSequenceEntry => {
         let nucleotideIndex = Number.parseInt(inputSequenceEntry.residueIndex) - singularRnaMoleculeProps.firstNucleotideIndex;
-        if (!Nucleotide.isSymbol(inputSequenceEntry.residueName)) {
+        const rawSymbol = inputSequenceEntry.residueName;
+        const sanitizedSymbol = Nucleotide.sanitizeSymbol(rawSymbol);
+        if (!Nucleotide.isSymbol(sanitizedSymbol)) {
           throw `Input sequence residueName "${inputSequenceEntry.residueName}" is not valid.`
         }
         let singularNucleotideProps : Nucleotide.ExternalProps = {
-          symbol : inputSequenceEntry.residueName as Nucleotide.Symbol,
+          symbol : sanitizedSymbol as Nucleotide.Symbol,
           x : Number.parseFloat(inputSequenceEntry.x),
           y : Number.parseFloat(inputSequenceEntry.y)
         };

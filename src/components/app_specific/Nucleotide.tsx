@@ -50,6 +50,7 @@ export namespace Nucleotide {
     a = "a",
     c = "c",
     g = "g",
+    u = "u",
     n = "n"
   };
   export const symbols = Object.values(Symbol);
