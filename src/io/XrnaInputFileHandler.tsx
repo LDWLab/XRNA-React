@@ -45,12 +45,20 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
     };
     switch (domElement.tagName) {
       case "ComplexDocument": {
-        output.complexDocumentName = domElement.getAttribute("Name") as string;
+        const complexDocumentName = domElement.getAttribute("Name");
+        if (complexDocumentName === null) {
+          throw new Error('This <ComplexDocument> is missing a required "Name" attribute.');
+        }
+        output.complexDocumentName = complexDocumentName;
         break;
       }
       case "Complex": {
+        const complexName = domElement.getAttribute("Name");
+        if (complexName === null) {
+          throw new Error('This <Complex> is missing a required "Name" attribute.');
+        }
         cache.singularRnaComplexProps = {
-          name : domElement.getAttribute("Name") as string,
+          name : complexName,
           rnaMoleculeProps : {},
           basePairs : {}
         };
@@ -58,13 +66,16 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
         break;
       }
       case "RNAMolecule": {
-        const name = domElement.getAttribute("Name") as string;
+        const rnaMolName = domElement.getAttribute("Name");
+        if (rnaMolName === null) {
+          throw new Error('This <RNAMolecule> is missing a required "Name" attribute.');
+        }
         cache.singularRnaMoleculeProps = {
           firstNucleotideIndex : 0,
           nucleotideProps : [],
         };
-        cache.rnaMoleculeName = name;
-        (cache.singularRnaComplexProps as RnaComplex.ExternalProps).rnaMoleculeProps[name] = cache.singularRnaMoleculeProps;
+        cache.rnaMoleculeName = rnaMolName;
+        (cache.singularRnaComplexProps as RnaComplex.ExternalProps).rnaMoleculeProps[rnaMolName] = cache.singularRnaMoleculeProps;
         break;
       }
       case "NucListData": {
@@ -79,7 +90,11 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
           singularRnaMoleculeProps.firstNucleotideIndex = firstNucleotideIndex;
         }
         let indexToDataTypeMap : Record<number, string> = {};
-        (domElement.getAttribute("DataType") as string).split(".").forEach(function(dataType : string, index : number) {
+        const dataTypeAttribute = domElement.getAttribute("DataType");
+        if (dataTypeAttribute === null) {
+          throw new Error('This <NucListData> is missing a required "DataType" attribute.');
+        }
+        dataTypeAttribute.split(".").forEach(function(dataType : string, index : number) {
           indexToDataTypeMap[index] = dataType;
         });
         let runningNucleotideIndex = 0;
@@ -168,18 +183,27 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
       }
       case "BasePairs": {
         let rnaMoleculeProps = cache.singularRnaMoleculeProps as RnaMolecule.ExternalProps;
-        let nucleotideIndexAttribute = domElement.getAttribute("nucID") as string;
+        let nucleotideIndexAttribute = domElement.getAttribute("nucID");
+        if (nucleotideIndexAttribute === null) {
+          throw new Error('This <BasePairs> is missing a required "nucID" attribute.');
+        }
         let nucleotideIndex = Number.parseInt(nucleotideIndexAttribute);
         if (Number.isNaN(nucleotideIndex)) {
           throw new Error(`This <BasePairs>.nucID is a non-integer: ${nucleotideIndexAttribute}`);
         }
         nucleotideIndex -= rnaMoleculeProps.firstNucleotideIndex;
-        let basePairNucleotideIndexAttribute = domElement.getAttribute("bpNucID") as string;
+        let basePairNucleotideIndexAttribute = domElement.getAttribute("bpNucID");
+        if (basePairNucleotideIndexAttribute === null) {
+          throw new Error('This <BasePairs> is missing a required "bpNucID" attribute.');
+        }
         let basePairNucleotideIndex = Number.parseInt(basePairNucleotideIndexAttribute);
         if (Number.isNaN(basePairNucleotideIndex)) {
           throw new Error(`This <BasePairs>.bpNucID is a non-integer: ${basePairNucleotideIndexAttribute}`);
         }
-        let lengthAttribute = domElement.getAttribute("length") as string;
+        let lengthAttribute = domElement.getAttribute("length");
+        if (lengthAttribute === null) {
+          throw new Error('This <BasePairs> is missing a required "length" attribute.');
+        }
         let length = Number.parseInt(lengthAttribute);
         if (Number.isNaN(length)) {
           throw new Error(`This <BasePairs>.length is a non-integer: ${lengthAttribute}`);
@@ -232,7 +256,7 @@ export const xrnaInputFileHandler : InputFileReader = function(inputFileContent 
         }
         let referencedNucleotideIndicesAttribute = domElement.getAttribute("RefIDs");
         if (referencedNucleotideIndicesAttribute !== null) {
-          let referencedNucleotideIndicesAttributeWithoutWhitespace = referencedNucleotideIndicesAttribute.replace(/\s+/, "");
+          let referencedNucleotideIndicesAttributeWithoutWhitespace = referencedNucleotideIndicesAttribute.replace(/\s+/g, "");
           if (!/^(-?\d+(--?\d+)?(,-?\d+(--?\d+)?)*)$/.test(referencedNucleotideIndicesAttributeWithoutWhitespace)) {
             throw new Error(`This <Nuc>.RefIDs attribute did not match the expected format: ${referencedNucleotideIndicesAttribute}`);
           }

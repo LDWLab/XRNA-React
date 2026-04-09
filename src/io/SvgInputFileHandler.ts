@@ -938,15 +938,11 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
           break;
         }
         case "text" : {
-          const requiredAttributes = {
-            textContent : svgElement.textContent
-          };
-          const textContent = (requiredAttributes.textContent as string).trim();
-          for (const [attributeName, attributeValue] of Object.entries(requiredAttributes)) {
-            if (attributeValue === null) {
-              throw `Required SVG attribute "${attributeName}" is missing.`;
-            }
+          const rawTextContent = svgElement.textContent;
+          if (rawTextContent === null) {
+            throw `Required SVG attribute "textContent" is missing.`;
           }
+          const textContent = rawTextContent.trim();
           const optionalAttributes = {
             transform : svgElement.getAttribute("transform"),
             x : svgElement.getAttribute("x"),
@@ -1006,11 +1002,12 @@ function parseSvgElement(svgElement : Element, cache : Cache, svgFileType : SvgF
               strokeWidth = Number.parseFloat(optionalAttributes.strokeWidth);
             }
           }
-          if (Nucleotide.isSymbol(textContent)) {
+          const sanitizedUnformattedTextContent = Nucleotide.sanitizeSymbol(textContent);
+          if (Nucleotide.isSymbol(sanitizedUnformattedTextContent)) {
             const singularNucleotideProps : Nucleotide.ExternalProps = {
               x,
               y,
-              symbol : textContent,
+              symbol : sanitizedUnformattedTextContent,
               color,
               strokeWidth,
               font
